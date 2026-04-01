@@ -91,6 +91,10 @@ export interface Control<V> {
   readonly fields: ControlFields<V>;
   readonly elements: ControlElements<V>;
 
+  // Snapshot structural reads (no lazy creation)
+  readonly fieldsNow: Record<string, Control<any>>;
+  readonly elementsNow: Control<any>[];
+
   // Subscriptions
   subscribe(
     listener: ChangeListenerFunc<V>,

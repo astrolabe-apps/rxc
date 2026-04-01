@@ -10,11 +10,11 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 |---|---|---|
 | `@rxc/controls-core` | `packages/controls-core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
 | `@rxc/controls` | `packages/controls` | React adapter: `controls()` wrapper, `ControlContextProvider`. Re-exports all of controls-core. |
-| `@rxc/forms-core` | `packages/forms-core` | Schema types (ControlDefinition, SchemaField) + FormStateNode. **Not yet implemented.** |
+| `@rxc/forms-core` | `packages/forms-core` | Minimal schema types (SchemaField, ControlDefinition) + FormStateNode + SchemaDataNode. Expression evaluation not yet migrated. |
 | `@rxc/forms` | `packages/forms` | Schema-driven rendering. **Not yet implemented — needs design doc first.** |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
-| `rxc-dev-app` | `apps/dev` | Next.js 16 playground (not published). |
+| `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Has simple form demo (`/`) and tree visualizer (`/tree`). |
 
 ## Commands
 
@@ -89,13 +89,34 @@ Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 - Component composition patterns (labels, layouts, adornments, visibility)
 - How form context flows to renderers (context vs props)
 
+## Completed
+
+### Phase 1–2: @rxc/controls-core + @rxc/controls
+
+Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteContext, computed/effect primitives, React `controls()` wrapper.
+
+### Phase 3a–3b: @rxc/forms-core (minimal schema types + FormStateNode)
+
+Migrated from the `astrolabe-common/controls-api/src/lib/form/` POC:
+- Minimal `SchemaField`, `ControlDefinition` types (subset — just enough for FormStateNode, not the full canonical types yet)
+- `SchemaDataNode` with field path resolution and type discriminator support
+- `FormStateNode` with computed visibility/disabled/readonly cascading, data sync effects, required validation, default values, child lifecycle
+
+### Phase 6 (partial): Dev app
+
+Both POC examples ported to `apps/dev/`:
+- `/` — Simple form demo (validation, dirty/clean, submit/reset)
+- `/tree` — 3-panel tree visualizer (FormStateNode-driven form, state tree inspector, raw control tree)
+
 ## Next steps
 
-### Phase 3: @rxc/forms-core
+### Phase 3a (full): Canonical schema types
 
-1. **3a: Schema types** — Migrate ControlDefinition, SchemaField, and all subtypes from `astrolabe-common/forms/core/src/`. These define the JSON wire format and must be preserved exactly.
-2. **3b: FormStateNode** — Migrate from `astrolabe-common/controls-api/src/lib/form/` (the POC implementation with tests).
-3. **3c: Expression evaluation** — Migrate `evalExpression.ts` from `astrolabe-common/forms/core/src/`. Add `jsonata` as a direct dependency.
+Migrate the full `ControlDefinition`, `SchemaField`, and all subtypes from `astrolabe-common/forms/core/src/controlDefinition.ts` and `schemaField.ts`. The current types in forms-core are a minimal subset — the full types define the JSON wire format and must match the C# server exactly.
+
+### Phase 3c: Expression evaluation
+
+Migrate `evalExpression.ts` from `astrolabe-common/forms/core/src/`. Add `jsonata` as a direct dependency. This enables dynamic property expressions in ControlDefinition (visibility, disabled, etc. driven by data expressions).
 
 ### Phase 4: @rxc/forms (renderer redesign)
 
@@ -109,10 +130,6 @@ Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key qu
 
 - `@rxc/compat-controls` — Monkey-patches `Control.prototype` to restore `.value`, `.touched` getters, `useControl()` hook, `Finput`/`Fselect`/`Fcheckbox` components, global transaction machinery.
 - `@rxc/compat-forms` — Wraps `@rxc/forms` with the old `createFormRenderer()` / `FormRenderer` interface.
-
-### Phase 6: Dev app
-
-Copy the tree visualizer and form demo from `astrolabe-common/controls-api/src/app/` into `apps/dev/`.
 
 ## Testing
 
