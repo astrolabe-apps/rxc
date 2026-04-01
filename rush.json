@@ -1,0 +1,44 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/rush/v5/rush.schema.json",
+  "rushVersion": "5.162.0",
+  "pnpmVersion": "9.15.9",
+  "nodeSupportedVersionRange": ">=20.0.0",
+  "projectFolderMaxDepth": 3,
+  "projects": [
+    {
+      "packageName": "@rxc/controls-core",
+      "projectFolder": "packages/controls-core",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "@rxc/controls",
+      "projectFolder": "packages/controls",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "@rxc/forms-core",
+      "projectFolder": "packages/forms-core",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "@rxc/forms",
+      "projectFolder": "packages/forms",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "@rxc/compat-controls",
+      "projectFolder": "packages/compat-controls",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "@rxc/compat-forms",
+      "projectFolder": "packages/compat-forms",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "rxc-dev-app",
+      "projectFolder": "apps/dev",
+      "shouldPublish": false
+    }
+  ]
+}

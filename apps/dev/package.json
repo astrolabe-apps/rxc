@@ -1,0 +1,24 @@
+{
+  "name": "rxc-dev-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build"
+  },
+  "dependencies": {
+    "@rxc/controls-core": "workspace:*",
+    "@rxc/controls": "workspace:*",
+    "@rxc/forms-core": "workspace:*",
+    "@rxc/forms": "workspace:*",
+    "next": "~16.1.0",
+    "react": "~19.1.0",
+    "react-dom": "~19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "~22.15.0",
+    "@types/react": "~19.1.0",
+    "typescript": "~5.8.0"
+  }
+}

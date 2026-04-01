@@ -1,0 +1,28 @@
+{
+  "name": "@rxc/forms-core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@rxc/controls-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

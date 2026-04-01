@@ -1,0 +1,30 @@
+{
+  "name": "@rxc/controls-core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./internal": {
+      "types": "./lib/internal.d.ts",
+      "default": "./lib/internal.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0",
+    "fast-check": "~4.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
