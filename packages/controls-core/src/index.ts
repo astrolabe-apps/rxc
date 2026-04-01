@@ -31,6 +31,7 @@ export {
 } from "./computed";
 
 export {
+  ensureMetaValue,
   lookupControl,
   getControlPath,
   getElementIndex,

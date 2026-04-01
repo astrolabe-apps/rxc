@@ -13,9 +13,17 @@ import {
   createSchemaDataNode,
   ControlDefinitionType,
   FieldType,
+  isDataControl,
+  isGroupControl,
+  fieldPathForDefinition,
+  dataControl,
+  compoundControl,
+  groupedControl, createSchemaTree,
 } from "@rxc/forms-core";
 import type {
+  CompoundField,
   ControlDefinition,
+  GroupedControlsDefinition,
   SchemaField,
   FormStateNode,
   FormGlobalOptions,
@@ -94,7 +102,7 @@ const FormDataField = controls(function FormDataField(
       {def.title && (
         <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
           {def.title}
-          {def.required && <span className="text-red-400 ml-0.5">*</span>}
+          {isDataControl(def) && def.required && <span className="text-red-400 ml-0.5">*</span>}
           {readonly && (
             <span className="ml-1 text-[10px] text-orange-500">(readonly)</span>
           )}
@@ -112,7 +120,7 @@ const FormDataField = controls(function FormDataField(
         onChange={(e) => {
           const raw = e.target.value;
           const newVal =
-            dataNode.schema.type === FieldType.Int ? Number(raw) || 0 : raw;
+            dataNode.schema.fieldNow.type === FieldType.Int ? Number(raw) || 0 : raw;
           update((wc) => wc.setValue(dataNode.control, newVal));
         }}
         onBlur={() =>
@@ -138,7 +146,7 @@ const FormGroupField = controls(function FormGroupField(
 
   return (
     <fieldset
-      className={`${def.compoundField ? "border border-zinc-200 dark:border-zinc-700 rounded p-3" : ""}`}
+      className="border border-zinc-200 dark:border-zinc-700 rounded p-3"
     >
       {def.title && (
         <legend className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 px-1">
@@ -154,16 +162,16 @@ const FormGroupField = controls(function FormGroupField(
   );
 });
 
-function FormNodeRenderer({ node }: { node: FormStateNode }) {
+const FormNodeRenderer = controls<{ node: FormStateNode }>(({ node }, {rc}) => {
   const def = node.definition;
-  if (def.type === ControlDefinitionType.Group) {
+  if (node.getChildren(rc).length > 0) {
     return <FormGroupField node={node} />;
   }
   if (def.type === ControlDefinitionType.Data) {
     return <FormDataField node={node} />;
   }
   return null;
-}
+});
 
 // ── Raw control tree inspector ──────────────────────────────────────
 
@@ -351,9 +359,9 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
       >
         {def.type}
       </Badge>
-      {(def.field || def.compoundField) && (
+      {fieldPathForDefinition(def) && (
         <span className="text-zinc-900 dark:text-zinc-100">
-          {def.field ?? def.compoundField}
+          {fieldPathForDefinition(def)?.join("/")}
         </span>
       )}
       {def.title && (
@@ -429,9 +437,9 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
         >
           {def.type}
         </Badge>
-        {(def.field || def.compoundField) && (
+        {fieldPathForDefinition(def) && (
           <span className="text-zinc-900 dark:text-zinc-100">
-            {def.field ?? def.compoundField}
+            {fieldPathForDefinition(def)?.join("/")}
           </span>
         )}
         {def.title && (
@@ -493,7 +501,7 @@ function FormStateNodeRenderer({
 
 // ── Demo scenario ────────────────────────────────────────────────────
 
-function personSchema(): SchemaField {
+function personSchema(): CompoundField {
   return {
     type: FieldType.Compound,
     field: "",
@@ -511,85 +519,29 @@ function personSchema(): SchemaField {
           { type: FieldType.String, field: "city" },
           { type: FieldType.String, field: "zip" },
         ],
-      },
+      } as CompoundField,
       { type: FieldType.String, field: "company", onlyForTypes: ["business"] },
     ],
   };
 }
 
-function personFormDef(): ControlDefinition {
-  return {
-    type: ControlDefinitionType.Group,
-    title: "Person Form",
-    hidden: false,
-    children: [
-      {
-        type: ControlDefinitionType.Data,
-        field: "type",
-        title: "Type (personal / business)",
-        hidden: false,
-      },
-      {
-        type: ControlDefinitionType.Data,
-        field: "firstName",
-        title: "First Name",
-        required: true,
-        hidden: false,
-      },
-      {
-        type: ControlDefinitionType.Data,
-        field: "lastName",
-        title: "Last Name",
-        hidden: false,
-      },
-      {
-        type: ControlDefinitionType.Data,
-        field: "email",
-        title: "Email",
-        required: true,
-        hidden: false,
-      },
-      {
-        type: ControlDefinitionType.Data,
-        field: "age",
-        title: "Age",
-        hidden: false,
-      },
-      {
-        type: ControlDefinitionType.Group,
-        compoundField: "address",
-        title: "Address",
-        hidden: false,
-        children: [
-          {
-            type: ControlDefinitionType.Data,
-            field: "street",
-            title: "Street",
-            hidden: false,
-          },
-          {
-            type: ControlDefinitionType.Data,
-            field: "city",
-            title: "City",
-            required: true,
-            hidden: false,
-          },
-          {
-            type: ControlDefinitionType.Data,
-            field: "zip",
-            title: "ZIP",
-            hidden: false,
-          },
-        ],
-      },
-      {
-        type: ControlDefinitionType.Data,
-        field: "company",
-        title: "Company (business only)",
-        hidden: false,
-      },
+function personFormDef(): GroupedControlsDefinition {
+  return groupedControl(
+    [
+      dataControl("type", "Type (personal / business)"),
+      dataControl("firstName", "First Name", { required: true }),
+      dataControl("lastName", "Last Name"),
+      dataControl("email", "Email", { required: true }),
+      dataControl("age", "Age"),
+      compoundControl("address", "Address", [
+        dataControl("street", "Street"),
+        dataControl("city", "City", { required: true }),
+        dataControl("zip", "ZIP"),
+      ]),
+      dataControl("company", "Company (business only)"),
     ],
-  };
+    "Person Form",
+  );
 }
 
 const controlContext = createControlContext();
@@ -614,7 +566,7 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       ctx: controlContext,
       clearHidden: true,
     };
-    const dataNode = createSchemaDataNode(personSchema(), rootControl);
+    const dataNode = createSchemaDataNode(createSchemaTree(personSchema().children).rootNode, rootControl);
     const formNode = createFormStateNode(personFormDef(), dataNode, globals);
     stateRef.current = { rootControl, formNode };
   }

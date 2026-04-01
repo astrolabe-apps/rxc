@@ -1,5 +1,5 @@
 import { toImpl } from "./controlImpl";
-import type { Control } from "./types";
+import type { Control, ControlSetup } from "./types";
 
 export function lookupControl(
   control: Control<any>,
@@ -33,6 +33,23 @@ export function getControlPath(
     current = parent.control;
   }
   return path.reverse();
+}
+
+/**
+ * Lazily initializes and returns a named value in a control's meta bag.
+ * The `init` callback receives a `newControl` function for creating controls.
+ */
+export function ensureMetaValue<V>(
+  control: Control<any>,
+  key: string,
+  init: (newControl: <T>(value: T, setup?: ControlSetup<T>) => Control<T>) => V,
+): V {
+  const meta = control.meta;
+  if (key in meta) return meta[key] as V;
+  const impl = toImpl(control);
+  const value = init((v, s) => impl._ctx.newControl(v, s));
+  meta[key] = value;
+  return value;
 }
 
 export function getElementIndex<V>(

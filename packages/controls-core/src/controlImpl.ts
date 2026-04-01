@@ -4,6 +4,7 @@ import type {
   Control,
   ControlElements,
   ControlFields,
+  ControlSetup,
   ChangeListenerFunc,
   Subscription,
   WriteContext,
@@ -31,6 +32,7 @@ export interface ParentLink {
 
 export interface ControlContextInternal {
   equals: (a: unknown, b: unknown) => boolean;
+  newControl: <V>(value: V, setup?: ControlSetup<V>) => Control<V>;
   createChild: (
     value: unknown,
     initialValue: unknown,

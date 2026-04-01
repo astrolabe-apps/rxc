@@ -67,6 +67,7 @@ class ControlContextImpl implements ControlContext {
     const self = this;
     return {
       equals: this.equals,
+      newControl: (value, setup?) => this.newControl(value, setup),
       createChild(value, initialValue, flags, fieldKey?) {
         const fieldSetup = fieldKey ? (setup?.fields as any)?.[fieldKey] : setup?.elems;
         const childCtx = self.buildChildContext(fieldSetup);

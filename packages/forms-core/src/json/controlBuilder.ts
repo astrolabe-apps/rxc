@@ -1,0 +1,236 @@
+import {
+  ControlAdornmentType,
+  ControlDefinitionType,
+  DataRenderType,
+  DisplayDataType,
+  DynamicPropertyType,
+  GroupRenderType,
+} from "./controlDefinition";
+import type {
+  AccordionAdornment,
+  ActionControlDefinition,
+  AutocompleteRenderOptions,
+  CheckListRenderOptions,
+  ControlDefinition,
+  DataControlDefinition,
+  DisplayControlDefinition,
+  DisplayOnlyRenderOptions,
+  DynamicProperty,
+  GroupedControlsDefinition,
+  HtmlDisplay,
+  JsonataRenderOptions,
+  RadioButtonRenderOptions,
+  RenderOptions,
+  TextDisplay,
+  TextfieldRenderOptions,
+} from "./controlDefinition";
+import { ValidatorType } from "./schemaValidator";
+import type {
+  DateValidator,
+  JsonataValidator,
+  LengthValidator,
+} from "./schemaValidator";
+import { ExpressionType } from "./entityExpression";
+import type {
+  DataExpression,
+  DataMatchExpression,
+  EntityExpression,
+  JsonataExpression,
+  NotEmptyExpression,
+  NotExpression,
+} from "./entityExpression";
+
+export function dataControl(
+  field: string,
+  title?: string | null,
+  options?: Partial<DataControlDefinition>,
+): DataControlDefinition {
+  return { type: ControlDefinitionType.Data, field, title, ...options };
+}
+
+export function validatorOptions<A extends { type: string }>(
+  type: ValidatorType,
+): (options: Omit<A, "type">) => A {
+  return (o) => ({ type, ...o }) as A;
+}
+
+export function adornmentOptions<A extends { type: string }>(
+  type: ControlAdornmentType,
+): (options: Omit<A, "type">) => A {
+  return (o) => ({ type, ...o }) as A;
+}
+
+export function renderOptionsFor<A extends RenderOptions>(
+  type: DataRenderType,
+): (options: Omit<A, "type">) => { renderOptions: A } {
+  return (o) => ({ renderOptions: { type, ...o } as A });
+}
+
+export const autocompleteOptions = renderOptionsFor<AutocompleteRenderOptions>(
+  DataRenderType.Autocomplete,
+);
+
+export const checkListOptions = renderOptionsFor<CheckListRenderOptions>(
+  DataRenderType.CheckList,
+);
+
+export const radioButtonOptions = renderOptionsFor<RadioButtonRenderOptions>(
+  DataRenderType.Radio,
+);
+
+export const lengthValidatorOptions = validatorOptions<LengthValidator>(
+  ValidatorType.Length,
+);
+
+export const jsonataValidatorOptions = validatorOptions<JsonataValidator>(
+  ValidatorType.Jsonata,
+);
+
+export const dateValidatorOptions = validatorOptions<DateValidator>(
+  ValidatorType.Date,
+);
+
+export const accordionOptions = adornmentOptions<AccordionAdornment>(
+  ControlAdornmentType.Accordion,
+);
+
+export const textfieldOptions = renderOptionsFor<TextfieldRenderOptions>(
+  DataRenderType.Textfield,
+);
+
+export const displayOnlyOptions = renderOptionsFor<DisplayOnlyRenderOptions>(
+  DataRenderType.DisplayOnly,
+);
+
+export const jsonataOptions = renderOptionsFor<JsonataRenderOptions>(
+  DataRenderType.Jsonata,
+);
+
+export function textDisplayControl(
+  text: string,
+  options?: Partial<DisplayControlDefinition>,
+): DisplayControlDefinition {
+  return {
+    type: ControlDefinitionType.Display,
+    displayData: { type: DisplayDataType.Text, text } as TextDisplay,
+    ...options,
+  };
+}
+
+export function htmlDisplayControl(
+  html: string,
+  options?: Partial<DisplayControlDefinition>,
+): DisplayControlDefinition {
+  return {
+    type: ControlDefinitionType.Display,
+    displayData: { type: DisplayDataType.Html, html } as HtmlDisplay,
+    ...options,
+  };
+}
+
+/** @deprecated Use withScripts(def, { defaultValue: expr }) instead */
+export function dynamicDefaultValue(expr: EntityExpression): DynamicProperty {
+  return { type: DynamicPropertyType.DefaultValue, expr };
+}
+
+/** @deprecated Use withScripts(def, { readonly: expr }) instead */
+export function dynamicReadonly(expr: EntityExpression): DynamicProperty {
+  return { type: DynamicPropertyType.Readonly, expr };
+}
+
+/** @deprecated Use withScripts(def, { hidden: notExpr(expr) }) instead */
+export function dynamicVisibility(expr: EntityExpression): DynamicProperty {
+  return { type: DynamicPropertyType.Visible, expr };
+}
+
+/** @deprecated Use withScripts(def, { disabled: expr }) instead */
+export function dynamicDisabled(expr: EntityExpression): DynamicProperty {
+  return { type: DynamicPropertyType.Disabled, expr };
+}
+
+export function dataExpr(field: string): DataExpression {
+  return { type: ExpressionType.Data, field };
+}
+
+/**
+ * @deprecated Use dataExpr
+ */
+export const fieldExpr = dataExpr;
+
+/**
+ * @deprecated Use dataMatchExpr
+ */
+export const fieldEqExpr = dataMatchExpr;
+
+export const uuidExpr = { type: ExpressionType.UUID };
+export function dataMatchExpr(field: string, value: any): DataMatchExpression {
+  return { type: ExpressionType.DataMatch, field, value };
+}
+
+export function notEmptyExpr(
+  field: string,
+  empty?: boolean,
+): NotEmptyExpression {
+  return { type: ExpressionType.NotEmpty, field, empty };
+}
+export function jsonataExpr(expression: string): JsonataExpression {
+  return { type: ExpressionType.Jsonata, expression };
+}
+
+export function groupedControl(
+  children: ControlDefinition[],
+  title?: string,
+  options?: Partial<GroupedControlsDefinition>,
+): GroupedControlsDefinition {
+  return {
+    type: ControlDefinitionType.Group,
+    children,
+    title,
+    groupOptions: { type: "Standard", hideTitle: !title },
+    ...options,
+  };
+}
+export function compoundControl(
+  field: string,
+  title: string | undefined | null,
+  children: ControlDefinition[],
+  options?: Partial<DataControlDefinition>,
+): DataControlDefinition {
+  return {
+    type: ControlDefinitionType.Data,
+    field,
+    children,
+    title,
+    renderOptions: { type: "Standard" },
+    ...options,
+  };
+}
+
+export function actionControl(
+  actionText: string,
+  actionId: string,
+  options?: Partial<ActionControlDefinition>,
+): ActionControlDefinition {
+  return {
+    type: ControlDefinitionType.Action,
+    title: actionText,
+    actionId,
+    ...options,
+  };
+}
+export const emptyGroupDefinition: GroupedControlsDefinition = {
+  type: ControlDefinitionType.Group,
+  children: [],
+  groupOptions: { type: GroupRenderType.Standard, hideTitle: true },
+};
+
+export function notExpr(innerExpression: EntityExpression): NotExpression {
+  return { type: ExpressionType.Not, innerExpression };
+}
+
+export function withScripts<T extends ControlDefinition>(
+  def: T,
+  scripts: Record<string, EntityExpression>,
+): T {
+  return { ...def, ["$scripts"]: scripts } as T;
+}

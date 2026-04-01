@@ -6,14 +6,19 @@ import type {
 import { computed, effect } from "@rxc/controls-core";
 import {
   ControlDefinitionType,
-  type ControlDefinition,
-  type FormGlobalOptions,
-  type FormNodeOptions,
-  type FormStateNode,
-  type FormStateNodeState,
-  type SchemaDataNode,
+  getDisplayOnlyOptions,
+  isDataControl,
+  isGroupControl,
+} from "./json/controlDefinition";
+import type { ControlDefinition, DataControlDefinition } from "./json/controlDefinition";
+import type {
+  FormGlobalOptions,
+  FormNodeOptions,
+  FormStateNode,
+  FormStateNodeState,
 } from "./types";
-import { resolveFieldPath, isValidDataNode } from "./schemaDataNode";
+import { SchemaDataNode, schemaDataForFieldRef } from "./schemaDataNode";
+import { isCompoundField } from "./json/schemaField";
 
 interface Cleanupable {
   cleanup(): void;
@@ -59,19 +64,18 @@ class FormStateNodeImpl implements FormStateNode {
 
   private initDataNode(ctx: ControlContext) {
     const def = this.definition;
-    const fieldPath =
-      def.type === ControlDefinitionType.Data
-        ? def.field
-        : def.type === ControlDefinitionType.Group
-          ? def.compoundField
-          : undefined;
+    const fieldPath = isDataControl(def)
+      ? def.field
+      : isGroupControl(def)
+        ? def.compoundField
+        : undefined;
 
     if (fieldPath) {
       const dataNodeControl = this.stateControl.fields
         .dataNode as Control<any>;
       this.effects.push(
-        computed(ctx, dataNodeControl, () =>
-          resolveFieldPath(fieldPath, this.parent),
+        computed(ctx, dataNodeControl, (rc) =>
+          schemaDataForFieldRef(rc, fieldPath, this.parent),
         ),
       );
     }
@@ -89,7 +93,7 @@ class FormStateNodeImpl implements FormStateNode {
           if (parentVisible === false) return false;
         }
         const dn = rc.getValue(this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>);
-        if (dn && !isValidDataNode(dn, rc)) return false;
+        if (dn && (!isValidDataNode(dn, rc) || hideDisplayOnly(dn, rc, this.definition, this.globals))) return false;
         return this.definition.hidden == null
           ? null
           : !this.definition.hidden;
@@ -202,11 +206,8 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   private initValidation(ctx: ControlContext) {
-    if (
-      this.definition.type !== ControlDefinitionType.Data ||
-      !this.definition.required
-    )
-      return;
+    if (!isDataControl(this.definition) || !this.definition.required) return;
+    const dataDef = this.definition;
 
     const isEmptyValue =
       this.globals.isEmptyValue ?? ((_, v) => v == null || v === "");
@@ -223,7 +224,7 @@ class FormStateNodeImpl implements FormStateNode {
         );
         if (!visible || !dn) return;
         const value = rc.getValue(dn.control);
-        const error = isEmptyValue(dn.schema, value)
+        const error = isEmptyValue(dn.schema.getField(rc), value)
           ? "This field is required"
           : undefined;
         ctx.update((wc) => wc.setError(dn.control, "default", error));
@@ -232,7 +233,8 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   private initDefaultValue(ctx: ControlContext) {
-    if (this.definition.type !== ControlDefinitionType.Data) return;
+    if (!isDataControl(this.definition)) return;
+    const dataDef = this.definition;
 
     this.effects.push(
       effect(ctx, (rc) => {
@@ -249,19 +251,16 @@ class FormStateNodeImpl implements FormStateNode {
         const value = rc.getValue(dn.control);
 
         if (visible === false) {
-          if (
-            this.globals.clearHidden &&
-            !this.definition.dontClearHidden
-          ) {
+          if (this.globals.clearHidden && !dataDef.dontClearHidden) {
             ctx.update((wc) => wc.setValue(dn.control, undefined));
           }
         } else if (
           visible &&
           value === undefined &&
-          this.definition.defaultValue != null
+          dataDef.defaultValue != null
         ) {
           ctx.update((wc) =>
-            wc.setValue(dn.control, this.definition.defaultValue),
+            wc.setValue(dn.control, dataDef.defaultValue),
           );
         }
       }),
@@ -337,7 +336,12 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   private childKey(def: ControlDefinition, index: number): string {
-    return def.field ?? def.compoundField ?? `child_${index}`;
+    const field = isDataControl(def)
+      ? def.field
+      : isGroupControl(def)
+        ? def.compoundField
+        : undefined;
+    return field ?? `child_${index}`;
   }
 
   getDefinition(_rc: ReadContext): ControlDefinition {
@@ -370,6 +374,42 @@ class FormStateNodeImpl implements FormStateNode {
     }
     this.childEntries = [];
   }
+}
+
+function isValidDataNode(
+  dataNode: SchemaDataNode,
+  rc: ReadContext,
+): boolean {
+  const parent = dataNode.parent;
+  if (!parent) return true;
+  const field = dataNode.schema.getField(rc);
+  const types = field.onlyForTypes;
+  if (!types || types.length === 0) return true;
+
+  const parentField = parent.schema.getField(rc);
+  if (!isCompoundField(parentField)) return true;
+  const typeField = parentField.children.find((f) => f.isTypeField);
+  if (!typeField) return true;
+
+  const typeControl = (
+    parent.control as Control<Record<string, unknown>>
+  ).fields[typeField.field] as Control<string | undefined>;
+  const typeValue = rc.getValue(typeControl);
+  return typeValue != null && types.includes(typeValue);
+}
+
+function hideDisplayOnly(
+  context: SchemaDataNode,
+  rc: ReadContext,
+  definition: ControlDefinition,
+  globals: FormGlobalOptions,
+): boolean {
+  const displayOptions = getDisplayOnlyOptions(definition);
+  if (!displayOptions || displayOptions.emptyText) return false;
+  const isEmptyValue =
+    globals.isEmptyValue ?? ((_, v) => v == null || v === "");
+  const value = rc.getValue(context.control);
+  return isEmptyValue(context.schema.getField(rc), value);
 }
 
 export function createFormStateNode(

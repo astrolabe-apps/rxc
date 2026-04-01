@@ -1,76 +1,215 @@
-import type { Control, ReadContext } from "@rxc/controls-core";
-import type { SchemaDataNode, SchemaField } from "./types";
-import { FieldType, isCompoundField } from "./types";
+import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
+import { ensureMetaValue } from "@rxc/controls-core";
+import { resolveSchemaNode, SchemaNode } from "./schemaNode";
+import type { SchemaField } from "./json/schemaField";
 
-export function createSchemaDataNode(
-  schema: SchemaField,
-  control: Control<any>,
-  parent?: SchemaDataNode,
-  elementIndex?: number,
-): SchemaDataNode {
-  const node: SchemaDataNode = {
-    schema,
-    control,
-    parent,
-    elementIndex,
-    getChild(field: string): SchemaDataNode {
-      const childField = isCompoundField(schema)
-        ? schema.children.find((f) => f.field === field)
-        : undefined;
-      const resolvedField: SchemaField = childField ?? {
-        type: FieldType.Any,
-        field,
-      };
-      const childControl = (control as Control<Record<string, unknown>>).fields[
-        field
-      ] as Control<any>;
-      return createSchemaDataNode(resolvedField, childControl, node);
-    },
-    getChildElement(index: number): SchemaDataNode {
-      const elemControl = (control as Control<unknown[]>).elements[
-        index
-      ] as Control<any>;
-      return createSchemaDataNode(schema, elemControl, node, index);
-    },
-  };
-  return node;
+
+export abstract class SchemaDataTree {
+  abstract rootNode: SchemaDataNode;
+
+  abstract getChild(rc: ReadContext, parent: SchemaDataNode, child: SchemaNode): SchemaDataNode;
+
+  abstract getChildElement(
+    parent: SchemaDataNode,
+    elementIndex: number,
+  ): SchemaDataNode;
 }
 
-export function resolveFieldPath(
-  path: string,
+export class SchemaDataNode {
+  constructor(
+    public id: string,
+    public schema: SchemaNode,
+    public elementIndex: number | undefined,
+    public control: Control<any>,
+    public tree: SchemaDataTree,
+    public parent?: SchemaDataNode,
+  ) {}
+
+  getChild(rc: ReadContext, childNode: SchemaNode): SchemaDataNode {
+    return this.tree.getChild(rc, this, childNode);
+  }
+
+  getChildElement(elementIndex: number): SchemaDataNode {
+    return this.tree.getChildElement(this, elementIndex);
+  }
+}
+
+export function getMetaFields<
+  T extends Record<string, any> = Record<string, unknown>,
+>(control: Control<any>): Control<T> {
+  return ensureMetaValue(
+    control,
+    "metaFields",
+    (newControl) => newControl({}) as Control<T>,
+  );
+}
+export class SchemaDataTreeImpl extends SchemaDataTree {
+  rootNode: SchemaDataNode;
+
+  constructor(rootSchema: SchemaNode, rootControl: Control<any>) {
+    super();
+    this.rootNode = new SchemaDataNode(
+      "",
+      rootSchema,
+      undefined,
+      rootControl,
+      this,
+    );
+  }
+
+  getChild(rc: ReadContext, parent: SchemaDataNode, childNode: SchemaNode): SchemaDataNode {
+    let objControl = parent.control as Control<Record<string, unknown>>;
+    const field = childNode.getField(rc);
+    if (field.meta) {
+      objControl = getMetaFields(objControl);
+    }
+    const child = objControl.fields[field.field];
+    return new SchemaDataNode(
+      child.uniqueId.toString(),
+      childNode,
+      undefined,
+      child,
+      this,
+      parent,
+    );
+  }
+
+  getChildElement(
+    parent: SchemaDataNode,
+    elementIndex: number,
+  ): SchemaDataNode {
+    const elemControl = parent.control as Control<unknown[]>;
+    const elemChild = elemControl.elements[elementIndex];
+    return new SchemaDataNode(
+      elemChild.uniqueId.toString() + "_" + elementIndex,
+      parent.schema,
+      elementIndex,
+      elemChild,
+      this,
+      parent,
+    );
+  }
+}
+
+export class IsolatedSchemaDataTree extends SchemaDataTree {
+  rootNode: SchemaDataNode;
+
+  constructor(rootSchema: SchemaNode, private ctx: ControlContext) {
+    super();
+    this.rootNode = new SchemaDataNode(
+      "",
+      rootSchema,
+      undefined,
+      ctx.newControl({}),
+      this,
+    );
+  }
+
+  getChild(rc: ReadContext, parent: SchemaDataNode, childNode: SchemaNode): SchemaDataNode {
+    return new SchemaDataNode(
+      parent.id + "/" + childNode.getField(rc).field,
+      childNode,
+      undefined,
+      this.ctx.newControl(undefined),
+      this,
+      parent,
+    );
+  }
+
+  getChildElement(
+    parent: SchemaDataNode,
+    elementIndex: number,
+  ): SchemaDataNode {
+    return new SchemaDataNode(
+      parent.id + "_" + elementIndex,
+      parent.schema,
+      elementIndex,
+      this.ctx.newControl(undefined),
+      this,
+      parent,
+    );
+  }
+}
+
+/**
+ * @deprecated Use createSchemaDataNode instead.
+ */
+export const makeSchemaDataNode = createSchemaDataNode;
+
+export function createSchemaDataNode(
+  schema: SchemaNode,
+  control: Control<unknown>,
+): SchemaDataNode {
+  return new SchemaDataTreeImpl(schema, control).rootNode;
+}
+
+export function schemaDataForFieldRef(
+  rc: ReadContext,
+  fieldRef: string | undefined,
+  schema: SchemaDataNode,
+): SchemaDataNode | undefined {
+  return schemaDataForFieldPath(rc, fieldRef?.split("/") ?? [], schema);
+}
+
+export function schemaDataForFieldPath(
+  rc: ReadContext,
+  fieldPath: string[],
   dataNode: SchemaDataNode,
 ): SchemaDataNode | undefined {
-  const segments = path.split("/");
+  let i = 0;
   let current: SchemaDataNode | undefined = dataNode;
-  for (const seg of segments) {
+  while (i < fieldPath.length) {
     if (!current) return undefined;
-    if (seg === "..") {
+    const nextField = fieldPath[i];
+    if (nextField === "..") {
       current = current.parent;
-    } else if (seg === ".") {
+    } else if (nextField === ".") {
       // stay
     } else {
-      current = current.getChild(seg);
+      const childNode = resolveSchemaNode(rc, current.schema, nextField);
+      current = childNode ? current.getChild(rc, childNode) : undefined;
     }
+    i++;
   }
   return current;
 }
 
-export function isValidDataNode(
-  dataNode: SchemaDataNode,
-  rc?: ReadContext,
-): boolean {
-  const parent = dataNode.parent;
-  if (!parent) return true;
-  const types = dataNode.schema.onlyForTypes;
-  if (!types || types.length === 0) return true;
+export function traverseParents<A, B extends { parent?: B | undefined }>(
+  current: B | undefined,
+  get: (b: B) => A,
+  until?: (b: B) => boolean,
+): A[] {
+  let outArray: A[] = [];
+  while (current && !until?.(current)) {
+    outArray.push(get(current));
+    current = current.parent;
+  }
+  return outArray.reverse();
+}
 
-  if (!isCompoundField(parent.schema)) return true;
-  const typeField = parent.schema.children.find((f) => f.isTypeField);
-  if (!typeField) return true;
+export function getRootDataNode(dataNode: SchemaDataNode) {
+  while (dataNode.parent) {
+    dataNode = dataNode.parent;
+  }
+  return dataNode;
+}
 
-  const typeControl = (
-    parent.control as Control<Record<string, unknown>>
-  ).fields[typeField.field] as Control<string | undefined>;
-  const typeValue = rc ? rc.getValue(typeControl) : typeControl.valueNow;
-  return typeValue != null && types.includes(typeValue);
+export function getJsonPath(rc: ReadContext, dataNode: SchemaDataNode) {
+  return traverseParents(
+    dataNode,
+    (d) => (d.elementIndex == null ? d.schema.getField(rc).field : d.elementIndex),
+    (x) => !x.parent,
+  );
+}
+
+export function getSchemaPath(rc: ReadContext, schemaNode: SchemaNode): SchemaField[] {
+  return traverseParents(
+    schemaNode,
+    (d) => d.getField(rc),
+    (x) => !x.parent,
+  );
+}
+
+export function getSchemaFieldList(rc: ReadContext, schema: SchemaNode): SchemaField[] {
+  return schema.getChildNodes(rc).map((x) => x.getField(rc));
 }
