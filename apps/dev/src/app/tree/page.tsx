@@ -1,33 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
-import type { Control } from "@rxc/controls";
+import {useRef, useState} from "react";
+import type {Control} from "@rxc/controls";
+import {ControlContextProvider, controls, createControlContext,} from "@rxc/controls";
+import type {CompoundField, GroupedControlsDefinition,} from "@rxc/forms-core";
 import {
-  controls,
-  ControlContextProvider,
-  createControlContext,
-  noopReadContext,
-} from "@rxc/controls";
-import {
-  createFormStateNode,
-  createSchemaDataNode,
-  ControlDefinitionType,
-  FieldType,
-  isDataControl,
-  isGroupControl,
-  fieldPathForDefinition,
-  dataControl,
   compoundControl,
-  groupedControl, createSchemaTree,
-} from "@rxc/forms-core";
-import type {
-  CompoundField,
-  ControlDefinition,
-  GroupedControlsDefinition,
-  SchemaField,
-  FormStateNode,
-  FormGlobalOptions,
-  SchemaDataNode,
+  ControlDefinitionType,
+  dataControl,
+  FieldType,
+  type FormStateNode,
+  groupedControl,
+  isDataControl,
 } from "@rxc/forms-core";
 
 // ── Shared helpers ───────────────────────────────────────────────────
@@ -85,17 +69,13 @@ const FormDataField = controls(function FormDataField(
   { node }: { node: FormStateNode },
   { rc, update },
 ) {
-  const { visible, disabled, readonly } = rc.getValueRx(node.stateControl);
-  const dataNode = rc.getValue(
-    node.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-  );
+  const { visible, disabled, readonly, data, definition:def, field } = node.getState(rc);
 
-  if (visible === false || !dataNode) return null;
+  if (visible === false || !data) return null;
 
-  const def = node.definition;
-  const value = rc.getValue(dataNode.control);
-  const error = rc.getError(dataNode.control);
-  const touched = rc.isTouched(dataNode.control);
+  const value = rc.getValue(data);
+  const error = rc.getError(data);
+  const touched = rc.isTouched(data);
 
   return (
     <div className="flex flex-col gap-1">
@@ -120,11 +100,11 @@ const FormDataField = controls(function FormDataField(
         onChange={(e) => {
           const raw = e.target.value;
           const newVal =
-            dataNode.schema.fieldNow.type === FieldType.Int ? Number(raw) || 0 : raw;
-          update((wc) => wc.setValue(dataNode.control, newVal));
+            field!.type === FieldType.Int ? Number(raw) || 0 : raw;
+          update((wc) => wc.setValue(data, newVal));
         }}
         onBlur={() =>
-          update((wc) => wc.setTouched(dataNode.control, true, true))
+          update((wc) => wc.setTouched(data, true, true))
         }
       />
       {touched && error && (
@@ -138,10 +118,9 @@ const FormGroupField = controls(function FormGroupField(
   { node }: { node: FormStateNode },
   { rc },
 ) {
-  const { visible } = rc.getValueRx(node.stateControl);
+  const { visible,definition:def } = node.getState(rc);
   if (visible === false) return null;
 
-  const def = node.definition;
   const children = node.getChildren(rc);
 
   return (
@@ -155,7 +134,7 @@ const FormGroupField = controls(function FormGroupField(
       )}
       <div className="flex flex-col gap-3">
         {children.map((child) => (
-          <FormNodeRenderer key={child.stateControl.uniqueId} node={child} />
+          <FormNodeRenderer key={child.uniqueId} node={child} />
         ))}
       </div>
     </fieldset>
@@ -163,11 +142,10 @@ const FormGroupField = controls(function FormGroupField(
 });
 
 const FormNodeRenderer = controls<{ node: FormStateNode }>(({ node }, {rc}) => {
-  const def = node.definition;
   if (node.getChildren(rc).length > 0) {
     return <FormGroupField node={node} />;
   }
-  if (def.type === ControlDefinitionType.Data) {
+  if (node.getState(rc).definition.type === ControlDefinitionType.Data) {
     return <FormDataField node={node} />;
   }
   return null;
@@ -331,12 +309,10 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
   { node }: { node: FormStateNode },
   { rc },
 ) {
-  const { visible, disabled, readonly } = rc.getValueRx(node.stateControl);
-  const dataNode = rc.getValue(node.stateControl.fields.dataNode);
+  const { visible, disabled, readonly, data, definition:def } = node.getState(rc);
 
-  const def = node.definition;
-  const dataValue = dataNode ? rc.getValue(dataNode.control) : undefined;
-  const dataError = dataNode ? rc.getError(dataNode.control) : undefined;
+  const dataValue = data ? rc.getValue(data) : undefined;
+  const dataError = data ? rc.getError(data) : undefined;
 
   const visColor =
     visible === false
@@ -359,15 +335,15 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
       >
         {def.type}
       </Badge>
-      {fieldPathForDefinition(def) && (
-        <span className="text-zinc-900 dark:text-zinc-100">
-          {fieldPathForDefinition(def)?.join("/")}
-        </span>
-      )}
+      {/*{fieldPathForDefinition(def) && (*/}
+      {/*  <span className="text-zinc-900 dark:text-zinc-100">*/}
+      {/*    {fieldPathForDefinition(def)?.join("/")}*/}
+      {/*  </span>*/}
+      {/*)}*/}
       {def.title && (
         <span className="text-zinc-400">&ldquo;{def.title}&rdquo;</span>
       )}
-      {dataNode && (
+      {data && (
         <>
           <span className="text-zinc-300 dark:text-zinc-600">=</span>
           <ValueDisplay value={dataValue} />
@@ -400,15 +376,10 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
 ) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? true);
 
-  const { visible, disabled, readonly } = rc.getValueRx(node.stateControl);
-  const dataNode = rc.getValue(
-    node.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-  );
+  const { visible, disabled, readonly, data, definition: def } = node.getState(rc);
 
-  const def = node.definition;
-  const children = node.getChildren(rc);
-  const dataValue = dataNode ? rc.getValue(dataNode.control) : undefined;
-  const dataError = dataNode ? rc.getError(dataNode.control) : undefined;
+  const dataValue = data ? rc.getValue(data) : undefined;
+  const dataError = data ? rc.getError(data) : undefined;
 
   const visColor =
     visible === false
@@ -437,15 +408,15 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
         >
           {def.type}
         </Badge>
-        {fieldPathForDefinition(def) && (
-          <span className="text-zinc-900 dark:text-zinc-100">
-            {fieldPathForDefinition(def)?.join("/")}
-          </span>
-        )}
+        {/*{fieldPathForDefinition(def) && (*/}
+        {/*  <span className="text-zinc-900 dark:text-zinc-100">*/}
+        {/*    {fieldPathForDefinition(def)?.join("/")}*/}
+        {/*  </span>*/}
+        {/*)}*/}
         {def.title && (
           <span className="text-zinc-400">&ldquo;{def.title}&rdquo;</span>
         )}
-        {dataNode && (
+        {data && (
           <>
             <span className="text-zinc-300 dark:text-zinc-600">=</span>
             <ValueDisplay value={dataValue} />
@@ -471,9 +442,9 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
       </div>
       {expanded && (
         <div style={{ paddingLeft: 16 }}>
-          {children.map((child) => (
+          {node.getChildren(rc).map((child) => (
             <FormStateNodeRenderer
-              key={child.stateControl.uniqueId}
+              key={child.uniqueId}
               node={child}
             />
           ))}
@@ -483,21 +454,21 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
   );
 });
 
-function FormStateNodeRenderer({
+const FormStateNodeRenderer = controls(function FormStateNodeRenderer({
   node,
   defaultExpanded,
 }: {
   node: FormStateNode;
   defaultExpanded?: boolean;
-}) {
-  const children = node.getChildren(noopReadContext);
+}, {rc}) {
+  const children = node.getChildren(rc);
   if (children.length > 0) {
     return (
       <FormStateBranchNode node={node} defaultExpanded={defaultExpanded} />
     );
   }
   return <FormStateLeafNode node={node} />;
-}
+});
 
 // ── Demo scenario ────────────────────────────────────────────────────
 
@@ -562,16 +533,22 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       address: { street: "123 Main St", city: "", zip: "10001" },
       company: "",
     });
-    const globals: FormGlobalOptions = {
-      ctx: controlContext,
-      clearHidden: true,
-    };
-    const dataNode = createSchemaDataNode(createSchemaTree(personSchema().children).rootNode, rootControl);
-    const formNode = createFormStateNode(personFormDef(), dataNode, globals);
+    // const globals: FormGlobalOptions = {
+    //   runAsync(af: () => void): void {
+    //   }, resolveChildren(c: FormStateNode): ChildNodeSpec[] {
+    //     return [];
+    //   },
+    //   // ctx: controlContext,
+    //   clearHidden: true
+    // };
+    // const dataNode: SchemaDataNode = createSchemaDataNode(createSchemaTree(personSchema().children).rootNode, rootControl);
+    // const formNode = createFormStateNode(personFormDef(), dataNode, globals);
+    const formNode : FormStateNode = undefined as any; // TODO
     stateRef.current = { rootControl, formNode };
   }
 
   const { rootControl, formNode } = stateRef.current;
+  if (!formNode) return <div>TODO</div>
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
