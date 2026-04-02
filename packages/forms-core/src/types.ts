@@ -55,17 +55,6 @@ export interface ResolvedDefinition {
   fieldOptions?: FieldOption[];
 }
 
-export interface FormStateBase {
-  data?: Control<unknown>;
-  field?: SchemaField;
-  readonly: boolean;
-  visible: boolean | null;
-  disabled: boolean;
-  resolved: ResolvedDefinition;
-  childIndex: number;
-  busy: boolean;
-}
-
 export interface FormNodeUi {
   ensureVisible(): void;
   ensureChildVisible(childIndex: number): void;
@@ -74,6 +63,7 @@ export interface FormNodeUi {
 
 export interface FormStateNode {
   uniqueId: string;
+  childKey: string | number;
   parentNode: FormStateNode | undefined;
   getState(rc: ReadContext): FormState;
   getChildren(rc: ReadContext): FormStateNode[];
@@ -85,12 +75,19 @@ export interface FormStateNode {
   attachUi(f: FormNodeUi): void;
   setBusy(busy: boolean): void;
   setForceDisabled(forceDisable: boolean): void;
+  // schemaInterface: SchemaInterface;
 }
 
-export interface FormState extends FormStateBase, FormNodeOptions {
-  childKey: string | number;
+export interface FormState extends FormNodeOptions {
+  data?: Control<unknown>;
+  field?: SchemaField;
+  readonly: boolean;
+  visible: boolean | null;
+  disabled: boolean;
+  resolved: ResolvedDefinition;
+  childIndex: number;
+  busy: boolean;
   definition: ControlDefinition;
-  // schemaInterface: SchemaInterface;
   valid: boolean;
   touched: boolean;
   clearHidden: boolean;
@@ -117,20 +114,9 @@ export interface SchemaDataNode {
 }
 
 export interface FormNode {
-  id: string;
-  definition: ControlDefinition;
-  tree: FormTree;
   parent?: FormNode;
-
-  visit<A>(visitFn: (n: FormNode) => A | undefined): A | undefined;
-
-  getResolvedChildren(): ControlDefinition[];
-
-  createChildNode(childId: string, childDef: ControlDefinition): FormNode;
-
-  getChildNodes(): FormNode[];
-
-  getUnresolvedChildNodes(): FormNode[];
+  getDefinition(rc: ReadContext): ControlDefinition;
+  getChildren(rc: ReadContext): FormNode[];
 }
 
 export interface FormTreeLookup {
@@ -139,14 +125,5 @@ export interface FormTreeLookup {
 
 export interface FormTree extends FormTreeLookup {
   rootNode: FormNode;
-
   getByRefId(id: string): ControlDefinition | undefined;
-
-  getForm(formId: string): FormTree | undefined;
-
-  getChildId(
-    parentId: string,
-    childId: string,
-    control: ControlDefinition,
-  ): string;
 }

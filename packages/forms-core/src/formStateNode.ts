@@ -1,27 +1,20 @@
-import type {
-  Control,
-  ControlContext,
-  ReadContext,
-} from "@rxc/controls-core";
+import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
 import { computed, effect } from "@rxc/controls-core";
+import type { ControlDefinition } from "./json/controlDefinition";
 import {
-  ControlDefinitionType,
   getDisplayOnlyOptions,
   isDataControl,
   isGroupControl,
 } from "./json/controlDefinition";
-import type { ControlDefinition, DataControlDefinition } from "./json/controlDefinition";
-import { isCompoundField } from "./json/schemaField";
 import type { SchemaField } from "./json/schemaField";
+import { isCompoundField } from "./json/schemaField";
 import type {
-  FormState,
-  FormStateBase,
-  FormStateNode,
+  CleanupScope,
   FormNodeOptions,
   FormNodeUi,
-  CleanupScope,
+  FormState,
+  FormStateNode,
   SchemaDataNode,
-  ResolvedDefinition,
 } from "./types";
 import { schemaDataForFieldRef } from "./schemaDataNode";
 
@@ -62,24 +55,24 @@ function createFormStateView(
 ): FormState {
   return {
     get data() {
-      const dn = rc.getValue(impl.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>);
+      const dn = rc.getValue(impl.stateControl.fields.dataNode);
       return dn?.data;
     },
     get field() {
-      const dn = rc.getValue(impl.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>);
+      const dn = rc.getValue(impl.stateControl.fields.dataNode);
       return dn?.getField(rc);
     },
     get visible() {
-      return rc.getValue(impl.stateControl.fields.visible as Control<boolean | null>);
+      return rc.getValue(impl.stateControl.fields.visible);
     },
     get disabled() {
-      return rc.getValue(impl.stateControl.fields.disabled as Control<boolean>);
+      return rc.getValue(impl.stateControl.fields.disabled);
     },
     get readonly() {
-      return rc.getValue(impl.stateControl.fields.readonly as Control<boolean>);
+      return rc.getValue(impl.stateControl.fields.readonly);
     },
     get childIndex() {
-      return rc.getValue(impl.stateControl.fields.childIndex as Control<number>);
+      return rc.getValue(impl.stateControl.fields.childIndex);
     },
     get busy() {
       return false; // TODO
@@ -91,12 +84,12 @@ function createFormStateView(
       return impl.definition;
     },
     get valid() {
-      const dn = rc.getValue(impl.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>);
-      return dn ? rc.isValid(dn.data as Control<any>) : true;
+      const dn = rc.getValue(impl.stateControl.fields.dataNode);
+      return dn ? rc.isValid(dn.data) : true;
     },
     get touched() {
-      const dn = rc.getValue(impl.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>);
-      return dn ? rc.isTouched(dn.data as Control<any>) : false;
+      const dn = rc.getValue(impl.stateControl.fields.dataNode);
+      return dn ? rc.isTouched(dn.data) : false;
     },
     get clearHidden() {
       return impl.globals.clearHidden;
@@ -106,9 +99,6 @@ function createFormStateView(
     },
     get meta() {
       return impl.meta;
-    },
-    get childKey() {
-      return impl.childKey;
     },
     // FormNodeOptions
     get forceReadonly() {
@@ -181,10 +171,9 @@ class FormStateNodeImpl implements FormStateNode {
   // ── Mutators ────────────────────────────────────────────────────
 
   setTouched(b: boolean, _notChildren?: boolean): void {
-    const dn = this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>;
-    const dataNode = dn.valueNow;
+    const dataNode = this.stateControl.fields.dataNode.valueNow;
     if (dataNode) {
-      this.globals.ctx.update((wc) => wc.setTouched(dataNode.data as Control<any>, b));
+      this.globals.ctx.update((wc) => wc.setTouched(dataNode.data, b));
     }
   }
 
@@ -240,9 +229,8 @@ class FormStateNodeImpl implements FormStateNode {
         : undefined;
 
     if (fieldPath) {
-      const dataNodeControl = this.stateControl.fields.dataNode as Control<any>;
       this.effects.push(
-        computed(ctx, dataNodeControl, (rc) =>
+        computed(ctx, this.stateControl.fields.dataNode, (rc) =>
           schemaDataForFieldRef(rc, fieldPath, this.parentData),
         ),
       );
@@ -250,28 +238,28 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   private initVisible(ctx: ControlContext) {
-    const visibleControl = this.stateControl.fields.visible as Control<any>;
     this.effects.push(
-      computed(ctx, visibleControl, (rc) => {
+      computed(ctx, this.stateControl.fields.visible, (rc) => {
         if (this.nodeOptions.forceHidden) return false;
         if (this.parentNode) {
           const parentState = this.parentNode.getState(rc);
           if (parentState.visible === false) return false;
         }
-        const dn = rc.getValue(this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>);
-        if (dn && (!isValidDataNode(dn, rc) || hideDisplayOnly(dn, rc, this.definition, this.globals)))
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
+        if (
+          dn &&
+          (!isValidDataNode(dn, rc) ||
+            hideDisplayOnly(dn, rc, this.definition, this.globals))
+        )
           return false;
-        return this.definition.hidden == null
-          ? null
-          : !this.definition.hidden;
+        return this.definition.hidden == null ? null : !this.definition.hidden;
       }),
     );
   }
 
   private initReadonly(ctx: ControlContext) {
-    const readonlyControl = this.stateControl.fields.readonly as Control<any>;
     this.effects.push(
-      computed(ctx, readonlyControl, (rc) => {
+      computed(ctx, this.stateControl.fields.readonly, (rc) => {
         if (this.parentNode) {
           const parentState = this.parentNode.getState(rc);
           if (parentState.readonly) return true;
@@ -282,9 +270,8 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   private initDisabled(ctx: ControlContext) {
-    const disabledControl = this.stateControl.fields.disabled as Control<any>;
     this.effects.push(
-      computed(ctx, disabledControl, (rc) => {
+      computed(ctx, this.stateControl.fields.disabled, (rc) => {
         if (this.parentNode) {
           const parentState = this.parentNode.getState(rc);
           if (parentState.disabled) return true;
@@ -298,14 +285,10 @@ class FormStateNodeImpl implements FormStateNode {
     // Sync disabled → data control
     this.effects.push(
       effect(ctx, (rc) => {
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         if (dn) {
-          const disabled = rc.getValue(
-            this.stateControl.fields.disabled as Control<boolean>,
-          );
-          ctx.update((wc) => wc.setDisabled(dn.data as Control<any>, disabled));
+          const disabled = rc.getValue(this.stateControl.fields.disabled);
+          ctx.update((wc) => wc.setDisabled(dn.data, disabled));
         }
       }),
     );
@@ -313,12 +296,10 @@ class FormStateNodeImpl implements FormStateNode {
     // Sync touched: form state → data control
     this.effects.push(
       effect(ctx, (rc) => {
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         if (dn) {
           const touched = rc.isTouched(this.stateControl);
-          ctx.update((wc) => wc.setTouched(dn.data as Control<any>, touched));
+          ctx.update((wc) => wc.setTouched(dn.data, touched));
         }
       }),
     );
@@ -326,11 +307,9 @@ class FormStateNodeImpl implements FormStateNode {
     // Sync touched: data control → form state
     this.effects.push(
       effect(ctx, (rc) => {
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         if (dn) {
-          const dataTouched = rc.isTouched(dn.data as Control<any>);
+          const dataTouched = rc.isTouched(dn.data);
           ctx.update((wc) => wc.setTouched(this.stateControl, dataTouched));
         }
       }),
@@ -339,11 +318,9 @@ class FormStateNodeImpl implements FormStateNode {
     // Mirror errors from data control
     this.effects.push(
       effect(ctx, (rc) => {
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         if (dn) {
-          const errors = rc.getErrors(dn.data as Control<any>);
+          const errors = rc.getErrors(dn.data);
           ctx.update((wc) => wc.setErrors(this.stateControl, errors));
         } else {
           ctx.update((wc) => wc.setErrors(this.stateControl, null));
@@ -356,23 +333,20 @@ class FormStateNodeImpl implements FormStateNode {
     if (!isDataControl(this.definition) || !this.definition.required) return;
 
     const isEmptyValue =
-      this.globals.isEmptyValue ?? ((_: SchemaField, v: unknown) => v == null || v === "");
+      this.globals.isEmptyValue ??
+      ((_: SchemaField, v: unknown) => v == null || v === "");
 
     this.effects.push(
       effect(ctx, (rc) => {
-        const visible = rc.getValue(
-          this.stateControl.fields.visible as Control<boolean | null>,
-        );
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const visible = rc.getValue(this.stateControl.fields.visible);
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         if (!visible || !dn) return;
-        const value = rc.getValue(dn.data as Control<any>);
+        const value = rc.getValue(dn.data);
         const field = dn.getField(rc);
         const error = isEmptyValue(field, value)
           ? "This field is required"
           : undefined;
-        ctx.update((wc) => wc.setError(dn.data as Control<any>, "default", error));
+        ctx.update((wc) => wc.setError(dn.data, "default", error));
       }),
     );
   }
@@ -383,26 +357,22 @@ class FormStateNodeImpl implements FormStateNode {
 
     this.effects.push(
       effect(ctx, (rc) => {
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         if (!dn) return;
 
-        const visible = rc.getValue(
-          this.stateControl.fields.visible as Control<boolean | null>,
-        );
-        const value = rc.getValue(dn.data as Control<any>);
+        const visible = rc.getValue(this.stateControl.fields.visible);
+        const value = rc.getValue(dn.data);
 
         if (visible === false) {
           if (this.globals.clearHidden && !dataDef.dontClearHidden) {
-            ctx.update((wc) => wc.setValue(dn.data as Control<any>, undefined));
+            ctx.update((wc) => wc.setValue(dn.data, undefined));
           }
         } else if (
           visible &&
           value === undefined &&
           dataDef.defaultValue != null
         ) {
-          ctx.update((wc) => wc.setValue(dn.data as Control<any>, dataDef.defaultValue));
+          ctx.update((wc) => wc.setValue(dn.data, dataDef.defaultValue));
         }
       }),
     );
@@ -414,16 +384,12 @@ class FormStateNodeImpl implements FormStateNode {
 
     this.effects.push(
       effect(ctx, (rc) => {
-        const dn = rc.getValue(
-          this.stateControl.fields.dataNode as Control<SchemaDataNode | undefined>,
-        );
+        const dn = rc.getValue(this.stateControl.fields.dataNode);
         const dataContext = dn ?? this.parentData;
 
         const newKeys = childDefs.map((d, i) => this.childKeyFor(d, i));
 
-        const oldMap = new Map(
-          this.childEntries.map((e) => [e.key, e]),
-        );
+        const oldMap = new Map(this.childEntries.map((e) => [e.key, e]));
         const newEntries: ChildEntry[] = [];
 
         for (let i = 0; i < childDefs.length; i++) {
@@ -431,10 +397,7 @@ class FormStateNodeImpl implements FormStateNode {
           const existing = oldMap.get(key);
           if (existing) {
             ctx.update((wc) =>
-              wc.setValue(
-                existing.node.stateControl.fields.childIndex as Control<number>,
-                i,
-              ),
+              wc.setValue(existing.node.stateControl.fields.childIndex, i),
             );
             newEntries.push(existing);
             oldMap.delete(key);
@@ -484,10 +447,7 @@ class FormStateNodeImpl implements FormStateNode {
 
 // ── Helper functions ────────────────────────────────────────────────
 
-function isValidDataNode(
-  dataNode: SchemaDataNode,
-  rc: ReadContext,
-): boolean {
+function isValidDataNode(dataNode: SchemaDataNode, rc: ReadContext): boolean {
   const parent = dataNode.parent;
   if (!parent) return true;
   const field = dataNode.getField(rc);
@@ -499,9 +459,9 @@ function isValidDataNode(
   const typeField = parentField.children.find((f) => f.isTypeField);
   if (!typeField) return true;
 
-  const typeControl = (
-    parent.data as Control<Record<string, unknown>>
-  ).fields[typeField.field] as Control<string | undefined>;
+  const typeControl = (parent.data as Control<Record<string, unknown>>).fields[
+    typeField.field
+  ] as Control<string | undefined>;
   const typeValue = rc.getValue(typeControl);
   return typeValue != null && types.includes(typeValue);
 }
@@ -515,8 +475,9 @@ function hideDisplayOnly(
   const displayOptions = getDisplayOnlyOptions(definition);
   if (!displayOptions || displayOptions.emptyText) return false;
   const isEmptyValue =
-    globals.isEmptyValue ?? ((_: SchemaField, v: unknown) => v == null || v === "");
-  const value = rc.getValue(context.data as Control<any>);
+    globals.isEmptyValue ??
+    ((_: SchemaField, v: unknown) => v == null || v === "");
+  const value = rc.getValue(context.data);
   return isEmptyValue(context.getField(rc), value);
 }
 
@@ -539,7 +500,11 @@ export function createFormStateNode(
     undefined,
     parentData,
     globals,
-    options ?? { forceReadonly: false, forceDisabled: false, forceHidden: false },
+    options ?? {
+      forceReadonly: false,
+      forceDisabled: false,
+      forceHidden: false,
+    },
     "root",
     0,
   );

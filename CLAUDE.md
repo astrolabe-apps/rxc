@@ -10,7 +10,7 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 |---|---|---|
 | `@rxc/controls-core` | `packages/controls-core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
 | `@rxc/controls` | `packages/controls` | React adapter: `controls()` wrapper, `ControlContextProvider`. Re-exports all of controls-core. |
-| `@rxc/forms-core` | `packages/forms-core` | Minimal schema types (SchemaField, ControlDefinition) + FormStateNode + SchemaDataNode. Expression evaluation not yet migrated. |
+| `@rxc/forms-core` | `packages/forms-core` | Full canonical schema types (SchemaField, ControlDefinition) + FormStateNode/FormState + SchemaNode + SchemaDataNode. Expression evaluation not yet migrated. |
 | `@rxc/forms` | `packages/forms` | Schema-driven rendering. **Not yet implemented — needs design doc first.** |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
@@ -61,7 +61,7 @@ All in `docs/`:
 - **CONTROL-SEMANTICS.md** — The authoritative reference for control tree behavior: value propagation, error handling, dirty/touched/disabled cascading, element lifecycle, null materialization. **These semantics are settled and must be preserved.**
 - **FORM-SEMANTICS.md** — The authoritative reference for form state behavior: FormStateNode lifecycle, visibility/disabled/readonly cascading, children resolution, data node syncing, script overrides. **These semantics are settled and must be preserved.**
 - **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, controls() wrapper rationale.
-- **FORM-FUTURE-API-DESIGN.md** — FormStateNode design with single stateControl, computed properties, script overrides.
+- **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/SchemaDataNode with `ReadContext`-based traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
 
 ## Constraints
@@ -80,7 +80,13 @@ Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 - Bitmask-based change detection (ControlChange enum)
 - Lazy child creation (eager for validators)
 - Tree-level equality via ControlContext
-- FormStateNode with single stateControl and computed properties
+
+FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
+- `FormStateNode` is a stable handle; `getState(rc)` returns `FormState` with fine-grained reactive property access
+- `getChildren(rc)` lazily creates and reactively maintains child list
+- `SchemaNode` and `SchemaDataNode` use `ReadContext`-based traversal (`getField(rc)`, `getChild(rc, field)`)
+- `FormState` exposes `data?: Control<unknown>` and `field?: SchemaField` directly (optional — not all definitions bind to data)
+- No `Control<T>` exposed for form state internals — all reactive reads go through `ReadContext`
 
 ### Open for redesign
 
@@ -88,6 +94,7 @@ Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 - Rendering architecture (`@rxc/forms`) — the existing `FormRenderer` interface is being replaced
 - Component composition patterns (labels, layouts, adornments, visibility)
 - How form context flows to renderers (context vs props)
+- Editor-mode reactive proxies for `SchemaField`/`ControlDefinition` (how `trackedValue` adapts to explicit `ReadContext`)
 
 ## Completed
 
@@ -95,12 +102,16 @@ Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 
 Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteContext, computed/effect primitives, React `controls()` wrapper.
 
-### Phase 3a–3b: @rxc/forms-core (minimal schema types + FormStateNode)
+### Phase 3a–3b: @rxc/forms-core (schema types + FormStateNode)
 
-Migrated from the `astrolabe-common/controls-api/src/lib/form/` POC:
-- Minimal `SchemaField`, `ControlDefinition` types (subset — just enough for FormStateNode, not the full canonical types yet)
-- `SchemaDataNode` with field path resolution and type discriminator support
-- `FormStateNode` with computed visibility/disabled/readonly cascading, data sync effects, required validation, default values, child lifecycle
+- Full canonical `SchemaField`, `ControlDefinition` types and all subtypes (matching C# server JSON format)
+- `SchemaNode` — schema structure traversal with `getField(rc)`, `getChildren(rc)`, `getChildNode(rc, field)`
+- `SchemaDataNode` — data-bound schema traversal with `getChild(rc, field)`, `getChildElement(index)`, field path navigation
+- `FormStateNode` — stable reactive handle with `getState(rc)` returning `FormState` (getter-backed, registers fine-grained deps)
+- `getChildren(rc)` — lazily initialized, reactively maintained child list
+- Computed properties: visible, disabled, readonly, dataNode (with parent cascading)
+- Sync effects: disabled push, bidirectional touched sync, error mirroring, default values, required validation
+- `onlyForTypes` type discriminator support for field visibility
 
 ### Phase 6 (partial): Dev app
 
@@ -109,10 +120,6 @@ Both POC examples ported to `apps/dev/`:
 - `/tree` — 3-panel tree visualizer (FormStateNode-driven form, state tree inspector, raw control tree)
 
 ## Next steps
-
-### Phase 3a (full): Canonical schema types
-
-Migrate the full `ControlDefinition`, `SchemaField`, and all subtypes from `astrolabe-common/forms/core/src/controlDefinition.ts` and `schemaField.ts`. The current types in forms-core are a minimal subset — the full types define the JSON wire format and must match the C# server exactly.
 
 ### Phase 3c: Expression evaluation
 
