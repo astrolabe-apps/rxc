@@ -7,12 +7,16 @@ import type {CompoundField, GroupedControlsDefinition,} from "@rxc/forms-core";
 import {
   compoundControl,
   ControlDefinitionType,
+  createFormStateNode,
+  createSchemaDataNode,
+  createSchemaNode,
   dataControl,
   FieldType,
   type FormStateNode,
   groupedControl,
   isDataControl,
 } from "@rxc/forms-core";
+import type { FormStateGlobals } from "@rxc/forms-core";
 
 // ── Shared helpers ───────────────────────────────────────────────────
 
@@ -533,22 +537,17 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       address: { street: "123 Main St", city: "", zip: "10001" },
       company: "",
     });
-    // const globals: FormGlobalOptions = {
-    //   runAsync(af: () => void): void {
-    //   }, resolveChildren(c: FormStateNode): ChildNodeSpec[] {
-    //     return [];
-    //   },
-    //   // ctx: controlContext,
-    //   clearHidden: true
-    // };
-    // const dataNode: SchemaDataNode = createSchemaDataNode(createSchemaTree(personSchema().children).rootNode, rootControl);
-    // const formNode = createFormStateNode(personFormDef(), dataNode, globals);
-    const formNode : FormStateNode = undefined as any; // TODO
+    const schemaNode = createSchemaNode(personSchema().children);
+    const dataNode = createSchemaDataNode(schemaNode, rootControl);
+    const globals: FormStateGlobals = {
+      ctx: controlContext,
+      clearHidden: true,
+    };
+    const formNode = createFormStateNode(personFormDef(), dataNode, globals);
     stateRef.current = { rootControl, formNode };
   }
 
   const { rootControl, formNode } = stateRef.current;
-  if (!formNode) return <div>TODO</div>
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
