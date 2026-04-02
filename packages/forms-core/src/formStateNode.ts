@@ -160,6 +160,10 @@ class FormStateNodeImpl implements FormStateNode {
     return createFormStateView(this, rc);
   }
 
+  getDataNode(rc: ReadContext): SchemaDataNode | undefined {
+    return rc.getValue(this.stateControl.fields.dataNode);
+  }
+
   getChildren(rc: ReadContext): FormStateNode[] {
     if (!this.childrenInitialized) {
       this.childrenInitialized = true;

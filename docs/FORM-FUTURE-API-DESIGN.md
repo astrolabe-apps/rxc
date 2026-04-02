@@ -96,7 +96,7 @@ interface FormStateBase {
 }
 ```
 
-`FormState` exposes the data and schema field directly — renderers use `state.field` for type info and `state.data` for reading/writing values. For tree traversal (navigating to sibling/child fields), use the `SchemaDataNode` on `FormStateNode` instead.
+`FormState` exposes the data and schema field directly — renderers use `state.field` for type info and `state.data` for reading/writing values. For tree traversal (navigating to sibling/child fields), use `FormStateNode.getDataNode(rc)` which returns the `SchemaDataNode` reactively.
 
 Accessing `state.visible` internally does `rc.getValue(visibleControl)`, registering a dependency on the visibility control. Accessing `state.data` registers a dependency on the data node control. And so on.
 
