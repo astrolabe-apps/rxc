@@ -34,8 +34,8 @@ export interface ChildNodeSpec {
 
 export interface ChildNodeInit {
   definition?: ControlDefinition;
-  parent?: SchemaDataNode;
-  node?: FormNode | null;
+  // parent?: SchemaDataNode;
+  // node?: FormNode | null;
   variables?: (changes: ChangeListenerFunc<any>) => Record<string, any>;
   resolveChildren?: ChildResolverFunc;
 }
@@ -46,7 +46,7 @@ export interface FormGlobalOptions {
   resolveChildren(c: FormStateNode): ChildNodeSpec[];
   runAsync: (af: () => void) => void;
   clearHidden: boolean;
-  controlDefinitionSchema?: SchemaNode;
+  // controlDefinitionSchema?: SchemaNode;
 }
 
 export interface ResolvedDefinition {
@@ -67,7 +67,7 @@ export interface FormStateNode {
   parentNode: FormStateNode | undefined;
   getState(rc: ReadContext): FormState;
   getChildren(rc: ReadContext): FormStateNode[];
-  getDataNode(rc: ReadContext): SchemaDataNode | undefined;
+  // getDataNode(rc: ReadContext): SchemaDataNode | undefined;
   setTouched(b: boolean, notChildren?: boolean): void;
   validate(): boolean;
   ensureMeta<A>(key: string, init: (scope: CleanupScope) => A): A;
@@ -96,35 +96,43 @@ export interface FormState extends FormNodeOptions {
   meta: Record<string, any>;
 }
 
-export interface SchemaNode {
-  parent?: SchemaNode;
-  getField(rc: ReadContext): SchemaField;
-  getChildren(rc: ReadContext): SchemaNode[];
-  getChildNode(rc: ReadContext, field: string): SchemaNode;
+export interface SchemaCursorRef  {
+  id: string;
+  get(rd: ReadContext): SchemaCursor;
 }
 
-export interface SchemaDataNode {
-  data: Control<unknown>;
-  parent?: SchemaDataNode;
+export interface SchemaCursor {
+  ref: SchemaCursorRef;
+  field: SchemaField;
+  // these are the resolved children
+  children: SchemaCursor[];
+  parent?: SchemaCursor;
+}
+
+export interface DataCursorRef {
+  id: string;
+  get(rd: ReadContext): DataCursor;
+}
+
+export interface DataCursor {
+  ref: DataCursorRef;
+  field: SchemaField;
+  control: Control<unknown>;
   elementIndex?: number;
-  schema: SchemaNode;
-  getField(rc: ReadContext): SchemaField;
-  getChildren(rc: ReadContext): SchemaDataNode[];
-  getChild(rc: ReadContext, field: string): SchemaDataNode;
-  getChildElement(elementIndex: number): SchemaDataNode;
+  getField(field: string): DataCursor | undefined;
+  getElement(elementIndex: number): DataCursor | undefined;
+  parent?: DataCursor;
 }
 
-export interface FormNode {
-  parent?: FormNode;
-  getDefinition(rc: ReadContext): ControlDefinition;
-  getChildren(rc: ReadContext): FormNode[];
+export interface FormCursorRef  {
+  id: string;
+  get(rd: ReadContext): FormCursor;
 }
 
-export interface FormTreeLookup {
-  getForm(formId: string): FormTree | undefined;
-}
-
-export interface FormTree extends FormTreeLookup {
-  rootNode: FormNode;
-  getByRefId(id: string): ControlDefinition | undefined;
+export interface FormCursor {
+  ref: FormCursorRef;
+  field: ControlDefinition;
+  // these are the resolved children
+  children: FormCursor[];
+  parent?: FormCursor;
 }
