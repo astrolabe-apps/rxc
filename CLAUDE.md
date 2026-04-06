@@ -82,9 +82,11 @@ Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 - Tree-level equality via ControlContext
 
 FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
-- `FormStateNode` is a stable handle; `getState(rc)` returns `FormState` with fine-grained reactive property access
+- `FormStateNode` is a persistent handle; `getState(rc)` returns `FormState` with fine-grained reactive property access
 - `getChildren(rc)` lazily creates and reactively maintains child list
-- `SchemaNode` and `SchemaDataNode` use `ReadContext`-based traversal (`getField(rc)`, `getChild(rc, field)`)
+- `SchemaNode`, `DataNode`, `FormNode` are persistent handles identified by `id`; `cursor(rd)` returns ephemeral cursors for `ReadContext`-based traversal
+- Cursors (`SchemaCursor`, `DataCursor`, `FormCursor`) are only valid within the `ReadContext` that created them
+- `DataCursor` navigates via `childField(name)` and `childElement(index)`
 - `FormState` exposes `data?: Control<unknown>` and `field?: SchemaField` directly (optional — not all definitions bind to data)
 - No `Control<T>` exposed for form state internals — all reactive reads go through `ReadContext`
 
@@ -102,24 +104,28 @@ FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
 
 Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteContext, computed/effect primitives, React `controls()` wrapper.
 
-### Phase 3a–3b: @rxc/forms-core (schema types + FormStateNode)
+### Phase 3a: @rxc/forms-core (types only)
 
 - Full canonical `SchemaField`, `ControlDefinition` types and all subtypes (matching C# server JSON format)
-- `SchemaNode` — schema structure traversal with `getField(rc)`, `getChildren(rc)`, `getChildNode(rc, field)`
-- `SchemaDataNode` — data-bound schema traversal with `getChild(rc, field)`, `getChildElement(index)`, field path navigation
-- `FormStateNode` — stable reactive handle with `getState(rc)` returning `FormState` (getter-backed, registers fine-grained deps)
-- `getChildren(rc)` — lazily initialized, reactively maintained child list
-- Computed properties: visible, disabled, readonly, dataNode (with parent cascading)
-- Sync effects: disabled push, bidirectional touched sync, error mirroring, default values, required validation
-- `onlyForTypes` type discriminator support for field visibility
+- Type interfaces for `SchemaNode`, `SchemaCursor`, `DataNode`, `DataCursor`, `FormNode`, `FormCursor`, `FormStateNode`, `FormState`
+- `cursorUtils.ts` — utility functions for traversing cursors (schema/data/form navigation, path resolution)
 
 ### Phase 6 (partial): Dev app
 
-Both POC examples ported to `apps/dev/`:
-- `/` — Simple form demo (validation, dirty/clean, submit/reset)
-- `/tree` — 3-panel tree visualizer (FormStateNode-driven form, state tree inspector, raw control tree)
+- `/` — Simple form demo (validation, dirty/clean, submit/reset) using controls-core directly
 
 ## Next steps
+
+### Phase 3b: @rxc/forms-core (implementations)
+
+Implement `SchemaNode`, `DataNode`, `FormNode` (persistent handles with `cursor(rd)` traversal) and `FormStateNode` (reactive form state with `getState(rc)`, `getChildren(rc)`). Previous implementations were reverted — to be re-implemented with the refined cursor-based API defined in `types.ts`.
+
+Key pieces:
+- `SchemaNode`/`SchemaCursor` — reactive schema tree traversal, compound field reference resolution
+- `DataNode`/`DataCursor` — data-bound traversal with `childField()`/`childElement()` navigation
+- `FormNode`/`FormCursor` — control definition tree traversal with cross-tree reference resolution
+- `FormStateNode` — computed properties (visible, disabled, readonly), sync effects (disabled push, touched sync, error mirroring, default values, required validation), `onlyForTypes` support
+- `/tree` dev app demo — 3-panel tree visualizer (depends on FormStateNode)
 
 ### Phase 3c: Expression evaluation
 

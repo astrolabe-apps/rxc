@@ -20,39 +20,3 @@ This is all simple except for the fact that the SchemaTrees and ControlTrees can
 E.g. Control<SchemaField[]> and Control<ControlDefinition[]>
 So we need to support reactivity when traversing these trees.
 
-I like the idea of the SchemaTree having an api like:
-
-interface SchemaTree {
-   getRoot(rd: ReadContext): SchemaCursor;
-   getById(rd: ReadContext, id: string): SchemaCursor | undefined;
-}
-
-interface SchemaCursor {
-   field: SchemaField;
-   // these are the resolved children
-   children: SchemaCursor[];
-   parent?: SchemaCursor; 
-}
-
-However, this leaves the problem of SchemaCursor only being scoped to the ReadContext that started it and not suitable to store as a stable reference.
-Maybe:
-
-interface SchemaCursorRef  {
-    id: string; 
-    get(rd: ReadContext): SchemaCursor;
-}
-
-interface SchemaTree {
-   root: SchemaCursorRef;
-}
-
-interface SchemaCursor {
-   ref: SchemaCursorRef;
-   field: SchemaField;
-   // these are the resolved children
-   children: SchemaCursor[];
-   parent?: SchemaCursor; 
-}
-
-
- 
