@@ -40,7 +40,7 @@ export type SchemaTreeResolver = (schemaRef: string) => SchemaNode | undefined;
 - Synthetic root node with `id: "$root"`, cursor field is a synthetic `CompoundField` with `field: ""`, `type: FieldType.Compound`, `children: fields`.
 - `cursor(rd)`: ignores `rd`, returns memoized cursor (built lazily on first call).
 - `children` is a **getter** — lazily maps each `SchemaField` to a child `SchemaCursor`. For compound fields with `schemaRef`, resolves via `resolver` and uses that node's cursor children. Non-compound fields return `[]`.
-- Child `SchemaNode`s cached by field name in `Map<string, SchemaNode>`.
+- Child `SchemaNode`s are created fresh each call — no caching needed since consumers identify nodes by `id`, not object reference.
 - `parent` on child nodes points back to parent `SchemaNode`.
 
 **Reactive factory:** `createReactiveSchemaTree(fieldsControl: Control<SchemaField[]>, resolver?: SchemaTreeResolver): SchemaNode`
@@ -49,7 +49,7 @@ export type SchemaTreeResolver = (schemaRef: string) => SchemaNode | undefined;
 - `cursor(rd)`: reads `rd.getElements(fieldsControl)` (registers Structure dep), returns fresh cursor each call.
 - Each child wraps a `Control<SchemaField>`. **`cursor.field` uses `rd.getValueRx(elementControl)`** — fine-grained reactive proxy so reading `cursor.field.displayName` only subscribes to that child control. Safe because `SchemaField` is pure data.
 - For compound children resolution: accesses `(elementControl as Control<Record<string, unknown>>).fields["children"]` as `Control<SchemaField[]>`, then `rd.getElements(...)`. Distinct code path from `getValueRx` proxy — we need the actual `Control<SchemaField[]>`.
-- Child nodes cached by `Control.uniqueId` in `Map<number, SchemaNode>`.
+- Child nodes created fresh each `cursor(rd)` call — no caching needed since consumers identify nodes by `id`, not object reference.
 - Node `id`: `String(control.uniqueId)`.
 - `schemaRef`: read from `getValueRx` proxy (fine-grained dep), delegates to resolver.
 
@@ -68,35 +68,69 @@ export type SchemaTreeResolver = (schemaRef: string) => SchemaNode | undefined;
 **`childField(name)`:**
 1. Find schema child: `schemaCursor.children.find(c => c.field.field === name)`
 2. Get child control: `(control as Control<Record<string, unknown>>).fields[name]`
-3. Get/create child DataNode (cached by `"${fieldName}:${childSchemaNode.id}"` — schema node id included to handle schemaRef changes)
+3. Create child DataNode (fresh each call — identity is by `id`, not object reference)
 4. Return child DataCursor with `rd` still closed over.
 
 **`childElement(index)`:**
 1. `rd.getElements(control as Control<unknown[]>)[index]`
-2. Create child DataNode: same schema node (array elements share parent's schema), cached by element `Control.uniqueId`.
+2. Create child DataNode: same schema node (array elements share parent's schema), fresh each call.
 
 ### 3. `nodes/formNode.ts`
 
+**childRefId format** (from FORM-SEMANTICS.md):
+
+The `childRefId` string on a `ControlDefinition` uses one of three formats:
+- `"localId"` (no leading `/`) — find a definition by `id` within the **current** tree, use its children
+- `"/formId"` — use the root children of an **external** form tree
+- `"/formId/localId"` — find a definition by `id` within an **external** form tree, use its children
+
 **Resolver type:**
 ```typescript
-export type FormTreeResolver = (childRefId: string) => FormNode | undefined;
+export type FormTreeResolver = (formId: string) => FormNode | undefined;
 ```
-Returns `FormNode` (not raw definitions) — allows resolved trees to be static or reactive.
+Takes a parsed `formId` (from the `/`-prefixed formats) and returns the root `FormNode` of the external form tree. Returns `FormNode` (not raw definitions) — resolved trees can be static or reactive.
+
+**Local id lookup** (shared utility, used for both local refs and `/formId/localId`):
+
+Finding a definition by `id` within a form tree requires a recursive scan:
+1. Walk the tree's definition children
+2. For each definition, check if its `id` matches the target
+3. If not, recurse into that definition's own children
+4. Return the matching `FormNode` (whose `cursor(rd).children` provides the resolved children)
+
+**childRefId resolution** (applies to both static and reactive):
+1. Parse `childRefId` — check for leading `/`
+2. `"localId"` → scan current tree for definition with matching `id`, use its cursor's children
+3. `"/formId"` → `resolver(formId).cursor(rd).children`
+4. `"/formId/localId"` → scan `resolver(formId)` tree for `localId`, use its cursor's children
+5. No `childRefId` → use `definition.children` directly
 
 **Static factory:** `createStaticFormTree(definitions: ControlDefinition[], resolver?: FormTreeResolver): FormNode`
 
-- Synthetic root, `id: "$root"`, children are `String(index)`.
+- Synthetic root, `id: "$root"`.
 - `cursor(rd)`: ignores `rd`, returns memoized cursor.
-- `children` getter: for defs with `childRefId`, resolves via `resolver(childRefId).cursor(rd).children` (no local caching). Otherwise uses `definition.children`.
-- Child FormNodes cached by index.
+- `children` getter resolves `childRefId` per the parsing above. Local id lookup is a one-time recursive scan of the static definition tree.
+- Child FormNodes created fresh each call.
 
 **Reactive factory:** `createReactiveFormTree(definitionsControl: Control<ControlDefinition[]>, resolver?: FormTreeResolver): FormNode`
 
 - `cursor(rd)`: reads `rd.getElements(definitionsControl)`, fresh each call.
-- `cursor.field` uses `rd.getValueRx(defControl)` for fine-grained reactivity.
-- `childRefId` read from `getValueRx` proxy. When set, delegates to resolver (no local caching). When not set, reads children via `(defControl as Control<Record<string, unknown>>).fields["children"]` + `rd.getElements(...)`.
-- Child nodes cached by `Control.uniqueId`.
+- `cursor.definition` uses `rd.getValueRx(defControl)` for fine-grained reactivity.
+- `childRefId` read from `getValueRx` proxy. Resolution follows the same three-format parsing as static.
+- Without `childRefId`: reads children via `(defControl as Control<Record<string, unknown>>).fields["children"]` + `rd.getElements(...)`.
+- Child nodes created fresh each `cursor(rd)` call.
 - Node `id`: `String(control.uniqueId)`.
+
+**Reactive local id resolution — dependency implications:**
+
+Local `childRefId` resolution in a reactive tree requires scanning definition controls within `cursor(rd)`, which registers broad reactive dependencies:
+1. `rd.getElements(rootControl)` — subscribes to root structure
+2. For each element: `rd.getValueRx(elementControl).id` — subscribes to every definition's `id`
+3. Recurse into children: `rd.getElements(childrenControl)` at each level — subscribes to every level's structure
+
+Any change to tree structure or any definition's `id` invalidates cursors that performed local ref lookups. This is **correct** — if ids or structure change, reference resolution may yield different results.
+
+Note that every cursor performing a local ref lookup independently subscribes to the entire tree. If this proves costly in practice, a tree-level reactive id map (centralised computation mapping `id → FormNode`) could let multiple cursors share a single set of subscriptions. Not required for initial implementation.
 
 ### 4. `nodes/index.ts` + update `src/index.ts`
 
