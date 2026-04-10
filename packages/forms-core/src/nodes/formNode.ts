@@ -69,20 +69,6 @@ function parseChildRefId(childRefId: string): ParsedChildRef {
 
 // ── Local id lookup (recursive scan) ───────────────────────────────
 
-function findByIdInStaticDefs(
-  defs: ControlDefinition[],
-  targetId: string,
-): ControlDefinition | undefined {
-  for (const def of defs) {
-    if (def.id === targetId) return def;
-    if (def.children) {
-      const found = findByIdInStaticDefs(def.children, targetId);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
-
 function findNodeByIdInFormTree(
   rootNode: FormNode,
   targetId: string,
@@ -97,6 +83,9 @@ function searchFormCursor(
   targetId: string,
 ): FormCursor | undefined {
   if (cursor.field.id === targetId) return cursor;
+  // Don't recurse into childRefId-resolved children — they belong to another
+  // tree and would cause infinite recursion during local id lookup.
+  if (cursor.field.childRefId) return undefined;
   for (const child of cursor.children) {
     const found = searchFormCursor(child, targetId);
     if (found) return found;
@@ -160,7 +149,7 @@ export function createStaticFormTree(
 
   const rootNode: FormNode = {
     id: "$root",
-    cursor(_rd: ReadContext): FormCursor {
+    cursor(rd: ReadContext): FormCursor {
       if (!memoizedCursor) {
         const cursor: FormCursor = {
           node: rootNode,
@@ -172,6 +161,7 @@ export function createStaticFormTree(
               cursor,
               rootNode,
               resolver,
+              rd,
             );
           },
         };
@@ -189,6 +179,7 @@ function makeStaticChildCursors(
   parentCursor: FormCursor,
   rootNode: FormNode,
   resolver: FormTreeResolver | undefined,
+  rd: ReadContext,
 ): FormCursor[] {
   return definitions.map((def, index) => {
     const childNode: FormNode = {
@@ -210,7 +201,7 @@ function makeStaticChildCursors(
             childCursor,
             childNode,
             resolver,
-            _noop,
+            rd,
           );
         }
         if (def.children) {
@@ -220,6 +211,7 @@ function makeStaticChildCursors(
             childCursor,
             rootNode,
             resolver,
+            rd,
           );
         }
         return [];
@@ -228,8 +220,6 @@ function makeStaticChildCursors(
     return childCursor;
   });
 }
-
-const _noop: ReadContext = null as unknown as ReadContext;
 
 // ── Reactive form tree ─────────────────────────────────────────────
 

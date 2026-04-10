@@ -71,6 +71,7 @@ function makeStaticChildCursors(
   parentNode: SchemaNode,
   parentCursor: SchemaCursor,
   resolver: SchemaTreeResolver | undefined,
+  rd: ReadContext,
 ): SchemaCursor[] {
   return fields.map((field) => {
     const childNode: SchemaNode = {
@@ -90,7 +91,7 @@ function makeStaticChildCursors(
           if (compound.schemaRef && resolver) {
             const resolved = resolver(compound.schemaRef);
             if (!resolved) return [];
-            return resolved.cursor(_noop).children.map((c) =>
+            return resolved.cursor(rd).children.map((c) =>
               wrapResolvedCursor(c, childCursor, childNode, c.field.field),
             );
           }
@@ -99,6 +100,7 @@ function makeStaticChildCursors(
             childNode,
             childCursor,
             resolver,
+            rd,
           );
         }
         return [];
@@ -107,9 +109,6 @@ function makeStaticChildCursors(
     return childCursor;
   });
 }
-
-// Placeholder for static cursor children getter — uses noopReadContext
-const _noop: ReadContext = null as unknown as ReadContext;
 
 export function createStaticSchemaTree(
   fields: SchemaField[],
@@ -125,7 +124,7 @@ export function createStaticSchemaTree(
 
   const rootNode: SchemaNode = {
     id: "$root",
-    cursor(_rd: ReadContext): SchemaCursor {
+    cursor(rd: ReadContext): SchemaCursor {
       if (!memoizedCursor) {
         const cursor: SchemaCursor = {
           node: rootNode,
@@ -136,6 +135,7 @@ export function createStaticSchemaTree(
               rootNode,
               cursor,
               resolver,
+              rd,
             );
           },
         };
