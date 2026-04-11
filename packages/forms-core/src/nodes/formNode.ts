@@ -88,6 +88,7 @@ export function createReactiveFormTree(
   return new ReactiveFormTree(definitionsControl, resolver);
 }
 
+/** Recursively populates an id→definition map for local `childRefId` lookup. */
 function addToIdMap(
   controls: ControlDefinition[],
   idMap: Map<string, ControlDefinition>,
@@ -98,6 +99,10 @@ function addToIdMap(
   });
 }
 
+/**
+ * Non-reactive form tree. Cursors are built from plain {@link ControlDefinition}
+ * arrays and an id map is pre-built for local `childRefId` resolution.
+ */
 class StaticFormTree implements FormTree {
   readonly rootNode: FormNode;
   idMap: Map<string, ControlDefinition> = new Map();
@@ -116,7 +121,7 @@ class StaticFormTree implements FormTree {
         return {
           rd,
           node: rootNode,
-          field: { type: ControlDefinitionType.Group },
+          definition: { type: ControlDefinitionType.Group },
           children: rootControls.map((x, i) =>
             new StaticFormNode(x, i, rootNode, tree).cursor(rd),
           ),
@@ -143,6 +148,7 @@ class StaticFormTree implements FormTree {
   }
 }
 
+/** A {@link FormNode} wrapping a plain {@link ControlDefinition}. ID uses positional index. */
 class StaticFormNode implements FormNode {
   id: string;
   constructor(
@@ -159,9 +165,16 @@ class StaticFormNode implements FormNode {
   }
 }
 
+/**
+ * Shared {@link FormCursor} implementation for both static and reactive trees.
+ *
+ * `children` resolves `childRefId` references (local, external root, or
+ * external with localId) via the tree's resolver. Without a `childRefId`,
+ * children come from the definition's own `children` array.
+ */
 class FormCursorImpl implements FormCursor {
   constructor(
-    public field: ControlDefinition,
+    public definition: ControlDefinition,
     public node: FormNode,
     public rd: ReadContext,
   ) {}
@@ -171,7 +184,7 @@ class FormCursorImpl implements FormCursor {
   }
 
   get children(): FormCursor[] {
-    const crfId = this.field.childRefId;
+    const crfId = this.definition.childRefId;
     if (crfId) {
       const parsed = parseChildRefId(crfId);
       if (parsed.kind === "local")
@@ -183,13 +196,48 @@ class FormCursorImpl implements FormCursor {
       );
     }
     return (
-      this.field.children?.map((x, i) =>
+      this.definition.children?.map((x, i) =>
         createChildFormNode(this.node, x, i, this.node.tree).cursor(this.rd),
       ) ?? []
     );
   }
 }
 
+/**
+ * Recursively scans a reactive control tree to find a definition with a
+ * matching `id`, returning its `children` control.
+ *
+ * TODO: Temporary brute-force scan — replace with a reactive indexed lookup
+ * (e.g. `Control<Record<string, Control<ControlDefinition>>>`) to avoid
+ * re-scanning on every cursor evaluation.
+ */
+function findReactiveById(
+  rd: ReadContext,
+  controls: Control<ControlDefinition[]>,
+  id: string,
+): Control<ControlDefinition[]> | undefined {
+  for (const elem of rd.getElements(controls)) {
+    const def = rd.getValueRx(elem);
+    if (def.id === id)
+      return elem.fields.children as Control<ControlDefinition[]>;
+    const children = def.children;
+    if (children) {
+      const found = findReactiveById(
+        rd,
+        elem.fields.children as Control<ControlDefinition[]>,
+        id,
+      );
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Reactive form tree backed by `Control<ControlDefinition[]>`. Each
+ * `cursor(rd)` call reads the current elements through the {@link ReadContext},
+ * registering reactive dependencies so consumers update when definitions change.
+ */
 class ReactiveFormTree implements FormTree {
   readonly rootNode: FormNode;
 
@@ -206,7 +254,7 @@ class ReactiveFormTree implements FormTree {
         return {
           rd,
           node: rootNode,
-          field: { type: ControlDefinitionType.Group },
+          definition: { type: ControlDefinitionType.Group },
           children: rd
             .getElements(rootControls)
             .map((x) => new ReactiveFormNode(x, rootNode, tree).cursor(rd)),
@@ -225,10 +273,16 @@ class ReactiveFormTree implements FormTree {
       return rd
         .getElements(this.rootControls)
         .map((x) => new ReactiveFormNode(x, parent.node, this).cursor(rd));
-    throw "Not implemented yet - localId on reactive";
+    // TODO: This scans the entire tree each time — replace with an indexed lookup
+    const found = findReactiveById(rd, this.rootControls, localId);
+    if (!found) return [];
+    return rd
+      .getElements(found)
+      .map((x) => new ReactiveFormNode(x, parent.node, this).cursor(rd));
   }
 }
 
+/** A {@link FormNode} wrapping a reactive `Control<ControlDefinition>`. ID uses the control's `uniqueId`. */
 class ReactiveFormNode implements FormNode {
   id: string;
   constructor(
@@ -244,6 +298,11 @@ class ReactiveFormNode implements FormNode {
   }
 }
 
+/**
+ * Creates the appropriate {@link FormNode} for a child definition. If the
+ * definition is a reactive value proxy (from `getValueRx`), creates a
+ * {@link ReactiveFormNode}; otherwise creates a {@link StaticFormNode}.
+ */
 function createChildFormNode(
   parentNode: FormNode,
   controlOrProxy: ControlDefinition,
@@ -255,6 +314,13 @@ function createChildFormNode(
   return new StaticFormNode(controlOrProxy, childIndex, parentNode, tree);
 }
 
+/**
+ * Factory function used by {@link createFormTreeResolver} to create a
+ * {@link FormTree} for a given form id. The resolver is passed in so the
+ * factory can forward it to the tree for nested `childRefId` resolution.
+ *
+ * Return `undefined` if the form id is unknown.
+ */
 export type FormTreeFactory = (
   name: string,
   resolver: FormTreeResolver,
@@ -272,6 +338,10 @@ class FormTreeResolverImpl implements FormTreeResolver {
   }
 }
 
+/**
+ * Creates a {@link FormTreeResolver} that delegates to a factory function
+ * and caches the result per form id.
+ */
 export function createFormTreeResolver(factory: FormTreeFactory) {
   return new FormTreeResolverImpl(factory);
 }

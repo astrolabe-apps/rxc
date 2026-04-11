@@ -275,7 +275,7 @@ export interface FormCursor {
   node: FormNode;
 
   /** The {@link ControlDefinition} at this position in the control tree. */
-  field: ControlDefinition;
+  definition: ControlDefinition;
 
   /**
    * Resolved child cursors. Children may come from the definition's local

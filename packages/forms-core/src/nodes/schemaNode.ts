@@ -56,6 +56,11 @@ export function createReactiveSchemaTree(
   return new ReactiveSchemaTree(fieldsControl, resolver);
 }
 
+/**
+ * Non-reactive schema tree. The root cursor wraps a synthetic compound field
+ * with `field: ""` and the provided fields as children. Child nodes use
+ * field names as path segments.
+ */
 class StaticSchemaTree implements SchemaTree {
   readonly rootNode: SchemaNode;
 
@@ -88,6 +93,7 @@ class StaticSchemaTree implements SchemaTree {
   }
 }
 
+/** A {@link SchemaNode} wrapping a plain {@link SchemaField}. ID uses the field name. */
 class StaticSchemaNode implements SchemaNode {
   id: string;
   constructor(
@@ -103,6 +109,7 @@ class StaticSchemaNode implements SchemaNode {
   }
 }
 
+/** A {@link SchemaNode} wrapping a reactive `Control<SchemaField>`. ID uses the control's `uniqueId`. */
 class ReactiveSchemaNode implements SchemaNode {
   id: string;
   constructor(
@@ -123,6 +130,11 @@ class ReactiveSchemaNode implements SchemaNode {
   }
 }
 
+/**
+ * Creates the appropriate {@link SchemaNode} for a child field. If the field
+ * is a reactive value proxy (from `getValueRx`), creates a
+ * {@link ReactiveSchemaNode}; otherwise creates a {@link StaticSchemaNode}.
+ */
 function createChildSchemaNode(
   parentNode: SchemaNode,
   fieldOrProxy: SchemaField,
@@ -133,6 +145,13 @@ function createChildSchemaNode(
   return new StaticSchemaNode(fieldOrProxy, parentNode, resolver);
 }
 
+/**
+ * Shared {@link SchemaCursor} implementation for both static and reactive trees.
+ *
+ * `children` resolves `schemaRef` references on compound fields via the
+ * tree's resolver. Without a `schemaRef`, children come from the compound
+ * field's own `children` array. Non-compound fields return `[]`.
+ */
 class SchemaCursorImpl implements SchemaCursor {
   constructor(
     public field: SchemaField,
@@ -161,6 +180,11 @@ class SchemaCursorImpl implements SchemaCursor {
   }
 }
 
+/**
+ * Reactive schema tree backed by `Control<SchemaField[]>`. Each `cursor(rd)`
+ * call reads the current elements through the {@link ReadContext}, registering
+ * reactive dependencies so consumers update when the schema changes.
+ */
 class ReactiveSchemaTree implements SchemaTree {
   readonly rootNode: SchemaNode;
 
@@ -198,6 +222,13 @@ class ReactiveSchemaTree implements SchemaTree {
   }
 }
 
+/**
+ * Factory function used by {@link createSchemaTreeResolver} to create a
+ * {@link SchemaTree} for a given schema ref. The resolver is passed in so
+ * the factory can forward it to the tree for nested `schemaRef` resolution.
+ *
+ * Return `undefined` if the schema ref is unknown.
+ */
 export type SchemaTreeFactory = (
   name: string,
   resolver: SchemaTreeResolver,
@@ -215,6 +246,10 @@ class SchemaTreeResolverImpl implements SchemaTreeResolver {
   }
 }
 
+/**
+ * Creates a {@link SchemaTreeResolver} that delegates to a factory function
+ * and caches the result per schema ref.
+ */
 export function createSchemaTreeResolver(factory: SchemaTreeFactory) {
   return new SchemaTreeResolverImpl(factory);
 }

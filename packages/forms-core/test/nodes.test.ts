@@ -634,7 +634,7 @@ describe("Static FormNode", () => {
     const tree = createStaticFormTree([dataDef("name"), dataDef("age")]);
     const cursor = tree.cursor(rd);
     expect(cursor.children).toHaveLength(2);
-    expect((cursor.children[0].field as any).field).toBe("name");
+    expect((cursor.children[0].definition as any).field).toBe("name");
     expect(cursor.children[0].parent?.node.id).toBe(cursor.node.id);
   });
 
@@ -666,7 +666,7 @@ describe("Static FormNode + childRefId", () => {
     const cursor = tree.cursor(rd);
     const refGroup = cursor.children[1];
     expect(refGroup.children).toHaveLength(2);
-    expect((refGroup.children[0].field as any).field).toBe("street");
+    expect((refGroup.children[0].definition as any).field).toBe("street");
   });
 
   it("local childRefId re-parents children", () => {
@@ -690,7 +690,7 @@ describe("Static FormNode + childRefId", () => {
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
-    expect((group.children[0].field as any).field).toBe("street");
+    expect((group.children[0].definition as any).field).toBe("street");
   });
 
   it("external childRefId /formId/localId resolves via resolver + id scan", () => {
@@ -704,7 +704,7 @@ describe("Static FormNode + childRefId", () => {
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
-    expect((group.children[0].field as any).field).toBe("street");
+    expect((group.children[0].definition as any).field).toBe("street");
   });
 
   it("missing external ref returns empty children", () => {
@@ -788,7 +788,7 @@ describe("Reactive FormNode children", () => {
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
-    expect((group.children[0].field as any).field).toBe("name");
+    expect((group.children[0].definition as any).field).toBe("name");
   });
 
   it("reactive nested children update on change", () => {
@@ -802,7 +802,7 @@ describe("Reactive FormNode children", () => {
     effect(ctx, (rc: ReadContext) => {
       const group = tree.cursor(rc).children[0];
       innerNames = group.children.map(
-        (c) => (c.field as any).field ?? c.field.type,
+        (c) => (c.definition as any).field ?? c.definition.type,
       );
     });
     expect(innerNames).toEqual(["name"]);
@@ -824,7 +824,7 @@ describe("Reactive FormNode children", () => {
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
-    expect((group.children[0].field as any).field).toBe("street");
+    expect((group.children[0].definition as any).field).toBe("street");
   });
 
   it("reactive childRefId re-parents with correct IDs", () => {
@@ -846,6 +846,34 @@ describe("Reactive FormNode children", () => {
     expect(second.node.parent?.id).toBe(cursor.children[1].node.id);
   });
 
+  it("reactive childRefId /formId/localId resolves via resolver + id scan", () => {
+    const ctx = makeCtx();
+    const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({
+      addressForm: [
+        groupDef([dataDef("street"), dataDef("city")], { id: "inner" }),
+      ],
+      main: [groupDef([], { childRefId: "/addressForm/inner" })],
+    });
+    const resolver = createReactiveFormResolver(allDefs);
+    const tree = resolver.getFormTree("main")!.rootNode;
+    const cursor = tree.cursor(rd);
+    const group = cursor.children[0];
+    expect(group.children).toHaveLength(2);
+    expect((group.children[0].definition as any).field).toBe("street");
+  });
+
+  it("reactive childRefId /formId/localId with missing localId returns empty", () => {
+    const ctx = makeCtx();
+    const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({
+      addressForm: [dataDef("street")],
+      main: [groupDef([], { childRefId: "/addressForm/nonexistent" })],
+    });
+    const resolver = createReactiveFormResolver(allDefs);
+    const tree = resolver.getFormTree("main")!.rootNode;
+    const cursor = tree.cursor(rd);
+    expect(cursor.children[0].children).toHaveLength(0);
+  });
+
   it("reactive form resolver lazy loading", () => {
     const ctx = makeCtx();
     const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({});
@@ -863,7 +891,7 @@ describe("Reactive FormNode children", () => {
     });
 
     expect(node!.cursor(rd).children).toHaveLength(1);
-    expect((node!.cursor(rd).children[0].field as any).field).toBe("street");
+    expect((node!.cursor(rd).children[0].definition as any).field).toBe("street");
   });
 
   it("reactive form resolver lazy loading triggers effect", () => {
@@ -877,7 +905,7 @@ describe("Reactive FormNode children", () => {
     let childFields: string[] = [];
     effect(ctx, (rc: ReadContext) => {
       const group = tree.cursor(rc).children[0];
-      childFields = group.children.map((c) => (c.field as any).field ?? "");
+      childFields = group.children.map((c) => (c.definition as any).field ?? "");
     });
     expect(childFields).toEqual([]);
 
@@ -917,9 +945,9 @@ describe("Reactive FormNode children", () => {
 
     // Re-invoke cursor on the child node
     const groupCursor2 = group.node.cursor(rd);
-    expect(groupCursor2.field.type).toBe(ControlDefinitionType.Group);
+    expect(groupCursor2.definition.type).toBe(ControlDefinitionType.Group);
     expect(groupCursor2.children).toHaveLength(1);
-    expect((groupCursor2.children[0].field as any).field).toBe("street");
+    expect((groupCursor2.children[0].definition as any).field).toBe("street");
   });
 });
 
@@ -951,8 +979,8 @@ describe("Wrapper node cursor re-invocation", () => {
 
     // Call cursor(rd) on the wrapper node independently
     const streetCursor2 = street.node.cursor(rd);
-    expect((streetCursor2.field as any).field).toBe("street");
-    expect(streetCursor2.parent?.field.type).toBe("Group");
+    expect((streetCursor2.definition as any).field).toBe("street");
+    expect(streetCursor2.parent?.definition.type).toBe("Group");
     expect(streetCursor2.node.id).toBe(street.node.id);
   });
 
@@ -968,7 +996,7 @@ describe("Wrapper node cursor re-invocation", () => {
     // Re-invoke cursor on the wrapper node (a group with children)
     const innerCursor2 = innerGroup.node.cursor(rd);
     expect(innerCursor2.children).toHaveLength(1);
-    expect((innerCursor2.children[0].field as any).field).toBe("street");
+    expect((innerCursor2.children[0].definition as any).field).toBe("street");
   });
 
   it("deep wrapper re-invocation preserves full parent chain", () => {

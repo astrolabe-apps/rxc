@@ -224,7 +224,7 @@ export function formDataCursor(
   cursor: FormCursor,
   parentData: DataCursor,
 ): DataCursor | undefined {
-  const field = formFieldPath(cursor.field);
+  const field = formFieldPath(cursor.definition);
   if (field === undefined) return undefined;
   return parentData.childField(field);
 }
