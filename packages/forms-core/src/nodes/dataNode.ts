@@ -2,6 +2,20 @@ import type { Control, ReadContext } from "@rxc/controls-core";
 import { isCompoundField } from "../json";
 import type { SchemaNode, DataNode, DataCursor } from "../types";
 
+/**
+ * Creates a {@link DataNode} that binds a {@link SchemaNode} to a
+ * {@link Control} holding the actual data value.
+ *
+ * The returned node's `cursor(rd)` produces a {@link DataCursor} that
+ * exposes the schema field metadata alongside navigation into child fields
+ * (`childField`) and array elements (`childElement`).
+ *
+ * @param schemaNode   - The schema node describing the structure at this data path.
+ * @param control      - The control holding the data value for this path.
+ * @param parent       - The parent data node, if not the root.
+ * @param elementIndex - For array elements, the index within the parent collection.
+ * @returns A persistent {@link DataNode} handle.
+ */
 export function createDataNode(
   schemaNode: SchemaNode,
   control: Control<unknown>,
@@ -18,6 +32,12 @@ export function createDataNode(
   return node;
 }
 
+/**
+ * Builds an ephemeral {@link DataCursor} for a data node within a
+ * {@link ReadContext}. The cursor resolves the schema cursor from the
+ * associated schema node and provides `childField` / `childElement`
+ * navigation that lazily creates child {@link DataNode}s on access.
+ */
 function makeDataCursor(
   node: DataNode,
   schemaNode: SchemaNode,

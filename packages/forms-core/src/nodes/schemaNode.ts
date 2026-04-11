@@ -9,12 +9,25 @@ import type { SchemaNode, SchemaCursor } from "../types";
 
 // ── Resolver type ──────────────────────────────────────────────────
 
+/**
+ * Resolves a named schema reference (e.g. `"Address"`) to the
+ * {@link SchemaNode} root of that schema tree. Used by compound fields with
+ * a `schemaRef` to inline another schema's children in place of their own.
+ *
+ * Returns `undefined` when the reference cannot be resolved.
+ */
 export type SchemaTreeResolver = (
   schemaRef: string,
 ) => SchemaNode | undefined;
 
 // ── Wrapper node for re-parenting ──────────────────────────────────
 
+/**
+ * Wraps a cursor from a resolved `schemaRef` tree so that it appears as a
+ * child of the referencing node. This creates a new {@link SchemaNode} with
+ * a path-based id under `parentNode` and re-parents the cursor's `parent`
+ * pointer to `parentCursor`.
+ */
 function wrapResolvedCursor(
   originalCursor: SchemaCursor,
   parentCursor: SchemaCursor,
@@ -37,6 +50,11 @@ function wrapResolvedCursor(
   return wrappedCursor;
 }
 
+/**
+ * Creates a shallow copy of `original` with its `parent` and `node` replaced,
+ * recursively wrapping all descendant cursors so the entire sub-tree is
+ * re-parented under `wrapperNode`.
+ */
 function wrapCursorWithParent(
   original: SchemaCursor,
   parentCursor: SchemaCursor,
@@ -60,12 +78,19 @@ function wrapCursorWithParent(
   return cursor;
 }
 
+/** Returns the path segment used to build a child node's id from a static cursor. */
 function childSegmentForCursor(cursor: SchemaCursor): string {
   return cursor.field.field;
 }
 
 // ── Static schema tree ─────────────────────────────────────────────
 
+/**
+ * Builds child {@link SchemaCursor}s for a list of static {@link SchemaField}s.
+ * For compound fields with a `schemaRef`, the children are resolved from the
+ * referenced tree (via `resolver`) and re-parented. Otherwise, the compound
+ * field's own `children` array is recursed into.
+ */
 function makeStaticChildCursors(
   fields: SchemaField[],
   parentNode: SchemaNode,
@@ -110,6 +135,16 @@ function makeStaticChildCursors(
   });
 }
 
+/**
+ * Creates a {@link SchemaNode} root from a plain array of {@link SchemaField}s.
+ *
+ * The resulting tree is non-reactive — cursors are built once and memoized.
+ * Use this when the schema is known at build time and will not change.
+ *
+ * @param fields   - The top-level schema fields.
+ * @param resolver - Optional resolver for `schemaRef` references in compound fields.
+ * @returns The root {@link SchemaNode} of the static schema tree.
+ */
 export function createStaticSchemaTree(
   fields: SchemaField[],
   resolver?: SchemaTreeResolver,
@@ -149,6 +184,18 @@ export function createStaticSchemaTree(
 
 // ── Reactive schema tree ───────────────────────────────────────────
 
+/**
+ * Creates a {@link SchemaNode} root backed by a reactive `Control<SchemaField[]>`.
+ *
+ * Each call to `cursor(rd)` reads the current elements of `fieldsControl`
+ * through the {@link ReadContext}, so the tree structure updates automatically
+ * when the underlying control changes. Use this in editor scenarios where
+ * the schema itself is being edited by the user.
+ *
+ * @param fieldsControl - A reactive control holding the top-level schema fields.
+ * @param resolver      - Optional resolver for `schemaRef` references.
+ * @returns The root {@link SchemaNode} of the reactive schema tree.
+ */
 export function createReactiveSchemaTree(
   fieldsControl: Control<SchemaField[]>,
   resolver?: SchemaTreeResolver,
@@ -184,6 +231,13 @@ export function createReactiveSchemaTree(
   return rootNode;
 }
 
+/**
+ * Builds a single reactive child {@link SchemaCursor} from a `Control<SchemaField>`.
+ *
+ * The field value is read reactively via `rd.getValueRx()`, and compound children
+ * are resolved by reading the control's `children` sub-control as an element list.
+ * Node ids incorporate the control's `uniqueId` for stability across re-renders.
+ */
 function makeReactiveChildCursor(
   elemControl: Control<SchemaField>,
   parentNode: SchemaNode,
@@ -241,15 +295,24 @@ function makeReactiveChildCursor(
   return childCursor;
 }
 
+/**
+ * Extracts a stable path segment from a reactive cursor's node id.
+ * The last segment of the id is the control's `uniqueId`, which remains
+ * stable across reactive re-evaluations.
+ */
 function childSegmentForReactiveCursor(cursor: SchemaCursor): string {
-  // For reactive wrapped cursors, we need a stable segment.
-  // The original node id contains the control uniqueId as its last segment.
   const parts = cursor.node.id.split("/");
   return parts[parts.length - 1];
 }
 
 // ── Resolver factories ─────────────────────────────────────────────
 
+/**
+ * Creates a {@link SchemaTreeResolver} from a plain record of named schema
+ * field arrays. Resolved trees are cached so each `schemaRef` is built once.
+ *
+ * @param allFields - A map from schema reference name to its field definitions.
+ */
 export function createStaticSchemaResolver(
   allFields: Record<string, SchemaField[]>,
 ): SchemaTreeResolver {
@@ -267,6 +330,13 @@ export function createStaticSchemaResolver(
   return resolver;
 }
 
+/**
+ * Creates a {@link SchemaTreeResolver} backed by a reactive
+ * `Control<Record<string, SchemaField[]>>`. Each schema reference is resolved
+ * to a reactive tree via {@link createReactiveSchemaTree} and cached.
+ *
+ * @param allSchemas - A reactive control holding all named schema definitions.
+ */
 export function createReactiveSchemaResolver(
   allSchemas: Control<Record<string, SchemaField[]>>,
 ): SchemaTreeResolver {
