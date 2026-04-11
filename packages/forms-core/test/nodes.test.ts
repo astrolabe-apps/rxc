@@ -3,6 +3,7 @@ import {
   createControlContext,
   noopReadContext,
   effect,
+  as,
 } from "@rxc/controls-core";
 import type { Control, ReadContext, ControlContext } from "@rxc/controls-core";
 import {
@@ -13,21 +14,25 @@ import {
   ControlDefinitionType,
 } from "../src/json";
 import {
-  createStaticSchemaTree,
-  createReactiveSchemaTree,
-  createStaticSchemaResolver,
-  createReactiveSchemaResolver,
+  createStaticSchemaTree as csst,
+  createReactiveSchemaTree as crst,
   createDataNode,
-  createStaticFormTree,
-  createReactiveFormTree,
-  createStaticFormResolver,
-  createReactiveFormResolver,
+  createStaticFormTree as csft,
+  createReactiveFormTree as crft,
 } from "../src/nodes";
 import {
   schemaFieldPath,
   schemaPathString,
   dataJsonPathString,
 } from "../src/cursorUtils";
+import {
+  FormTreeResolver,
+  SchemaNode,
+  type SchemaTree,
+  SchemaTreeResolver,
+} from "../src";
+import { createSchemaTreeResolver } from "../src/nodes/schemaNode";
+import { createFormTreeResolver } from "../src/nodes/formNode";
 
 const rd = noopReadContext;
 
@@ -77,7 +82,7 @@ describe("Static SchemaNode", () => {
   it("creates root with synthetic compound field", () => {
     const tree = createStaticSchemaTree([stringField("name")]);
     const cursor = tree.cursor(rd);
-    expect(cursor.node).toBe(tree);
+    expect(cursor.node.id).toBe(tree.id);
     expect(cursor.field.type).toBe(FieldType.Compound);
     expect(cursor.field.field).toBe("");
     expect(cursor.parent).toBeUndefined();
@@ -94,33 +99,25 @@ describe("Static SchemaNode", () => {
     expect(children).toHaveLength(2);
     expect(children[0].field.field).toBe("name");
     expect(children[1].field.field).toBe("age");
-    expect(children[0].parent).toBe(cursor);
-    expect(children[0].node.parent).toBe(tree);
+    expect(children[0].parent?.node.id).toBe(cursor.node.id);
+    expect(children[0].node.parent?.id).toBe(tree.id);
   });
 
   it("compound field has nested children", () => {
     const tree = createStaticSchemaTree([
-      compoundField("address", [
-        stringField("street"),
-        stringField("city"),
-      ]),
+      compoundField("address", [stringField("street"), stringField("city")]),
     ]);
     const cursor = tree.cursor(rd);
     const address = cursor.children[0];
     expect(address.children).toHaveLength(2);
     expect(address.children[0].field.field).toBe("street");
-    expect(address.children[0].parent).toBe(address);
+    expect(address.children[0].parent?.node.id).toBe(address.node.id);
   });
 
   it("non-compound fields have no children", () => {
     const tree = createStaticSchemaTree([stringField("name")]);
     const cursor = tree.cursor(rd);
     expect(cursor.children[0].children).toHaveLength(0);
-  });
-
-  it("memoizes cursor", () => {
-    const tree = createStaticSchemaTree([stringField("name")]);
-    expect(tree.cursor(rd)).toBe(tree.cursor(rd));
   });
 
   it("path-based IDs are correct", () => {
@@ -130,9 +127,7 @@ describe("Static SchemaNode", () => {
     const cursor = tree.cursor(rd);
     expect(cursor.node.id).toBe("$root");
     expect(cursor.children[0].node.id).toBe("$root/address");
-    expect(cursor.children[0].children[0].node.id).toBe(
-      "$root/address/street",
-    );
+    expect(cursor.children[0].children[0].node.id).toBe("$root/address/street");
   });
 });
 
@@ -140,11 +135,9 @@ describe("Static SchemaNode + schemaRef", () => {
   it("resolves schemaRef children via resolver", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street"), stringField("city")],
+      main: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const home = cursor.children[0];
     expect(home.children).toHaveLength(2);
@@ -155,32 +148,28 @@ describe("Static SchemaNode + schemaRef", () => {
   it("re-parents resolved children to referring node", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street")],
+      main: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const home = cursor.children[0];
     const street = home.children[0];
 
     // cursor.parent points back to the referring cursor
-    expect(street.parent).toBe(home);
+    expect(street.parent?.node.id).toBe(home.node.id);
     // node.parent points back to the referring node
-    expect(street.node.parent).toBe(home.node);
+    expect(street.node.parent?.id).toBe(home.node.id);
   });
 
   it("path-based IDs are unique across multiple references to same schema", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street")],
-    });
-    const tree = createStaticSchemaTree(
-      [
+      main: [
         compoundField("billing", [], "address"),
         compoundField("shipping", [], "address"),
       ],
-      resolver,
-    );
+    });
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const billingStreet = cursor.children[0].children[0];
     const shippingStreet = cursor.children[1].children[0];
@@ -194,11 +183,9 @@ describe("Static SchemaNode + schemaRef", () => {
     const resolver = createStaticSchemaResolver({
       address: [compoundField("country", [], "country")],
       country: [stringField("code"), stringField("name")],
+      home: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("home").rootNode;
     const cursor = tree.cursor(rd);
     const country = cursor.children[0].children[0];
     expect(country.field.field).toBe("country");
@@ -208,11 +195,10 @@ describe("Static SchemaNode + schemaRef", () => {
   });
 
   it("missing schemaRef returns empty children", () => {
-    const resolver = createStaticSchemaResolver({});
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "nonexistent")],
-      resolver,
-    );
+    const resolver = createStaticSchemaResolver({
+      main: [compoundField("home", [], "nonexistent")],
+    });
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     expect(cursor.children[0].children).toHaveLength(0);
   });
@@ -222,11 +208,9 @@ describe("Static SchemaNode + cursorUtils", () => {
   it("schemaFieldPath works across schemaRef boundary", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street")],
+      main: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const street = cursor.children[0].children[0];
     const path = schemaFieldPath(street);
@@ -236,11 +220,9 @@ describe("Static SchemaNode + cursorUtils", () => {
   it("schemaPathString works across schemaRef boundary", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street")],
+      main: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const street = cursor.children[0].children[0];
     expect(schemaPathString(street)).toBe("/home/street");
@@ -260,13 +242,6 @@ describe("Reactive SchemaNode", () => {
     const cursor = tree.cursor(rd);
     expect(cursor.children).toHaveLength(2);
     expect(cursor.children[0].field.field).toBe("name");
-  });
-
-  it("reactive cursor is fresh each call", () => {
-    const ctx = makeCtx();
-    const fields = ctx.newControl<SchemaField[]>([stringField("name")]);
-    const tree = createReactiveSchemaTree(fields);
-    expect(tree.cursor(rd)).not.toBe(tree.cursor(rd));
   });
 
   it("child IDs use control uniqueId", () => {
@@ -337,12 +312,10 @@ describe("Reactive SchemaNode", () => {
     const ctx = makeCtx();
     const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({
       address: [stringField("street"), stringField("city")],
+      main: [compoundField("home", [], "address")],
     });
     const resolver = createReactiveSchemaResolver(allSchemas);
-    const fields = ctx.newControl<SchemaField[]>([
-      compoundField("home", [], "address"),
-    ]);
-    const tree = createReactiveSchemaTree(fields, resolver);
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const home = cursor.children[0];
     expect(home.children).toHaveLength(2);
@@ -353,13 +326,13 @@ describe("Reactive SchemaNode", () => {
     const ctx = makeCtx();
     const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({
       address: [stringField("street")],
+      main: [
+        compoundField("billing", [], "address"),
+        compoundField("shipping", [], "address"),
+      ],
     });
     const resolver = createReactiveSchemaResolver(allSchemas);
-    const fields = ctx.newControl<SchemaField[]>([
-      compoundField("billing", [], "address"),
-      compoundField("shipping", [], "address"),
-    ]);
-    const tree = createReactiveSchemaTree(fields, resolver);
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const billingStreet = cursor.children[0].children[0];
     const shippingStreet = cursor.children[1].children[0];
@@ -375,12 +348,10 @@ describe("Reactive SchemaNode", () => {
     const ctx = makeCtx();
     const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({
       address: [stringField("street")],
+      main: [compoundField("home", [], "nonexistent")],
     });
     const resolver = createReactiveSchemaResolver(allSchemas);
-    const fields = ctx.newControl<SchemaField[]>([
-      compoundField("home", [], "nonexistent"),
-    ]);
-    const tree = createReactiveSchemaTree(fields, resolver);
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const home = cursor.children[0];
     expect(home.children).toHaveLength(0);
@@ -389,18 +360,16 @@ describe("Reactive SchemaNode", () => {
   it("reactive resolver lazy loading — empty then populated", () => {
     const ctx = makeCtx();
     const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({});
-    const resolver = createReactiveSchemaResolver(allSchemas);
+    const resolver = createReactiveSchemaResolver(allSchemas, ctx);
 
     // Access before data exists — resolver creates node wrapping null/empty control
-    const node = resolver("address");
+    const node = resolver.getSchemaTree("address")?.rootNode;
     expect(node).toBeDefined();
     expect(node!.cursor(rd).children).toHaveLength(0);
 
     // Populate the control externally (simulating async load completion)
     ctx.update((wc) => {
-      const addressControl = (
-        allSchemas as Control<Record<string, unknown>>
-      ).fields["address"] as unknown as Control<SchemaField[]>;
+      const addressControl = allSchemas.fields.address;
       wc.setValue(addressControl, [stringField("street"), stringField("city")]);
     });
 
@@ -411,12 +380,11 @@ describe("Reactive SchemaNode", () => {
 
   it("reactive resolver lazy loading triggers effect re-evaluation", () => {
     const ctx = makeCtx();
-    const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({});
-    const resolver = createReactiveSchemaResolver(allSchemas);
-    const fields = ctx.newControl<SchemaField[]>([
-      compoundField("home", [], "address"),
-    ]);
-    const tree = createReactiveSchemaTree(fields, resolver);
+    const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({
+      main: [compoundField("home", [], "address")],
+    });
+    const resolver = createReactiveSchemaResolver(allSchemas, ctx);
+    const tree = resolver.getSchemaTree("main")!.rootNode;
 
     let childNames: string[] = [];
     effect(ctx, (rc: ReadContext) => {
@@ -427,9 +395,7 @@ describe("Reactive SchemaNode", () => {
 
     // Populate the address schema
     ctx.update((wc) => {
-      const addressControl = (
-        allSchemas as Control<Record<string, unknown>>
-      ).fields["address"] as unknown as Control<SchemaField[]>;
+      const addressControl = allSchemas.fields.address;
       wc.setValue(addressControl, [stringField("street")]);
     });
     expect(childNames).toEqual(["street"]);
@@ -441,7 +407,9 @@ describe("Reactive SchemaNode", () => {
       address: [stringField("street")],
     });
     const resolver = createReactiveSchemaResolver(allSchemas);
-    expect(resolver("address")).toBe(resolver("address"));
+    expect(resolver.getSchemaTree("address")).toBe(
+      resolver.getSchemaTree("address"),
+    );
   });
 });
 
@@ -459,7 +427,7 @@ describe("DataNode", () => {
     const cursor = node.cursor(rd);
 
     expect(cursor.field.type).toBe(FieldType.Compound);
-    expect(cursor.control).toBe(data);
+    expect(cursor.control.uniqueId).toBe(data.uniqueId);
     expect(cursor.parent).toBeUndefined();
   });
 
@@ -560,11 +528,9 @@ describe("DataNode", () => {
     const ctx = makeCtx();
     const resolver = createStaticSchemaResolver({
       address: [stringField("street")],
+      main: [compoundField("home", [], "address")],
     });
-    const schema = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const schema = resolver.getSchemaTree("main")!.rootNode;
     const data = ctx.newControl({ home: { street: "Main St" } });
     const root = createDataNode(schema, data);
     const street = root.cursor(rd).childField("home")?.childField("street");
@@ -576,11 +542,12 @@ describe("DataNode", () => {
 describe("DataNode reactive", () => {
   it("data traversal reacts to schema changes", () => {
     const ctx = makeCtx();
-    const fields = ctx.newControl<SchemaField[]>([
-      stringField("name"),
-    ]);
+    const fields = ctx.newControl<SchemaField[]>([stringField("name")]);
     const schema = createReactiveSchemaTree(fields);
-    const data = ctx.newControl<Record<string, unknown>>({ name: "Alice", age: 30 });
+    const data = ctx.newControl<Record<string, unknown>>({
+      name: "Alice",
+      age: 30,
+    });
     const node = createDataNode(schema, data);
 
     let fieldNames: string[] = [];
@@ -614,15 +581,13 @@ describe("DataNode reactive", () => {
       const items = node.cursor(rc).childField("items");
       if (!items) return;
       // Count elements by trying indices
-      const elems = rc.getElements(items.control as Control<unknown[]>);
+      const elems = rc.getElements(as<unknown[]>(items.control));
       elemCount = elems.length;
     });
     expect(elemCount).toBe(2);
 
     ctx.update((wc) => {
-      const itemsControl = (data as Control<Record<string, unknown>>).fields[
-        "items"
-      ] as Control<string[]>;
+      const itemsControl = data.fields.items;
       wc.setValue(itemsControl, ["a", "b", "c"]);
     });
     expect(elemCount).toBe(3);
@@ -632,12 +597,10 @@ describe("DataNode reactive", () => {
     const ctx = makeCtx();
     const allSchemas = ctx.newControl<Record<string, SchemaField[]>>({
       address: [stringField("street")],
+      main: [compoundField("home", [], "address")],
     });
     const resolver = createReactiveSchemaResolver(allSchemas);
-    const fields = ctx.newControl<SchemaField[]>([
-      compoundField("home", [], "address"),
-    ]);
-    const schema = createReactiveSchemaTree(fields, resolver);
+    const schema = resolver.getSchemaTree("main")!.rootNode;
     const data = ctx.newControl({ home: { street: "Main St", city: "NYC" } });
     const node = createDataNode(schema, data);
 
@@ -652,13 +615,8 @@ describe("DataNode reactive", () => {
 
     // Add city to address schema
     ctx.update((wc) => {
-      const addressControl = (
-        allSchemas as Control<Record<string, unknown>>
-      ).fields["address"] as unknown as Control<SchemaField[]>;
-      wc.setValue(addressControl, [
-        stringField("street"),
-        stringField("city"),
-      ]);
+      const addressControl = allSchemas.fields.address;
+      wc.setValue(addressControl, [stringField("street"), stringField("city")]);
     });
 
     // Now city should be accessible
@@ -677,7 +635,7 @@ describe("Static FormNode", () => {
     const cursor = tree.cursor(rd);
     expect(cursor.children).toHaveLength(2);
     expect((cursor.children[0].field as any).field).toBe("name");
-    expect(cursor.children[0].parent).toBe(cursor);
+    expect(cursor.children[0].parent?.node.id).toBe(cursor.node.id);
   });
 
   it("nested children", () => {
@@ -687,22 +645,15 @@ describe("Static FormNode", () => {
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
-    expect(group.children[0].node.parent).toBe(group.node);
+    expect(group.children[0].node.parent?.id).toBe(group.node.id);
   });
 
   it("path-based IDs", () => {
-    const tree = createStaticFormTree([
-      groupDef([dataDef("name")]),
-    ]);
+    const tree = createStaticFormTree([groupDef([dataDef("name")])]);
     const cursor = tree.cursor(rd);
     expect(cursor.node.id).toBe("$root");
     expect(cursor.children[0].node.id).toBe("$root/0");
     expect(cursor.children[0].children[0].node.id).toBe("$root/0/0");
-  });
-
-  it("memoizes cursor", () => {
-    const tree = createStaticFormTree([dataDef("name")]);
-    expect(tree.cursor(rd)).toBe(tree.cursor(rd));
   });
 });
 
@@ -726,18 +677,16 @@ describe("Static FormNode + childRefId", () => {
     const cursor = tree.cursor(rd);
     const refGroup = cursor.children[1];
     const street = refGroup.children[0];
-    expect(street.parent).toBe(refGroup);
-    expect(street.node.parent).toBe(refGroup.node);
+    expect(street.parent?.node.id).toBe(refGroup.node.id);
+    expect(street.node.parent?.id).toBe(refGroup.node.id);
   });
 
   it("external childRefId /formId resolves via resolver", () => {
     const resolver = createStaticFormResolver({
       addressForm: [dataDef("street"), dataDef("city")],
+      main: [groupDef([], { childRefId: "/addressForm" })],
     });
-    const tree = createStaticFormTree(
-      [groupDef([], { childRefId: "/addressForm" })],
-      resolver,
-    );
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
@@ -749,11 +698,9 @@ describe("Static FormNode + childRefId", () => {
       addressForm: [
         groupDef([dataDef("street"), dataDef("city")], { id: "inner" }),
       ],
+      main: [groupDef([], { childRefId: "/addressForm/inner" })],
     });
-    const tree = createStaticFormTree(
-      [groupDef([], { childRefId: "/addressForm/inner" })],
-      resolver,
-    );
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
@@ -761,11 +708,10 @@ describe("Static FormNode + childRefId", () => {
   });
 
   it("missing external ref returns empty children", () => {
-    const resolver = createStaticFormResolver({});
-    const tree = createStaticFormTree(
-      [groupDef([], { childRefId: "/nonexistent" })],
-      resolver,
-    );
+    const resolver = createStaticFormResolver({
+      main: [groupDef([], { childRefId: "/nonexistent" })],
+    });
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     expect(cursor.children[0].children).toHaveLength(0);
   });
@@ -787,14 +733,12 @@ describe("Static FormNode + childRefId", () => {
   it("path-based IDs unique across same childRefId used twice", () => {
     const resolver = createStaticFormResolver({
       shared: [dataDef("field1")],
-    });
-    const tree = createStaticFormTree(
-      [
+      main: [
         groupDef([], { childRefId: "/shared" }),
         groupDef([], { childRefId: "/shared" }),
       ],
-      resolver,
-    );
+    });
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const first = cursor.children[0].children[0];
     const second = cursor.children[1].children[0];
@@ -857,7 +801,9 @@ describe("Reactive FormNode children", () => {
     let innerNames: string[] = [];
     effect(ctx, (rc: ReadContext) => {
       const group = tree.cursor(rc).children[0];
-      innerNames = group.children.map((c) => (c.field as any).field ?? c.field.type);
+      innerNames = group.children.map(
+        (c) => (c.field as any).field ?? c.field.type,
+      );
     });
     expect(innerNames).toEqual(["name"]);
 
@@ -871,12 +817,10 @@ describe("Reactive FormNode children", () => {
     const ctx = makeCtx();
     const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({
       shared: [dataDef("street"), dataDef("city")],
+      main: [groupDef([], { childRefId: "/shared" })],
     });
     const resolver = createReactiveFormResolver(allDefs);
-    const defs = ctx.newControl<ControlDefinition[]>([
-      groupDef([], { childRefId: "/shared" }),
-    ]);
-    const tree = createReactiveFormTree(defs, resolver);
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const group = cursor.children[0];
     expect(group.children).toHaveLength(2);
@@ -887,13 +831,13 @@ describe("Reactive FormNode children", () => {
     const ctx = makeCtx();
     const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({
       shared: [dataDef("field1")],
+      main: [
+        groupDef([], { childRefId: "/shared" }),
+        groupDef([], { childRefId: "/shared" }),
+      ],
     });
     const resolver = createReactiveFormResolver(allDefs);
-    const defs = ctx.newControl<ControlDefinition[]>([
-      groupDef([], { childRefId: "/shared" }),
-      groupDef([], { childRefId: "/shared" }),
-    ]);
-    const tree = createReactiveFormTree(defs, resolver);
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const first = cursor.children[0].children[0];
     const second = cursor.children[1].children[0];
@@ -905,17 +849,16 @@ describe("Reactive FormNode children", () => {
   it("reactive form resolver lazy loading", () => {
     const ctx = makeCtx();
     const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({});
-    const resolver = createReactiveFormResolver(allDefs);
+    const resolver = createReactiveFormResolver(allDefs, ctx);
 
-    const node = resolver("shared");
+    const node = resolver.getFormTree("shared")?.rootNode;
     expect(node).toBeDefined();
     expect(node!.cursor(rd).children).toHaveLength(0);
 
     // Populate externally
     ctx.update((wc) => {
-      const sharedControl = (
-        allDefs as Control<Record<string, unknown>>
-      ).fields["shared"] as unknown as Control<ControlDefinition[]>;
+      const sharedControl = allDefs.fields.shared;
+
       wc.setValue(sharedControl, [dataDef("street")]);
     });
 
@@ -925,12 +868,11 @@ describe("Reactive FormNode children", () => {
 
   it("reactive form resolver lazy loading triggers effect", () => {
     const ctx = makeCtx();
-    const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({});
-    const resolver = createReactiveFormResolver(allDefs);
-    const defs = ctx.newControl<ControlDefinition[]>([
-      groupDef([], { childRefId: "/shared" }),
-    ]);
-    const tree = createReactiveFormTree(defs, resolver);
+    const allDefs = ctx.newControl<Record<string, ControlDefinition[]>>({
+      main: [groupDef([], { childRefId: "/shared" })],
+    });
+    const resolver = createReactiveFormResolver(allDefs, ctx);
+    const tree = resolver.getFormTree("main")!.rootNode;
 
     let childFields: string[] = [];
     effect(ctx, (rc: ReadContext) => {
@@ -941,9 +883,7 @@ describe("Reactive FormNode children", () => {
 
     // Populate
     ctx.update((wc) => {
-      const sharedControl = (
-        allDefs as Control<Record<string, unknown>>
-      ).fields["shared"] as unknown as Control<ControlDefinition[]>;
+      const sharedControl = allDefs.fields.shared;
       wc.setValue(sharedControl, [dataDef("street")]);
     });
     expect(childFields).toEqual(["street"]);
@@ -955,7 +895,7 @@ describe("Reactive FormNode children", () => {
       form1: [dataDef("name")],
     });
     const resolver = createReactiveFormResolver(allDefs);
-    expect(resolver("form1")).toBe(resolver("form1"));
+    expect(resolver.getFormTree("form1")).toBe(resolver.getFormTree("form1"));
   });
 
   it("definition with no children and no childRefId returns empty", () => {
@@ -987,11 +927,9 @@ describe("Wrapper node cursor re-invocation", () => {
   it("schema wrapper node cursor(rd) produces correct field and parent", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street"), stringField("city")],
+      main: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const street = cursor.children[0].children[0];
 
@@ -1005,11 +943,9 @@ describe("Wrapper node cursor re-invocation", () => {
   it("form wrapper node cursor(rd) produces correct definition and parent", () => {
     const resolver = createStaticFormResolver({
       shared: [dataDef("street"), dataDef("city")],
+      main: [groupDef([], { childRefId: "/shared" })],
     });
-    const tree = createStaticFormTree(
-      [groupDef([], { childRefId: "/shared" })],
-      resolver,
-    );
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const street = cursor.children[0].children[0];
 
@@ -1023,11 +959,9 @@ describe("Wrapper node cursor re-invocation", () => {
   it("form wrapper node with children re-invocation traverses deeper", () => {
     const resolver = createStaticFormResolver({
       shared: [groupDef([dataDef("street")], { id: "inner" })],
+      main: [groupDef([], { childRefId: "/shared" })],
     });
-    const tree = createStaticFormTree(
-      [groupDef([], { childRefId: "/shared" })],
-      resolver,
-    );
+    const tree = resolver.getFormTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const innerGroup = cursor.children[0].children[0];
 
@@ -1040,11 +974,9 @@ describe("Wrapper node cursor re-invocation", () => {
   it("deep wrapper re-invocation preserves full parent chain", () => {
     const resolver = createStaticSchemaResolver({
       address: [compoundField("country", [stringField("code")])],
+      main: [compoundField("home", [], "address")],
     });
-    const tree = createStaticSchemaTree(
-      [compoundField("home", [], "address")],
-      resolver,
-    );
+    const tree = resolver.getSchemaTree("main")!.rootNode;
     const cursor = tree.cursor(rd);
     const code = cursor.children[0].children[0].children[0];
 
@@ -1071,8 +1003,8 @@ describe("Resolver caching", () => {
     const resolver = createStaticSchemaResolver({
       address: [stringField("street")],
     });
-    const node1 = resolver("address");
-    const node2 = resolver("address");
+    const node1 = resolver.getSchemaTree("address");
+    const node2 = resolver.getSchemaTree("address");
     expect(node1).toBe(node2);
   });
 
@@ -1080,8 +1012,84 @@ describe("Resolver caching", () => {
     const resolver = createStaticFormResolver({
       form1: [dataDef("name")],
     });
-    const node1 = resolver("form1");
-    const node2 = resolver("form1");
+    const node1 = resolver.getFormTree("form1");
+    const node2 = resolver.getFormTree("form1");
     expect(node1).toBe(node2);
   });
 });
+
+// ── Resolver factories ─────────────────────────────────────────────
+
+/**
+ * Creates a {@link SchemaTreeResolver} from a plain record of named schema
+ * field arrays. Resolved trees are cached so each `schemaRef` is built once.
+ *
+ * @param allFields - A map from schema reference name to its field definitions.
+ */
+export function createStaticSchemaResolver(
+  allFields: Record<string, SchemaField[]>,
+): SchemaTreeResolver {
+  return createSchemaTreeResolver((schemaId, resolver) => {
+    const rootFields = allFields[schemaId];
+    return rootFields ? csst(rootFields, resolver) : undefined;
+  });
+}
+
+export function createReactiveSchemaResolver(
+  allSchemas: Control<Record<string, SchemaField[]>>,
+  ctx?: ControlContext,
+): SchemaTreeResolver {
+  return createSchemaTreeResolver((schemaId, resolver) => {
+    const rootFields = allSchemas.fields[schemaId];
+    if (ctx && rootFields.isNullNow)
+      ctx.update((wc) => wc.setValue(rootFields, []));
+    return !rootFields.isNullNow ? crst(rootFields, resolver) : undefined;
+  });
+}
+
+// ── Resolver factories ─────────────────────────────────────────────
+
+/**
+ * Creates a {@link FormTreeResolver} from a plain record of named control
+ * definition arrays. Resolved trees are cached so each form id is built once.
+ *
+ * @param allDefs - A map from form id to its control definitions.
+ */
+export function createStaticFormResolver(
+  allDefs: Record<string, ControlDefinition[]>,
+): FormTreeResolver {
+  return createFormTreeResolver((formId, resolver) => {
+    const rootControls = allDefs[formId];
+    return rootControls ? csft(rootControls, resolver) : undefined;
+  });
+}
+
+export function createReactiveFormResolver(
+  allDefs: Control<Record<string, ControlDefinition[]>>,
+  ctx?: ControlContext,
+): FormTreeResolver {
+  return createFormTreeResolver((formId, resolver) => {
+    const rootControls = allDefs.fields[formId];
+    if (ctx && rootControls.isNullNow)
+      ctx.update((wc) => wc.setValue(rootControls, []));
+    return !rootControls.isNullNow ? crft(rootControls, resolver) : undefined;
+  });
+}
+
+export function createStaticSchemaTree(fields: SchemaField[]): SchemaNode {
+  return csst(fields, { getSchemaTree: () => undefined }).rootNode;
+}
+
+export function createReactiveSchemaTree(
+  fieldsControl: Control<SchemaField[]>,
+): SchemaNode {
+  return crst(fieldsControl, { getSchemaTree: () => undefined }).rootNode;
+}
+
+export function createStaticFormTree(controls: ControlDefinition[]) {
+  return csft(controls, { getFormTree: () => undefined }).rootNode;
+}
+
+export function createReactiveFormTree(controls: Control<ControlDefinition[]>) {
+  return crft(controls, { getFormTree: () => undefined }).rootNode;
+}

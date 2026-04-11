@@ -2,6 +2,8 @@ import { ControlImpl, toImpl } from "./controlImpl";
 import { ControlChange } from "./types";
 import type { Control, ReadContext, Subscription } from "./types";
 
+const restoreControlSymbol = Symbol("restoreControl");
+
 // ── getValueRx implementation ───────────────────────────────────────
 
 /**
@@ -31,6 +33,7 @@ function createValueRxProxy<V>(control: Control<V>, rc: ReadContext): V {
     const elements = rc.getElements(control as unknown as Control<unknown[]>);
     return new Proxy(value, {
       get(target, p, receiver) {
+        if (p === restoreControlSymbol) return control;
         if (p === "length") return elements.length;
         if (typeof p === "symbol" || typeof p !== "string")
           return Reflect.get(target, p, receiver);
@@ -54,6 +57,9 @@ function createValueRxProxy<V>(control: Control<V>, rc: ReadContext): V {
   }) as V;
 }
 
+export function unwrapValueProxy<A>(v: A): Control<A> | undefined {
+  return v != null ? (v as any)[restoreControlSymbol] : undefined;
+}
 // ── NoopReadContext ─────────────────────────────────────────────────
 
 export const noopReadContext: ReadContext = {
@@ -176,9 +182,13 @@ interface TrackedSub {
 export class SubscriptionReconciler {
   alive = true;
   private subs: TrackedSub[] = [];
-  private listener: ((control: Control<any>, change: ControlChange) => void) | undefined;
+  private listener:
+    | ((control: Control<any>, change: ControlChange) => void)
+    | undefined;
 
-  setListener(listener: (control: Control<any>, change: ControlChange) => void): void {
+  setListener(
+    listener: (control: Control<any>, change: ControlChange) => void,
+  ): void {
     this.listener = listener;
   }
 
@@ -187,9 +197,7 @@ export class SubscriptionReconciler {
 
     // For each tracked control, find or create subscription
     for (const [control, mask] of tracked) {
-      const existing = this.subs.find(
-        (s) => s.control === control,
-      );
+      const existing = this.subs.find((s) => s.control === control);
       if (existing) {
         if (existing.mask !== mask) {
           // Mask changed — unsubscribe and resubscribe

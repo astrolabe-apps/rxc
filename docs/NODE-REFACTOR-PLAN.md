@@ -95,14 +95,14 @@ class SchemaTreeResolverImpl implements SchemaTreeResolver {
 
 ### Tree classes
 
-- **`StaticFormTree`** — key improvement: builds `idMap: Map<string, StaticFormNode>` at construction by walking all definitions eagerly. Only indexes defs with truthy `id`, skips `childRefId` subtrees.
-  - `createChildCursors(localId?, parent)`: undefined → root children created with parent; string → O(1) idMap lookup → creates new child nodes/cursors parented under `parent`.
+- **`StaticFormTree`** — key improvement: builds `idMap: Map<string, ControlDefinition>` at construction by walking all definitions. Only indexes defs with truthy `id`, skips `childRefId` subtrees to avoid circular references.
+  - `createChildCursors(localId?, parent)`: undefined → creates nodes/cursors for root children parented under `parent`; string → O(1) idMap lookup → creates nodes/cursors for that definition's children parented under `parent`.
   - `resolveChildRefId(childRefId, parent)`: parses format, routes to `this.createChildCursors()` for local refs, `resolver.getFormTree(formId)?.createChildCursors()` for external refs.
 - **`ReactiveFormTree`** — same interface, uses DFS for local id resolution (reactive idMap deferred to follow-up). Has `resolveChildRefId` with same routing logic.
 
 ### Node classes
 
-- **`StaticFormNode`** — eagerly created during tree construction. Fields: `id`, `parent?`, `definition`, `tree`, `childNodes?: StaticFormNode[]`. Root memoizes cursor.
+- **`StaticFormNode`** — created lazily during cursor traversal. Fields: `id`, `parent?`, `definition`, `tree`. Root memoizes cursor.
 - **`ReactiveFormRootNode`** — reads elements from `Control<ControlDefinition[]>`.
 - **`ReactiveFormChildNode`** — reads `rd.getValueRx(elemControl)`. ID uses `control.uniqueId`.
 
@@ -152,7 +152,7 @@ Mechanical updates:
 2. **`node.cursor(rd)` returns cursor without parent** — parent is only set during tree traversal via children getter
 3. **No wrapper nodes** — `createChildCursors(parent)` creates new nodes and cursors parented directly under the consuming tree's node. Cross-tree resolution (schemaRef, childRefId) produces nodes whose `parent` is the referencing node, not the source tree's node. This is correct because the node's parent reflects where it was placed, not where it was defined.
 4. **Reactive FormTree uses DFS for local id lookup** (deferred: reactive idMap via effects + ControlContext)
-5. **Static FormTree builds nodes eagerly** — nodes are cheap (id + refs), only cursors are lazy
+5. **All nodes are created lazily** — nodes are created during cursor traversal, not at tree construction. Eager creation is not possible because `createChildCursors` needs a parent that's only known at traversal time, and circular `childRefId` references would cause infinite recursion. The static `idMap` indexes definitions, not nodes.
 6. **`childRefId` parsing stays as a utility function**, routing logic lives in `FormTree.resolveChildRefId`
 7. **Resolvers use lazy factories** — `SchemaTreeResolverImpl` / `FormTreeResolverImpl` take a `(name, resolver) => Tree | undefined` factory function. On first lookup, the resolver calls the factory with the requested name and itself, then caches the result. This breaks the circular dependency (the factory receives the resolver it needs to pass to tree constructors) and enables lazy loading. No separate static/reactive resolver variants needed since the factory can create whichever tree type it wants. When a tree is constructed without a resolver, factory functions default to a no-op (`{ getSchemaTree: () => undefined }` / `{ getFormTree: () => undefined }`) so tree internals never check for `undefined` resolver
 

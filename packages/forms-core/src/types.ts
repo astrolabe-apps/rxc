@@ -155,6 +155,7 @@ export interface SchemaCursor {
 
   /** The parent cursor, if this is not the root of the traversal. */
   parent?: SchemaCursor;
+  rd: ReadContext;
 }
 
 /**
@@ -254,6 +255,7 @@ export interface FormNode {
    * {@link ReadContext} that created it.
    */
   cursor(rd: ReadContext): FormCursor;
+  tree: FormTree;
 }
 
 /**
@@ -283,4 +285,27 @@ export interface FormCursor {
 
   /** The parent cursor, if this is not the root of the traversal. */
   parent?: FormCursor;
+  rd: ReadContext;
+}
+
+export interface FormTree {
+  readonly rootNode: FormNode;
+  createChildCursors(
+    localId: string | undefined,
+    parent: FormCursor,
+  ): FormCursor[];
+  resolver: FormTreeResolver;
+}
+
+export interface FormTreeResolver {
+  getFormTree(formId: string): FormTree | undefined;
+}
+
+export interface SchemaTree {
+  readonly rootNode: SchemaNode;
+  createChildCursors(parent: SchemaCursor): SchemaCursor[];
+}
+
+export interface SchemaTreeResolver {
+  getSchemaTree(schemaRef: string): SchemaTree | undefined;
 }

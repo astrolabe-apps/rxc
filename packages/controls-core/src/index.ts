@@ -21,18 +21,14 @@ export {
 
 export { deepEquals } from "./deepEquals";
 
-export { noopReadContext } from "./readContextImpl";
+export { noopReadContext, unwrapValueProxy } from "./readContextImpl";
 
-export {
-  type ComputedRef,
-  computed,
-  type EffectRef,
-  effect,
-} from "./computed";
+export { type ComputedRef, computed, type EffectRef, effect } from "./computed";
 
 export {
   ensureMetaValue,
   lookupControl,
   getControlPath,
   getElementIndex,
+  as,
 } from "./controlUtils";
