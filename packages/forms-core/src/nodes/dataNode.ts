@@ -60,6 +60,7 @@ function makeDataCursor(
   const cursor: DataCursor = {
     node,
     field: schemaCursor.field,
+    schema: schemaCursor,
     control,
     elementIndex,
     get parent(): DataCursor | undefined {

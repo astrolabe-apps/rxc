@@ -1,22 +1,38 @@
 "use client";
 
-import {useRef, useState} from "react";
-import type {Control} from "@rxc/controls";
-import {ControlContextProvider, controls, createControlContext,} from "@rxc/controls";
-import type {CompoundField, GroupedControlsDefinition,} from "@rxc/forms-core";
+import { useRef, useState } from "react";
+import type { Control } from "@rxc/controls";
+import {
+  ControlContextProvider,
+  controls,
+  createControlContext,
+} from "@rxc/controls";
+import type {
+  CompoundField,
+  ControlDefinition,
+  FormGlobalOptions,
+  FormStateNode,
+  GroupedControlsDefinition,
+  SchemaField,
+  SchemaTreeResolver,
+  FormTreeResolver,
+} from "@rxc/forms-core";
 import {
   compoundControl,
   ControlDefinitionType,
+  createDataNode,
   createFormStateNode,
-  createSchemaDataNode,
-  createSchemaNode,
+  createStaticFormTree,
+  createStaticSchemaTree,
   dataControl,
+  dataMatchExpr,
+  defaultResolveChildren,
+  DynamicPropertyType,
   FieldType,
-  type FormStateNode,
   groupedControl,
   isDataControl,
+  notExpr,
 } from "@rxc/forms-core";
-import type { FormStateGlobals } from "@rxc/forms-core";
 
 // ── Shared helpers ───────────────────────────────────────────────────
 
@@ -73,7 +89,8 @@ const FormDataField = controls(function FormDataField(
   { node }: { node: FormStateNode },
   { rc, update },
 ) {
-  const { visible, disabled, readonly, data, definition:def, field } = node.getState(rc);
+  const { visible, disabled, readonly, data, definition: def, field } =
+    node.getState(rc);
 
   if (visible === false || !data) return null;
 
@@ -86,7 +103,9 @@ const FormDataField = controls(function FormDataField(
       {def.title && (
         <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
           {def.title}
-          {isDataControl(def) && def.required && <span className="text-red-400 ml-0.5">*</span>}
+          {isDataControl(def) && def.required && (
+            <span className="text-red-400 ml-0.5">*</span>
+          )}
           {readonly && (
             <span className="ml-1 text-[10px] text-orange-500">(readonly)</span>
           )}
@@ -97,19 +116,19 @@ const FormDataField = controls(function FormDataField(
           touched && error
             ? "border-red-400 dark:border-red-600"
             : "border-zinc-300 dark:border-zinc-600"
-        } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${readonly ? "bg-zinc-50 dark:bg-zinc-800/50" : ""}`}
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${
+          readonly ? "bg-zinc-50 dark:bg-zinc-800/50" : ""
+        }`}
         value={value == null ? "" : String(value)}
         disabled={disabled}
         readOnly={readonly}
         onChange={(e) => {
           const raw = e.target.value;
           const newVal =
-            field!.type === FieldType.Int ? Number(raw) || 0 : raw;
+            field?.type === FieldType.Int ? Number(raw) || 0 : raw;
           update((wc) => wc.setValue(data, newVal));
         }}
-        onBlur={() =>
-          update((wc) => wc.setTouched(data, true, true))
-        }
+        onBlur={() => update((wc) => wc.setTouched(data, true, true))}
       />
       {touched && error && (
         <span className="text-xs text-red-500">{error}</span>
@@ -122,15 +141,13 @@ const FormGroupField = controls(function FormGroupField(
   { node }: { node: FormStateNode },
   { rc },
 ) {
-  const { visible,definition:def } = node.getState(rc);
+  const { visible, definition: def } = node.getState(rc);
   if (visible === false) return null;
 
   const children = node.getChildren(rc);
 
   return (
-    <fieldset
-      className="border border-zinc-200 dark:border-zinc-700 rounded p-3"
-    >
+    <fieldset className="border border-zinc-200 dark:border-zinc-700 rounded p-3">
       {def.title && (
         <legend className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 px-1">
           {def.title}
@@ -145,7 +162,10 @@ const FormGroupField = controls(function FormGroupField(
   );
 });
 
-const FormNodeRenderer = controls<{ node: FormStateNode }>(({ node }, {rc}) => {
+const FormNodeRenderer = controls<{ node: FormStateNode }>(function FormNodeRenderer(
+  { node },
+  { rc },
+) {
   if (node.getChildren(rc).length > 0) {
     return <FormGroupField node={node} />;
   }
@@ -313,7 +333,8 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
   { node }: { node: FormStateNode },
   { rc },
 ) {
-  const { visible, disabled, readonly, data, definition:def } = node.getState(rc);
+  const { visible, disabled, readonly, data, definition: def } =
+    node.getState(rc);
 
   const dataValue = data ? rc.getValue(data) : undefined;
   const dataError = data ? rc.getError(data) : undefined;
@@ -339,11 +360,6 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
       >
         {def.type}
       </Badge>
-      {/*{fieldPathForDefinition(def) && (*/}
-      {/*  <span className="text-zinc-900 dark:text-zinc-100">*/}
-      {/*    {fieldPathForDefinition(def)?.join("/")}*/}
-      {/*  </span>*/}
-      {/*)}*/}
       {def.title && (
         <span className="text-zinc-400">&ldquo;{def.title}&rdquo;</span>
       )}
@@ -356,7 +372,11 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
       <span className="flex-1" />
       <span className="flex gap-1">
         <span className={visColor}>
-          {visible === false ? "\u{1F441}\u2717" : visible === null ? "\u{1F441}?" : "\u{1F441}\u2713"}
+          {visible === false
+            ? "\u{1F441}\u2717"
+            : visible === null
+              ? "\u{1F441}?"
+              : "\u{1F441}\u2713"}
         </span>
         {disabled && (
           <Badge color="bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
@@ -375,12 +395,16 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
 });
 
 const FormStateBranchNode = controls(function FormStateBranchNode(
-  { node, defaultExpanded }: { node: FormStateNode; defaultExpanded?: boolean },
+  {
+    node,
+    defaultExpanded,
+  }: { node: FormStateNode; defaultExpanded?: boolean },
   { rc },
 ) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? true);
 
-  const { visible, disabled, readonly, data, definition: def } = node.getState(rc);
+  const { visible, disabled, readonly, data, definition: def } =
+    node.getState(rc);
 
   const dataValue = data ? rc.getValue(data) : undefined;
   const dataError = data ? rc.getError(data) : undefined;
@@ -412,11 +436,6 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
         >
           {def.type}
         </Badge>
-        {/*{fieldPathForDefinition(def) && (*/}
-        {/*  <span className="text-zinc-900 dark:text-zinc-100">*/}
-        {/*    {fieldPathForDefinition(def)?.join("/")}*/}
-        {/*  </span>*/}
-        {/*)}*/}
         {def.title && (
           <span className="text-zinc-400">&ldquo;{def.title}&rdquo;</span>
         )}
@@ -429,7 +448,11 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
         <span className="flex-1" />
         <span className="flex gap-1">
           <span className={visColor}>
-            {visible === false ? "\u{1F441}\u2717" : visible === null ? "\u{1F441}?" : "\u{1F441}\u2713"}
+            {visible === false
+              ? "\u{1F441}\u2717"
+              : visible === null
+                ? "\u{1F441}?"
+                : "\u{1F441}\u2713"}
           </span>
           {disabled && (
             <Badge color="bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400">
@@ -447,10 +470,7 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
       {expanded && (
         <div style={{ paddingLeft: 16 }}>
           {node.getChildren(rc).map((child) => (
-            <FormStateNodeRenderer
-              key={child.uniqueId}
-              node={child}
-            />
+            <FormStateNodeRenderer key={child.uniqueId} node={child} />
           ))}
         </div>
       )}
@@ -458,46 +478,53 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
   );
 });
 
-const FormStateNodeRenderer = controls(function FormStateNodeRenderer({
-  node,
-  defaultExpanded,
-}: {
-  node: FormStateNode;
-  defaultExpanded?: boolean;
-}, {rc}) {
+const FormStateNodeRenderer = controls(function FormStateNodeRenderer(
+  {
+    node,
+    defaultExpanded,
+  }: {
+    node: FormStateNode;
+    defaultExpanded?: boolean;
+  },
+  { rc },
+) {
   const children = node.getChildren(rc);
   if (children.length > 0) {
-    return (
-      <FormStateBranchNode node={node} defaultExpanded={defaultExpanded} />
-    );
+    return <FormStateBranchNode node={node} defaultExpanded={defaultExpanded} />;
   }
   return <FormStateLeafNode node={node} />;
 });
 
 // ── Demo scenario ────────────────────────────────────────────────────
 
-function personSchema(): CompoundField {
-  return {
-    type: FieldType.Compound,
-    field: "",
-    children: [
-      { type: FieldType.String, field: "type", isTypeField: true },
-      { type: FieldType.String, field: "firstName" },
-      { type: FieldType.String, field: "lastName" },
-      { type: FieldType.String, field: "email" },
-      { type: FieldType.Int, field: "age" },
-      {
-        type: FieldType.Compound,
-        field: "address",
-        children: [
-          { type: FieldType.String, field: "street" },
-          { type: FieldType.String, field: "city" },
-          { type: FieldType.String, field: "zip" },
-        ],
-      } as CompoundField,
-      { type: FieldType.String, field: "company", onlyForTypes: ["business"] },
-    ],
-  };
+function personSchema(): SchemaField[] {
+  return [
+    { type: FieldType.String, field: "type", isTypeField: true },
+    { type: FieldType.String, field: "firstName" },
+    { type: FieldType.String, field: "lastName" },
+    { type: FieldType.String, field: "email" },
+    { type: FieldType.Int, field: "age" },
+    {
+      type: FieldType.Compound,
+      field: "address",
+      children: [
+        { type: FieldType.String, field: "street" },
+        { type: FieldType.String, field: "city" },
+        { type: FieldType.String, field: "zip" },
+      ],
+    } as CompoundField,
+    // `company` — no `onlyForTypes` gate so the scripted `Disabled` rule
+    // below is observable (otherwise visibility would hide it outright and
+    // we'd never see the disabled state).
+    { type: FieldType.String, field: "company" },
+    // `taxId` — schema-level `onlyForTypes` so we can also see that rule
+    // removing a field entirely when the discriminator doesn't match.
+    {
+      type: FieldType.String,
+      field: "taxId",
+      onlyForTypes: ["business"],
+    },
+  ];
 }
 
 function personFormDef(): GroupedControlsDefinition {
@@ -513,11 +540,32 @@ function personFormDef(): GroupedControlsDefinition {
         dataControl("city", "City", { required: true }),
         dataControl("zip", "ZIP"),
       ]),
-      dataControl("company", "Company (business only)"),
+      // `company` — disabled when `type != "business"` via the scripted
+      // dynamic Disabled property. Stays visible so you can see the
+      // disabled state flip in the UI.
+      {
+        ...dataControl("company", "Company (scripted disabled)"),
+        dynamic: [
+          {
+            type: DynamicPropertyType.Disabled,
+            expr: notExpr(dataMatchExpr("../type", "business")),
+          },
+        ],
+      } as ControlDefinition,
+      // `taxId` — onlyForTypes on the schema field; entirely hidden when
+      // `type != "business"`.
+      dataControl("taxId", "Tax ID (business only, onlyForTypes)"),
     ],
     "Person Form",
   );
 }
+
+const emptySchemaResolver: SchemaTreeResolver = {
+  getSchemaTree: () => undefined,
+};
+const emptyFormResolver: FormTreeResolver = {
+  getFormTree: () => undefined,
+};
 
 const controlContext = createControlContext();
 
@@ -536,14 +584,28 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       age: 30,
       address: { street: "123 Main St", city: "", zip: "10001" },
       company: "",
+      taxId: "",
     });
-    const schemaNode = createSchemaNode(personSchema().children);
-    const dataNode = createSchemaDataNode(schemaNode, rootControl);
-    const globals: FormStateGlobals = {
-      ctx: controlContext,
+    const schemaTree = createStaticSchemaTree(
+      personSchema(),
+      emptySchemaResolver,
+    );
+    const formTree = createStaticFormTree(
+      [personFormDef()],
+      emptyFormResolver,
+    );
+    const dataNode = createDataNode(schemaTree.rootNode, rootControl);
+    const globals: FormGlobalOptions = {
+      resolveChildren: defaultResolveChildren,
+      runAsync: (fn) => fn(),
       clearHidden: true,
     };
-    const formNode = createFormStateNode(personFormDef(), dataNode, globals);
+    const formNode = createFormStateNode(
+      controlContext,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
     stateRef.current = { rootControl, formNode };
   }
 
@@ -572,12 +634,10 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
             </h2>
             <FormStateNodeRenderer node={formNode} defaultExpanded={true} />
             <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-              <h3 className="text-xs font-semibold text-zinc-500 mb-2">
-                Legend
-              </h3>
+              <h3 className="text-xs font-semibold text-zinc-500 mb-2">Legend</h3>
               <div className="flex flex-wrap gap-3 text-[10px]">
                 <span>{"\u{1F441}\u2713"} visible</span>
-                <span>{"\u{1F441}?"} null</span>
+                <span>{"\u{1F441}?"} null (script pending)</span>
                 <span>{"\u{1F441}\u2717"} hidden</span>
                 <Badge color="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                   Data

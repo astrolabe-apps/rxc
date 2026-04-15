@@ -110,44 +110,74 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - Type interfaces for `SchemaNode`, `SchemaCursor`, `DataNode`, `DataCursor`, `FormNode`, `FormCursor`, `FormStateNode`, `FormState`
 - `cursorUtils.ts` — utility functions for traversing cursors (schema/data/form navigation, path resolution)
 
-### Phase 3b (partial): @rxc/forms-core node implementations
+### Phase 3b: @rxc/forms-core node implementations ✅
 
 - `SchemaNode`/`SchemaCursor` — reactive schema tree traversal, compound field reference resolution, resolver factory with caching
-- `DataNode`/`DataCursor` — data-bound traversal with `childField()`/`childElement()` navigation, lazy child node creation (replaces the old `SchemaDataNode` concept — persistent handle + ephemeral cursor split mirrors `SchemaNode`/`FormNode`)
+- `DataNode`/`DataCursor` — data-bound traversal with `childField()`/`childElement()` navigation, lazy child node creation; `DataCursor.schema: SchemaCursor` exposed so validators can navigate siblings
 - `FormNode`/`FormCursor` — control definition tree traversal, local and cross-tree `childRefId` resolution, resolver factory with caching
-- 65 passing tests covering all three node types
 
-### Phase 6 (partial): Dev app
+### Phase 3b: `createFormStateNode` — Layer 1 ✅
+
+- Persistent `FormStateNode` handle; `getState(rc)` returns a stateless `FormState` view bound to the given `ReadContext`; `getChildren(rc)` gives the live child list
+- Child `base` Controls stored as elements of parent's `children` Control so valid/disabled/touched bubble up through the control tree natively (`$FormState` meta is the back-pointer — don't remove)
+- Computeds: `dataNode` resolution (supports `.`/`..`/named), `visible` cascade, `disabled` cascade, `readonly` cascade
+- Sync effects: `disabled → data`, `touched` bidirectional, errors mirrored from data → base, `clearHidden` + `defaultValue` cycle
+- Lazy children via `effect`, diffed by `childKey`
+- Array-element expansion via `DataCursor.childElement(i)`
+
+### Phase 3b: Layer 2 — SchemaInterface + options + visibility gates ✅
+
+- `src/schemaInterface.ts` — `SchemaInterface` + `DefaultSchemaInterface` (options, emptiness, compare, length, validation messages, date parsing)
+- `src/cursorUtils.ts::validDataCursor` — `onlyForTypes` discriminator gate
+- Visibility cascade steps 3 (`validDataCursor`) and 4 (`hideDisplayOnly`) wired
+- `resolved.fieldOptions` computed with `allowedOptions` filter
+- `CheckList` / `Radio` expansion in `defaultResolveChildren` — one child per option with `formData.option` + `formData.optionSelected` in `variables`
+
+### Phase 3b: Layer 3 — Validators ✅
+
+- `src/validators.ts` — `setupValidation`, `ValidationEvalContext`, `ValidatorEval`
+- Built-in evaluators: `Length` (with array auto-pad preserving old semantics), `Date`
+- `required` + `requiredErrorText` support; `validationEnabled = !!visible` gate suppresses errors on hidden nodes
+- `Jsonata` validator deferred (needs `evalExpression`)
+
+### Phase 3c: Layer 4a — Scripted proxy ✅
+
+- `src/overrideProxy.ts` — rc-bound proxy with `NoOverride` sentinel
+- `src/evalExpression.ts` — `Data`, `DataMatch`, `NotEmpty`, `UUID`, `Not` evaluators + `createEvalExpr` (handles `Not` unwrapping with coerce inversion)
+- `src/scriptedProxy.ts` — `createEvaluatedDefinition` + `ScriptProvider` + hardcoded `SCRIPTABLE_FIELDS` table (covers `hidden`, `disabled`, `readonly`, `required`, `title`, `defaultValue`, `actionData`, `style`, `layoutStyle`, `allowedOptions`)
+- `src/legacyScripts.ts` — `buildLegacyScripts` converts legacy `dynamic[]` → `$scripts` bucket (root-path only at this layer)
+- Each FormStateNode builds an `EvaluatedDefinition`; visible/disabled/readonly/fieldOptions/default-value computeds read through the rc-bound proxy
+- Visibility cascade reverted to settled `hidden == null ? null : !hidden` — the scripted proxy pre-populates `_ScriptNullInit` fields to their coerced defaults, so `null` only flows through during genuinely pending async scripts
+
+### Phase 6 (partial): Dev app ✅
 
 - `/` — Simple form demo (validation, dirty/clean, submit/reset) using controls-core directly
+- `/tree` — Three-panel visualizer: rendered form (FormStateNode-driven), FormStateNode tree inspector, raw Control tree. Demonstrates `required`, `onlyForTypes` (field entirely hidden), scripted `Disabled` via `dynamic[]` (field visible but disabled), compound fields.
+
+## Testing
+
+- **Framework**: Vitest + fast-check (property-based testing)
+- **Location**: `test/` dir in each package
+- **Config**: `vitest.config.ts` per package
+- Current count: **87 tests** across forms-core (65 node/cursor + 22 FormStateNode covering all four layers). controls-core has 51.
 
 ## Next steps
 
-### Phase 3b (remaining): FormStateNode
+### Phase 3c: Layer 4b — Jsonata + nested compound proxies
 
-Implement `createFormStateNode` — reactive form state with `getState(rc)`, `getChildren(rc)`.
+Depends on adding the `jsonata` package dependency. Work breakdown:
 
-Key pieces:
-- Computed properties (visible, disabled, readonly) with parent cascade
-- Sync effects: disabled push to data control, touched bidirectional sync, error mirroring, default value application, required validation
-- `onlyForTypes` support for type-discriminated fields
-- `dataNode?: DataNode` exposed on the handle, `field`/`data` exposed on `FormState`
-- Children lifecycle (lazy creation, reactive maintenance, cleanup on detach)
-- Script override layer (expression evaluation — depends on Phase 3c or can be stubbed initially)
+1. **Jsonata expression evaluator** — port `jsonataEval` from `astrolabe-common`. Needs the "path-navigable" proxy (`ensurePathNavigable`) so jsonata can traverse null compound fields, plus the async-effect / `trackedValue` plumbing adapted to rxc's `effect`/`computed`.
+2. **`jsonataValidator`** — wire up the deferred Layer-3 validator once `jsonataEval` lands.
+3. **Nested compound proxies** — the old `scriptedProxy.wireProxies` recursively proxies nested compound fields so scripts can target `displayData.text`, `renderOptions.groupOptions.columns`, etc. Currently layer 4a only supports root-level scripts; legacy `DynamicPropertyType.Display` and `.GridColumns` are silently dropped by `buildLegacyScripts`.
 
-Also remaining in 3b:
-- Wire up `index.ts` exports for `createSchemaNode`, `createDataNode`, `createFormNode`, `createFormStateNode`
-- Fix `throw new ReactiveFormNode` → `return` bug in `formNode.ts:313`
-- Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `formNode.ts`)
-- `/tree` dev app demo — 3-panel tree visualizer (depends on FormStateNode)
+### Phase 3c: Layer 4c (optional) — Full ControlDefinitionSchemaMap port
 
-### Phase 3c: Expression evaluation
-
-Migrate `evalExpression.ts` from `astrolabe-common/forms/core/src/`. Add `jsonata` as a direct dependency. This enables dynamic property expressions in ControlDefinition (visibility, disabled, etc. driven by data expressions).
+Currently the scripted-proxy field metadata is hardcoded in `src/scriptedProxy.ts::SCRIPTABLE_FIELDS` (~10 known fields). The old implementation walks `astrolabe-common/forms/core/src/schemaSchemas.ts` (1705 lines) to discover scriptable fields and `_ScriptNullInit` tags dynamically. Porting the full schema map lets user-defined ControlDefinition extensions participate in scripting without editing forms-core.
 
 ### Phase 4: @rxc/forms (renderer redesign)
 
-Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key questions to resolve:
+Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key questions:
 - How do renderers register for specific control/render types?
 - How does `controls()` integration work for every renderer component?
 - How do labels, layouts, adornments, and visibility compose?
@@ -158,9 +188,8 @@ Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key qu
 - `@rxc/compat-controls` — Monkey-patches `Control.prototype` to restore `.value`, `.touched` getters, `useControl()` hook, `Finput`/`Fselect`/`Fcheckbox` components, global transaction machinery.
 - `@rxc/compat-forms` — Wraps `@rxc/forms` with the old `createFormRenderer()` / `FormRenderer` interface.
 
-## Testing
+### Smaller follow-ups
 
-- **Framework**: Vitest + fast-check (property-based testing)
-- **Location**: `test/` dir in each package
-- **Config**: `vitest.config.ts` per package
-- Tests exist for `@rxc/controls-core` (51 tests covering core control behavior, object fields, arrays, errors, reactive proxy). Other packages need tests as they're implemented.
+- Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `src/nodes/formNode.ts`)
+- Consider re-adding `validDataCursor` result caching via `ensureMetaValue` on the data control (old code had per-control `validForSchema` cache; current port re-walks the parent chain per call)
+- `CheckList`/`Radio` `isOptionSelected` uses a snapshot read; a proper `trackedValue`-equivalent for `VariablesFunc.changes` lands with the renderer package

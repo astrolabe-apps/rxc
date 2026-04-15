@@ -105,7 +105,15 @@ export function isCompoundCursor(cursor: SchemaCursor): boolean {
 
 // ── Data cursor utils ───────────────────────────────────────────────
 
-/** Navigate a data cursor through a path of field names. */
+/**
+ * Navigate a data cursor through a path of field names. Supports two
+ * special segments mirroring the old `schemaDataForFieldPath` semantics:
+ *
+ * - `".."` — move to the parent cursor (returns `undefined` at the root).
+ * - `"."`  — no-op, stay on the current cursor.
+ *
+ * Any other segment is looked up as a named child field.
+ */
 export function dataPath(
   cursor: DataCursor,
   path: string[],
@@ -113,6 +121,11 @@ export function dataPath(
   let current: DataCursor | undefined = cursor;
   for (const segment of path) {
     if (!current) return undefined;
+    if (segment === ".") continue;
+    if (segment === "..") {
+      current = current.parent;
+      continue;
+    }
     current = current.childField(segment);
   }
   return current;
@@ -227,6 +240,42 @@ export function formDataCursor(
   const field = formFieldPath(cursor.definition);
   if (field === undefined) return undefined;
   return parentData.childField(field);
+}
+
+/**
+ * Whether a {@link DataCursor} is currently "valid" according to the
+ * `onlyForTypes` schema rule.
+ *
+ * A field may declare `onlyForTypes: string[]` meaning it is only present
+ * when the parent object's type-discriminator field (the sibling marked
+ * `isTypeField: true`) holds one of the listed values. When the current
+ * discriminator doesn't match, `validDataCursor` returns `false` and the
+ * form state uses that to hide the node (step 3 of the Visible rule).
+ *
+ * The walk also recurses through array parents (when `elementIndex == null`
+ * — i.e. the array as a whole, not a specific element) since their validity
+ * depends on their own parent's discriminator.
+ *
+ * Returns `true` when there is no constraint to check (no parent, no
+ * `onlyForTypes`, or no type-field sibling).
+ */
+export function validDataCursor(cursor: DataCursor): boolean {
+  const parent = cursor.parent;
+  if (!parent) return true;
+  if (parent.field.collection && parent.elementIndex == null)
+    return validDataCursor(parent);
+  if (!validDataCursor(parent)) return false;
+  const types = cursor.field.onlyForTypes;
+  if (types == null || types.length === 0) return true;
+  const typeSchema = parent.schema.children.find((c) => c.field.isTypeField);
+  if (!typeSchema) return false;
+  const typeChild = parent.childField(typeSchema.field.field);
+  if (!typeChild) return false;
+  // Route through the cursor's ReadContext so callers running inside a
+  // computed/effect track the discriminator value reactively.
+  const rd = cursor.schema.rd;
+  const typeValue = rd.getValue(typeChild.control);
+  return typeof typeValue === "string" && types.includes(typeValue);
 }
 
 // ── Generic cursor utils ────────────────────────────────────────────

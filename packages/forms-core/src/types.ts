@@ -9,6 +9,7 @@ import type {
   Control,
   ReadContext,
 } from "@rxc/controls-core";
+import type { SchemaInterface } from "./schemaInterface";
 
 export interface CleanupScope {
   addCleanup(cleanup: () => void): void;
@@ -25,7 +26,17 @@ export interface FormNodeOptions {
   variables?: VariablesFunc;
 }
 
-export type ChildResolverFunc = (c: FormStateNode) => ChildNodeSpec[];
+/**
+ * Resolves the list of child specs for a given form state node.
+ *
+ * Receives a {@link ReadContext} so it can reactively depend on form state
+ * (via `node.getState(rc)`) and on data (via cursors) — the enclosing
+ * children-init effect will re-run whenever any read dependency changes.
+ */
+export type ChildResolverFunc = (
+  node: FormStateNode,
+  rc: ReadContext,
+) => ChildNodeSpec[];
 
 export interface ChildNodeSpec {
   childKey: string | number;
@@ -41,12 +52,18 @@ export interface ChildNodeInit {
 }
 
 export interface FormGlobalOptions {
-  // schemaInterface: SchemaInterface;
-  // evalExpression: (e: EntityExpression, ctx: ExpressionEvalContext) => void;
-  resolveChildren(c: FormStateNode): ChildNodeSpec[];
+  /**
+   * Schema-aware operations (options, emptiness, value comparison).
+   * Defaults to the shared `defaultSchemaInterface` when omitted.
+   */
+  schemaInterface?: SchemaInterface;
+  /**
+   * Stubbed — expression evaluation (Phase 3c) lands in Layer 4.
+   */
+  evalExpression?: unknown;
+  resolveChildren: ChildResolverFunc;
   runAsync: (af: () => void) => void;
   clearHidden: boolean;
-  controlDefinitionSchema?: SchemaNode;
 }
 
 export interface ResolvedDefinition {
@@ -65,9 +82,31 @@ export interface FormStateNode {
   uniqueId: string;
   childKey: string | number;
   parentNode: FormStateNode | undefined;
+  /**
+   * The form definition node this state tracks. `null`/`undefined` for
+   * nodes that were synthesized (e.g. option groups, array element wrappers).
+   */
+  form: FormNode | null | undefined;
+  /**
+   * The starting {@link DataNode} for this state node's data context — the
+   * node against which the definition's field path is resolved. Stable
+   * across the lifetime of this state node.
+   */
+  parent: DataNode;
+  /**
+   * Schema-aware operations shared with children. Always populated — either
+   * the instance supplied via {@link FormGlobalOptions.schemaInterface} or
+   * the shared `defaultSchemaInterface` fallback.
+   */
+  schemaInterface: SchemaInterface;
+  /**
+   * The resolved {@link DataNode} this state binds to, or `undefined` if the
+   * definition does not bind to data. Snapshot access — for reactive reads
+   * of `data` / `field`, use `getState(rc)`.
+   */
+  dataNode?: DataNode;
   getState(rc: ReadContext): FormState;
   getChildren(rc: ReadContext): FormStateNode[];
-  dataNode?: DataNode;
   setTouched(b: boolean, notChildren?: boolean): void;
   validate(): boolean;
   ensureMeta<A>(key: string, init: (scope: CleanupScope) => A): A;
@@ -76,7 +115,6 @@ export interface FormStateNode {
   attachUi(f: FormNodeUi): void;
   setBusy(busy: boolean): void;
   setForceDisabled(forceDisable: boolean): void;
-  // schemaInterface: SchemaInterface;
 }
 
 export interface FormState extends FormNodeOptions {
@@ -202,6 +240,15 @@ export interface DataCursor {
 
   /** The {@link SchemaField} describing the data at this location. */
   field: SchemaField;
+
+  /**
+   * The {@link SchemaCursor} for this location — gives reactive access to
+   * the schema structure (parent, siblings, children). Used by features
+   * that need sibling-field navigation (e.g. `onlyForTypes` discrimination
+   * via a sibling `isTypeField`) or resolved field lists (e.g. compound
+   * children options).
+   */
+  schema: SchemaCursor;
 
   /** The {@link Control} holding the actual data value at this path. */
   control: Control<unknown>;
