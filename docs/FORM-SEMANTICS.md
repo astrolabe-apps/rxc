@@ -311,7 +311,23 @@ Legacy `dynamic[]` array entries are converted to `$scripts` format via `buildLe
 4. If data node exists and `hideDisplayOnly(dn, ...)` is true → `false` (display-only fields with empty values and no `emptyText`)
 5. Otherwise: `definition.hidden == null ? null : !definition.hidden`
 
-**Note**: `null` visibility means "no opinion" — the UI decides. `false` means explicitly hidden.
+**On `null`**: `visible === null` is a **transient pending-script state**,
+not a standing "no opinion" value. The `hidden` property is tagged
+`_ScriptNullInit` in the schema (see §I and `schemaSchemas.ts`), which tells
+the scripted proxy to:
+
+- keep `hidden` as `null` until the registered Visible/Hidden script produces
+  its first value; or
+- coerce to the static value (schema default `false`) when no script is
+  registered.
+
+Therefore, in steady state — and throughout any implementation layer before
+the scripted proxy is wired up — `definition.hidden` is always a boolean, so
+`visible` is always `true` or `false`. A `null` visibility is a UI cue for
+"this field's visibility is still resolving" during script bootstrap, not a
+long-lived state that consumers need to handle as a third branch. Implementations
+may coerce `hidden == null` → `false` at the boundary when running without a
+scripted proxy.
 
 **Readonly** (computed):
 - `parentNode?.readonly || forceReadonly || definition.readonly`
