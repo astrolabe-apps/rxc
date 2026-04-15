@@ -67,7 +67,7 @@ export interface FormStateNode {
   parentNode: FormStateNode | undefined;
   getState(rc: ReadContext): FormState;
   getChildren(rc: ReadContext): FormStateNode[];
-  // getDataNode(rc: ReadContext): SchemaDataNode | undefined;
+  dataNode?: DataNode;
   setTouched(b: boolean, notChildren?: boolean): void;
   validate(): boolean;
   ensureMeta<A>(key: string, init: (scope: CleanupScope) => A): A;

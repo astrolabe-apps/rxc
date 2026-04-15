@@ -1,6 +1,6 @@
 # Form State Node Design
 
-FormStateNode is the runtime representation of a single node in the form definition tree. It bridges a `ControlDefinition` (what to render) with a `SchemaDataNode` (the data context). Each node manages reactive state for visibility, disabled, readonly, validation, children, and the resolved definition.
+FormStateNode is the runtime representation of a single node in the form definition tree. It bridges a `ControlDefinition` (what to render) with a `DataNode` (the data context — a persistent handle pairing a `SchemaNode` with a `Control`). Each node manages reactive state for visibility, disabled, readonly, validation, children, and the resolved definition.
 
 ## Design Principles
 
@@ -96,7 +96,7 @@ interface FormStateBase {
 }
 ```
 
-`FormState` exposes the data and schema field directly — renderers use `state.field` for type info and `state.data` for reading/writing values. For tree traversal (navigating to sibling/child fields), use `FormStateNode.getDataNode(rc)` which returns the `SchemaDataNode` reactively.
+`FormState` exposes the data and schema field directly — renderers use `state.field` for type info and `state.data` for reading/writing values. For tree traversal (navigating to sibling/child fields), use `FormStateNode.dataNode` which returns the persistent `DataNode` (no `ReadContext` needed); call `dataNode.cursor(rc)` when reactive access to the resolved `SchemaField` or children is required.
 
 Accessing `state.visible` internally does `rc.getValue(visibleControl)`, registering a dependency on the visibility control. Accessing `state.data` registers a dependency on the data node control. And so on.
 
@@ -114,48 +114,61 @@ The proxy is stateless — it's created fresh per `getState(rc)` call and holds 
 
 ## Schema Trees
 
-Two parallel tree interfaces handle schema structure and data binding. Both follow the same pattern as `FormStateNode` — stable nodes with `ReadContext`-based traversal.
+Schema structure and data binding use the **persistent handle + ephemeral cursor** pattern. A `SchemaNode` / `DataNode` / `FormNode` is a stable `id`-identified handle that can be stored in controls or long-lived structures. Calling `node.cursor(rd)` inside a `ReadContext` produces an ephemeral cursor that registers reactive dependencies on the underlying schema/data/definition tree.
 
-### SchemaNode — Schema Structure
+### SchemaNode / SchemaCursor — Schema Structure
 
-`SchemaNode` represents a position in the schema field hierarchy, independent of any data:
+`SchemaNode` is a persistent handle to a position in the schema field hierarchy, independent of any data:
 
 ```typescript
 interface SchemaNode {
+  id: string;
   parent?: SchemaNode;
-  getField(rc: ReadContext): SchemaField;
-  getChildren(rc: ReadContext): SchemaNode[];
-  getChildNode(rc: ReadContext, field: string): SchemaNode;
+  cursor(rd: ReadContext): SchemaCursor;
+}
+
+interface SchemaCursor {
+  node: SchemaNode;
+  field: SchemaField;
+  children: SchemaCursor[];
+  parent?: SchemaCursor;
+  rd: ReadContext;
 }
 ```
 
-Used for traversing the schema structure without data binding — field selection UIs, schema-aware searching, building column definitions, editor tools.
+Used for traversing schema structure without data binding — field selection UIs, schema-aware searching, building column definitions, editor tools. In editor mode the backing data may be a `Control<SchemaField[]>`, so the same `SchemaNode` yields different cursor snapshots as the schema is edited. Compound fields with a `schemaRef` resolve their children from the referenced named tree.
 
-`getField(rc)` takes `ReadContext` to support editor mode where the `SchemaField` may be a reactive proxy backed by a `Control`.
+### DataNode / DataCursor — Data-Bound Schema
 
-### SchemaDataNode — Data-Bound Schema
-
-`SchemaDataNode` combines schema structure with live data binding:
+`DataNode` is a persistent handle binding a `SchemaNode` to a `Control` that holds the data value at that path. It replaces the old `SchemaDataNode` concept — splitting persistent identity (`DataNode`) from ephemeral traversal (`DataCursor`) mirrors the `SchemaNode`/`SchemaCursor` pattern.
 
 ```typescript
-interface SchemaDataNode {
-  data: Control<unknown>;
-  parent?: SchemaDataNode;
+interface DataNode {
+  id: string;
+  parent?: DataNode;
+  cursor(rd: ReadContext): DataCursor;
+}
+
+interface DataCursor {
+  node: DataNode;
+  field: SchemaField;
+  control: Control<unknown>;
   elementIndex?: number;
-  schema: SchemaNode;
-  getField(rc: ReadContext): SchemaField;
-  getChildren(rc: ReadContext): SchemaDataNode[];
-  getChild(rc: ReadContext, field: string): SchemaDataNode;
-  getChildElement(elementIndex: number): SchemaDataNode;
+  parent?: DataCursor;
+  childField(field: string): DataCursor | undefined;
+  childElement(elementIndex: number): DataCursor | undefined;
 }
 ```
 
-- `getField(rc)` — delegates to `schema.getField(rc)`, convenience for the common case
-- `getChild(rc, "street")` — navigate to a named child field
-- `getChildElement(index)` — navigate into an array element (no `rc` needed, just indexing into `control.elements`)
-- `getChildren(rc)` — all resolved child data nodes
-- `schema` — access the pure structure side when needed
+- `field` / `control` — the resolved schema field and the control holding its value at this path
+- `childField("street")` — navigate to a named child field, returns `undefined` if the field doesn't exist on this schema
+- `childElement(index)` — navigate into an array element, lazily creates the child `DataNode`
 - `elementIndex` — distinguishes "the array itself" (`undefined`) from "a specific element" (number), critical for collection expansion
+- `FormStateNode.dataNode?: DataNode` exposes the persistent handle directly; callers who need reactive field/child access call `dataNode.cursor(rc)` themselves
+
+### FormNode / FormCursor — Control Definition Tree
+
+`FormNode` is the analogous persistent handle for `ControlDefinition` trees, with cross-tree `childRefId` resolution via a `FormTreeResolver`. Ephemeral `FormCursor` exposes the resolved definition and children within a `ReadContext`.
 
 ## Script Override Lifecycle
 
@@ -182,7 +195,7 @@ Script layer (internal, not exposed)
 
 These are set up internally as `computed()` instances during initialization:
 
-- **dataNode** — looks up the field path from the resolved definition in the parent `SchemaDataNode`
+- **dataNode** — looks up the field path from the resolved definition in the parent `DataNode`
 - **visible** — combines: parent visibility cascade, force-hidden flag, data node validity, definition's `hidden` property
 - **disabled** — combines: parent cascade, force-disabled flag, definition property
 - **readonly** — combines: parent cascade, force-readonly flag, definition property

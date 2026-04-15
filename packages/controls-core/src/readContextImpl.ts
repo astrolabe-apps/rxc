@@ -14,7 +14,7 @@ const restoreControlSymbol = Symbol("restoreControl");
  * This works well for **pure data trees** where the control structure
  * mirrors the data shape (e.g. `{name: "Alice", address: {city: "NYC"}}`).
  * It does NOT work for controls whose values contain domain objects
- * (e.g. `SchemaDataNode`) — those objects' properties would be incorrectly
+ * (e.g. `DataNode`) — those objects' properties would be incorrectly
  * routed through lazy child controls that don't represent real data fields.
  */
 function createValueRxProxy<V>(control: Control<V>, rc: ReadContext): V {

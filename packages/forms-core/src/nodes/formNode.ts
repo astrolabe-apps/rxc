@@ -310,7 +310,7 @@ function createChildFormNode(
   tree: FormTree,
 ): FormNode {
   const c = unwrapValueProxy(controlOrProxy);
-  if (c) throw new ReactiveFormNode(c, parentNode, tree);
+  if (c) return new ReactiveFormNode(c, parentNode, tree);
   return new StaticFormNode(controlOrProxy, childIndex, parentNode, tree);
 }
 
