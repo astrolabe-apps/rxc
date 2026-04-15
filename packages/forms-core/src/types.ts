@@ -99,12 +99,6 @@ export interface FormStateNode {
    * the shared `defaultSchemaInterface` fallback.
    */
   schemaInterface: SchemaInterface;
-  /**
-   * The resolved {@link DataNode} this state binds to, or `undefined` if the
-   * definition does not bind to data. Snapshot access — for reactive reads
-   * of `data` / `field`, use `getState(rc)`.
-   */
-  dataNode?: DataNode;
   getState(rc: ReadContext): FormState;
   getChildren(rc: ReadContext): FormStateNode[];
   setTouched(b: boolean, notChildren?: boolean): void;
@@ -118,6 +112,13 @@ export interface FormStateNode {
 }
 
 export interface FormState extends FormNodeOptions {
+  /**
+   * The resolved {@link DataNode} this state binds to, or `undefined` if the
+   * definition does not bind to data. Derived reactively from the starting
+   * {@link FormStateNode.parent} and the (scripted-proxy aware) definition's
+   * field path.
+   */
+  dataNode?: DataNode;
   data?: Control<unknown>;
   field?: SchemaField;
   readonly: boolean;

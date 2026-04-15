@@ -96,7 +96,7 @@ interface FormStateBase {
 }
 ```
 
-`FormState` exposes the data and schema field directly — renderers use `state.field` for type info and `state.data` for reading/writing values. For tree traversal (navigating to sibling/child fields), use `FormStateNode.dataNode` which returns the persistent `DataNode` (no `ReadContext` needed); call `dataNode.cursor(rc)` when reactive access to the resolved `SchemaField` or children is required.
+`FormState` exposes the data and schema field directly — renderers use `state.field` for type info and `state.data` for reading/writing values. For tree traversal (navigating to sibling/child fields), use `state.dataNode` which returns the reactively-resolved persistent `DataNode`; call `dataNode.cursor(rc)` when reactive access to the resolved `SchemaField` or children is required. The `dataNode` lives on `FormState` (not `FormStateNode`) because it's derived from the — possibly scripted — definition field path and must be read through a `ReadContext`.
 
 Accessing `state.visible` internally does `rc.getValue(visibleControl)`, registering a dependency on the visibility control. Accessing `state.data` registers a dependency on the data node control. And so on.
 
@@ -164,7 +164,7 @@ interface DataCursor {
 - `childField("street")` — navigate to a named child field, returns `undefined` if the field doesn't exist on this schema
 - `childElement(index)` — navigate into an array element, lazily creates the child `DataNode`
 - `elementIndex` — distinguishes "the array itself" (`undefined`) from "a specific element" (number), critical for collection expansion
-- `FormStateNode.dataNode?: DataNode` exposes the persistent handle directly; callers who need reactive field/child access call `dataNode.cursor(rc)` themselves
+- `FormState.dataNode?: DataNode` exposes the reactively-resolved persistent handle; callers who need reactive field/child access call `dataNode.cursor(rc)` themselves
 
 ### FormNode / FormCursor — Control Definition Tree
 

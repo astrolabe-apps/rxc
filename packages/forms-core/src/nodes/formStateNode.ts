@@ -6,6 +6,7 @@ import {
   computed,
   effect,
   noopReadContext,
+  type ControlFields,
 } from "@rxc/controls-core";
 import {
   type ControlAdornment,
@@ -179,11 +180,6 @@ class FormStateNodeImpl implements FormStateNode {
     return this.globals.schemaInterface ?? defaultSchemaInterface;
   }
 
-  get dataNode(): DataNode | undefined {
-    // Snapshot access; reactive callers should use getState(rc).data / .field.
-    return this.base.fieldsNow.dataNode?.valueNow as DataNode | undefined;
-  }
-
   getState(rc: ReadContext): FormState {
     return new FormStateView(this, rc);
   }
@@ -191,7 +187,9 @@ class FormStateNodeImpl implements FormStateNode {
   getChildren(rc: ReadContext): FormStateNode[] {
     this.ensureChildren();
     const childrenControl = this.base.fields.children;
-    const elems = rc.getElements(childrenControl) as Control<FormStateBaseImpl>[];
+    const elems = rc.getElements(
+      childrenControl,
+    ) as Control<FormStateBaseImpl>[];
     return elems.map(
       (el) =>
         (el.meta as Record<string, unknown>)[
@@ -208,7 +206,7 @@ class FormStateNodeImpl implements FormStateNode {
     for (const child of this.getChildren(noopReadContext)) {
       child.validate();
     }
-    const dn = this.dataNode;
+    const dn = this.base.fieldsNow.dataNode?.valueNow as DataNode | undefined;
     if (dn) {
       this.ctx.update((wc) => wc.validate(dn.cursor(noopReadContext).control));
     }
@@ -274,25 +272,32 @@ class FormStateNodeImpl implements FormStateNode {
  * dependency.
  */
 class FormStateView implements FormState {
+  /**
+   * Cached `ControlFields` view of the node's `base` control. Each field
+   * accessor reads its value through `rc` on the matching child control,
+   * registering exactly one Value/Structure dependency per call.
+   */
+  private readonly baseFields: ControlFields<FormStateBaseImpl>;
+
   constructor(
     private readonly impl: FormStateNodeImpl,
     private readonly rc: ReadContext,
-  ) {}
+  ) {
+    this.baseFields = impl.base.fields;
+  }
 
-  private get baseFields() {
-    return this.impl.base.fields;
+  get dataNode(): DataNode | undefined {
+    return this.rc.getValue(this.baseFields.dataNode);
   }
 
   get data(): Control<unknown> | undefined {
-    const dn = this.rc.getValue(this.baseFields.dataNode);
-    if (!dn) return undefined;
-    return dn.cursor(this.rc).control;
+    const dn = this.dataNode;
+    return dn?.cursor(this.rc).control;
   }
 
   get field() {
-    const dn = this.rc.getValue(this.baseFields.dataNode);
-    if (!dn) return undefined;
-    return dn.cursor(this.rc).field;
+    const dn = this.dataNode;
+    return dn?.cursor(this.rc).field;
   }
 
   get readonly(): boolean {
@@ -307,6 +312,14 @@ class FormStateView implements FormState {
     return this.rc.getValue(this.baseFields.disabled);
   }
 
+  get childIndex(): number {
+    return this.rc.getValue(this.baseFields.childIndex);
+  }
+
+  get busy(): boolean {
+    return this.rc.getValue(this.baseFields.busy);
+  }
+
   get resolved(): ResolvedDefinition {
     // Splice the rc-bound scripted proxy in as `.definition` so callers
     // reading `state.resolved.definition.X` see live script values. The
@@ -316,14 +329,6 @@ class FormStateView implements FormState {
       ...raw,
       definition: this.impl.evaluatedDef.toProxy(this.rc),
     };
-  }
-
-  get childIndex(): number {
-    return this.rc.getValue(this.baseFields.childIndex);
-  }
-
-  get busy(): boolean {
-    return this.rc.getValue(this.baseFields.busy);
   }
 
   get definition(): ControlDefinition {
@@ -342,24 +347,27 @@ class FormStateView implements FormState {
     return this.impl.globals.clearHidden;
   }
 
-  get variables(): VariablesFunc | undefined {
-    return this.rc.getValue(this.baseFields.nodeOptions).variables;
-  }
-
   get meta(): Record<string, any> {
     return this.impl.meta;
   }
 
-  // ── FormNodeOptions mirror ─────────────────────────────────────
+  // ── FormNodeOptions mirror — read the record once per access so
+  // multiple force-flag reads share a single Value subscription.
+  private get nodeOpts(): FormNodeOptions {
+    return this.rc.getValue(this.baseFields.nodeOptions);
+  }
 
+  get variables(): VariablesFunc | undefined {
+    return this.nodeOpts.variables;
+  }
   get forceReadonly() {
-    return this.rc.getValue(this.baseFields.nodeOptions).forceReadonly;
+    return this.nodeOpts.forceReadonly;
   }
   get forceDisabled() {
-    return this.rc.getValue(this.baseFields.nodeOptions).forceDisabled;
+    return this.nodeOpts.forceDisabled;
   }
   get forceHidden() {
-    return this.rc.getValue(this.baseFields.nodeOptions).forceHidden;
+    return this.nodeOpts.forceHidden;
   }
 }
 
@@ -413,7 +421,8 @@ function initFormState(
   // The scripted proxy needs a DataNode to resolve data expressions
   // against. Use the node's own dataNode once resolved, falling back to
   // the starting parent when this node doesn't bind data.
-  const initialData = impl.dataNode ?? parent;
+  const initialData =
+    (impl.base.fieldsNow.dataNode?.valueNow as DataNode | undefined) ?? parent;
   impl.evaluatedDef = createEvaluatedDefinition(
     definition,
     ctx,
@@ -461,34 +470,30 @@ function initFormState(
   // no `allowedOptions` this passes through whatever the schemaInterface
   // provides.
   const fieldOptionsControl = base.fields.resolved.fields.fieldOptions;
-  const fieldOptionsComputed = computed(
-    ctx,
-    fieldOptionsControl,
-    (rc) => {
-      const dn = rc.getValue(dataNode);
-      if (!dn) return undefined;
-      const dc = dn.cursor(rc);
-      const all = schemaInterface.getDataOptions(dc);
-      const def = impl.evaluatedDef.toProxy(rc);
-      const allowed = def.allowedOptions;
-      const allowedArr = Array.isArray(allowed)
-        ? allowed
-        : allowed != null
-          ? [allowed]
-          : [];
-      if (allowedArr.length === 0) return all ?? undefined;
-      const filtered: FieldOption[] = [];
-      for (const entry of allowedArr) {
-        if (typeof entry === "object" && entry != null) {
-          filtered.push(entry as FieldOption);
-          continue;
-        }
-        const match = all?.find((o) => o.value == entry);
-        filtered.push(match ?? { name: String(entry), value: entry });
+  const fieldOptionsComputed = computed(ctx, fieldOptionsControl, (rc) => {
+    const dn = rc.getValue(dataNode);
+    if (!dn) return undefined;
+    const dc = dn.cursor(rc);
+    const all = schemaInterface.getDataOptions(dc);
+    const def = impl.evaluatedDef.toProxy(rc);
+    const allowed = def.allowedOptions;
+    const allowedArr = Array.isArray(allowed)
+      ? allowed
+      : allowed != null
+        ? [allowed]
+        : [];
+    if (allowedArr.length === 0) return all ?? undefined;
+    const filtered: FieldOption[] = [];
+    for (const entry of allowedArr) {
+      if (typeof entry === "object" && entry != null) {
+        filtered.push(entry as FieldOption);
+        continue;
       }
-      return filtered;
-    },
-  );
+      const match = all?.find((o) => o.value == entry);
+      filtered.push(match ?? { name: String(entry), value: entry });
+    }
+    return filtered;
+  });
   impl.addCleanup(() => fieldOptionsComputed.cleanup());
 
   // ── readonly cascade — `readonly` may be scripted, so read through proxy.
@@ -572,10 +577,7 @@ function initFormState(
     const dc = dn.cursor(rc).control;
     const vis = rc.getValue(visible);
     if (vis === false) {
-      if (
-        impl.globals.clearHidden &&
-        !(def as any).dontClearHidden
-      ) {
+      if (impl.globals.clearHidden && !(def as any).dontClearHidden) {
         ctx.update((wc) => wc.setValue(dc, undefined));
       }
       return;
@@ -647,7 +649,6 @@ function hideDisplayOnly(
   return schemaInterface.isEmptyValue(cursor.field, value);
 }
 
-
 // ── Children lifecycle ─────────────────────────────────────────────
 
 /**
@@ -679,45 +680,42 @@ function initChildren(impl: FormStateNodeImpl): void {
 
     const detached: Control<FormStateBaseImpl>[] = [];
     ctx.update((wc) => {
-      const next = wc.updateElements(
-        base.fields.children,
-        (prev) => {
-          const wanted: Control<FormStateBaseImpl>[] = [];
-          const seen = new Set<string | number>();
-          specs.forEach((spec, childIndex) => {
-            seen.add(spec.childKey);
-            let child = childMap.get(spec.childKey);
-            if (child) {
-              wc.setValue(child.fields.childIndex, childIndex);
-            } else {
-              child = createChildNode(impl, spec, childIndex);
-              childMap.set(spec.childKey, child);
-            }
-            wanted.push(child);
-          });
-          // Anything present in prev but not in wanted is detached.
-          for (const p of prev) {
-            const fs = (p.meta as Record<string, unknown>)[
-              FORM_STATE_META_KEY
-            ] as FormStateNode | undefined;
-            if (fs && !wanted.includes(p)) {
-              detached.push(p);
-            }
+      const next = wc.updateElements(base.fields.children, (prev) => {
+        const wanted: Control<FormStateBaseImpl>[] = [];
+        const seen = new Set<string | number>();
+        specs.forEach((spec, childIndex) => {
+          seen.add(spec.childKey);
+          let child = childMap.get(spec.childKey);
+          if (child) {
+            wc.setValue(child.fields.childIndex, childIndex);
+          } else {
+            child = createChildNode(impl, spec, childIndex);
+            childMap.set(spec.childKey, child);
           }
-          // Also prune cache entries that weren't seen this round.
-          for (const key of [...childMap.keys()]) {
-            if (!seen.has(key)) childMap.delete(key);
+          wanted.push(child);
+        });
+        // Anything present in prev but not in wanted is detached.
+        for (const p of prev) {
+          const fs = (p.meta as Record<string, unknown>)[
+            FORM_STATE_META_KEY
+          ] as FormStateNode | undefined;
+          if (fs && !wanted.includes(p)) {
+            detached.push(p);
           }
-          return wanted;
-        },
-      );
+        }
+        // Also prune cache entries that weren't seen this round.
+        for (const key of [...childMap.keys()]) {
+          if (!seen.has(key)) childMap.delete(key);
+        }
+        return wanted;
+      });
       return next;
     });
 
     for (const d of detached) {
-      const fs = (d.meta as Record<string, unknown>)[
-        FORM_STATE_META_KEY
-      ] as FormStateNode | undefined;
+      const fs = (d.meta as Record<string, unknown>)[FORM_STATE_META_KEY] as
+        | FormStateNode
+        | undefined;
       fs?.cleanup();
     }
   });

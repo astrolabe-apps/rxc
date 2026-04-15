@@ -21,6 +21,7 @@ import {
   type DataExpression,
   type NotEmptyExpression,
   type NotExpression,
+  DataControlDefinition,
 } from "../src/json";
 import {
   createStaticSchemaTree as csst,
@@ -47,13 +48,13 @@ function compoundField(name: string, children: SchemaField[]): CompoundField {
 }
 function dataDef(
   field: string,
-  extra: Partial<ControlDefinition> = {},
-): ControlDefinition {
+  extra: Partial<DataControlDefinition> = {},
+): DataControlDefinition {
   return {
     type: ControlDefinitionType.Data,
     field,
     ...extra,
-  } as ControlDefinition;
+  } as DataControlDefinition;
 }
 function groupDef(children: ControlDefinition[]): ControlDefinition {
   return {
@@ -107,8 +108,8 @@ describe("createFormStateNode — Layer 1", () => {
     const children = root.getChildren(rd);
     expect(children.length).toBe(1);
     const nameNode = children[0];
-    expect(nameNode.dataNode).toBeDefined();
     const state = nameNode.getState(rd);
+    expect(state.dataNode).toBeDefined();
     expect(state.field?.field).toBe("name");
     expect(state.data?.valueNow).toBe("alice");
   });

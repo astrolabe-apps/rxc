@@ -45,7 +45,7 @@ export function defaultResolveChildren(
   const state = node.getState(rc);
   const def = state.resolved.definition;
   const formChildren = form.cursor(rc).children;
-  const dataNode = node.dataNode;
+  const dataNode = state.dataNode;
   const parentData = dataNode ?? node.parent;
   const schemaInterface = node.schemaInterface;
 
