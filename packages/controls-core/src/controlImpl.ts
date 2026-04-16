@@ -129,12 +129,12 @@ export class ControlImpl<V = unknown> implements Control<V> {
     return this.getOrCreateElements() as ControlElements<V>;
   }
 
-  get fieldsNow(): Record<string, Control<any>> {
-    return (this._fields as Record<string, Control<any>>) ?? {};
+  get fieldsNow(): Record<string, Control<unknown>> {
+    return (this._fields as Record<string, Control<unknown>>) ?? {};
   }
 
-  get elementsNow(): Control<any>[] {
-    return (this._elems as Control<any>[]) ?? [];
+  get elementsNow(): Control<unknown>[] {
+    return (this._elems as Control<unknown>[]) ?? [];
   }
 
   // ── Subscriptions ─────────────────────────────────────────────

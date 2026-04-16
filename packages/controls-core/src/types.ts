@@ -7,9 +7,7 @@
 
 // ── Value types ──────────────────────────────────────────────────────
 
-export type ControlValidator<V> =
-  | ((v: V) => string | undefined | null)
-  | null;
+export type ControlValidator<V> = ((v: V) => string | undefined | null) | null;
 
 export interface ControlSetup<V> {
   validator?: ControlValidator<V>;
@@ -92,14 +90,11 @@ export interface Control<V> {
   readonly elements: ControlElements<V>;
 
   // Snapshot structural reads (no lazy creation)
-  readonly fieldsNow: Record<string, Control<any>>;
-  readonly elementsNow: Control<any>[];
+  readonly fieldsNow: Record<string, Control<unknown>>;
+  readonly elementsNow: Control<unknown>[];
 
   // Subscriptions
-  subscribe(
-    listener: ChangeListenerFunc<V>,
-    mask: ControlChange,
-  ): Subscription;
+  subscribe(listener: ChangeListenerFunc<V>, mask: ControlChange): Subscription;
   unsubscribe(subscription: Subscription): void;
 
   // Metadata
@@ -170,11 +165,7 @@ export interface WriteContext {
     disabled: boolean,
     notChildren?: boolean,
   ): void;
-  setError(
-    control: Control<unknown>,
-    key: string,
-    error?: string | null,
-  ): void;
+  setError(control: Control<unknown>, key: string, error?: string | null): void;
   setErrors(
     control: Control<unknown>,
     errors?: Record<string, string | null | undefined> | null,
@@ -188,10 +179,7 @@ export interface WriteContext {
     index?: number | Control<V>,
     insertAfter?: boolean,
   ): Control<V>;
-  removeElement<V>(
-    control: Control<V[]>,
-    child: number | Control<V>,
-  ): void;
+  removeElement<V>(control: Control<V[]>, child: number | Control<V>): void;
   updateElements<V>(
     control: Control<V[]>,
     cb: (elems: Control<V>[]) => Control<V>[],

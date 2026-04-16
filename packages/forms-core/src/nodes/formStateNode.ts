@@ -166,7 +166,7 @@ class FormStateNodeImpl implements FormStateNode {
       { dontClearError: true },
     );
     this.base = base;
-    (base.meta as Record<string, unknown>)[FORM_STATE_META_KEY] = this;
+    base.meta[FORM_STATE_META_KEY] = this;
     this.resolveChildren = resolveChildren ?? globals.resolveChildren;
 
     initFormState(this, definition, parentNode);
@@ -187,15 +187,8 @@ class FormStateNodeImpl implements FormStateNode {
   getChildren(rc: ReadContext): FormStateNode[] {
     this.ensureChildren();
     const childrenControl = this.base.fields.children;
-    const elems = rc.getElements(
-      childrenControl,
-    ) as Control<FormStateBaseImpl>[];
-    return elems.map(
-      (el) =>
-        (el.meta as Record<string, unknown>)[
-          FORM_STATE_META_KEY
-        ] as FormStateNode,
-    );
+    const elems = rc.getElements(childrenControl);
+    return elems.map((el) => el.meta[FORM_STATE_META_KEY] as FormStateNode);
   }
 
   setTouched(touched: boolean, notChildren?: boolean): void {
@@ -230,7 +223,7 @@ class FormStateNodeImpl implements FormStateNode {
     for (const fn of this._cleanups) fn();
     this._cleanups = [];
     // Drop references held via meta so controls can be GC'd.
-    delete (this.base.meta as Record<string, unknown>)[FORM_STATE_META_KEY];
+    delete this.base.meta[FORM_STATE_META_KEY];
   }
 
   attachUi(f: FormNodeUi): void {
@@ -577,13 +570,13 @@ function initFormState(
     const dc = dn.cursor(rc).control;
     const vis = rc.getValue(visible);
     if (vis === false) {
-      if (impl.globals.clearHidden && !(def as any).dontClearHidden) {
+      if (impl.globals.clearHidden && !def.dontClearHidden) {
         ctx.update((wc) => wc.setValue(dc, undefined));
       }
       return;
     }
     const currentValue = rc.getValue(dc);
-    const defVal = (def as any).defaultValue;
+    const defVal = def.defaultValue;
     if (
       vis &&
       currentValue === undefined &&
@@ -591,7 +584,7 @@ function initFormState(
       !(def.adornments ?? []).some(
         (a: ControlAdornment) => a.type === ControlAdornmentType.Optional,
       ) &&
-      (def as any).renderOptions?.type !== DataRenderType.NullToggle
+      def.renderOptions?.type !== DataRenderType.NullToggle
     ) {
       ctx.update((wc) => wc.setValue(dc, defVal));
     }
@@ -616,7 +609,7 @@ function initFormState(
 
   // Eagerly initialise children when safe. Nodes with a `childRefId` may
   // introduce recursion, so we only init lazily for those.
-  if (!(definition as any).childRefId) {
+  if (!definition.childRefId) {
     impl.ensureChildren();
   }
 }
@@ -696,9 +689,7 @@ function initChildren(impl: FormStateNodeImpl): void {
         });
         // Anything present in prev but not in wanted is detached.
         for (const p of prev) {
-          const fs = (p.meta as Record<string, unknown>)[
-            FORM_STATE_META_KEY
-          ] as FormStateNode | undefined;
+          const fs = p.meta[FORM_STATE_META_KEY] as FormStateNode | undefined;
           if (fs && !wanted.includes(p)) {
             detached.push(p);
           }
@@ -713,9 +704,7 @@ function initChildren(impl: FormStateNodeImpl): void {
     });
 
     for (const d of detached) {
-      const fs = (d.meta as Record<string, unknown>)[FORM_STATE_META_KEY] as
-        | FormStateNode
-        | undefined;
+      const fs = d.meta[FORM_STATE_META_KEY] as FormStateNode | undefined;
       fs?.cleanup();
     }
   });
@@ -742,7 +731,7 @@ function createChildNode(
     forceDisabled: false,
     forceReadonly: false,
     variables: combineVariables(
-      parent.base.fieldsNow.nodeOptions?.valueNow?.variables,
+      parent.base.fields.nodeOptions?.valueNow?.variables,
       init.variables,
     ),
   };
@@ -767,5 +756,5 @@ function groupedFallbackDefinition(): ControlDefinition {
   return {
     type: "Group",
     children: [],
-  } as unknown as ControlDefinition;
+  };
 }
