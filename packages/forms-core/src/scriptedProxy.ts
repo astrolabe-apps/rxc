@@ -1,8 +1,15 @@
-import type { Control, ControlContext } from "@rxc/controls-core";
+import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
 import {
+  type CompoundField,
+  coerceForFieldType,
   type ControlDefinition,
+  ControlDefinitionSchema,
+  ControlDefinitionSchemaMap,
   type EntityExpression,
-  FieldType,
+  hasSchemaTag,
+  isCompoundField,
+  type SchemaField,
+  SchemaTags,
 } from "./json";
 import {
   createEvalExpr,
@@ -11,134 +18,124 @@ import {
   type ExpressionEval,
   type ExpressionEvalContext,
 } from "./evalExpression";
-import { createOverrideProxy, NoOverride } from "./overrideProxy";
+import {
+  createOverrideProxy,
+  type NestedProxyBuilder,
+  NoOverride,
+} from "./overrideProxy";
 import type { DataNode, VariablesFunc } from "./types";
 import type { SchemaInterface } from "./schemaInterface";
-import type { ReadContext } from "@rxc/controls-core";
 
-// ── Field metadata (layer 4a) ─────────────────────────────────────
+// ── Schema lookup ─────────────────────────────────────────────────
 //
-// The full astrolabe-common implementation walks the self-describing schema
-// (ControlDefinitionSchemaMap — 1700+ lines) to learn each field's type for
-// coercion and its `_ScriptNullInit` tag. Porting that wholesale is out of
-// scope for this layer. Instead we hardcode the known scriptable fields —
-// this covers every legacy dynamic[] target (Visible/Disabled/Readonly/
-// Label/DefaultValue/Style/ActionData/LayoutStyle/AllowedOptions) plus the
-// `$scripts` convention for the same properties.
-//
-// TODO(Layer 4c or later): port `schemaSchemas.ts` so any user-defined
-// ControlDefinition extension gets correct coercion and tagging.
+// The scripted-proxy walker traverses the self-describing
+// `ControlDefinitionSchema` to discover scriptable fields (coercion,
+// `_ScriptNullInit` tagging) and nested compound fields. This means any
+// user-extended field declared in `ControlDefinitionSchemaMap` will
+// participate in scripting with no additional wiring.
 
-/** Coercion function registered for a scriptable field. */
-type Coerce = (v: unknown) => unknown;
-
-interface FieldMeta {
-  coerce: Coerce;
-  scriptNullInit?: boolean;
-  staticDefault?: unknown;
+function resolveSchemaRef(ref: string): SchemaField[] | undefined {
+  return (ControlDefinitionSchemaMap as Record<string, SchemaField[]>)[ref];
 }
 
-/** Coercion helpers matching `controlDefinitionSchemas.ts:coerceForFieldType`. */
-const coerceBool: Coerce = (r) => !!r;
-const coerceNum: Coerce = (r) => (typeof r === "number" ? r : undefined);
-const coerceString: Coerce = (v) => {
-  if (typeof v === "string") return v;
-  if (v == null) return "";
-  switch (typeof v) {
-    case "number":
-    case "boolean":
-      return v.toString();
-    default:
-      return JSON.stringify(v);
+function getChildFields(field: CompoundField): SchemaField[] | undefined {
+  if (field.schemaRef) {
+    const viaRef = resolveSchemaRef(field.schemaRef);
+    if (viaRef) return viaRef;
   }
-};
-const coerceAny: Coerce = (v) => v;
-const coerceObject: Coerce = (v) =>
-  typeof v === "object" ? v : undefined;
+  return field.children;
+}
 
 /**
- * The set of fields on a {@link ControlDefinition} that can be driven by
- * scripts. Keys match the field names; values give the coercion applied
- * after a script produces a result and whether the field uses
- * `_ScriptNullInit` semantics (see FORM-SEMANTICS.md).
+ * Does this subtree have any scripts or `_ScriptNullInit` fields that
+ * need an override control? Used to skip materialising override subtrees
+ * for compound fields with no scripting — otherwise the parent proxy's
+ * `Object.hasOwn(fieldsNow, X)` check would pick up the empty child
+ * control and shadow the base value.
  */
-const SCRIPTABLE_FIELDS: Record<string, FieldMeta> = {
-  hidden: { coerce: coerceBool, scriptNullInit: true, staticDefault: false },
-  disabled: { coerce: coerceBool, staticDefault: false },
-  readonly: { coerce: coerceBool, staticDefault: false },
-  required: { coerce: coerceBool, staticDefault: false },
-  title: { coerce: coerceString },
-  defaultValue: { coerce: coerceAny },
-  actionData: { coerce: coerceAny },
-  style: { coerce: coerceObject },
-  layoutStyle: { coerce: coerceObject },
-  allowedOptions: { coerce: coerceAny },
-};
-
-export function coerceForFieldType(fieldType: string): Coerce {
-  switch (fieldType) {
-    case FieldType.Bool:
-      return coerceBool;
-    case FieldType.Int:
-    case FieldType.Double:
-      return coerceNum;
-    case FieldType.String:
-      return coerceString;
-    case FieldType.Compound:
-      return coerceObject;
-    default:
-      return coerceAny;
+function subtreeHasScripts(
+  target: unknown,
+  fields: SchemaField[],
+  path: string,
+  getScripts: ScriptProvider,
+): boolean {
+  const scripts = getScripts(target, path);
+  for (const key of Object.keys(scripts)) {
+    if (fields.some((f) => f.field === key)) return true;
   }
+  const targetRec = (target ?? undefined) as Record<string, unknown> | undefined;
+  for (const field of fields) {
+    if (hasSchemaTag(field, SchemaTags.ScriptNullInit)) return true;
+    if (!isCompoundField(field) || field.collection) continue;
+    const childFields = getChildFields(field);
+    if (!childFields?.length) continue;
+    const childPath = path ? path + "." + field.field : field.field;
+    if (
+      subtreeHasScripts(
+        targetRec?.[field.field],
+        childFields,
+        childPath,
+        getScripts,
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 // ── Script provider ──────────────────────────────────────────────
 
 /**
- * Resolves the script map for a given definition path. The default reads
- * `def["$scripts"]` at the root; callers can supply a custom provider to
- * inject legacy `dynamic[]` entries or any other source.
+ * Resolves the script map for a given object at a given path. The default
+ * reads `$scripts` from the target; callers can supply a custom provider
+ * to inject legacy `dynamic[]` entries or any other source.
  */
 export type ScriptProvider = (
-  target: ControlDefinition,
+  target: unknown,
   path: string,
 ) => Record<string, EntityExpression>;
 
 export const defaultScriptProvider: ScriptProvider = (target) =>
-  ((target as unknown as Record<string, unknown>)?.["$scripts"] as Record<
-    string,
-    EntityExpression
-  >) ?? {};
+  ((target as Record<string, unknown> | null | undefined)?.[
+    "$scripts"
+  ] as Record<string, EntityExpression>) ?? {};
 
 // ── createEvaluatedDefinition ────────────────────────────────────
 
 /**
  * Options returned by {@link createEvaluatedDefinition} — the caller uses
- * `toProxy(rc)` inside a reactive read to obtain a definition whose
+ * `wrap(rc, base)` inside a reactive read to obtain a definition whose
  * scripted properties resolve through the given {@link ReadContext}.
+ *
+ * `base` must be a *fresh* definition proxy bound to `rc` — typically
+ * obtained via `formNode.cursor(rc).definition`. Reading properties on
+ * the returned proxy subscribes through `rc`, so renderer re-renders when
+ * non-scripted fields (title, required, etc.) change.
  */
 export interface EvaluatedDefinition {
-  /** Underlying base definition, unchanged. */
-  base: ControlDefinition;
-  /** Snapshot indicator — `true` iff any scripted override was registered. */
+  /** `true` iff any scripted override was registered. */
   hasOverrides: boolean;
-  /** Build a reactive proxy bound to the given `ReadContext`. */
-  toProxy(rc: ReadContext): ControlDefinition;
+  /** Wrap a fresh rc-bound `base` with the override lookups for this node. */
+  wrap(rc: ReadContext, base: ControlDefinition): ControlDefinition;
 }
 
 /**
- * Build a scripted definition wrapper:
+ * Build a scripted definition wrapper by walking the
+ * `ControlDefinitionSchema` and registering overrides for:
  *
- * 1. Collect root-level scripts via `getScripts(def, "")`.
- * 2. Handle `_ScriptNullInit` fields — initialize their override to
- *    {@link NoOverride} (so the proxy falls through to the base) or, when a
- *    script is registered, let the script's effect populate the override.
- * 3. Return an `EvaluatedDefinition` whose `toProxy(rc)` call produces the
- *    rc-bound proxy.
+ * 1. Every scriptable field at every level that has a matching entry from
+ *    `getScripts(target, path)`.
+ * 2. Every `_ScriptNullInit`-tagged field (initialised to {@link NoOverride}
+ *    while a script is pending, or the coerced static value when no script
+ *    is registered).
+ * 3. Non-collection compound children — recursively, with their own
+ *    override subtrees allocated under `overridesControl.fields.X`.
  *
- * **Scope (layer 4a):** only root-level scriptable fields are handled.
- * Nested compounds (e.g. `displayData.text`, `renderOptions.groupOptions
- * .columns`) still fall through to static values — porting the nested
- * proxy wiring is a follow-up.
+ * Collection compound fields (e.g. `adornments`, `validators`) are not
+ * traversed for per-element scripting at this layer — no scriptable fields
+ * currently live inside arrays on `ControlDefinition`. The extension point
+ * is a follow-up.
  */
 export function createEvaluatedDefinition(
   def: ControlDefinition,
@@ -150,7 +147,6 @@ export function createEvaluatedDefinition(
   addCleanup: (fn: () => void) => void,
   getScripts: ScriptProvider = defaultScriptProvider,
 ): EvaluatedDefinition {
-  const scripts = getScripts(def, "");
   const overridesControl = ctx.newControl<Record<string, unknown>>({});
 
   const dispatch: (
@@ -171,57 +167,129 @@ export function createEvaluatedDefinition(
     runAsync,
   });
 
+  const rootBuilders = new Map<string, NestedProxyBuilder>();
+  const hasOverrides = buildLevel(
+    def,
+    ControlDefinitionSchema,
+    overridesControl,
+    "",
+    evalExpr,
+    getScripts,
+    addCleanup,
+    ctx,
+    rootBuilders,
+  );
+
+  return {
+    hasOverrides,
+    wrap(rc: ReadContext, base: ControlDefinition): ControlDefinition {
+      if (!hasOverrides) return base;
+      return createOverrideProxy(base, overridesControl, rc, rootBuilders);
+    },
+  };
+}
+
+/**
+ * Walk one schema level — registers overrides for scriptable and
+ * `_ScriptNullInit` fields at this level, then recurses into non-collection
+ * compound children. Populates `nestedBuilders` for compounds that had
+ * scripts anywhere in their subtree.
+ *
+ * Returns `true` iff any override was registered at or below this level.
+ */
+function buildLevel(
+  target: unknown,
+  fields: SchemaField[],
+  overridesControl: Control<Record<string, unknown>>,
+  path: string,
+  evalExpr: EvalExpr,
+  getScripts: ScriptProvider,
+  addCleanup: (fn: () => void) => void,
+  ctx: ControlContext,
+  nestedBuilders: Map<string, NestedProxyBuilder>,
+): boolean {
+  const asRec = (c: Control<unknown>) =>
+    c.fields as unknown as Record<string, Control<unknown>>;
   let hasOverrides = false;
 
-  // Register explicit scripts
+  const scripts = getScripts(target, path);
+  const targetRec = (target ?? undefined) as Record<string, unknown> | undefined;
+  const scriptedKeys = new Set<string>();
+
   for (const [key, expr] of Object.entries(scripts)) {
-    const meta = SCRIPTABLE_FIELDS[key];
-    if (!meta) continue;
-
-    const targetField = (
-      overridesControl.fields as unknown as Record<string, Control<unknown>>
-    )[key];
-
-    const staticValue = (def as unknown as Record<string, unknown>)[key];
-    // `_ScriptNullInit` fields start as NoOverride so the proxy falls
-    // through to the base value while the script is pending.
-    const initValue = meta.scriptNullInit
+    const field = fields.find((f) => f.field === key);
+    if (!field) continue;
+    scriptedKeys.add(key);
+    const coerce = coerceForFieldType(field.type);
+    const targetField = asRec(overridesControl)[key];
+    const nullInit = hasSchemaTag(field, SchemaTags.ScriptNullInit);
+    const staticValue = targetRec?.[key];
+    const initValue = nullInit
       ? (NoOverride as unknown)
-      : meta.coerce(staticValue ?? meta.staticDefault);
-
+      : coerce(staticValue ?? undefined);
     const registered = evalExpr(
       initValue,
       targetField,
       expr,
-      meta.coerce,
+      coerce as (v: unknown) => any,
       addCleanup,
     );
     if (registered) hasOverrides = true;
   }
 
-  // For `_ScriptNullInit` fields without an explicit script, initialise
-  // the override to the coerced static value so the proxy routes through
-  // the same field-type coercion path as the scripted case. This matches
-  // the old `evaluateScripts` behaviour (scriptedProxy.ts:96-118).
-  for (const [key, meta] of Object.entries(SCRIPTABLE_FIELDS)) {
-    if (!meta.scriptNullInit) continue;
-    if (key in scripts) continue; // handled above
-
-    const staticValue = (def as unknown as Record<string, unknown>)[key];
-    const coerced = meta.coerce(staticValue ?? meta.staticDefault);
-    const targetField = (
-      overridesControl.fields as unknown as Record<string, Control<unknown>>
-    )[key];
+  // `_ScriptNullInit` fields with no explicit script — seed the override
+  // with the coerced static value so the proxy resolves through the same
+  // coercion path as the scripted case.
+  for (const field of fields) {
+    if (!hasSchemaTag(field, SchemaTags.ScriptNullInit)) continue;
+    if (scriptedKeys.has(field.field)) continue;
+    const coerce = coerceForFieldType(field.type);
+    const staticValue = targetRec?.[field.field];
+    const coerced = coerce(staticValue ?? undefined);
+    const targetField = asRec(overridesControl)[field.field];
     ctx.update((wc) => wc.setValue(targetField, coerced));
     hasOverrides = true;
   }
 
-  return {
-    base: def,
-    hasOverrides,
-    toProxy(rc: ReadContext): ControlDefinition {
-      if (!hasOverrides) return def;
-      return createOverrideProxy(def, overridesControl, rc);
-    },
-  };
+  // Recurse into non-collection compound children — but only when the
+  // subtree actually needs an override control. Materialising
+  // `overridesControl.fields.X` unconditionally would add `X` to the
+  // parent's `fieldsNow` and shadow the base compound value on read.
+  for (const field of fields) {
+    if (!isCompoundField(field) || field.collection) continue;
+    const childFields = getChildFields(field);
+    if (!childFields?.length) continue;
+
+    const childTarget = targetRec?.[field.field];
+    const childPath = path ? path + "." + field.field : field.field;
+    if (!subtreeHasScripts(childTarget, childFields, childPath, getScripts)) {
+      continue;
+    }
+
+    const childOverrides = asRec(overridesControl)[
+      field.field
+    ] as unknown as Control<Record<string, unknown>>;
+    const childBuilders = new Map<string, NestedProxyBuilder>();
+
+    const childHad = buildLevel(
+      childTarget,
+      childFields,
+      childOverrides,
+      childPath,
+      evalExpr,
+      getScripts,
+      addCleanup,
+      ctx,
+      childBuilders,
+    );
+
+    if (childHad) {
+      hasOverrides = true;
+      nestedBuilders.set(field.field, (childBase, rc) =>
+        createOverrideProxy(childBase, childOverrides, rc, childBuilders),
+      );
+    }
+  }
+
+  return hasOverrides;
 }

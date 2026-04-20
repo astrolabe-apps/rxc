@@ -61,11 +61,11 @@ import { buildLegacyScripts } from "../legacyScripts";
  * @param options    - Tree-wide globals (resolver, clearHidden, async runner).
  * @param nodeOptions - Initial per-node options (force flags, variables).
  *
- * Layer 1 limitations:
- * - No script overrides (`state.resolved.definition === formNode.definition`
- *   at build time). The definition is snapshotted at init.
- * - No schema-interface driven `fieldOptions` / display-only hiding.
- * - No dynamic validators from schema field / control definition.
+ * The root node sources its definition reactively from `formNode`. Edits
+ * to the underlying `Control<ControlDefinition>` (for reactive form trees
+ * created via `createReactiveFormTree`) propagate through the FormStateNode:
+ * `evaluatedDef` is rebuilt, validators re-register, visibility/readonly/
+ * disabled cascade re-evaluate.
  */
 export function createFormStateNode(
   ctx: ControlContext,
@@ -74,7 +74,6 @@ export function createFormStateNode(
   options: FormGlobalOptions,
   nodeOptions: FormNodeOptions = {},
 ): FormStateNode {
-  const rootDef = formNode.cursor(noopReadContext).definition;
   const resolved: FormGlobalOptions = {
     ...options,
     schemaInterface: options.schemaInterface ?? defaultSchemaInterface,
@@ -83,7 +82,7 @@ export function createFormStateNode(
     ctx,
     "ROOT",
     {},
-    rootDef,
+    null,
     formNode,
     nodeOptions,
     resolved,
@@ -130,8 +129,19 @@ const noopUi: FormNodeUi = {
 class FormStateNodeImpl implements FormStateNode {
   readonly base: Control<FormStateBaseImpl>;
   readonly resolveChildren: ChildResolverFunc;
-  /** Set by {@link initFormState} before any computed reads it. */
-  evaluatedDef!: EvaluatedDefinition;
+  /**
+   * Holds the current {@link EvaluatedDefinition} — rebuilt by an effect
+   * inside {@link initFormState} whenever the definition identity changes.
+   * Null only during the brief window before the effect first runs.
+   */
+  evalDefControl!: Control<EvaluatedDefinition | null>;
+  /**
+   * Optional static definition snapshot for synthesized children (option
+   * expansion, array-element fallback). When set, this is used instead of
+   * reading from `form` — the synthesized def has no corresponding FormNode
+   * to react to.
+   */
+  readonly staticDef: ControlDefinition | null;
 
   ui: FormNodeUi = noopUi;
 
@@ -142,7 +152,7 @@ class FormStateNodeImpl implements FormStateNode {
     public readonly ctx: ControlContext,
     public childKey: string | number,
     public meta: Record<string, any>,
-    definition: ControlDefinition,
+    staticDef: ControlDefinition | null,
     public form: FormNode | null | undefined,
     nodeOptions: FormNodeOptions,
     public readonly globals: FormGlobalOptions,
@@ -151,13 +161,22 @@ class FormStateNodeImpl implements FormStateNode {
     childIndex: number,
     resolveChildren?: ChildResolverFunc,
   ) {
+    this.staticDef = staticDef;
+    // Seed `resolved.definition` with a best-effort synchronous snapshot so
+    // consumers reading via `FormStateView.resolved` before the evalDef
+    // effect first runs still see a sensible value. The effect immediately
+    // replaces this on first run.
+    const seedDef =
+      staticDef ??
+      form?.cursor(noopReadContext).definition ??
+      groupedFallbackDefinition();
     const base = ctx.newControl<FormStateBaseImpl>(
       {
         readonly: false,
         visible: null,
         disabled: false,
         children: [],
-        resolved: { definition } as ResolvedDefinition,
+        resolved: { definition: seedDef } as ResolvedDefinition,
         dataNode: undefined,
         childIndex,
         nodeOptions,
@@ -169,7 +188,7 @@ class FormStateNodeImpl implements FormStateNode {
     base.meta[FORM_STATE_META_KEY] = this;
     this.resolveChildren = resolveChildren ?? globals.resolveChildren;
 
-    initFormState(this, definition, parentNode);
+    initFormState(this, parentNode);
   }
 
   get uniqueId(): string {
@@ -314,13 +333,19 @@ class FormStateView implements FormState {
   }
 
   get resolved(): ResolvedDefinition {
-    // Splice the rc-bound scripted proxy in as `.definition` so callers
-    // reading `state.resolved.definition.X` see live script values. The
-    // underlying control still holds the raw base definition.
+    // Construct a definition view bound to this.rc so renderer reads of
+    // non-scripted fields (title, required, etc.) subscribe correctly. The
+    // base is read fresh from the FormNode (reactive) or falls back to the
+    // synthesized static def for synthesized children.
     const raw = this.rc.getValue(this.baseFields.resolved);
+    const base =
+      this.impl.staticDef ??
+      this.impl.form?.cursor(this.rc).definition ??
+      raw.definition;
+    const evalDef = this.rc.getValue(this.impl.evalDefControl);
     return {
       ...raw,
-      definition: this.impl.evaluatedDef.toProxy(this.rc),
+      definition: evalDef ? evalDef.wrap(this.rc, base) : base,
     };
   }
 
@@ -369,26 +394,38 @@ class FormStateView implements FormState {
 /**
  * Set up computed properties and sync effects for a FormStateNode.
  *
- * Layer-1 simplifications:
- * - No script override / editor-mode reactive definition. The definition
- *   passed in at construction time is used as-is; `resolved.definition` is
- *   the same object for the life of the node.
- * - No schema-interface-driven visibility (`validDataNode` / `hideDisplayOnly`).
- * - No dynamic `fieldOptions`.
- * - No setupValidation.
+ * The definition is sourced reactively from the node's `form` (a persistent
+ * {@link FormNode}) — for reactive form trees, property reads through the
+ * FormNode's cursor subscribe via their ReadContext, so edits to the
+ * underlying `Control<ControlDefinition>` trigger re-evaluation.
+ *
+ * The {@link EvaluatedDefinition} (override controls + script effects) has
+ * an effect-driven lifecycle: it is rebuilt whenever the definition identity
+ * changes, with the previous iteration's cleanups run first. Downstream
+ * computeds read the current evalDef reactively via `impl.evalDefControl`.
  */
 function initFormState(
   impl: FormStateNodeImpl,
-  definition: ControlDefinition,
   parentNode: FormStateNode | undefined,
 ): void {
-  const { ctx, base, parent } = impl;
+  const { ctx, base, parent, form, staticDef } = impl;
   const { dataNode, visible, readonly, disabled } = base.fields;
   const schemaInterface = impl.schemaInterface;
 
-  // ── dataNode: resolve the definition's field path against the parent
-  const fieldRef = formFieldPath(definition);
+  // Reactive definition source — reads through the rc passed in. For
+  // static FormNodes this returns a stable object; for reactive FormNodes
+  // (via `createReactiveFormTree`) the returned object is a reactive
+  // proxy whose property reads subscribe through `rc`.
+  const defFor = (rc: ReadContext): ControlDefinition | undefined =>
+    staticDef ?? form?.cursor(rc).definition;
+
+  // ── dataNode: resolve the definition's field path against the parent.
+  // Reads the definition reactively so changes to `field` / `compoundField`
+  // re-trigger path resolution.
   const dataNodeComputed = computed(ctx, dataNode, (rc) => {
+    const def = defFor(rc);
+    if (!def) return undefined;
+    const fieldRef = formFieldPath(def);
     if (fieldRef === undefined) return undefined;
     const parentCursor = parent.cursor(rc);
     const resolved = dataRef(parentCursor, fieldRef);
@@ -396,36 +433,66 @@ function initFormState(
   });
   impl.addCleanup(() => dataNodeComputed.cleanup());
 
-  // ── scripted-definition wrapper. Layer-4a builds a per-node override
-  // hierarchy from explicit `$scripts` plus legacy `dynamic[]` entries
-  // (via buildLegacyScripts). The returned EvaluatedDefinition supplies
-  // a per-rc proxy — subsequent computeds/effects read scriptable fields
-  // (`hidden`, `disabled`, `readonly`, `defaultValue`, …) through it.
-  const legacyMap = buildLegacyScripts(definition);
-  const getScripts: ScriptProvider = (target, path) => {
-    const explicit =
-      ((target as unknown as Record<string, unknown>)?.["$scripts"] as Record<
-        string,
-        import("../json").EntityExpression
-      >) ?? {};
-    const legacy = legacyMap.get(path) ?? {};
-    return { ...legacy, ...explicit };
+  // ── evaluatedDef lifecycle — rebuild on definition identity changes.
+  //
+  // The effect's tracked reads (via `defFor(rc)` + what the walker reads on
+  // the proxy) determine when it re-fires. When it does, the previous
+  // iteration's cleanup tears down old override controls / script effects,
+  // then a fresh EvaluatedDefinition is constructed and published to
+  // `evalDefControl` for downstream readers.
+  const evalDefControl = ctx.newControl<EvaluatedDefinition | null>(null);
+  impl.evalDefControl = evalDefControl;
+  const evalDefEffect = effect(ctx, (rc) => {
+    const def = defFor(rc);
+    if (!def) {
+      ctx.update((wc) => wc.setValue(evalDefControl, null));
+      return;
+    }
+    const legacyMap = buildLegacyScripts(def);
+    const getScripts: ScriptProvider = (target, path) => {
+      const explicit =
+        ((target as unknown as Record<string, unknown>)?.["$scripts"] as Record<
+          string,
+          import("../json").EntityExpression
+        >) ?? {};
+      const legacy = legacyMap.get(path) ?? {};
+      return { ...legacy, ...explicit };
+    };
+    const initialData =
+      (base.fieldsNow.dataNode?.valueNow as DataNode | undefined) ?? parent;
+    const cleanups: Array<() => void> = [];
+    const evalDef = createEvaluatedDefinition(
+      def,
+      ctx,
+      initialData,
+      schemaInterface,
+      impl.globals.runAsync,
+      undefined, // variables — plumbed through for jsonata in a follow-up
+      (fn) => cleanups.push(fn),
+      getScripts,
+    );
+    ctx.update((wc) => wc.setValue(evalDefControl, evalDef));
+    return () => {
+      for (const c of cleanups) c();
+    };
+  });
+  impl.addCleanup(() => evalDefEffect.cleanup());
+
+  // Helper: rc-bound proxy view of the current evaluated definition. The
+  // caller's `rc` is used both for the fresh base definition read and for
+  // the override-proxy wrapping, so renderer subscriptions register on
+  // non-scripted fields (title, required, etc.) too.
+  const proxyFor = (rc: ReadContext): ControlDefinition => {
+    const base = defFor(rc) ?? groupedFallbackDefinition();
+    const evalDef = rc.getValue(evalDefControl);
+    return evalDef ? evalDef.wrap(rc, base) : base;
   };
-  // The scripted proxy needs a DataNode to resolve data expressions
-  // against. Use the node's own dataNode once resolved, falling back to
-  // the starting parent when this node doesn't bind data.
-  const initialData =
-    (impl.base.fieldsNow.dataNode?.valueNow as DataNode | undefined) ?? parent;
-  impl.evaluatedDef = createEvaluatedDefinition(
-    definition,
-    ctx,
-    initialData,
-    schemaInterface,
-    impl.globals.runAsync,
-    undefined, // variables — plumbed through for jsonata in a follow-up
-    (fn) => impl.addCleanup(fn),
-    getScripts,
-  );
+
+  // The resolved.definition Control is used only as a transient fallback
+  // for the rare window before computeds first run — we don't maintain an
+  // effect to mirror the definition into it, since `FormStateView.resolved`
+  // reads the base directly from `form.cursor(rc).definition` via
+  // `proxyFor`. Keeping the seeded value set at construction is sufficient.
 
   // ── visibility cascade — see docs/FORM-SEMANTICS.md "Visible".
   //   1. forceHidden → false
@@ -448,7 +515,7 @@ function initFormState(
       if (!parentVisible) return parentVisible;
     }
     const dn = rc.getValue(dataNode);
-    const def = impl.evaluatedDef.toProxy(rc);
+    const def = proxyFor(rc);
     if (dn) {
       const dc = dn.cursor(rc);
       if (!validDataCursor(dc)) return false;
@@ -468,7 +535,7 @@ function initFormState(
     if (!dn) return undefined;
     const dc = dn.cursor(rc);
     const all = schemaInterface.getDataOptions(dc);
-    const def = impl.evaluatedDef.toProxy(rc);
+    const def = proxyFor(rc);
     const allowed = def.allowedOptions;
     const allowedArr = Array.isArray(allowed)
       ? allowed
@@ -499,7 +566,7 @@ function initFormState(
     }
     const opts = rc.getValue(base.fields.nodeOptions);
     if (opts.forceReadonly) return true;
-    return isControlReadonly(impl.evaluatedDef.toProxy(rc));
+    return isControlReadonly(proxyFor(rc));
   });
   impl.addCleanup(() => readonlyComputed.cleanup());
 
@@ -513,7 +580,7 @@ function initFormState(
     }
     const opts = rc.getValue(base.fields.nodeOptions);
     if (opts.forceDisabled) return true;
-    return isControlDisabled(impl.evaluatedDef.toProxy(rc));
+    return isControlDisabled(proxyFor(rc));
   });
   impl.addCleanup(() => disabledComputed.cleanup());
 
@@ -565,7 +632,7 @@ function initFormState(
   // here automatically.
   const defaultValueEffect = effect(ctx, (rc) => {
     const dn = rc.getValue(dataNode);
-    const def = impl.evaluatedDef.toProxy(rc);
+    const def = proxyFor(rc);
     if (!dn || !isDataControl(def)) return;
     const dc = dn.cursor(rc).control;
     const vis = rc.getValue(visible);
@@ -591,7 +658,9 @@ function initFormState(
   });
   impl.addCleanup(() => defaultValueEffect.cleanup());
 
-  // ── validators: required + dynamic validators from the definition
+  // ── validators: required + dynamic validators from the definition.
+  // `defFor` is invoked inside `setupValidation`'s outer effect so the
+  // validator set reacts to `def.required` / `def.validators[]` changes.
   setupValidation(
     {
       ctx,
@@ -604,12 +673,16 @@ function initFormState(
       runAsync: impl.globals.runAsync,
       addCleanup: (fn) => impl.addCleanup(fn),
     },
-    definition,
+    defFor,
   );
 
   // Eagerly initialise children when safe. Nodes with a `childRefId` may
-  // introduce recursion, so we only init lazily for those.
-  if (!definition.childRefId) {
+  // introduce recursion, so we only init lazily for those. Reading the
+  // snapshot via `noopReadContext` is intentional — we only care about the
+  // structural childRefId at construction time; later childRefId edits
+  // would require a different mechanism (not in scope here).
+  const initialDef = defFor(noopReadContext);
+  if (!initialDef?.childRefId) {
     impl.ensureChildren();
   }
 }
@@ -735,12 +808,17 @@ function createChildNode(
       init.variables,
     ),
   };
+  // A spec carrying `definition` means its own-def is a static snapshot
+  // (synthesized for option/array-element children). With no `definition`,
+  // the child sources its own-def reactively from `init.node ?? parent.form`.
+  const childForm = init.node === undefined ? parent.form : init.node;
+  const staticDef = init.definition ?? (childForm ? null : groupedFallbackDefinition());
   const childImpl = new FormStateNodeImpl(
     parent.ctx,
     spec.childKey,
     meta,
-    init.definition ?? groupedFallbackDefinition(),
-    init.node === undefined ? parent.form : init.node,
+    staticDef,
+    childForm,
     childNodeOptions,
     parent.globals,
     init.parent ?? parent.parent,

@@ -142,12 +142,22 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 
 ### Phase 3c: Layer 4a — Scripted proxy ✅
 
-- `src/overrideProxy.ts` — rc-bound proxy with `NoOverride` sentinel
+- `src/overrideProxy.ts` — rc-bound proxy with `NoOverride` sentinel, optional `nestedBuilders` for recursive compound wrapping
 - `src/evalExpression.ts` — `Data`, `DataMatch`, `NotEmpty`, `UUID`, `Not` evaluators + `createEvalExpr` (handles `Not` unwrapping with coerce inversion)
-- `src/scriptedProxy.ts` — `createEvaluatedDefinition` + `ScriptProvider` + hardcoded `SCRIPTABLE_FIELDS` table (covers `hidden`, `disabled`, `readonly`, `required`, `title`, `defaultValue`, `actionData`, `style`, `layoutStyle`, `allowedOptions`)
-- `src/legacyScripts.ts` — `buildLegacyScripts` converts legacy `dynamic[]` → `$scripts` bucket (root-path only at this layer)
+- `src/scriptedProxy.ts` — `createEvaluatedDefinition` + `ScriptProvider`
+- `src/legacyScripts.ts` — `buildLegacyScripts` converts legacy `dynamic[]` → `$scripts` bucket
 - Each FormStateNode builds an `EvaluatedDefinition`; visible/disabled/readonly/fieldOptions/default-value computeds read through the rc-bound proxy
 - Visibility cascade reverted to settled `hidden == null ? null : !hidden` — the scripted proxy pre-populates `_ScriptNullInit` fields to their coerced defaults, so `null` only flows through during genuinely pending async scripts
+
+### Phase 3c: Layer 4b — Nested compound proxies + schema-driven walker ✅
+
+- `src/json/schemaSchemas.ts` — ported verbatim from `astrolabe-common` (1705 lines). Provides `ControlDefinitionSchema` and `ControlDefinitionSchemaMap` as the self-describing metadata for scripting.
+- `src/json/controlDefinitionSchemas.ts` — `Coerce` type + `coerceForFieldType` (shared helper)
+- `src/json/schemaField.ts` — added `hasSchemaTag` helper
+- `src/scriptedProxy.ts` — `createEvaluatedDefinition` now walks `ControlDefinitionSchema` recursively: discovers scriptable fields at every level (scalar + non-collection compound), uses `_ScriptNullInit` tags dynamically, allocates nested override controls via `overridesControl.fields.X` (lazy subcontrol nesting), and `subtreeHasScripts` gates recursion so compounds without scripts don't pollute `fieldsNow`. The old hardcoded `SCRIPTABLE_FIELDS` table is gone — user-extended `ControlDefinitionSchemaMap` entries work with no additional wiring.
+- `src/overrideProxy.ts::createOverrideProxy` — accepts `nestedBuilders: Map<string, NestedProxyBuilder>`; the `get` trap wraps nested compound values via the builder when the override rollup would otherwise shadow them.
+- `src/legacyScripts.ts` — `Display` and `GridColumns` now route to nested paths (`displayData.text`/`html`, `renderOptions.overrideText`, `groupOptions.columns`, `renderOptions.groupOptions.columns`), matching legacy `formStateNode.ts`.
+- **Note:** collection-compound element scripting (legacy `wireProxies` mapping array elements through per-element proxies) is not ported — no scriptable fields currently live inside arrays on `ControlDefinition`. Extension point only.
 
 ### Phase 6 (partial): Dev app ✅
 
@@ -159,21 +169,16 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - **Framework**: Vitest + fast-check (property-based testing)
 - **Location**: `test/` dir in each package
 - **Config**: `vitest.config.ts` per package
-- Current count: **87 tests** across forms-core (65 node/cursor + 22 FormStateNode covering all four layers). controls-core has 51.
+- Current count: **91 tests** across forms-core (65 node/cursor + 26 FormStateNode covering layers 1–4b). controls-core has 51.
 
 ## Next steps
 
-### Phase 3c: Layer 4b — Jsonata + nested compound proxies
+### Phase 3c: Layer 4c — Jsonata
 
 Depends on adding the `jsonata` package dependency. Work breakdown:
 
 1. **Jsonata expression evaluator** — port `jsonataEval` from `astrolabe-common`. Needs the "path-navigable" proxy (`ensurePathNavigable`) so jsonata can traverse null compound fields, plus the async-effect / `trackedValue` plumbing adapted to rxc's `effect`/`computed`.
 2. **`jsonataValidator`** — wire up the deferred Layer-3 validator once `jsonataEval` lands.
-3. **Nested compound proxies** — the old `scriptedProxy.wireProxies` recursively proxies nested compound fields so scripts can target `displayData.text`, `renderOptions.groupOptions.columns`, etc. Currently layer 4a only supports root-level scripts; legacy `DynamicPropertyType.Display` and `.GridColumns` are silently dropped by `buildLegacyScripts`.
-
-### Phase 3c: Layer 4c (optional) — Full ControlDefinitionSchemaMap port
-
-Currently the scripted-proxy field metadata is hardcoded in `src/scriptedProxy.ts::SCRIPTABLE_FIELDS` (~10 known fields). The old implementation walks `astrolabe-common/forms/core/src/schemaSchemas.ts` (1705 lines) to discover scriptable fields and `_ScriptNullInit` tags dynamically. Porting the full schema map lets user-defined ControlDefinition extensions participate in scripting without editing forms-core.
 
 ### Phase 4: @rxc/forms (renderer redesign)
 

@@ -22,7 +22,7 @@ import {
   ControlDefinitionType,
   createDataNode,
   createFormStateNode,
-  createStaticFormTree,
+  createReactiveFormTree,
   createStaticSchemaTree,
   dataControl,
   dataMatchExpr,
@@ -572,6 +572,7 @@ const controlContext = createControlContext();
 const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
   const stateRef = useRef<{
     rootControl: Control<any>;
+    definitionsControl: Control<ControlDefinition[]>;
     formNode: FormStateNode;
   } | null>(null);
 
@@ -586,12 +587,15 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       company: "",
       taxId: "",
     });
+    const definitionsControl = controlContext.newControl<ControlDefinition[]>([
+      personFormDef(),
+    ]);
     const schemaTree = createStaticSchemaTree(
       personSchema(),
       emptySchemaResolver,
     );
-    const formTree = createStaticFormTree(
-      [personFormDef()],
+    const formTree = createReactiveFormTree(
+      definitionsControl,
       emptyFormResolver,
     );
     const dataNode = createDataNode(schemaTree.rootNode, rootControl);
@@ -606,17 +610,19 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       dataNode,
       globals,
     );
-    stateRef.current = { rootControl, formNode };
+    stateRef.current = { rootControl, definitionsControl, formNode };
   }
 
-  const { rootControl, formNode } = stateRef.current;
+  const { rootControl, definitionsControl, formNode } = stateRef.current;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">
           Control Tree Visualizer
         </h1>
+
+        <DefinitionEditor definitionsControl={definitionsControl} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: form editor driven by FormStateNode */}
@@ -662,6 +668,107 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+});
+
+// ── Definition editor ───────────────────────────────────────────────
+
+const DefinitionEditor = controls(function DefinitionEditor(
+  {
+    definitionsControl,
+  }: { definitionsControl: Control<ControlDefinition[]> },
+  { rc, update },
+) {
+  const current = rc.getValue(definitionsControl);
+  const canonical = JSON.stringify(current, null, 2);
+
+  const [draft, setDraft] = useState(canonical);
+  const [error, setError] = useState<string | null>(null);
+  const [lastAppliedSerialized, setLastAppliedSerialized] = useState(canonical);
+
+  // If an outside change happens (e.g. an apply from this editor), sync the
+  // textarea only when the user hasn't started editing a divergent draft.
+  if (
+    canonical !== lastAppliedSerialized &&
+    draft === lastAppliedSerialized
+  ) {
+    setDraft(canonical);
+    setLastAppliedSerialized(canonical);
+    setError(null);
+  }
+
+  const dirty = draft !== canonical;
+
+  const apply = () => {
+    try {
+      const parsed = JSON.parse(draft);
+      if (!Array.isArray(parsed)) {
+        setError("Root must be an array of ControlDefinitions");
+        return;
+      }
+      update((wc) =>
+        wc.setValue(definitionsControl, parsed as ControlDefinition[]),
+      );
+      setError(null);
+      setLastAppliedSerialized(JSON.stringify(parsed, null, 2));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const reset = () => {
+    setDraft(canonical);
+    setError(null);
+  };
+
+  return (
+    <div className="rounded-lg bg-white dark:bg-zinc-900 p-4 shadow mb-6">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          Definition JSON (edit and click Apply — reactivity test)
+        </h2>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={reset}
+            disabled={!dirty}
+            className="text-xs px-3 py-1 rounded border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 disabled:opacity-40"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={apply}
+            disabled={!dirty}
+            className="text-xs px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-40"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        spellCheck={false}
+        className={`w-full h-64 font-mono text-xs p-2 rounded border bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 resize-y ${
+          error
+            ? "border-red-400 dark:border-red-600"
+            : dirty
+              ? "border-amber-400 dark:border-amber-600"
+              : "border-zinc-300 dark:border-zinc-700"
+        }`}
+      />
+      {error && (
+        <p className="mt-2 text-xs text-red-600 dark:text-red-400 font-mono">
+          {error}
+        </p>
+      )}
+      {!error && dirty && (
+        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+          Unapplied edits
+        </p>
+      )}
     </div>
   );
 });

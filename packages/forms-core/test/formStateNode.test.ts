@@ -27,6 +27,7 @@ import {
   createStaticSchemaTree as csst,
   createDataNode,
   createStaticFormTree as csft,
+  createReactiveFormTree as crft,
   createFormStateNode,
   defaultResolveChildren,
 } from "../src/nodes";
@@ -704,5 +705,356 @@ describe("FormStateNode — Layer 4a: scripted proxy", () => {
       ),
     );
     expect(bNode.getState(rd).visible).toBe(true);
+  });
+});
+
+describe("FormStateNode — Layer 4b: nested scripted overrides", () => {
+  it("drives displayData.text via a legacy Display dynamic[] entry", () => {
+    const fields: SchemaField[] = [stringField("greeting")];
+    const dataExpr: DataExpression = {
+      type: ExpressionType.Data,
+      field: "greeting",
+    };
+    const defs = [
+      {
+        type: ControlDefinitionType.Display,
+        displayData: { type: DisplayDataType.Text, text: "static" },
+        dynamic: [{ type: DynamicPropertyType.Display, expr: dataExpr }],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      greeting: "Hello World",
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [displayNode] = root.getChildren(rd);
+    const def = displayNode.getState(rd).definition as ControlDefinition & {
+      displayData: { text?: string };
+    };
+    expect(def.displayData.text).toBe("Hello World");
+  });
+
+  it("drives renderOptions.groupOptions.columns via a legacy GridColumns entry", () => {
+    const fields: SchemaField[] = [
+      { type: FieldType.Int, field: "colCount" },
+      stringField("list"),
+    ];
+    const dataExpr: DataExpression = {
+      type: ExpressionType.Data,
+      field: "../colCount",
+    };
+    const defs = [
+      dataDef("colCount"),
+      {
+        ...dataDef("list"),
+        renderOptions: {
+          type: DataRenderType.Group,
+          groupOptions: { type: "Standard", columns: 1 },
+        },
+        dynamic: [{ type: DynamicPropertyType.GridColumns, expr: dataExpr }],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      colCount: 3,
+      list: "x",
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [, listNode] = root.getChildren(rd);
+    const def = listNode.getState(rd).definition as ControlDefinition & {
+      renderOptions: { groupOptions: { columns?: number } };
+    };
+    expect(def.renderOptions.groupOptions.columns).toBe(3);
+  });
+
+  it("drives displayData.text via a nested $scripts entry", () => {
+    const fields: SchemaField[] = [stringField("greeting")];
+    const dataExpr: DataExpression = {
+      type: ExpressionType.Data,
+      field: "greeting",
+    };
+    const defs = [
+      {
+        type: ControlDefinitionType.Display,
+        displayData: {
+          type: DisplayDataType.Text,
+          text: "static",
+          $scripts: { text: dataExpr },
+        } as unknown as import("../src/json").DisplayData,
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      greeting: "Hi there",
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [displayNode] = root.getChildren(rd);
+    const def = displayNode.getState(rd).definition as ControlDefinition & {
+      displayData: { text?: string };
+    };
+    expect(def.displayData.text).toBe("Hi there");
+  });
+
+  it("leaves displayData untouched when no scripts target it", () => {
+    const fields: SchemaField[] = [stringField("greeting")];
+    const defs = [
+      {
+        type: ControlDefinitionType.Display,
+        displayData: { type: DisplayDataType.Text, text: "static" },
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      greeting: "whatever",
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [displayNode] = root.getChildren(rd);
+    const def = displayNode.getState(rd).definition as ControlDefinition & {
+      displayData: { text?: string };
+    };
+    // Proxy must fall through to the raw static value — no accidental
+    // materialisation on the root override control.
+    expect(def.displayData.text).toBe("static");
+  });
+});
+
+describe("FormStateNode — reactive definition updates", () => {
+  function makeReactiveEnv(
+    fields: SchemaField[],
+    defs: ControlDefinition[],
+    initial: unknown,
+  ) {
+    const ctx: ControlContext = createControlContext();
+    const schemaTree = csst(fields, schemaResolver());
+    const defsControl = ctx.newControl<ControlDefinition[]>(defs);
+    const formTree = crft(defsControl, formResolver());
+    const dataControl = ctx.newControl(initial);
+    const dataNode = createDataNode(schemaTree.rootNode, dataControl);
+    const globals: FormGlobalOptions = {
+      resolveChildren: defaultResolveChildren,
+      runAsync: (fn) => fn(),
+      clearHidden: false,
+    };
+    return { ctx, formTree, dataNode, dataControl, defsControl, globals };
+  }
+
+  it("propagates a title edit to state.definition.title", () => {
+    const fields = [stringField("name")];
+    const defs = [dataDef("name", { title: "Original" })];
+    const { ctx, formTree, dataNode, defsControl, globals } = makeReactiveEnv(
+      fields,
+      defs,
+      { name: "" },
+    );
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [nameNode] = root.getChildren(rd);
+    expect(nameNode.getState(rd).definition.title).toBe("Original");
+
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [dataDef("name", { title: "Updated" })]);
+    });
+    expect(nameNode.getState(rd).definition.title).toBe("Updated");
+  });
+
+  it("notifies a subscriber (effect) on a title-only edit", async () => {
+    // A reactive renderer reads `state.definition.title` through its own rc
+    // — the subscription must fire when title changes, even though title
+    // isn't a scripted or _ScriptNullInit field (which were the only things
+    // the scripted-proxy walker originally subscribed to).
+    const { computed: mkComputed } = await import("@rxc/controls-core");
+    const fields = [stringField("name")];
+    const defs = [dataDef("name", { title: "Original" })];
+    const { ctx, formTree, dataNode, defsControl, globals } = makeReactiveEnv(
+      fields,
+      defs,
+      { name: "" },
+    );
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [nameNode] = root.getChildren(rd);
+    const observedTitle = ctx.newControl<string | null | undefined>(undefined);
+    const c = mkComputed(ctx, observedTitle, (rc) => {
+      return nameNode.getState(rc).definition.title ?? null;
+    });
+    expect(observedTitle.valueNow).toBe("Original");
+
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [dataDef("name", { title: "Updated" })]);
+    });
+    expect(observedTitle.valueNow).toBe("Updated");
+    c.cleanup();
+  });
+
+  it("picks up a newly added Visible dynamic[] script", () => {
+    const fields: SchemaField[] = [stringField("kind"), stringField("detail")];
+    const defs = [dataDef("kind"), dataDef("detail")];
+    const { ctx, formTree, dataNode, dataControl, defsControl, globals } =
+      makeReactiveEnv(fields, defs, { kind: "hide", detail: "x" });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [, detailNode] = root.getChildren(rd);
+    expect(detailNode.getState(rd).visible).toBe(true);
+
+    // Add a Visible dynamic that ties visibility to kind === "show".
+    const showWhen: DataMatchExpression = {
+      type: ExpressionType.DataMatch,
+      field: "../kind",
+      value: "show",
+    };
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [
+        dataDef("kind"),
+        {
+          ...dataDef("detail"),
+          dynamic: [{ type: DynamicPropertyType.Visible, expr: showWhen }],
+        } as ControlDefinition,
+      ]);
+    });
+    // Still hidden — kind === "hide".
+    expect(detailNode.getState(rd).visible).toBe(false);
+
+    ctx.update((wc) =>
+      wc.setValue(
+        (
+          dataControl as unknown as {
+            fields: { kind: import("@rxc/controls-core").Control<string> };
+          }
+        ).fields.kind,
+        "show",
+      ),
+    );
+    expect(detailNode.getState(rd).visible).toBe(true);
+  });
+
+  it("tears down a removed script — the static value resumes control", () => {
+    const fields: SchemaField[] = [stringField("kind"), stringField("detail")];
+    const hideWhen: DataMatchExpression = {
+      type: ExpressionType.DataMatch,
+      field: "../kind",
+      value: "hide-it",
+    };
+    const defs = [
+      dataDef("kind"),
+      {
+        ...dataDef("detail"),
+        $scripts: { hidden: hideWhen },
+      } as ControlDefinition & { $scripts: Record<string, DataMatchExpression> },
+    ];
+    const { ctx, formTree, dataNode, dataControl, defsControl, globals } =
+      makeReactiveEnv(fields, defs, { kind: "hide-it", detail: "x" });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [, detailNode] = root.getChildren(rd);
+    // Script says hidden=true when kind === "hide-it".
+    expect(detailNode.getState(rd).visible).toBe(false);
+
+    // Remove the $scripts entry. The static `hidden` default is false, so
+    // the field should become visible again regardless of kind.
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [dataDef("kind"), dataDef("detail")]);
+    });
+    expect(detailNode.getState(rd).visible).toBe(true);
+
+    // Confirm the old script doesn't still fire — change kind and assert
+    // visibility stays true (would flip to false if the old effect were live).
+    ctx.update((wc) =>
+      wc.setValue(
+        (
+          dataControl as unknown as {
+            fields: { kind: import("@rxc/controls-core").Control<string> };
+          }
+        ).fields.kind,
+        "hide-it",
+      ),
+    );
+    expect(detailNode.getState(rd).visible).toBe(true);
+  });
+
+  it("re-resolves dataNode when the definition's `field` changes", () => {
+    const fields: SchemaField[] = [stringField("a"), stringField("b")];
+    const defs = [dataDef("a")];
+    const { ctx, formTree, dataNode, dataControl, defsControl, globals } =
+      makeReactiveEnv(fields, defs, { a: "aaa", b: "bbb" });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [node] = root.getChildren(rd);
+    // Bound to "a".
+    expect(node.getState(rd).data?.valueNow).toBe("aaa");
+
+    // Switch the definition's field to "b".
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [dataDef("b")]);
+    });
+    expect(node.getState(rd).data?.valueNow).toBe("bbb");
+    // The single value touched on dataControl confirms both reactive flows
+    // went through — the computed re-ran to pick up the new field path.
+    void dataControl;
+  });
+
+  it("toggles visibility when the static `hidden` flips", () => {
+    const fields = [stringField("name")];
+    const defs = [dataDef("name")];
+    const { ctx, formTree, dataNode, defsControl, globals } = makeReactiveEnv(
+      fields,
+      defs,
+      { name: "" },
+    );
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [nameNode] = root.getChildren(rd);
+    expect(nameNode.getState(rd).visible).toBe(true);
+
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [
+        { ...dataDef("name"), hidden: true } as ControlDefinition,
+      ]);
+    });
+    expect(nameNode.getState(rd).visible).toBe(false);
+
+    ctx.update((wc) => {
+      wc.setValue(defsControl, [dataDef("name")]);
+    });
+    expect(nameNode.getState(rd).visible).toBe(true);
   });
 });

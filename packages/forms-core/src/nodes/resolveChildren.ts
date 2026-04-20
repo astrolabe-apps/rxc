@@ -80,13 +80,15 @@ export function defaultResolveChildren(
   }
 
   // Default: one child per form definition child, with the current dataNode
-  // (or the starting parent) as the child's parent data context.
+  // (or the starting parent) as the child's parent data context. Omitting
+  // `definition` lets the child source its own-def reactively from
+  // `childCursor.node` — so definition edits (for reactive form trees)
+  // propagate through the child FormStateNode.
   return formChildren.map((childCursor) => ({
     childKey: childCursor.node.id,
     create: () => ({
       node: childCursor.node,
       parent: parentData,
-      definition: childCursor.definition,
     }),
   }));
 }
@@ -193,18 +195,24 @@ function resolveArrayChildren(
     const elemControl = elements[i];
     specs.push({
       childKey: `${elemControl.uniqueId}/${i}`,
-      create: () => ({
-        node: singleChild?.node ?? form,
-        parent: elementDataNode,
-        definition:
-          singleChild?.definition ??
-          ({
-            type: ControlDefinitionType.Data,
-            field: ".",
-            hideTitle: true,
-            renderOptions: { type: DataRenderType.Standard },
-          } as DataControlDefinition),
-      }),
+      create: () =>
+        singleChild
+          ? // Reactive — child sources its own-def from singleChild.node.
+            {
+              node: singleChild.node,
+              parent: elementDataNode,
+            }
+          : // No single-child template — synthesize a static default def.
+            {
+              node: form,
+              parent: elementDataNode,
+              definition: {
+                type: ControlDefinitionType.Data,
+                field: ".",
+                hideTitle: true,
+                renderOptions: { type: DataRenderType.Standard },
+              } as DataControlDefinition,
+            },
     });
   }
   return specs;

@@ -144,6 +144,10 @@ export enum SchemaTags {
   ScriptNullInit = "_ScriptNullInit",
 }
 
+export function hasSchemaTag(field: SchemaField, tag: string): boolean {
+  return field.tags?.includes(tag) ?? false;
+}
+
 export function getTagParam(
   field: SchemaField,
   tag: string,

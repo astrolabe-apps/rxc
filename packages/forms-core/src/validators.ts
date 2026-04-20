@@ -2,6 +2,7 @@ import {
   type Control,
   type ControlContext,
   effect,
+  type ReadContext,
 } from "@rxc/controls-core";
 import {
   type ControlDefinition,
@@ -214,7 +215,7 @@ export interface ValidationHostInternals {
  */
 export function setupValidation(
   host: ValidationHostInternals,
-  definition: ControlDefinition,
+  defFor: (rc: ReadContext) => ControlDefinition | undefined,
 ): void {
   const {
     ctx,
@@ -239,6 +240,8 @@ export function setupValidation(
   const outer = effect(ctx, (rc) => {
     const dn = rc.getValue(dataNodeControl);
     if (!dn) return;
+    const definition = defFor(rc);
+    if (!definition) return;
     const dataCursor = dn.cursor(rc);
     const parentCursor = parentDataNode.cursor(rc);
 

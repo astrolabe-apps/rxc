@@ -3,6 +3,13 @@ import {
   DynamicPropertyType,
   type EntityExpression,
   ExpressionType,
+  isDataControl,
+  isDataGroupRenderer,
+  isDisplayControl,
+  isDisplayOnlyRenderer,
+  isGroupControl,
+  isHtmlDisplay,
+  isTextDisplay,
 } from "./json";
 
 /**
@@ -12,9 +19,9 @@ import {
  * The returned map is keyed by schema path — `""` for root, nested compound
  * paths (e.g. `"displayData"`, `"renderOptions.groupOptions"`) for sub-objects.
  *
- * **Scope (layer 4a):** the bucket is built but only the root path is read
- * by {@link createEvaluatedDefinition}. Nested-compound scripts will be
- * wired once the nested-proxy machinery is ported.
+ * `Display` and `GridColumns` route to a nested path depending on the
+ * control type and renderer — matching the legacy `formStateNode.ts`
+ * mapping so the scripted proxy picks them up via `getScripts(target, path)`.
  */
 export function buildLegacyScripts(
   def: ControlDefinition,
@@ -23,6 +30,11 @@ export function buildLegacyScripts(
   if (!def.dynamic?.length) return map;
 
   const rootScripts: Record<string, EntityExpression> = {};
+  const setNested = (path: string, key: string, expr: EntityExpression) => {
+    const existing = map.get(path) ?? {};
+    existing[key] = expr;
+    map.set(path, existing);
+  };
 
   for (const dp of def.dynamic) {
     if (!dp.expr?.type) continue;
@@ -60,9 +72,32 @@ export function buildLegacyScripts(
       case DynamicPropertyType.AllowedOptions:
         rootScripts["allowedOptions"] = dp.expr;
         break;
-      // DynamicPropertyType.Display and .GridColumns route to nested
-      // compounds (displayData / renderOptions.groupOptions) — handled
-      // once the nested-proxy port lands.
+      case DynamicPropertyType.Display:
+        if (isDisplayControl(def)) {
+          if (def.displayData && isTextDisplay(def.displayData)) {
+            setNested("displayData", "text", dp.expr);
+          } else if (def.displayData && isHtmlDisplay(def.displayData)) {
+            setNested("displayData", "html", dp.expr);
+          }
+        } else if (
+          isDataControl(def) &&
+          def.renderOptions &&
+          isDisplayOnlyRenderer(def.renderOptions)
+        ) {
+          setNested("renderOptions", "overrideText", dp.expr);
+        }
+        break;
+      case DynamicPropertyType.GridColumns:
+        if (isGroupControl(def) && def.groupOptions) {
+          setNested("groupOptions", "columns", dp.expr);
+        } else if (
+          isDataControl(def) &&
+          isDataGroupRenderer(def.renderOptions) &&
+          def.renderOptions.groupOptions
+        ) {
+          setNested("renderOptions.groupOptions", "columns", dp.expr);
+        }
+        break;
     }
   }
 

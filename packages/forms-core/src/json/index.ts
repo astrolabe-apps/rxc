@@ -5,3 +5,5 @@ export * from "./controlDefinition";
 export * from "./controlBuilder";
 export * from "./schemaBuilder";
 export * from "./defaultValues";
+export * from "./controlDefinitionSchemas";
+export * from "./schemaSchemas";
