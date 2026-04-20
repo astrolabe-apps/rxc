@@ -32,7 +32,6 @@ import type {
   FormNodeUi,
   FormState,
   FormStateNode,
-  ResolvedDefinition,
   VariablesFunc,
 } from "../types";
 import { dataRef, formFieldPath, validDataCursor } from "../cursorUtils";
@@ -109,7 +108,7 @@ interface FormStateBaseImpl {
   visible: boolean | null;
   disabled: boolean;
   children: FormStateBaseImpl[];
-  resolved: ResolvedDefinition;
+  fieldOptions: FieldOption[] | undefined;
   dataNode: DataNode | undefined;
   childIndex: number;
   nodeOptions: FormNodeOptions;
@@ -135,13 +134,6 @@ class FormStateNodeImpl implements FormStateNode {
    * Null only during the brief window before the effect first runs.
    */
   evalDefControl!: Control<EvaluatedDefinition | null>;
-  /**
-   * Optional static definition snapshot for synthesized children (option
-   * expansion, array-element fallback). When set, this is used instead of
-   * reading from `form` — the synthesized def has no corresponding FormNode
-   * to react to.
-   */
-  readonly staticDef: ControlDefinition | null;
 
   ui: FormNodeUi = noopUi;
 
@@ -152,7 +144,7 @@ class FormStateNodeImpl implements FormStateNode {
     public readonly ctx: ControlContext,
     public childKey: string | number,
     public meta: Record<string, any>,
-    staticDef: ControlDefinition | null,
+    private readonly staticDef: ControlDefinition | null,
     public form: FormNode | null | undefined,
     nodeOptions: FormNodeOptions,
     public readonly globals: FormGlobalOptions,
@@ -161,22 +153,13 @@ class FormStateNodeImpl implements FormStateNode {
     childIndex: number,
     resolveChildren?: ChildResolverFunc,
   ) {
-    this.staticDef = staticDef;
-    // Seed `resolved.definition` with a best-effort synchronous snapshot so
-    // consumers reading via `FormStateView.resolved` before the evalDef
-    // effect first runs still see a sensible value. The effect immediately
-    // replaces this on first run.
-    const seedDef =
-      staticDef ??
-      form?.cursor(noopReadContext).definition ??
-      groupedFallbackDefinition();
     const base = ctx.newControl<FormStateBaseImpl>(
       {
         readonly: false,
         visible: null,
         disabled: false,
         children: [],
-        resolved: { definition: seedDef } as ResolvedDefinition,
+        fieldOptions: undefined,
         dataNode: undefined,
         childIndex,
         nodeOptions,
@@ -193,6 +176,22 @@ class FormStateNodeImpl implements FormStateNode {
 
   get uniqueId(): string {
     return this.base.uniqueId.toString();
+  }
+
+  /**
+   * Authoritative definition source. For synthesized children (option
+   * expansion, array-element fallback) returns the static snapshot. For
+   * nodes bound to a {@link FormNode} reads via `form.cursor(rc).definition`
+   * — reactive form trees propagate through here. Otherwise returns a
+   * fallback empty group. The returned object is **not** wrapped by the
+   * script proxy; use {@link FormState.definition} for the evaluated view.
+   */
+  unresolved(rc: ReadContext): ControlDefinition {
+    return (
+      this.staticDef ??
+      this.form?.cursor(rc).definition ??
+      groupedFallbackDefinition()
+    );
   }
 
   get schemaInterface(): SchemaInterface {
@@ -332,25 +331,16 @@ class FormStateView implements FormState {
     return this.rc.getValue(this.baseFields.busy);
   }
 
-  get resolved(): ResolvedDefinition {
+  get definition(): ControlDefinition {
     // Construct a definition view bound to this.rc so renderer reads of
-    // non-scripted fields (title, required, etc.) subscribe correctly. The
-    // base is read fresh from the FormNode (reactive) or falls back to the
-    // synthesized static def for synthesized children.
-    const raw = this.rc.getValue(this.baseFields.resolved);
-    const base =
-      this.impl.staticDef ??
-      this.impl.form?.cursor(this.rc).definition ??
-      raw.definition;
+    // non-scripted fields (title, required, etc.) subscribe correctly.
+    const base = this.impl.unresolved(this.rc);
     const evalDef = this.rc.getValue(this.impl.evalDefControl);
-    return {
-      ...raw,
-      definition: evalDef ? evalDef.wrap(this.rc, base) : base,
-    };
+    return evalDef ? evalDef.wrap(this.rc, base) : base;
   }
 
-  get definition(): ControlDefinition {
-    return this.resolved.definition;
+  get fieldOptions(): FieldOption[] | undefined {
+    return this.rc.getValue(this.baseFields.fieldOptions);
   }
 
   get valid(): boolean {
@@ -408,23 +398,15 @@ function initFormState(
   impl: FormStateNodeImpl,
   parentNode: FormStateNode | undefined,
 ): void {
-  const { ctx, base, parent, form, staticDef } = impl;
+  const { ctx, base, parent } = impl;
   const { dataNode, visible, readonly, disabled } = base.fields;
   const schemaInterface = impl.schemaInterface;
-
-  // Reactive definition source — reads through the rc passed in. For
-  // static FormNodes this returns a stable object; for reactive FormNodes
-  // (via `createReactiveFormTree`) the returned object is a reactive
-  // proxy whose property reads subscribe through `rc`.
-  const defFor = (rc: ReadContext): ControlDefinition | undefined =>
-    staticDef ?? form?.cursor(rc).definition;
 
   // ── dataNode: resolve the definition's field path against the parent.
   // Reads the definition reactively so changes to `field` / `compoundField`
   // re-trigger path resolution.
   const dataNodeComputed = computed(ctx, dataNode, (rc) => {
-    const def = defFor(rc);
-    if (!def) return undefined;
+    const def = impl.unresolved(rc);
     const fieldRef = formFieldPath(def);
     if (fieldRef === undefined) return undefined;
     const parentCursor = parent.cursor(rc);
@@ -435,19 +417,15 @@ function initFormState(
 
   // ── evaluatedDef lifecycle — rebuild on definition identity changes.
   //
-  // The effect's tracked reads (via `defFor(rc)` + what the walker reads on
-  // the proxy) determine when it re-fires. When it does, the previous
-  // iteration's cleanup tears down old override controls / script effects,
-  // then a fresh EvaluatedDefinition is constructed and published to
-  // `evalDefControl` for downstream readers.
+  // The effect's tracked reads (via `impl.unresolved(rc)` + what the walker
+  // reads on the proxy) determine when it re-fires. When it does, the
+  // previous iteration's cleanup tears down old override controls / script
+  // effects, then a fresh EvaluatedDefinition is constructed and published
+  // to `evalDefControl` for downstream readers.
   const evalDefControl = ctx.newControl<EvaluatedDefinition | null>(null);
   impl.evalDefControl = evalDefControl;
   const evalDefEffect = effect(ctx, (rc) => {
-    const def = defFor(rc);
-    if (!def) {
-      ctx.update((wc) => wc.setValue(evalDefControl, null));
-      return;
-    }
+    const def = impl.unresolved(rc);
     const legacyMap = buildLegacyScripts(def);
     const getScripts: ScriptProvider = (target, path) => {
       const explicit =
@@ -483,16 +461,10 @@ function initFormState(
   // the override-proxy wrapping, so renderer subscriptions register on
   // non-scripted fields (title, required, etc.) too.
   const proxyFor = (rc: ReadContext): ControlDefinition => {
-    const base = defFor(rc) ?? groupedFallbackDefinition();
+    const base = impl.unresolved(rc);
     const evalDef = rc.getValue(evalDefControl);
     return evalDef ? evalDef.wrap(rc, base) : base;
   };
-
-  // The resolved.definition Control is used only as a transient fallback
-  // for the rare window before computeds first run — we don't maintain an
-  // effect to mirror the definition into it, since `FormStateView.resolved`
-  // reads the base directly from `form.cursor(rc).definition` via
-  // `proxyFor`. Keeping the seeded value set at construction is sufficient.
 
   // ── visibility cascade — see docs/FORM-SEMANTICS.md "Visible".
   //   1. forceHidden → false
@@ -529,7 +501,7 @@ function initFormState(
   // definition's `allowedOptions` (when present — itself scriptable). With
   // no `allowedOptions` this passes through whatever the schemaInterface
   // provides.
-  const fieldOptionsControl = base.fields.resolved.fields.fieldOptions;
+  const fieldOptionsControl = base.fields.fieldOptions;
   const fieldOptionsComputed = computed(ctx, fieldOptionsControl, (rc) => {
     const dn = rc.getValue(dataNode);
     if (!dn) return undefined;
@@ -659,8 +631,8 @@ function initFormState(
   impl.addCleanup(() => defaultValueEffect.cleanup());
 
   // ── validators: required + dynamic validators from the definition.
-  // `defFor` is invoked inside `setupValidation`'s outer effect so the
-  // validator set reacts to `def.required` / `def.validators[]` changes.
+  // `impl.unresolved` is invoked inside `setupValidation`'s outer effect so
+  // the validator set reacts to `def.required` / `def.validators[]` changes.
   setupValidation(
     {
       ctx,
@@ -673,7 +645,7 @@ function initFormState(
       runAsync: impl.globals.runAsync,
       addCleanup: (fn) => impl.addCleanup(fn),
     },
-    defFor,
+    (rc) => impl.unresolved(rc),
   );
 
   // Eagerly initialise children when safe. Nodes with a `childRefId` may
@@ -681,8 +653,7 @@ function initFormState(
   // snapshot via `noopReadContext` is intentional — we only care about the
   // structural childRefId at construction time; later childRefId edits
   // would require a different mechanism (not in scope here).
-  const initialDef = defFor(noopReadContext);
-  if (!initialDef?.childRefId) {
+  if (!impl.unresolved(noopReadContext).childRefId) {
     impl.ensureChildren();
   }
 }

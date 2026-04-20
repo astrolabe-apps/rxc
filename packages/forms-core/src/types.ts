@@ -66,12 +66,6 @@ export interface FormGlobalOptions {
   clearHidden: boolean;
 }
 
-export interface ResolvedDefinition {
-  definition: ControlDefinition;
-  stateId?: string;
-  fieldOptions?: FieldOption[];
-}
-
 export interface FormNodeUi {
   ensureVisible(): void;
   ensureChildVisible(childIndex: number): void;
@@ -124,7 +118,7 @@ export interface FormState extends FormNodeOptions {
   readonly: boolean;
   visible: boolean | null;
   disabled: boolean;
-  resolved: ResolvedDefinition;
+  fieldOptions?: FieldOption[];
   childIndex: number;
   busy: boolean;
   definition: ControlDefinition;

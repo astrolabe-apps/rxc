@@ -26,7 +26,7 @@ import type { SchemaInterface } from "../schemaInterface";
  * Default child resolver for a {@link FormStateNode}. Layer-2 surface:
  *
  * - **Data control rendered as `CheckList` / `Radio`**: expand into one child
- *   per available {@link FieldOption} (from `resolved.fieldOptions`). Each
+ *   per available {@link FieldOption} (from `state.fieldOptions`). Each
  *   option child reuses the form node's declared children (if any) wrapped
  *   in a `Contents` group so the renderer can compose per-option UI.
  * - **Data control bound to a collection field** (and representing the array
@@ -43,7 +43,7 @@ export function defaultResolveChildren(
   if (!form) return [];
 
   const state = node.getState(rc);
-  const def = state.resolved.definition;
+  const def = state.definition;
   const formChildren = form.cursor(rc).children;
   const dataNode = state.dataNode;
   const parentData = dataNode ?? node.parent;
@@ -55,7 +55,7 @@ export function defaultResolveChildren(
       renderType === DataRenderType.CheckList ||
       renderType === DataRenderType.Radio
     ) {
-      const options = state.resolved.fieldOptions;
+      const options = state.fieldOptions;
       if (options && options.length > 0 && formChildren.length > 0) {
         return resolveOptionChildren(
           options,

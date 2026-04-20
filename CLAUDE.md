@@ -130,7 +130,7 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - `src/schemaInterface.ts` — `SchemaInterface` + `DefaultSchemaInterface` (options, emptiness, compare, length, validation messages, date parsing)
 - `src/cursorUtils.ts::validDataCursor` — `onlyForTypes` discriminator gate
 - Visibility cascade steps 3 (`validDataCursor`) and 4 (`hideDisplayOnly`) wired
-- `resolved.fieldOptions` computed with `allowedOptions` filter
+- `fieldOptions` on `FormState` computed with `allowedOptions` filter
 - `CheckList` / `Radio` expansion in `defaultResolveChildren` — one child per option with `formData.option` + `formData.optionSelected` in `variables`
 
 ### Phase 3b: Layer 3 — Validators ✅

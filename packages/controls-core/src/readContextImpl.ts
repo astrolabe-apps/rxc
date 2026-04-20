@@ -49,6 +49,7 @@ function createValueRxProxy<V>(control: Control<V>, rc: ReadContext): V {
   rc.isNull(control); // track Structure for null transitions
   return new Proxy(value as object, {
     get(target, p, receiver) {
+      if (p === restoreControlSymbol) return control;
       if (typeof p === "symbol") return Reflect.get(target, p, receiver);
       const child = (control.fields as Record<string, Control<any>>)[p];
       if (child) return createValueRxProxy(child, rc);

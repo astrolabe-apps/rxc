@@ -90,7 +90,7 @@ interface FormStateBase {
   readonly: boolean;
   visible: boolean | null;
   disabled: boolean;
-  resolved: ResolvedDefinition;
+  fieldOptions?: FieldOption[]; // computed options list (schemaInterface + allowedOptions)
   childIndex: number;
   busy: boolean;
 }

@@ -216,7 +216,7 @@ describe("createFormStateNode — Layer 1", () => {
 });
 
 describe("FormStateNode — Layer 2: schemaInterface + options", () => {
-  it("exposes resolved.fieldOptions for a data field with options", () => {
+  it("exposes fieldOptions for a data field with options", () => {
     const options: FieldOption[] = [
       { name: "Red", value: "r" },
       { name: "Green", value: "g" },
@@ -236,8 +236,7 @@ describe("FormStateNode — Layer 2: schemaInterface + options", () => {
       globals,
     );
     const [colorNode] = root.getChildren(rd);
-    const resolved = colorNode.getState(rd).resolved;
-    expect(resolved.fieldOptions).toEqual(options);
+    expect(colorNode.getState(rd).fieldOptions).toEqual(options);
   });
 
   it("filters fieldOptions by definition.allowedOptions (value list)", () => {
@@ -260,8 +259,9 @@ describe("FormStateNode — Layer 2: schemaInterface + options", () => {
       globals,
     );
     const [colorNode] = root.getChildren(rd);
-    const resolved = colorNode.getState(rd).resolved;
-    expect(resolved.fieldOptions?.map((o) => o.value)).toEqual(["r", "b"]);
+    expect(
+      colorNode.getState(rd).fieldOptions?.map((o) => o.value),
+    ).toEqual(["r", "b"]);
   });
 
   it("expands CheckList into one child per option", () => {

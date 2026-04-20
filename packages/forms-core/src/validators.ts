@@ -215,7 +215,7 @@ export interface ValidationHostInternals {
  */
 export function setupValidation(
   host: ValidationHostInternals,
-  defFor: (rc: ReadContext) => ControlDefinition | undefined,
+  defFor: (rc: ReadContext) => ControlDefinition,
 ): void {
   const {
     ctx,
@@ -241,7 +241,6 @@ export function setupValidation(
     const dn = rc.getValue(dataNodeControl);
     if (!dn) return;
     const definition = defFor(rc);
-    if (!definition) return;
     const dataCursor = dn.cursor(rc);
     const parentCursor = parentDataNode.cursor(rc);
 
