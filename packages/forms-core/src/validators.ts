@@ -8,8 +8,10 @@ import {
   type ControlDefinition,
   DateComparison,
   type DateValidator,
+  ExpressionType,
   isDataControl,
   isDisplayOnlyRenderer,
+  type JsonataValidator,
   type LengthValidator,
   type SchemaValidator,
   ValidationMessageType,
@@ -22,6 +24,7 @@ import type {
   VariablesFunc,
 } from "./types";
 import type { SchemaInterface } from "./schemaInterface";
+import { jsonataEval } from "./evalExpression";
 
 /**
  * Context handed to each {@link ValidatorEval} while the node's validators
@@ -143,12 +146,72 @@ const evalDateValidator: ValidatorEval<DateValidator> = (dv, context) => {
 };
 
 /**
- * Registry of built-in validator kinds. The {@link ValidatorType.Jsonata}
- * entry will land with Layer 4 (`evalExpression` port).
+ * Jsonata validator — evaluates `expression` against the parent data
+ * context and publishes the stringified result as an error under the
+ * `"jsonata"` key. A null/undefined result clears the error; a non-null
+ * falsy result (e.g. `""`) is normalised to no-error by the Control.
+ *
+ * Errors are only published while `validationEnabled` is true, matching
+ * the general "invisible fields don't report errors" semantics.
+ */
+const evalJsonataValidator: ValidatorEval<JsonataValidator> = (
+  validation,
+  context,
+) => {
+  const {
+    ctx,
+    data,
+    parentData,
+    validationEnabled,
+    schemaInterface,
+    variables,
+    runAsync,
+    addCleanup,
+  } = context;
+
+  const resultControl = ctx.newControl<unknown>(undefined);
+
+  // Publisher effect: republishes the error whenever the async result or
+  // `validationEnabled` changes.
+  const publisher = effect(ctx, (rc) => {
+    const enabled = rc.getValue(validationEnabled);
+    const result = rc.getValue(resultControl);
+    const errStr = enabled
+      ? result == null
+        ? null
+        : String(result)
+      : null;
+    ctx.update((wc) => wc.setError(data.control, "jsonata", errStr));
+  });
+  addCleanup(() => publisher.cleanup());
+
+  jsonataEval(
+    { type: ExpressionType.Jsonata, expression: validation.expression },
+    {
+      ctx,
+      dataNode: parentData.node,
+      schemaInterface,
+      variables,
+      runAsync,
+      returnResult: (v) => {
+        ctx.update((wc) => wc.setValue(resultControl, v));
+      },
+      addCleanup,
+    },
+  );
+
+  addCleanup(() => {
+    ctx.update((wc) => wc.setError(data.control, "jsonata", null));
+  });
+};
+
+/**
+ * Registry of built-in validator kinds.
  */
 export const defaultValidators: Record<string, ValidatorEval<any>> = {
   [ValidatorType.Length]: evalLengthValidator,
   [ValidatorType.Date]: evalDateValidator,
+  [ValidatorType.Jsonata]: evalJsonataValidator,
 };
 
 /**

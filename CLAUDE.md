@@ -136,9 +136,9 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 ### Phase 3b: Layer 3 — Validators ✅
 
 - `src/validators.ts` — `setupValidation`, `ValidationEvalContext`, `ValidatorEval`
-- Built-in evaluators: `Length` (with array auto-pad preserving old semantics), `Date`
+- Built-in evaluators: `Length` (with array auto-pad preserving old semantics), `Date`, `Jsonata`
 - `required` + `requiredErrorText` support; `validationEnabled = !!visible` gate suppresses errors on hidden nodes
-- `Jsonata` validator deferred (needs `evalExpression`)
+- `Jsonata` validator evaluates against the parent data cursor and publishes the stringified result under the `"jsonata"` error key; publishing is gated by `validationEnabled` via a publisher effect
 
 ### Phase 3c: Layer 4a — Scripted proxy ✅
 
@@ -159,6 +159,14 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - `src/legacyScripts.ts` — `Display` and `GridColumns` now route to nested paths (`displayData.text`/`html`, `renderOptions.overrideText`, `groupOptions.columns`, `renderOptions.groupOptions.columns`), matching legacy `formStateNode.ts`.
 - **Note:** collection-compound element scripting (legacy `wireProxies` mapping array elements through per-element proxies) is not ported — no scriptable fields currently live inside arrays on `ControlDefinition`. Extension point only.
 
+### Phase 3c: Layer 4c — Jsonata ✅
+
+- `src/evalExpression.ts::jsonataEval` — async evaluator. Builds the data path prefix via `getSchemaPath` (field/index segments, `#$i[N]` index syntax), wraps the root data proxy with `ensurePathNavigable` so jsonata can traverse null compound fields (jsonata issue #773), and runs `jsonata.evaluate()` against the rc-tracked data proxy.
+- Async tracking: uses a dedicated `TrackingReadContext` + `SubscriptionReconciler` (via `@rxc/controls-core/internal`) because jsonata's async `.evaluate()` populates reads lazily through the data proxy — `effect`'s synchronous reconciliation cycle doesn't capture those. Changes detected by the reconciler abort any in-flight eval and queue a fresh run.
+- `src/validators.ts::evalJsonataValidator` — wires `jsonataEval` against the parent data context; publishes error via a separate publisher effect so the `validationEnabled` gate and the async result are composed reactively.
+- `src/nodes/formStateNode.ts` — `variables` now plumbed from the node's `FormNodeOptions` through `createEvaluatedDefinition`.
+- **Limitation:** `VariablesFunc`'s `ChangeListenerFunc` argument is invoked with a no-op listener — variables values appear in jsonata bindings but don't trigger re-evaluation when their underlying controls change. Full reactivity lands when `VariablesFunc` migrates to a `ReadContext`-based API.
+
 ### Phase 6 (partial): Dev app ✅
 
 - `/` — Simple form demo (validation, dirty/clean, submit/reset) using controls-core directly
@@ -169,16 +177,9 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - **Framework**: Vitest + fast-check (property-based testing)
 - **Location**: `test/` dir in each package
 - **Config**: `vitest.config.ts` per package
-- Current count: **91 tests** across forms-core (65 node/cursor + 26 FormStateNode covering layers 1–4b). controls-core has 51.
+- Current count: **102 tests** in forms-core (65 node/cursor + 32 FormStateNode covering layers 1–4b + 5 jsonata covering Layer 4c). controls-core has 51.
 
 ## Next steps
-
-### Phase 3c: Layer 4c — Jsonata
-
-Depends on adding the `jsonata` package dependency. Work breakdown:
-
-1. **Jsonata expression evaluator** — port `jsonataEval` from `astrolabe-common`. Needs the "path-navigable" proxy (`ensurePathNavigable`) so jsonata can traverse null compound fields, plus the async-effect / `trackedValue` plumbing adapted to rxc's `effect`/`computed`.
-2. **`jsonataValidator`** — wire up the deferred Layer-3 validator once `jsonataEval` lands.
 
 ### Phase 4: @rxc/forms (renderer redesign)
 
@@ -198,3 +199,4 @@ Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key qu
 - Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `src/nodes/formNode.ts`)
 - Consider re-adding `validDataCursor` result caching via `ensureMetaValue` on the data control (old code had per-control `validForSchema` cache; current port re-walks the parent chain per call)
 - `CheckList`/`Radio` `isOptionSelected` uses a snapshot read; a proper `trackedValue`-equivalent for `VariablesFunc.changes` lands with the renderer package
+- `VariablesFunc` still takes a legacy `ChangeListenerFunc`; jsonata binds variables' current values but doesn't re-evaluate on variable-control changes. Migrate the API to `ReadContext` for full reactivity (affects option-expansion `formData.optionSelected` too).

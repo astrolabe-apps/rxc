@@ -439,13 +439,14 @@ function initFormState(
     const initialData =
       (base.fieldsNow.dataNode?.valueNow as DataNode | undefined) ?? parent;
     const cleanups: Array<() => void> = [];
+    const variables = rc.getValue(base.fields.nodeOptions).variables;
     const evalDef = createEvaluatedDefinition(
       def,
       ctx,
       initialData,
       schemaInterface,
       impl.globals.runAsync,
-      undefined, // variables — plumbed through for jsonata in a follow-up
+      variables,
       (fn) => cleanups.push(fn),
       getScripts,
     );

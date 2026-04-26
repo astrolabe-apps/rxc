@@ -16,7 +16,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rxc/controls-core": "workspace:*"
+    "@rxc/controls-core": "workspace:*",
+    "jsonata": "^2.1.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "~3.1.0",

@@ -2,12 +2,19 @@ import {
   type Control,
   type ControlContext,
   effect,
+  noopReadContext,
 } from "@rxc/controls-core";
+import {
+  SubscriptionReconciler,
+  TrackingReadContext,
+} from "@rxc/controls-core/internal";
+import jsonata from "jsonata";
 import {
   type DataExpression,
   type DataMatchExpression,
   type EntityExpression,
   ExpressionType,
+  type JsonataExpression,
   type NotEmptyExpression,
   type NotExpression,
 } from "./json";
@@ -131,15 +138,230 @@ function fallbackUuid(): string {
     .join("")}-${h.slice(8, 10).join("")}-${h.slice(10, 16).join("")}`;
 }
 
+// ── Jsonata evaluator ─────────────────────────────────────────────
+
+interface PathSegment {
+  key: string | number;
+  collection: boolean;
+}
+
 /**
- * Registry of built-in expression evaluators. `Jsonata` is deferred — it
- * needs the `jsonata` package and is part of a follow-up layer.
+ * Collect path segments from the data tree root down to (but excluding)
+ * the root node itself — one entry per named field or array-element hop.
+ * Each segment carries the key (field name or element index) and whether
+ * the field is a collection.
+ *
+ * Path is resolved as a snapshot (`noopReadContext`) — jsonata bindings are
+ * structural, not reactive w.r.t. the schema itself. For the editor-mode
+ * reactive-schema use case this can be revisited.
+ */
+function getSchemaPath(dataNode: DataNode): PathSegment[] {
+  const out: PathSegment[] = [];
+  let cur: DataNode | undefined = dataNode;
+  while (cur && cur.parent) {
+    const cursor = cur.cursor(noopReadContext);
+    out.push({
+      key: cursor.elementIndex ?? cursor.field.field,
+      collection: !!cursor.field.collection,
+    });
+    cur = cur.parent;
+  }
+  return out.reverse();
+}
+
+/**
+ * Format a JSON-path array for the jsonata prefix. Field names are
+ * separated by `.`; numeric indices use `customIndex(x)` (or `[x]` by
+ * default). Matches the legacy `jsonPathString` output.
+ */
+function jsonPathString(
+  jsonPath: (string | number)[],
+  customIndex?: (n: number) => string,
+): string {
+  let out = "";
+  jsonPath.forEach((v, i) => {
+    if (typeof v === "number") {
+      out += customIndex?.(v) ?? "[" + v + "]";
+    } else {
+      if (i > 0) out += ".";
+      out += v;
+    }
+  });
+  return out;
+}
+
+/**
+ * Wrap `data` in a proxy that substitutes an empty object/array for any
+ * null value encountered along `path`. Mirrors the legacy
+ * `ensurePathNavigable` helper — jsonata cannot traverse null compound
+ * values (see jsonata issue #773), so we inject empties along the known
+ * path while leaving the rest of the tree untouched.
+ *
+ * Preserves the navigation chain by returning a fresh wrapping proxy at
+ * every hop, so the `%` parent operator continues to work inside the
+ * jsonata expression.
+ */
+function ensurePathNavigable(data: any, path: PathSegment[]): any {
+  if (path.length === 0 || data == null || typeof data !== "object")
+    return data;
+  const { key, collection } = path[0];
+  const segment = String(key);
+  const rest = path.slice(1);
+  return new Proxy(data, {
+    get(target, p, receiver) {
+      const val = Reflect.get(target, p, receiver);
+      if (typeof p === "string" && p === segment) {
+        if (val == null) return ensurePathNavigable(collection ? [] : {}, rest);
+        return ensurePathNavigable(val, rest);
+      }
+      return val;
+    },
+  });
+}
+
+/** Walk up to the root of the data-node tree. */
+function getRootDataNode(dataNode: DataNode): DataNode {
+  let cur = dataNode;
+  while (cur.parent) cur = cur.parent;
+  return cur;
+}
+
+/**
+ * `Jsonata` expression — async. Binds the expression to the current data
+ * node's path and evaluates against the root data tree. Re-runs whenever
+ * a tracked dependency (any value read by jsonata during evaluation)
+ * changes.
+ *
+ * The evaluator uses its own {@link TrackingReadContext} +
+ * {@link SubscriptionReconciler} because jsonata's `.evaluate()` is async
+ * and reads happen lazily through the data proxy during evaluation —
+ * `effect`'s synchronous reconciliation cycle doesn't capture those.
+ *
+ * Concurrency: a change during evaluation aborts the in-flight result
+ * and queues a fresh run; the aborted result is discarded.
+ *
+ * Variables reactivity note: the legacy `VariablesFunc` signature expects
+ * a `ChangeListenerFunc`, which isn't compatible with rxc's
+ * `ReadContext`-based tracking. For now variables values are collected
+ * with a no-op listener — they appear in jsonata bindings but don't
+ * trigger re-evaluation when their underlying controls change. Full
+ * reactivity lands when `VariablesFunc` is refactored to accept a
+ * `ReadContext`.
+ */
+const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
+  expr,
+  { dataNode, returnResult, variables, runAsync, addCleanup },
+) => {
+  const pathSegments = getSchemaPath(dataNode);
+  const path = pathSegments.map((s) => s.key);
+  const pathString = jsonPathString(path, (x) => `#$i[${x}]`);
+  const jExpr = expr.expression;
+  const fullExpr = pathString ? `${pathString}.(${jExpr})` : jExpr;
+
+  let parsed: ReturnType<typeof jsonata>;
+  try {
+    parsed = jsonata(fullExpr || "null");
+  } catch (e) {
+    console.error(`Failed to parse jsonata expression: ${fullExpr}`, e);
+    parsed = jsonata("null");
+  }
+
+  const rootControl = getRootDataNode(dataNode).cursor(noopReadContext).control;
+
+  const rc = new TrackingReadContext();
+  const reconciler = new SubscriptionReconciler();
+
+  let destroyed = false;
+  let running = false;
+  let pendingRun = false;
+  let scheduled = false;
+  let aborter: AbortController | undefined;
+
+  const schedule = () => {
+    if (scheduled || destroyed) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      if (destroyed) return;
+      runNow();
+    });
+  };
+
+  reconciler.setListener(() => {
+    if (destroyed) return;
+    if (running) {
+      aborter?.abort();
+      pendingRun = true;
+      return;
+    }
+    schedule();
+  });
+
+  const noopListener: (...args: unknown[]) => void = () => {};
+
+  function runNow() {
+    if (destroyed) return;
+    if (running) {
+      aborter?.abort();
+      pendingRun = true;
+      return;
+    }
+    running = true;
+    aborter = new AbortController();
+    const signal = aborter.signal;
+    rc.reset();
+
+    // Invoke variables with a no-op listener — see note above.
+    const trackedVars = variables?.(noopListener as never);
+    const data = ensurePathNavigable(
+      rc.getValueRx(rootControl),
+      pathSegments,
+    );
+
+    parsed
+      .evaluate(data, trackedVars)
+      .then((result: unknown) => {
+        if (destroyed || signal.aborted) return;
+        reconciler.reconcile(rc.tracked);
+        returnResult(result);
+      })
+      .catch((e: unknown) => {
+        if (destroyed || signal.aborted) return;
+        console.error(`Error in jsonata expression: ${fullExpr}`, e);
+        reconciler.reconcile(rc.tracked);
+        returnResult(undefined);
+      })
+      .finally(() => {
+        running = false;
+        aborter = undefined;
+        if (pendingRun && !destroyed) {
+          pendingRun = false;
+          schedule();
+        }
+      });
+  }
+
+  runAsync(() => runNow());
+
+  addCleanup(() => {
+    destroyed = true;
+    aborter?.abort();
+    reconciler.cleanup();
+  });
+};
+
+/** Exported for use by `jsonataValidator` in `validators.ts`. */
+export const jsonataEval = jsonataEvalImpl;
+
+/**
+ * Registry of built-in expression evaluators.
  */
 export const defaultEvaluators: Record<string, ExpressionEval<any>> = {
   [ExpressionType.Data]: dataEval,
   [ExpressionType.DataMatch]: dataMatchEval,
   [ExpressionType.NotEmpty]: notEmptyEval,
   [ExpressionType.UUID]: uuidEval,
+  [ExpressionType.Jsonata]: jsonataEvalImpl,
 };
 
 // ── createEvalExpr ────────────────────────────────────────────────
