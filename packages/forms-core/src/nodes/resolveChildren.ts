@@ -1,9 +1,4 @@
-import {
-  type ChangeListenerFunc,
-  type Control,
-  noopReadContext,
-  type ReadContext,
-} from "@rxc/controls-core";
+import { type Control, type ReadContext } from "@rxc/controls-core";
 import {
   ControlDefinitionType,
   type DataControlDefinition,
@@ -99,9 +94,9 @@ export function defaultResolveChildren(
  * Each child wraps the form's declared children in a `Contents` group and
  * binds the parent DataNode as the data context. The per-option metadata
  * (`option` and `optionSelected`) is exposed via the child's `variables`
- * hook — the callback receives a `ChangeListenerFunc` so renderers
- * subscribing to the variable get notified when the underlying data
- * control's value changes.
+ * hook — the callback receives the consumer's {@link ReadContext} so
+ * `optionSelected` re-evaluates whenever the underlying data control's
+ * value changes.
  */
 function resolveOptionChildren(
   options: FieldOption[],
@@ -121,14 +116,14 @@ function resolveOptionChildren(
         } as GroupedControlsDefinition,
         parent: parentData,
         node: form,
-        variables: (changes) => ({
+        variables: (rc) => ({
           formData: {
             option,
             optionSelected: isOptionSelected(
               schemaInterface,
               option,
               dataNode,
-              changes,
+              rc,
             ),
           },
         }),
@@ -144,24 +139,18 @@ function resolveOptionChildren(
  * array. For scalar fields (Radio) the current value must equal the option
  * value under {@link SchemaInterface.compareValue}.
  *
- * Registers a Value subscription on the underlying control through `changes`
- * so callers running inside a reactive scope re-evaluate when the selection
- * changes.
+ * Reads the underlying data through `rc` so consumers running inside a
+ * reactive scope re-evaluate when the selection changes.
  */
 function isOptionSelected(
   schemaInterface: SchemaInterface,
   option: FieldOption,
   dataNode: import("../types").DataNode,
-  _changes: ChangeListenerFunc<any>,
+  rc: ReadContext,
 ): boolean {
-  // Layer-2 simplification: we read the data value as a snapshot. A proper
-  // `trackedValue`-equivalent (that routes subscriptions through `_changes`)
-  // will come with the renderer package; until then renderers that need
-  // live re-evaluation of `optionSelected` should subscribe to the data
-  // control directly.
-  const cursor = dataNode.cursor(noopReadContext);
+  const cursor = dataNode.cursor(rc);
   const field = cursor.field;
-  const value = cursor.control.valueNow;
+  const value = rc.getValue(cursor.control);
   if (field.collection) {
     return Array.isArray(value) && value.includes(option.value);
   }

@@ -1,5 +1,4 @@
 import {
-  type ChangeListenerFunc,
   type Control,
   type ControlContext,
   type ReadContext,
@@ -666,7 +665,7 @@ export function combineVariables(
 ): VariablesFunc | undefined {
   if (!v1) return v2;
   if (!v2) return v1;
-  return (c: ChangeListenerFunc<any>) => ({ ...v1(c), ...v2(c) });
+  return (rc) => ({ ...v1(rc), ...v2(rc) });
 }
 
 /**

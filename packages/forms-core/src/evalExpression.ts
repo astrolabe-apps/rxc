@@ -240,13 +240,10 @@ function getRootDataNode(dataNode: DataNode): DataNode {
  * Concurrency: a change during evaluation aborts the in-flight result
  * and queues a fresh run; the aborted result is discarded.
  *
- * Variables reactivity note: the legacy `VariablesFunc` signature expects
- * a `ChangeListenerFunc`, which isn't compatible with rxc's
- * `ReadContext`-based tracking. For now variables values are collected
- * with a no-op listener — they appear in jsonata bindings but don't
- * trigger re-evaluation when their underlying controls change. Full
- * reactivity lands when `VariablesFunc` is refactored to accept a
- * `ReadContext`.
+ * Variables: the {@link VariablesFunc} is invoked with the same
+ * `TrackingReadContext` used to read the data tree, so any reactive
+ * reads it performs (e.g. exposing `optionSelected` based on the current
+ * data control value) trigger re-evaluation when their inputs change.
  */
 const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
   expr,
@@ -297,8 +294,6 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
     schedule();
   });
 
-  const noopListener: (...args: unknown[]) => void = () => {};
-
   function runNow() {
     if (destroyed) return;
     if (running) {
@@ -311,8 +306,7 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
     const signal = aborter.signal;
     rc.reset();
 
-    // Invoke variables with a no-op listener — see note above.
-    const trackedVars = variables?.(noopListener as never);
+    const trackedVars = variables?.(rc);
     const data = ensurePathNavigable(
       rc.getValueRx(rootControl),
       pathSegments,

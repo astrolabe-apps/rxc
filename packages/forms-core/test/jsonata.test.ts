@@ -134,6 +134,41 @@ describe("jsonataEval via dynamic[] script", () => {
     expect(nNode.getState(rd).definition.title).toBe("42");
   });
 
+  it("re-evaluates when a reactive variable's underlying control changes", async () => {
+    const fields: SchemaField[] = [stringField("name")];
+    const defs = [
+      {
+        ...dataDef("name"),
+        dynamic: [
+          {
+            type: DynamicPropertyType.Label,
+            expr: jsonataExpr("$counter * 2"),
+          },
+        ],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      name: "alice",
+    });
+    const counter = ctx.newControl<number>(0);
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+      { variables: (rc) => ({ counter: rc.getValue(counter) }) },
+    );
+    const [nameNode] = root.getChildren(rd);
+
+    await flush();
+    expect(nameNode.getState(rd).definition.title).toBe("0");
+
+    // Bump the variable's underlying control — jsonata should re-run.
+    ctx.update((wc) => wc.setValue(counter, 7));
+    await flush();
+    expect(nameNode.getState(rd).definition.title).toBe("14");
+  });
+
   it("tolerates a parse error by publishing `undefined`", async () => {
     const fields: SchemaField[] = [stringField("name")];
     const defs = [

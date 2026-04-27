@@ -165,7 +165,7 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - Async tracking: uses a dedicated `TrackingReadContext` + `SubscriptionReconciler` (via `@rxc/controls-core/internal`) because jsonata's async `.evaluate()` populates reads lazily through the data proxy — `effect`'s synchronous reconciliation cycle doesn't capture those. Changes detected by the reconciler abort any in-flight eval and queue a fresh run.
 - `src/validators.ts::evalJsonataValidator` — wires `jsonataEval` against the parent data context; publishes error via a separate publisher effect so the `validationEnabled` gate and the async result are composed reactively.
 - `src/nodes/formStateNode.ts` — `variables` now plumbed from the node's `FormNodeOptions` through `createEvaluatedDefinition`.
-- **Limitation:** `VariablesFunc`'s `ChangeListenerFunc` argument is invoked with a no-op listener — variables values appear in jsonata bindings but don't trigger re-evaluation when their underlying controls change. Full reactivity lands when `VariablesFunc` migrates to a `ReadContext`-based API.
+- **Variables reactivity:** `VariablesFunc` is `(rc: ReadContext) => Record<string, any>` — invoked with the same `TrackingReadContext` that drives jsonata's data reads, so reactive reads inside the producer (e.g. `optionSelected` derived from a data control via `rc.getValue`) trigger jsonata re-evaluation when their inputs change. `combineVariables` and `isOptionSelected` use the rc directly.
 
 ### Phase 6 (partial): Dev app ✅
 
@@ -177,7 +177,7 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - **Framework**: Vitest + fast-check (property-based testing)
 - **Location**: `test/` dir in each package
 - **Config**: `vitest.config.ts` per package
-- Current count: **102 tests** in forms-core (65 node/cursor + 32 FormStateNode covering layers 1–4b + 5 jsonata covering Layer 4c). controls-core has 51.
+- Current count: **103 tests** in forms-core (65 node/cursor + 32 FormStateNode covering layers 1–4b + 6 jsonata covering Layer 4c, including reactive variables). controls-core has 51.
 
 ## Next steps
 
@@ -198,5 +198,3 @@ Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key qu
 
 - Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `src/nodes/formNode.ts`)
 - Consider re-adding `validDataCursor` result caching via `ensureMetaValue` on the data control (old code had per-control `validForSchema` cache; current port re-walks the parent chain per call)
-- `CheckList`/`Radio` `isOptionSelected` uses a snapshot read; a proper `trackedValue`-equivalent for `VariablesFunc.changes` lands with the renderer package
-- `VariablesFunc` still takes a legacy `ChangeListenerFunc`; jsonata binds variables' current values but doesn't re-evaluate on variable-control changes. Migrate the API to `ReadContext` for full reactivity (affects option-expansion `formData.optionSelected` too).

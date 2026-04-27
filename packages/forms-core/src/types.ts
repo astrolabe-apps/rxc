@@ -4,20 +4,23 @@ import {
   type FieldOption,
   type SchemaField,
 } from "./json";
-import type {
-  ChangeListenerFunc,
-  Control,
-  ReadContext,
-} from "@rxc/controls-core";
+import type { Control, ReadContext } from "@rxc/controls-core";
 import type { SchemaInterface } from "./schemaInterface";
 
 export interface CleanupScope {
   addCleanup(cleanup: () => void): void;
 }
 
-export type VariablesFunc = (
-  changes: ChangeListenerFunc<any>,
-) => Record<string, any>;
+/**
+ * Producer of context variables exposed to expression evaluators
+ * (jsonata, etc.). Receives the consumer's {@link ReadContext} so any
+ * reactive reads it performs (e.g. `rc.getValue(control)` to expose a
+ * live derived value) re-trigger the consumer when their inputs change.
+ *
+ * The returned record is bound at evaluation time — values may close over
+ * the rc and re-read on subsequent invocations of the same producer.
+ */
+export type VariablesFunc = (rc: ReadContext) => Record<string, any>;
 
 export interface FormNodeOptions {
   forceReadonly?: boolean;
@@ -47,7 +50,7 @@ export interface ChildNodeInit {
   definition?: ControlDefinition;
   parent?: DataNode;
   node?: FormNode | null;
-  variables?: (changes: ChangeListenerFunc<any>) => Record<string, any>;
+  variables?: VariablesFunc;
   resolveChildren?: ChildResolverFunc;
 }
 
@@ -125,7 +128,7 @@ export interface FormState extends FormNodeOptions {
   valid: boolean;
   touched: boolean;
   clearHidden: boolean;
-  variables?: (changes: ChangeListenerFunc<any>) => Record<string, any>;
+  variables?: VariablesFunc;
   meta: Record<string, any>;
 }
 
