@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Control } from "@rxc/controls";
 import {
   ControlContextProvider,
@@ -10,7 +10,6 @@ import {
 import type {
   CompoundField,
   ControlDefinition,
-  FormGlobalOptions,
   FormStateNode,
   GroupedControlsDefinition,
   SchemaField,
@@ -19,20 +18,17 @@ import type {
 } from "@rxc/forms-core";
 import {
   compoundControl,
-  ControlDefinitionType,
   createDataNode,
-  createFormStateNode,
   createReactiveFormTree,
   createStaticSchemaTree,
   dataControl,
   dataMatchExpr,
-  defaultResolveChildren,
   DynamicPropertyType,
   FieldType,
   groupedControl,
-  isDataControl,
   notExpr,
 } from "@rxc/forms-core";
+import { Form, useFormStateNode } from "@rxc/forms";
 
 // ── Shared helpers ───────────────────────────────────────────────────
 
@@ -82,98 +78,6 @@ function ValueDisplay({ value }: { value: unknown }) {
   }
   return <span>{String(value)}</span>;
 }
-
-// ── Form editor driven by FormStateNode ──────────────────────────────
-
-const FormDataField = controls(function FormDataField(
-  { node }: { node: FormStateNode },
-  { rc, update },
-) {
-  const { visible, disabled, readonly, data, definition: def, field } =
-    node.getState(rc);
-
-  if (visible === false || !data) return null;
-
-  const value = rc.getValue(data);
-  const error = rc.getError(data);
-  const touched = rc.isTouched(data);
-
-  return (
-    <div className="flex flex-col gap-1">
-      {def.title && (
-        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          {def.title}
-          {isDataControl(def) && def.required && (
-            <span className="text-red-400 ml-0.5">*</span>
-          )}
-          {readonly && (
-            <span className="ml-1 text-[10px] text-orange-500">(readonly)</span>
-          )}
-        </label>
-      )}
-      <input
-        className={`rounded border px-2.5 py-1.5 text-sm dark:bg-zinc-800 dark:text-zinc-100 ${
-          touched && error
-            ? "border-red-400 dark:border-red-600"
-            : "border-zinc-300 dark:border-zinc-600"
-        } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${
-          readonly ? "bg-zinc-50 dark:bg-zinc-800/50" : ""
-        }`}
-        value={value == null ? "" : String(value)}
-        disabled={disabled}
-        readOnly={readonly}
-        onChange={(e) => {
-          const raw = e.target.value;
-          const newVal =
-            field?.type === FieldType.Int ? Number(raw) || 0 : raw;
-          update((wc) => wc.setValue(data, newVal));
-        }}
-        onBlur={() => update((wc) => wc.setTouched(data, true, true))}
-      />
-      {touched && error && (
-        <span className="text-xs text-red-500">{error}</span>
-      )}
-    </div>
-  );
-});
-
-const FormGroupField = controls(function FormGroupField(
-  { node }: { node: FormStateNode },
-  { rc },
-) {
-  const { visible, definition: def } = node.getState(rc);
-  if (visible === false) return null;
-
-  const children = node.getChildren(rc);
-
-  return (
-    <fieldset className="border border-zinc-200 dark:border-zinc-700 rounded p-3">
-      {def.title && (
-        <legend className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 px-1">
-          {def.title}
-        </legend>
-      )}
-      <div className="flex flex-col gap-3">
-        {children.map((child) => (
-          <FormNodeRenderer key={child.uniqueId} node={child} />
-        ))}
-      </div>
-    </fieldset>
-  );
-});
-
-const FormNodeRenderer = controls<{ node: FormStateNode }>(function FormNodeRenderer(
-  { node },
-  { rc },
-) {
-  if (node.getChildren(rc).length > 0) {
-    return <FormGroupField node={node} />;
-  }
-  if (node.getState(rc).definition.type === ControlDefinitionType.Data) {
-    return <FormDataField node={node} />;
-  }
-  return null;
-});
 
 // ── Raw control tree inspector ──────────────────────────────────────
 
@@ -284,11 +188,7 @@ const ControlBranchNode = controls(function ControlBranchNode(
       {expanded && (
         <div style={{ paddingLeft: 16 }}>
           {fieldEntries.map(([key, child]) => (
-            <ControlNodeRenderer
-              key={key}
-              control={child}
-              name={`.${key}`}
-            />
+            <ControlNodeRenderer key={key} control={child} name={`.${key}`} />
           ))}
           {elems.map((elem, i) => (
             <ControlNodeRenderer
@@ -313,8 +213,7 @@ function ControlNodeRenderer({
   defaultExpanded?: boolean;
 }) {
   const fieldKeys = Object.keys(control.fieldsNow);
-  const hasChildren =
-    fieldKeys.length > 0 || control.elementsNow.length > 0;
+  const hasChildren = fieldKeys.length > 0 || control.elementsNow.length > 0;
   if (hasChildren) {
     return (
       <ControlBranchNode
@@ -333,8 +232,13 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
   { node }: { node: FormStateNode },
   { rc },
 ) {
-  const { visible, disabled, readonly, data, definition: def } =
-    node.getState(rc);
+  const {
+    visible,
+    disabled,
+    readonly,
+    data,
+    definition: def,
+  } = node.getState(rc);
 
   const dataValue = data ? rc.getValue(data) : undefined;
   const dataError = data ? rc.getError(data) : undefined;
@@ -395,16 +299,18 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
 });
 
 const FormStateBranchNode = controls(function FormStateBranchNode(
-  {
-    node,
-    defaultExpanded,
-  }: { node: FormStateNode; defaultExpanded?: boolean },
+  { node, defaultExpanded }: { node: FormStateNode; defaultExpanded?: boolean },
   { rc },
 ) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? true);
 
-  const { visible, disabled, readonly, data, definition: def } =
-    node.getState(rc);
+  const {
+    visible,
+    disabled,
+    readonly,
+    data,
+    definition: def,
+  } = node.getState(rc);
 
   const dataValue = data ? rc.getValue(data) : undefined;
   const dataError = data ? rc.getError(data) : undefined;
@@ -490,7 +396,9 @@ const FormStateNodeRenderer = controls(function FormStateNodeRenderer(
 ) {
   const children = node.getChildren(rc);
   if (children.length > 0) {
-    return <FormStateBranchNode node={node} defaultExpanded={defaultExpanded} />;
+    return (
+      <FormStateBranchNode node={node} defaultExpanded={defaultExpanded} />
+    );
   }
   return <FormStateLeafNode node={node} />;
 });
@@ -567,13 +475,12 @@ const emptyFormResolver: FormTreeResolver = {
   getFormTree: () => undefined,
 };
 
-const controlContext = createControlContext();
-
 const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
   const stateRef = useRef<{
     rootControl: Control<any>;
     definitionsControl: Control<ControlDefinition[]>;
-    formNode: FormStateNode;
+    formRoot: ReturnType<typeof createReactiveFormTree>["rootNode"];
+    dataRoot: ReturnType<typeof createDataNode>;
   } | null>(null);
 
   if (!stateRef.current) {
@@ -598,22 +505,19 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       definitionsControl,
       emptyFormResolver,
     );
-    const dataNode = createDataNode(schemaTree.rootNode, rootControl);
-    const globals: FormGlobalOptions = {
-      resolveChildren: defaultResolveChildren,
-      runAsync: (fn) => fn(),
-      clearHidden: true,
+    const dataRoot = createDataNode(schemaTree.rootNode, rootControl);
+    stateRef.current = {
+      rootControl,
+      definitionsControl,
+      formRoot: formTree.rootNode,
+      dataRoot,
     };
-    const formNode = createFormStateNode(
-      controlContext,
-      formTree.rootNode,
-      dataNode,
-      globals,
-    );
-    stateRef.current = { rootControl, definitionsControl, formNode };
   }
 
-  const { rootControl, definitionsControl, formNode } = stateRef.current;
+  const { rootControl, definitionsControl, formRoot, dataRoot } =
+    stateRef.current;
+
+  const formNode = useFormStateNode(controlContext, formRoot, dataRoot);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
@@ -630,7 +534,7 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
             <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
               Form (driven by FormStateNode)
             </h2>
-            <FormNodeRenderer node={formNode} />
+            <Form node={formNode} />
           </div>
 
           {/* Middle: FormStateNode tree inspector */}
@@ -640,7 +544,9 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
             </h2>
             <FormStateNodeRenderer node={formNode} defaultExpanded={true} />
             <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-700">
-              <h3 className="text-xs font-semibold text-zinc-500 mb-2">Legend</h3>
+              <h3 className="text-xs font-semibold text-zinc-500 mb-2">
+                Legend
+              </h3>
               <div className="flex flex-wrap gap-3 text-[10px]">
                 <span>{"\u{1F441}\u2713"} visible</span>
                 <span>{"\u{1F441}?"} null (script pending)</span>
@@ -675,9 +581,7 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
 // ── Definition editor ───────────────────────────────────────────────
 
 const DefinitionEditor = controls(function DefinitionEditor(
-  {
-    definitionsControl,
-  }: { definitionsControl: Control<ControlDefinition[]> },
+  { definitionsControl }: { definitionsControl: Control<ControlDefinition[]> },
   { rc, update },
 ) {
   const current = rc.getValue(definitionsControl);
@@ -689,10 +593,7 @@ const DefinitionEditor = controls(function DefinitionEditor(
 
   // If an outside change happens (e.g. an apply from this editor), sync the
   // textarea only when the user hasn't started editing a divergent draft.
-  if (
-    canonical !== lastAppliedSerialized &&
-    draft === lastAppliedSerialized
-  ) {
+  if (canonical !== lastAppliedSerialized && draft === lastAppliedSerialized) {
     setDraft(canonical);
     setLastAppliedSerialized(canonical);
     setError(null);
@@ -774,6 +675,8 @@ const DefinitionEditor = controls(function DefinitionEditor(
 });
 
 export default function TreePage() {
+  const controlContext = useMemo(() => createControlContext(), []);
+
   return (
     <ControlContextProvider value={controlContext}>
       <TreePageInner />

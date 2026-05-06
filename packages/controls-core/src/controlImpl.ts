@@ -39,6 +39,14 @@ export interface ControlContextInternal {
     flags: ControlFlags,
     fieldKey?: string,
   ) => ControlImpl;
+  /**
+   * Allocate the next unique id for a control in this context. Counter
+   * lives on the root `ControlContextImpl` and is shared across all
+   * child contexts derived from it — so a fresh ControlContext always
+   * produces ids starting from 1, making SSR/hydration deterministic
+   * for any consumer that surfaces `control.uniqueId`.
+   */
+  nextUniqueId: () => number;
 }
 
 // ── Proxy handler for fields ────────────────────────────────────────
@@ -51,8 +59,6 @@ const FieldsProxy: ProxyHandler<ControlImpl> = {
 };
 
 // ── ControlImpl ─────────────────────────────────────────────────────
-
-let uniqueIdCounter = 0;
 
 export class ControlImpl<V = unknown> implements Control<V> {
   uniqueId: number;
@@ -73,7 +79,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
     flags: ControlFlags,
     ctx: ControlContextInternal,
   ) {
-    this.uniqueId = ++uniqueIdCounter;
+    this.uniqueId = ctx.nextUniqueId();
     this._value = value;
     this._initialValue = initialValue;
     this._flags = flags;

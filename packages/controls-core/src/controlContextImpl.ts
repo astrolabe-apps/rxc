@@ -19,8 +19,21 @@ export function createControlContext(
 class ControlContextImpl implements ControlContext {
   private deadTrackers = new Set<SubscriptionReconciler>();
   private sweepTimer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * Per-context counter for `Control.uniqueId`. Lives on the root
+   * `ControlContextImpl`; child contexts created via `buildChildContext`
+   * close over `self` and share this counter, so siblings get sequential
+   * ids regardless of how deep they sit. Two independent ControlContexts
+   * each start from 0 — that's the property that makes SSR/hydration
+   * produce identical ids.
+   */
+  private _uniqueIdCounter = 0;
 
   constructor(public readonly equals: (a: unknown, b: unknown) => boolean) {}
+
+  nextUniqueId(): number {
+    return ++this._uniqueIdCounter;
+  }
 
   newControl<V>(value: V, setup?: ControlSetup<V>): Control<V> {
     const ctx = this.buildChildContext(setup);
@@ -77,6 +90,7 @@ class ControlContextImpl implements ControlContext {
         }
         return child;
       },
+      nextUniqueId: () => self.nextUniqueId(),
     };
   }
 
