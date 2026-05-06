@@ -132,6 +132,27 @@ export {
 } from "./ActionScope";
 export { useAsyncAction, runAsyncAction } from "./useAsyncAction";
 
+// Plugin bundle helpers
+export {
+  actionPlugin,
+  collectExtraRenderOptionFields,
+  dataPlugin,
+  displayPlugin,
+  groupPlugin,
+  type ActionPluginSpec,
+  type DataPluginSpec,
+  type DisplayPluginSpec,
+  type EditorPluginSlot,
+  type GroupPluginSpec,
+} from "./plugins";
+
+// Design mode
+export {
+  DesignModeContext,
+  DesignModeProvider,
+  useDesignMode,
+} from "./DesignMode";
+
 // Helpers
 export { useLabelText } from "./labelText";
 export { useExpression } from "./useExpression";

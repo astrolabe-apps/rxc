@@ -103,6 +103,9 @@ export interface FormProps {
   layout?: LayoutComponent;
   visibility?: VisibilityComponent;
   options?: FormOptions;
+  /** Mark the entire form subtree as design-mode. Renderers and
+   * adornments read this via `useDesignMode()`. */
+  designMode?: boolean;
 }
 
 export interface UseFormStateNodeOptions {

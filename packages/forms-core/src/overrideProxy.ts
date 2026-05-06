@@ -52,10 +52,13 @@ export function createOverrideProxy<A extends object, B extends object>(
   return new Proxy(target, {
     get(t, p, receiver) {
       if (typeof p === "string") {
-        if (Object.hasOwn(overrideFields, p)) {
-          const nv = rc.getValue(overrideFields[p]);
-          if (nv !== NoOverride) return nv;
-        }
+        // Nested-compound override: the override control for this key is
+        // a sub-tree (its `value` is a partial Record holding only the
+        // sub-keys with overrides). Defer to the nested builder, which
+        // wraps the BASE compound with another proxy that merges overrides
+        // and base fields. Falling through to the override-value branch
+        // here would replace the entire compound with the partial sub-tree
+        // and clobber base fields like `renderOptions.type`.
         const nested = nestedBuilders?.get(p);
         if (nested) {
           const childBase = Reflect.get(t, p, receiver);
@@ -63,6 +66,10 @@ export function createOverrideProxy<A extends object, B extends object>(
             return nested(childBase as object, rc);
           }
           return childBase;
+        }
+        if (Object.hasOwn(overrideFields, p)) {
+          const nv = rc.getValue(overrideFields[p]);
+          if (nv !== NoOverride) return nv;
         }
       }
       return Reflect.get(t, p, receiver);

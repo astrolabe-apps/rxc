@@ -448,6 +448,7 @@ function initFormState(
       variables,
       (fn) => cleanups.push(fn),
       getScripts,
+      impl.globals.extraRenderOptionFields ?? [],
     );
     ctx.update((wc) => wc.setValue(evalDefControl, evalDef));
     return () => {

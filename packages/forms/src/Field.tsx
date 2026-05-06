@@ -20,6 +20,7 @@ import { Label } from "./Label";
 import { Error } from "./Error";
 import { useLabelText } from "./labelText";
 import { indexAdornments, wrapAdornments } from "./Adornment";
+import { DesignModeProvider } from "./DesignMode";
 import type { FieldProps } from "./types";
 
 /**
@@ -37,7 +38,7 @@ import type { FieldProps } from "./types";
 export const Field = controls<FieldProps>(
   "Field",
   (
-    { node, layout: layoutProp, visibility: visibilityProp, designMode: _dm },
+    { node, layout: layoutProp, visibility: visibilityProp, designMode },
     { rc },
   ) => {
     const state = node.getState(rc);
@@ -141,10 +142,19 @@ export const Field = controls<FieldProps>(
       </Layout>
     );
 
-    return (
+    const tree = (
       <Visibility visible={state.visible}>
         {wrapAdornments(adornmentList, adornmentMap, "field", layoutEl, node)}
       </Visibility>
+    );
+
+    // If a per-Field designMode override is set, install it as a context
+    // for the subtree so nested adornments and renderers see the correct
+    // value. Otherwise inherit ambient design mode from upstream.
+    return designMode === undefined ? (
+      tree
+    ) : (
+      <DesignModeProvider value={designMode}>{tree}</DesignModeProvider>
     );
   },
 );

@@ -67,6 +67,14 @@ export interface FormGlobalOptions {
   resolveChildren: ChildResolverFunc;
   runAsync: (af: () => void) => void;
   clearHidden: boolean;
+  /**
+   * Extra `SchemaField` entries to append when the scripted-proxy walker
+   * descends into the `renderOptions` compound. Plugin authors register
+   * scriptable options for custom render types (e.g. `maxStars`); the
+   * renderer (`@rxc/forms`) collects these from the registry's plugins
+   * and passes them through here.
+   */
+  extraRenderOptionFields?: SchemaField[];
 }
 
 export interface FormNodeUi {

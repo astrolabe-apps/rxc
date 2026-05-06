@@ -146,6 +146,15 @@ export function createEvaluatedDefinition(
   variables: VariablesFunc | undefined,
   addCleanup: (fn: () => void) => void,
   getScripts: ScriptProvider = defaultScriptProvider,
+  /**
+   * Extra `SchemaField` entries to append when the walker descends into
+   * the `renderOptions` compound. Plugins for custom render types use
+   * this to declare scriptable options (e.g. `maxStars`) so scripts on
+   * those options register correctly. Fields are appended to the full
+   * `RenderOptionsSchema` — `onlyForTypes` on the field controls which
+   * render-type discriminators it applies to (filtered downstream).
+   */
+  extraRenderOptionFields: SchemaField[] = [],
 ): EvaluatedDefinition {
   const overridesControl = ctx.newControl<Record<string, unknown>>({});
 
@@ -178,6 +187,7 @@ export function createEvaluatedDefinition(
     addCleanup,
     ctx,
     rootBuilders,
+    extraRenderOptionFields,
   );
 
   return {
@@ -207,6 +217,7 @@ function buildLevel(
   addCleanup: (fn: () => void) => void,
   ctx: ControlContext,
   nestedBuilders: Map<string, NestedProxyBuilder>,
+  extraRenderOptionFields: SchemaField[],
 ): boolean {
   const asRec = (c: Control<unknown>) =>
     c.fields as unknown as Record<string, Control<unknown>>;
@@ -257,8 +268,19 @@ function buildLevel(
   // parent's `fieldsNow` and shadow the base compound value on read.
   for (const field of fields) {
     if (!isCompoundField(field) || field.collection) continue;
-    const childFields = getChildFields(field);
+    let childFields = getChildFields(field);
     if (!childFields?.length) continue;
+
+    // Plugin extension point: when descending into `renderOptions`,
+    // append any extra fields registered by data-plugins (e.g. a custom
+    // `Stars` plugin's `maxStars`). Without this the walker can't see
+    // scripts on the plugin's options and they silently no-op.
+    if (
+      field.field === "renderOptions" &&
+      extraRenderOptionFields.length > 0
+    ) {
+      childFields = [...childFields, ...extraRenderOptionFields];
+    }
 
     const childTarget = targetRec?.[field.field];
     const childPath = path ? path + "." + field.field : field.field;
@@ -281,6 +303,7 @@ function buildLevel(
       addCleanup,
       ctx,
       childBuilders,
+      extraRenderOptionFields,
     );
 
     if (childHad) {

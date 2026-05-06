@@ -12,6 +12,7 @@ import {
   type FormStateNode,
 } from "@rxc/forms-core";
 import { defaultRegistry } from "./builtins";
+import { collectExtraRenderOptionFields } from "./plugins";
 import type { FormRegistry } from "./registry";
 import type { UseFormStateNodeOptions } from "./types";
 
@@ -49,6 +50,7 @@ export function useFormStateNode(
       resolveChildren: makeResolveChildren(reg),
       runAsync: options.runAsync ?? ((fn) => fn()),
       clearHidden: options.clearHidden ?? true,
+      extraRenderOptionFields: collectExtraRenderOptionFields(reg),
     };
     return createFormStateNode(controlContext, form, dataNode, globals);
     // Identity inputs only; option fields are read at construction.

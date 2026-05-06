@@ -3,6 +3,7 @@
 import { Field } from "./Field";
 import { LayoutProvider, DefaultLayout } from "./Layout";
 import { VisibilityProvider, DefaultVisibility } from "./Visibility";
+import { DesignModeProvider } from "./DesignMode";
 import {
   OptionsProvider,
   RegistryProvider,
@@ -25,9 +26,10 @@ export function Form({
   layout,
   visibility,
   options,
+  designMode,
 }: FormProps) {
   const reg = registry ?? defaultRegistry();
-  return (
+  const tree = (
     <RegistryProvider value={reg}>
       <OptionsProvider value={options ?? {}}>
         <LayoutProvider value={layout ?? DefaultLayout}>
@@ -37,5 +39,10 @@ export function Form({
         </LayoutProvider>
       </OptionsProvider>
     </RegistryProvider>
+  );
+  return designMode === undefined ? (
+    tree
+  ) : (
+    <DesignModeProvider value={designMode}>{tree}</DesignModeProvider>
   );
 }

@@ -1,0 +1,398 @@
+"use client";
+
+import { useState, useRef } from "react";
+import {
+  ControlContextProvider,
+  controls,
+  createControlContext,
+} from "@rxc/controls";
+import type { Control } from "@rxc/controls";
+import {
+  ControlAdornmentType,
+  createDataNode,
+  createStaticFormTree,
+  createStaticSchemaTree,
+  dataControl,
+  dataExpr,
+  FieldType,
+  groupedControl,
+  SchemaTags,
+  type ControlAdornment,
+  type ControlDefinition,
+  type DataControlDefinition,
+  type FormTreeResolver,
+  type GroupedControlsDefinition,
+  type SchemaField,
+  type SchemaTreeResolver,
+} from "@rxc/forms-core";
+import {
+  ActionScope,
+  combineRegistries,
+  dataPlugin,
+  defaultRegistry,
+  Form,
+  useDesignMode,
+  useFormStateNode,
+  type AdornmentRegistration,
+  type AdornmentRenderProps,
+  type DataRendererProps,
+  type FormRegistry,
+  type VisibilityProps,
+} from "@rxc/forms";
+
+// ── Custom data plugin: Stars rating ─────────────────────────────────
+
+interface StarsRenderOptions {
+  type: "Stars";
+  maxStars?: number;
+}
+
+const StarsRenderer = controls<DataRendererProps>(
+  "StarsRenderer",
+  ({ node, id }, { rc, update }) => {
+    const { data, definition, disabled, readonly } = node.getState(rc);
+    if (!data) return null;
+    const value = (rc.getValue(data) as number | null | undefined) ?? 0;
+    const opts = (definition as { renderOptions?: StarsRenderOptions })
+      .renderOptions;
+    const maxStars = opts?.maxStars ?? 5;
+    const stars: number[] = [];
+    for (let i = 1; i <= maxStars; i++) stars.push(i);
+    return (
+      <div
+        id={id}
+        role="radiogroup"
+        aria-label="Rating"
+        className="inline-flex items-center gap-1"
+      >
+        {stars.map((i) => (
+          <button
+            key={i}
+            type="button"
+            disabled={disabled || readonly}
+            onClick={() => update((wc) => wc.setValue(data, i))}
+            className={`text-2xl leading-none ${
+              i <= value
+                ? "text-amber-400"
+                : "text-zinc-300 dark:text-zinc-600"
+            } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-110 transition"}`}
+            aria-label={`${i} star${i > 1 ? "s" : ""}`}
+            aria-pressed={i <= value}
+          >
+            ★
+          </button>
+        ))}
+        <span className="ml-2 text-xs text-zinc-500">
+          ({value} / {maxStars})
+        </span>
+      </div>
+    );
+  },
+);
+
+// Plugin schema declares the renderer's options, with `maxStars` flagged
+// scriptable. This is the load-bearing claim of the "schemaExtensions
+// is runtime metadata" design — without it, scripts on `maxStars` no-op.
+const starsSchema: SchemaField[] = [
+  {
+    field: "maxStars",
+    type: FieldType.Int,
+    tags: [SchemaTags.ScriptNullInit],
+    defaultValue: 5,
+  },
+];
+
+const starsPlugin = dataPlugin({
+  type: "Stars",
+  component: StarsRenderer,
+  schema: starsSchema,
+});
+
+// ── Selection adornment (design mode only) ───────────────────────────
+
+interface SelectionState {
+  selected: string | null;
+  setSelected: (id: string | null) => void;
+}
+
+import { createContext, useContext } from "react";
+
+const SelectionContext = createContext<SelectionState | null>(null);
+
+function SelectionAdornmentRender({ node, children }: AdornmentRenderProps) {
+  const designing = useDesignMode();
+  const sel = useContext(SelectionContext);
+  if (!designing || !sel) return <>{children}</>;
+  const isSelected = sel.selected === node.uniqueId;
+  return (
+    <div
+      onClickCapture={(e) => {
+        e.stopPropagation();
+        sel.setSelected(node.uniqueId);
+      }}
+      data-form-node={node.uniqueId}
+      style={{
+        outline: isSelected ? "2px solid rgb(37, 99, 235)" : "1px dashed transparent",
+        outlineOffset: "2px",
+        cursor: "pointer",
+        padding: "2px",
+        borderRadius: "4px",
+        background: isSelected ? "rgba(37, 99, 235, 0.06)" : undefined,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+const SelectionAdornment: AdornmentRegistration = {
+  type: "_Selection",
+  kind: "field",
+  // Higher than AccordionAdornment (1000) so the selection chrome wraps
+  // every other field-kind decoration.
+  priority: 2000,
+  render: SelectionAdornmentRender,
+};
+
+// Synthetic adornment: applied on every node in design mode by injecting
+// it into the registry's adornment list and into every definition's
+// `adornments` array via a child-resolver hook... actually simpler:
+// register it in the adornments list, and inject into each node by
+// listing the type in its definition adornments. For the demo we'll
+// inject programmatically below.
+
+// ── Design-mode visibility (renders hidden fields with reduced opacity) ─
+
+function DesignVisibility({ visible, children }: VisibilityProps) {
+  return (
+    <span style={visible === true ? undefined : { opacity: 0.4 }}>
+      {children}
+    </span>
+  );
+}
+
+// ── Schema and form definition ───────────────────────────────────────
+
+function designerSchema(): SchemaField[] {
+  return [
+    { type: FieldType.String, field: "name" },
+    { type: FieldType.Int, field: "rating" },
+    { type: FieldType.Int, field: "maxStarsLimit" },
+    { type: FieldType.String, field: "secret" },
+  ];
+}
+
+/** Inject `_Selection` into every node's adornment list when designing,
+ * so SelectionAdornment wraps each Field. */
+function withSelectionAdornments(def: ControlDefinition): ControlDefinition {
+  const ad: ControlAdornment = { type: "_Selection" };
+  const next: ControlDefinition = {
+    ...def,
+    adornments: [...(def.adornments ?? []), ad],
+  };
+  const grouped = next as GroupedControlsDefinition;
+  if (grouped.children) {
+    grouped.children = grouped.children.map(withSelectionAdornments);
+  }
+  return next;
+}
+
+function designerFormDef(designing: boolean): GroupedControlsDefinition {
+  const ratingDef: DataControlDefinition = {
+    ...dataControl("rating", "Rating (custom Stars plugin)"),
+    renderOptions: {
+      type: "Stars",
+      maxStars: 5,
+      // Script on the plugin's own option — this only works when the
+      // schemaExtensions for the Stars render type are threaded into
+      // the FormStateNode's scripted-proxy walker.
+      $scripts: {
+        maxStars: dataExpr("../maxStarsLimit"),
+      },
+    } as unknown as DataControlDefinition["renderOptions"],
+  };
+  const limitDef: DataControlDefinition = dataControl(
+    "maxStarsLimit",
+    "Max stars (drives the Stars plugin via $scripts)",
+  );
+  // Always-hidden field — visible only in design mode (DesignVisibility).
+  const hiddenDef: ControlDefinition = {
+    ...dataControl("secret", "Hidden field (visible in design mode)"),
+  };
+  hiddenDef.adornments = [];
+  // Hide via runtime rule: just set the dynamic visible to a constant
+  // false. We'll fake this with a Data expression that always reads
+  // `false`. Simpler: set `forceHidden` via a script.
+  // For demo simplicity, set up a hidden field via scripts.
+  (hiddenDef as { $scripts?: Record<string, unknown> }).$scripts = {
+    visible: dataExpr("../alwaysFalse"), // missing field → falsy → hidden
+  };
+
+  const root: GroupedControlsDefinition = groupedControl(
+    [
+      dataControl("name", "Name"),
+      ratingDef,
+      limitDef,
+      hiddenDef,
+    ],
+    "Custom plugin demo",
+  );
+  return designing
+    ? (withSelectionAdornments(root) as GroupedControlsDefinition)
+    : root;
+}
+
+// ── Page ─────────────────────────────────────────────────────────────
+
+const emptySchemaResolver: SchemaTreeResolver = {
+  getSchemaTree: () => undefined,
+};
+const emptyFormResolver: FormTreeResolver = {
+  getFormTree: () => undefined,
+};
+
+const controlContext = createControlContext();
+
+const DesignerInner = controls(function DesignerInner(
+  {},
+  { controlContext },
+) {
+  const [designing, setDesigning] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const ref = useRef<{
+    rootControl: Control<unknown>;
+  } | null>(null);
+  if (!ref.current) {
+    const rootControl = controlContext.newControl({
+      name: "Pat",
+      rating: 3,
+      maxStarsLimit: 5,
+      secret: "private",
+    });
+    ref.current = { rootControl };
+  }
+  const { rootControl } = ref.current;
+
+  // The form tree depends on `designing` (we inject selection adornments
+  // when on); rebuild on toggle.
+  const formRoot = useRef<{
+    designing: boolean;
+    formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
+    dataRoot: ReturnType<typeof createDataNode>;
+  } | null>(null);
+  if (!formRoot.current || formRoot.current.designing !== designing) {
+    const schemaTree = createStaticSchemaTree(
+      designerSchema(),
+      emptySchemaResolver,
+    );
+    const formTree = createStaticFormTree(
+      [designerFormDef(designing)],
+      emptyFormResolver,
+    );
+    const dataRoot = createDataNode(schemaTree.rootNode, rootControl);
+    formRoot.current = {
+      designing,
+      formRoot: formTree.rootNode,
+      dataRoot,
+    };
+  }
+
+  const registry: FormRegistry = combineRegistries(
+    starsPlugin,
+    {
+      adornments: [SelectionAdornment as AdornmentRegistration],
+    },
+    defaultRegistry(),
+  );
+
+  const formNode = useFormStateNode(
+    controlContext,
+    formRoot.current.formRoot,
+    formRoot.current.dataRoot,
+    { registry },
+  );
+
+  const stubAction = () => true; // ActionScope swallows everything in design mode
+
+  return (
+    <SelectionContext.Provider value={{ selected, setSelected }}>
+      <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
+            Phase 4: Plugins + Design Mode
+          </h1>
+          <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+            Custom <code>Stars</code> data plugin with a scripted
+            <code> maxStars</code> option (driven by the &ldquo;Max stars&rdquo;
+            field via the registry&apos;s <code>schemaExtensions</code>). Toggle
+            design mode to see the hidden field rendered with reduced
+            opacity, click any node to select it, and notice that actions
+            are stubbed.
+          </p>
+
+          <div className="mb-4 flex items-center gap-4">
+            <label className="inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+              <input
+                type="checkbox"
+                checked={designing}
+                onChange={(e) => setDesigning(e.target.checked)}
+              />
+              Design mode
+            </label>
+            {designing && selected && (
+              <span className="text-xs font-mono text-blue-600">
+                Selected: {selected}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
+              {designing ? (
+                <ActionScope onAction={stubAction}>
+                  <Form
+                    node={formNode}
+                    registry={registry}
+                    visibility={DesignVisibility}
+                    designMode={true}
+                  />
+                </ActionScope>
+              ) : (
+                <Form node={formNode} registry={registry} />
+              )}
+            </div>
+            <div className="rounded-lg bg-white dark:bg-zinc-900 p-4 shadow lg:sticky lg:top-6 lg:self-start">
+              <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
+                Form data (live JSON)
+              </h2>
+              <DataJson control={rootControl} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </SelectionContext.Provider>
+  );
+});
+
+const DataJson = controls(function DataJson(
+  { control }: { control: Control<unknown> },
+  { rc },
+) {
+  const value = rc.getValue(control);
+  return (
+    <pre className="overflow-auto rounded bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 p-3 text-xs font-mono whitespace-pre-wrap">
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
+});
+
+export default function DesignerPage() {
+  return (
+    <ControlContextProvider value={controlContext}>
+      <DesignerInner />
+    </ControlContextProvider>
+  );
+}
+
+void ControlAdornmentType;
