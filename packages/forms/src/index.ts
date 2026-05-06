@@ -94,12 +94,43 @@ export { FlexRenderer } from "./renderers/group/Flex";
 export { GridRenderer } from "./renderers/group/Grid";
 export { ContentsRenderer } from "./renderers/group/Contents";
 export { SelectChildRenderer } from "./renderers/group/SelectChild";
+export { TabsRenderer } from "./renderers/group/Tabs";
+export { AccordionGroupRenderer } from "./renderers/group/AccordionGroup";
+export { DialogRenderer } from "./renderers/group/Dialog";
+
+// Action renderers
+export { ButtonAction } from "./renderers/action/Button";
 
 // Display renderers
 export { TextDisplayRenderer } from "./renderers/display/Text";
 export { HtmlDisplayRenderer } from "./renderers/display/Html";
 export { IconDisplayRenderer, iconClassFor } from "./renderers/display/Icon";
 export { CustomDisplayRenderer } from "./renderers/display/Custom";
+
+// Adornments
+export { IconAdornment } from "./adornments/Icon";
+export { HelpTextAdornment } from "./adornments/HelpText";
+export { OptionalAdornment } from "./adornments/Optional";
+export { SetFieldAdornment } from "./adornments/SetField";
+export { AccordionAdornment } from "./adornments/Accordion";
+
+// Adornment composition primitives
+export {
+  indexAdornments,
+  wrapAdornments,
+  type AdornmentKind,
+  type AdornmentRegistration,
+  type AdornmentRenderProps,
+} from "./Adornment";
+
+// Action infrastructure
+export {
+  ActionScope,
+  useActionHandler,
+  type ActionHandler,
+  type ActionHandlerResult,
+} from "./ActionScope";
+export { useAsyncAction, runAsyncAction } from "./useAsyncAction";
 
 // Helpers
 export { useLabelText } from "./labelText";

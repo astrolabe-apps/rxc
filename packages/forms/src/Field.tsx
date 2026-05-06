@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { controls } from "@rxc/controls";
 import {
   ControlDefinitionType,
@@ -19,15 +19,20 @@ import { useVisibility } from "./Visibility";
 import { Label } from "./Label";
 import { Error } from "./Error";
 import { useLabelText } from "./labelText";
+import { indexAdornments, wrapAdornments } from "./Adornment";
 import type { FieldProps } from "./types";
 
 /**
- * Render a single FormStateNode. Picks a renderer from the registry by
- * the definition's `type` (Data / Group / Action / Display), then wraps
- * its output in Layout and Visibility.
+ * Render a single FormStateNode.
  *
- * Phase 1: no adornments yet — Field does dispatch + label + Layout +
- * Visibility only. Adornments land in Phase 3.
+ * Picks a renderer from the registry by the definition's `type` (Data /
+ * Group / Action / Display); composes adornments by `kind` (`label`
+ * wraps the label, `control` wraps the renderer's output, `field` wraps
+ * the entire Layout); wraps in Layout, then in Visibility.
+ *
+ * Wrap order outermost → innermost: Visibility → field-kind adornments →
+ * Layout → control-kind adornments → renderer. Label-kind adornments
+ * wrap the label inside Layout.
  */
 export const Field = controls<FieldProps>(
   "Field",
@@ -105,15 +110,40 @@ export const Field = controls<FieldProps>(
         </Label>
       ) : null;
 
+    // Compose adornments by kind
+    const adornmentList = state.definition.adornments ?? [];
+    const adornmentMap = useMemo(
+      () => indexAdornments(registry.adornments),
+      [registry.adornments],
+    );
+    const decoratedLabel = wrapAdornments(
+      adornmentList,
+      adornmentMap,
+      "label",
+      labelEl,
+      node,
+    );
+    const decoratedInner = wrapAdornments(
+      adornmentList,
+      adornmentMap,
+      "control",
+      inner,
+      node,
+    );
+
+    const layoutEl = (
+      <Layout
+        node={node}
+        label={decoratedLabel}
+        error={<Error node={node} id={errorId} />}
+      >
+        {decoratedInner}
+      </Layout>
+    );
+
     return (
       <Visibility visible={state.visible}>
-        <Layout
-          node={node}
-          label={labelEl}
-          error={<Error node={node} id={errorId} />}
-        >
-          {inner}
-        </Layout>
+        {wrapAdornments(adornmentList, adornmentMap, "field", layoutEl, node)}
       </Visibility>
     );
   },

@@ -44,12 +44,25 @@ import { FlexRenderer } from "./renderers/group/Flex";
 import { GridRenderer } from "./renderers/group/Grid";
 import { ContentsRenderer } from "./renderers/group/Contents";
 import { SelectChildRenderer } from "./renderers/group/SelectChild";
+import { TabsRenderer } from "./renderers/group/Tabs";
+import { AccordionGroupRenderer } from "./renderers/group/AccordionGroup";
+import { DialogRenderer } from "./renderers/group/Dialog";
+
+// Action renderers
+import { ButtonAction } from "./renderers/action/Button";
 
 // Display renderers
 import { TextDisplayRenderer } from "./renderers/display/Text";
 import { HtmlDisplayRenderer } from "./renderers/display/Html";
 import { IconDisplayRenderer } from "./renderers/display/Icon";
 import { CustomDisplayRenderer } from "./renderers/display/Custom";
+
+// Adornments
+import { IconAdornment } from "./adornments/Icon";
+import { HelpTextAdornment } from "./adornments/HelpText";
+import { OptionalAdornment } from "./adornments/Optional";
+import { SetFieldAdornment } from "./adornments/SetField";
+import { AccordionAdornment } from "./adornments/Accordion";
 
 /** Match a Bool field with no explicit renderType and no options → checkbox. */
 function matchBoolDefault(component: typeof BoolRenderer): DataMatcher {
@@ -131,6 +144,9 @@ export function defaultRegistry(): FormRegistry {
       matchDataAlways(TextfieldRenderer),
     ],
     group: [
+      matchGroupRenderType(GroupRenderType.Tabs, TabsRenderer),
+      matchGroupRenderType(GroupRenderType.Accordion, AccordionGroupRenderer),
+      matchGroupRenderType(GroupRenderType.Dialog, DialogRenderer),
       matchGroupRenderType(GroupRenderType.Grid, GridRenderer),
       matchGroupRenderType(GroupRenderType.Flex, FlexRenderer),
       matchGroupRenderType(GroupRenderType.Inline, InlineGroupRenderer),
@@ -139,12 +155,25 @@ export function defaultRegistry(): FormRegistry {
       matchGroupRenderType(GroupRenderType.Standard, StandardGroupRenderer),
       matchGroupAlways(StandardGroupRenderer),
     ],
-    action: [],
+    action: [
+      // Single default — every action node renders as a button. Hosts
+      // can register matchActionId(...) before this to override per id.
+      (): { component: typeof ButtonAction } => ({ component: ButtonAction }),
+    ],
     display: [
       matchDisplayDataType(DisplayDataType.Text, TextDisplayRenderer),
       matchDisplayDataType(DisplayDataType.Html, HtmlDisplayRenderer),
       matchDisplayDataType(DisplayDataType.Icon, IconDisplayRenderer),
       matchDisplayDataType(DisplayDataType.Custom, CustomDisplayRenderer),
     ],
+    // Cast each registration to the unspecified-ControlAdornment form so
+    // the array can hold heterogeneous subtypes — variance escape.
+    adornments: [
+      IconAdornment,
+      HelpTextAdornment,
+      OptionalAdornment,
+      SetFieldAdornment,
+      AccordionAdornment,
+    ] as unknown as FormRegistry["adornments"],
   });
 }

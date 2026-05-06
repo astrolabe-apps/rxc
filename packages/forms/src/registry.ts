@@ -4,6 +4,13 @@ import type {
   DisplayData,
   FormStateNode,
 } from "@rxc/forms-core";
+import type { AdornmentRegistration } from "./Adornment";
+import type {
+  ActionMatch,
+  DataMatch,
+  DisplayMatch,
+  GroupMatch,
+} from "./types";
 
 /**
  * Per-render-type schema metadata, keyed by the render type's `type`
@@ -12,12 +19,6 @@ import type {
  * renderer, consumed by the scripted-proxy walker.
  */
 export type SchemaExtensionsMap = Record<string, unknown>;
-import type {
-  ActionMatch,
-  DataMatch,
-  DisplayMatch,
-  GroupMatch,
-} from "./types";
 
 // ── Matcher function types ───────────────────────────────────────────
 
@@ -45,6 +46,9 @@ export interface FormRegistry {
   group: GroupMatcher[];
   action: ActionMatcher[];
   display: DisplayMatcher[];
+  /** Adornment registrations by `type` discriminator. Earlier entries
+   * shadow later ones (same rule as the matcher arrays). */
+  adornments: AdornmentRegistration[];
   schemaExtensions: SchemaExtensionsMap;
   childResolvers: Record<string, ChildResolverFunc>;
 }
@@ -55,6 +59,7 @@ export function emptyRegistry(): FormRegistry {
     group: [],
     action: [],
     display: [],
+    adornments: [],
     schemaExtensions: {},
     childResolvers: {},
   };
@@ -75,6 +80,7 @@ export function combineRegistries(
     if (r.group) out.group.push(...r.group);
     if (r.action) out.action.push(...r.action);
     if (r.display) out.display.push(...r.display);
+    if (r.adornments) out.adornments.push(...r.adornments);
     if (r.schemaExtensions) {
       for (const [k, v] of Object.entries(r.schemaExtensions)) {
         if (!(k in out.schemaExtensions)) out.schemaExtensions[k] = v;
