@@ -17,7 +17,7 @@ This doc supersedes `FORM-FUTURE-API-DESIGN.md` for the **rendering** half (Form
 
 - **Backwards compatibility with `@react-typed-forms/schemas`.** That's `@rxc/compat-forms`'s job, layered on top.
 - **Bundling an animation library.** `Visibility` is a swappable component (see below). The default unmounts immediately; hosts that want enter/exit animations bring their own library (Framer Motion, react-transition-group, etc.) and supply a custom Visibility component.
-- **Editor-mode features.** The visual form designer's needs (custom render-type metadata, design-mode renders) live in a separate `editor` extension package. Renderers must accept a `designMode` flag but no renderer is required to vary on it.
+- **Editor-mode features.** The visual form designer lives in a separate `@rxc/forms-editor` package. The renderer engine provides the hooks the editor needs — ambient `designMode` context, swappable `Visibility`/`Layout`, `<ActionScope>` for stubbing actions, field-kind adornments for selection chrome and metadata badges, and an `editor` slot on the plugin spec for per-render-type options editors — but no renderer is *required* to vary on `designMode`. Live schema mutation falls out of the rc-driven render pipeline automatically; the only form-engine work the editor depends on (exposing `ControlDefinition` / `SchemaField` as rc-readable handles) is in `@rxc/forms-core`, not here.
 - **Rendering for non-React hosts.** React Native / MUI ports are out of scope here; the abstractions are React-shaped.
 
 ## Lessons from the legacy renderer
@@ -68,9 +68,14 @@ Legacy `Visibility` was `Control<{visible, showing} | undefined>` so animated vi
 
 ### Coupled concerns on registrations
 
-`schemaExtension` (editor metadata) and `resolveChildren` (FormStateNode child topology) lived on `RendererRegistration`. Editor metadata isn't a runtime concern; child topology isn't a renderer concern (picking a renderer shouldn't silently change which children the node expands). Both were on registrations because that was the only extension surface.
+Legacy `RendererRegistration` carried `schemaExtension` and `resolveChildren` alongside the renderer. The earlier draft of this doc framed that as a mistake — "editor metadata isn't a runtime concern, child topology isn't a renderer concern" — and split them into separate registries. That framing is wrong:
 
-**Addressed by:** `schemaExtension` moves to a separate editor package with its own registry. `resolveChildren` belongs on `FormStateNode` / its definition, independent of how it renders — pulled out of the renderer system entirely.
+- `schemaExtension` (the `ControlDefinitionSchemaMap` entry for a custom render type) is **runtime metadata**, not editor-only. `createEvaluatedDefinition` walks it to discover scriptable fields, allocate nested override controls, and coerce `_ScriptNullInit` defaults. Without it, scripts on a custom render type's options can't run. Moving it to "an editor package" loses that path.
+- `resolveChildren` is coupled to the renderer whenever a render type introduces virtual children — `CheckList`/`Radio` expand to one child per option, dialogs split children by `placement`, etc. The topology rule is part of how the render type works.
+
+A custom render type is one logical plugin — component + its render-options schema + (optionally) child topology. Splitting those across three registration calls forces plugin authors to keep three things in sync and creates an easy way to register a renderer whose scripts silently don't run.
+
+**Addressed by:** A plugin-bundle registration shape (`dataPlugin({ type, component, schema?, resolveChildren?, hidesLabel? })`, and equivalents for group/action/display) that emits a matcher and the associated metadata in one call. Internally the registry still holds separate per-kind matcher arrays plus a `schemaExtensions` map and a child-resolver lookup — the engine doesn't merge concerns, but the plugin author registers the unit cohesively. See [Plugins](#plugins) below.
 
 ### Action handler chain was a global
 
@@ -121,9 +126,7 @@ interface FieldProps {
   node: FormStateNode;
   layout?: ComponentType<LayoutProps>;          // override Layout for this node
   visibility?: ComponentType<VisibilityProps>;  // override Visibility for this node
-  helperText?: ReactNode;                       // forwarded to Layout
-  description?: ReactNode;
-  designMode?: boolean;
+  designMode?: boolean;                         // per-node override of DesignModeContext
 }
 ```
 
@@ -142,7 +145,7 @@ interface FieldProps {
 function Form({ form, data, registry, layout, options }: FormProps): ReactElement;
 
 interface FormProps {
-  form: FormDefinition | FormNode;              // schema + control definitions
+  form: FormNode;                               // root form node
   data: Control<unknown>;                       // root data
   registry?: FormRegistry;                      // dispatch
   layout?: ComponentType<LayoutProps>;          // global layout override
@@ -164,6 +167,15 @@ type ActionRenderer  = ComponentType<ActionRendererProps>;
 type DisplayRenderer = ComponentType<DisplayRendererProps>;
 ```
 
+Matchers return a component plus optional dispatch-time metadata (e.g. `hidesLabel`):
+
+```tsx
+interface DataMatch {
+  component: DataRenderer;
+  hidesLabel?: boolean;       // renderer absorbs the label into its own DOM
+}
+```
+
 Props carry the `FormStateNode`, the resolved field/definition, and the `ReadContext` (via `controls()`). No callbacks back into the form renderer — recursive rendering uses `<Field node={child}/>`.
 
 ```tsx
@@ -174,31 +186,31 @@ interface DataRendererProps {
 }
 ```
 
-The renderer's job is **the input only** — no label, no error, no helper text, no adornments. Those are the responsibility of the surrounding `Field`/`Layout`/adornment components.
+The renderer's job is **the input only** — no error, no helper text, no adornments. Those are the responsibility of the surrounding `Field`/`Layout`/adornment components. Labels are *also* normally `Layout`'s job, but a renderer whose accessible structure requires the label inside its own DOM (checkbox, radio group, checklist — semantic `<label><input></label>` or `<fieldset><legend>`) absorbs the label by declaring `hidesLabel = true`; `Field` then skips emitting one. See `BoolRenderer` and `RadioRenderer` below.
 
 ### Matcher
 
-Dispatch is a list of matcher functions. Each takes the node and returns a renderer or `null`:
+Dispatch is a list of matcher functions. Each takes the node and returns a `DataMatch` (component + optional metadata) or `null`:
 
 ```tsx
-type DataMatcher    = (node: FormStateNode, rc: ReadContext) => DataRenderer | null;
-type GroupMatcher   = (node: FormStateNode, rc: ReadContext) => GroupRenderer | null;
-type ActionMatcher  = (id: string) => ActionRenderer | null;
-type DisplayMatcher = (data: DisplayData) => DisplayRenderer | null;
+type DataMatcher    = (node: FormStateNode, rc: ReadContext) => DataMatch | null;
+type GroupMatcher   = (node: FormStateNode, rc: ReadContext) => GroupMatch | null;
+type ActionMatcher  = (id: string) => ActionMatch | null;
+type DisplayMatcher = (data: DisplayData) => DisplayMatch | null;
 ```
 
 The first matcher to return non-null wins. The list is ordered most-specific to least-specific; the catch-all sits at the end.
 
-Sugar helpers for common patterns:
+Sugar helpers for common patterns. Each accepts an optional metadata object (currently just `hidesLabel`) so plain components stay plain — the metadata lives at the registration call:
 
 ```tsx
-matchRenderType(t: string, r: DataRenderer): DataMatcher;
-matchSchemaType(ft: FieldType, r: DataRenderer): DataMatcher;
-matchHasOptions(r: DataRenderer): DataMatcher;
-matchCollection(r: DataRenderer): DataMatcher;
-matchAll(...preds: DataMatcher[]): DataMatcher;       // AND, returns last component
+matchRenderType(t: string, r: DataRenderer, meta?: Omit<DataMatch, "component">): DataMatcher;
+matchSchemaType(ft: FieldType, r: DataRenderer, meta?): DataMatcher;
+matchHasOptions(r: DataRenderer, meta?): DataMatcher;
+matchCollection(r: DataRenderer, meta?): DataMatcher;
+matchAll(...preds: DataMatcher[]): DataMatcher;       // AND, returns last match
 matchAny(...preds: DataMatcher[]): DataMatcher;       // OR (rare, but available)
-matchAlways(r: DataRenderer): DataMatcher;            // catch-all
+matchAlways(r: DataRenderer, meta?): DataMatcher;     // catch-all
 ```
 
 Equivalent helpers for `GroupMatcher`/`ActionMatcher`/`DisplayMatcher`.
@@ -208,7 +220,7 @@ A matcher is just a function — hosts that need anything weird write the functi
 ```tsx
 const customMatcher: DataMatcher = (node, rc) => {
   const state = node.getState(rc);
-  return state.field?.tags?.includes("private") ? PrivateRenderer : null;
+  return state.field?.tags?.includes("private") ? { component: PrivateRenderer } : null;
 };
 ```
 
@@ -220,6 +232,13 @@ interface FormRegistry {
   group:   GroupMatcher[];
   action:  ActionMatcher[];
   display: DisplayMatcher[];
+  // Runtime schema metadata for scripted-proxy walking, keyed by ControlDefinition.type
+  // (Standard / Group / Action / Display) and then by render-type subkey where applicable.
+  // Read by createEvaluatedDefinition to discover scriptable fields on custom render types.
+  schemaExtensions: ControlDefinitionSchemaMap;
+  // Per-render-type child topology (e.g. CheckList → one child per option).
+  // Read by FormStateNode's defaultResolveChildren when the definition's render type matches.
+  childResolvers: Record<string, ChildResolver>;
 }
 
 function combineRegistries(...regs: FormRegistry[]): FormRegistry;
@@ -237,6 +256,52 @@ const registry = combineRegistries(
 
 The default registry is just an array of matcher calls — no special "fallback" path. The catch-alls at the end of each list (`Textfield` for data, `StandardGroup` for group) are how the engine handles "no specific match."
 
+### Plugins
+
+A custom render type is one logical unit: a renderer component, the schema metadata describing its render-options sub-fields (so scripts on those options can run), and optionally a child topology rule. Plugin-bundle helpers register all of these in one call and emit a `Partial<FormRegistry>` that `combineRegistries` merges.
+
+```tsx
+interface DataPluginSpec {
+  type: string;                                // ControlDefinition render type, e.g. "MyChart"
+  component: DataRenderer;                     // the React component
+  hidesLabel?: boolean;                        // dispatch metadata (see Matcher)
+  schema?: ControlDefinitionSchema;            // ControlDefinitionSchemaMap entry — runtime, not editor-only
+  resolveChildren?: ChildResolver;             // virtual-children rule (CheckList-style)
+  match?: DataMatcher;                         // override the default matchRenderType matcher
+  editor?: EditorPluginSlot;                   // editor-side metadata (options editor, palette label, icon)
+}
+
+function dataPlugin(spec: DataPluginSpec): Partial<FormRegistry>;
+function groupPlugin(spec: GroupPluginSpec): Partial<FormRegistry>;
+function actionPlugin(spec: ActionPluginSpec): Partial<FormRegistry>;
+function displayPlugin(spec: DisplayPluginSpec): Partial<FormRegistry>;
+```
+
+Usage:
+
+```tsx
+const myChart = dataPlugin({
+  type: "MyChart",
+  component: MyChartRenderer,
+  schema: {
+    fields: [
+      { field: "title",  type: FieldType.String, tags: [SchemaTags.ScriptNullInit] },
+      { field: "series", type: FieldType.String, tags: [SchemaTags.ScriptNullInit] },
+    ],
+  },
+});
+
+const registry = combineRegistries(myChart, defaultRegistry());
+```
+
+Internally `dataPlugin` emits one `DataMatcher` (a `matchRenderType("MyChart", component, { hidesLabel })` unless `match` is overridden), one entry on `schemaExtensions`, and one entry on `childResolvers`. The runtime then:
+
+- Picks the renderer via the matcher list (unchanged from the simple case).
+- Walks `schemaExtensions[type]` from `createEvaluatedDefinition` to populate `_ScriptNullInit` fields and allocate nested override controls — so scripts on `MyChart`'s `title`/`series` options work without any extra wiring.
+- Calls `childResolvers[type]` from `defaultResolveChildren` if present.
+
+Plugin authors don't have to know which sub-registry each piece lands in. Hosts that want to extend an existing render type's schema (without registering a new one) can still write `{ schemaExtensions: { ... } }` directly into a registry — the bundle helper is a convenience, not a wrapper.
+
 ### Layout
 
 ```tsx
@@ -245,8 +310,6 @@ interface LayoutProps {
   label?: ReactNode;        // already-decorated by label adornments
   children: ReactNode;      // already-decorated by control adornments
   error?: ReactNode;
-  helperText?: ReactNode;
-  description?: ReactNode;
   inline?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -302,7 +365,7 @@ There's no `apply(layout)` mutator. There's no slot registry. Slot-style "push c
 ```tsx
 const Field = controls<FieldProps>("Field", (props, { rc }) => {
   const { node, layout: layoutProp, visibility: visibilityProp,
-          designMode, ...slotProps } = props;
+          designMode } = props;
   const state = node.getState(rc);
 
   const { kind } = node.definition;        // "data" | "group" | "action" | "display"
@@ -311,11 +374,12 @@ const Field = controls<FieldProps>("Field", (props, { rc }) => {
   const Visibility = visibilityProp ?? useVisibility();
 
   // Pick the renderer
-  const Renderer = pickRenderer(registry, kind, node, rc);
+  const match = pickRenderer(registry, kind, node, rc);
+  const { component: Renderer, hidesLabel } = match;
   const Inner = <Renderer node={node} />;
 
-  // Build label
-  const labelText = useLabelText(node, rc);  // null when hideTitle / no field
+  // Build label — skipped when the renderer absorbs it (e.g. BoolRenderer, RadioRenderer)
+  const labelText = hidesLabel ? null : useLabelText(node, rc);
   const Label = labelText != null ? <Label node={node}>{labelText}</Label> : null;
 
   // Compose adornments
@@ -332,7 +396,6 @@ const Field = controls<FieldProps>("Field", (props, { rc }) => {
       node={node}
       label={decoratedLabel}
       error={<Error node={node} />}
-      {...slotProps}
     >
       {decoratedInner}
     </Layout>
@@ -365,11 +428,11 @@ The default data matcher list, in order:
   matchAll(matchCollection,    matchRenderTypeOneOf(["Standard","Array"]), ArrayRenderer),
   matchAll(matchCompoundField, matchRenderTypeStandard,                    CompoundDelegate),
   matchDisplayOnly(DisplayOnlyRenderer),
-  matchBoolDefault(BoolRenderer),         // Bool with no options/renderType → checkbox
+  matchBoolDefault(BoolRenderer, { hidesLabel: true }),    // Bool with no options/renderType → checkbox
   matchAll(matchHasOptions, matchRenderTypeStandard, SelectRenderer),
-  matchRenderType("Radio",        RadioRenderer),
-  matchRenderType("Checkbox",     CheckboxRenderer),
-  matchRenderType("CheckList",    ChecklistRenderer),
+  matchRenderType("Radio",        RadioRenderer,        { hidesLabel: true }),
+  matchRenderType("Checkbox",     CheckboxRenderer,     { hidesLabel: true }),
+  matchRenderType("CheckList",    ChecklistRenderer,    { hidesLabel: true }),
   matchRenderType("Dropdown",     SelectRenderer),
   matchRenderType("Autocomplete", AutocompleteRenderer),
   matchRenderType("DisplayOnly",  DisplayOnlyRenderer),
@@ -428,18 +491,9 @@ Renders `<input type="checkbox">` inline with the label as part of the *renderer
 </label>
 ```
 
-This means BoolRenderer is unusual — it absorbs the label. To make this work cleanly, BoolRenderer signals to Field that the label is consumed via:
+This means BoolRenderer is unusual — it absorbs the label. The signal that the label is consumed lives on the **matcher**, not the component: `matchBoolDefault(BoolRenderer, { hidesLabel: true })`. `Field` reads `hidesLabel` from the match result and skips computing/rendering a label.
 
-```tsx
-interface DataRenderer {
-  // optional static property
-  readonly hidesLabel?: boolean;
-}
-```
-
-`Field` checks `Renderer.hidesLabel` before computing `decoratedLabel`. Default false.
-
-This replaces the legacy `LabelType.Inline` mechanism — a renderer that wants the label inside its own DOM declares it; Field stays out of the way. Layout never sees a label for these.
+This keeps `BoolRenderer` a plain React component (no static props, no HOC-loss footgun) and locates dispatch metadata where dispatch happens. It replaces the legacy `LabelType.Inline` mechanism — a renderer that wants the label inside its own DOM is registered with `hidesLabel: true`; Field stays out of the way; Layout never sees a label.
 
 #### `SelectRenderer` — Standard with options, or `Dropdown`
 
@@ -447,7 +501,7 @@ Native `<select>`. Empty option for non-required or null-valued fields. `<optgro
 
 #### `RadioRenderer` — `Radio`
 
-Renders a `<fieldset>` with radio inputs. Reuses BoolRenderer's "absorb the label" pattern via `hidesLabel = true` — `<legend>` is the label, no separate label needed.
+Renders a `<fieldset>` with radio inputs. Registered with `hidesLabel: true` (see `BoolRenderer`) — `<legend>` is the label, no separate Field-rendered label needed.
 
 ```tsx
 <fieldset>
@@ -463,7 +517,7 @@ Renders a `<fieldset>` with radio inputs. Reuses BoolRenderer's "absorb the labe
 
 #### `ChecklistRenderer` — `CheckList`, collection
 
-Same shape as Radio but `<input type="checkbox">` and array-membership checks. `hidesLabel = true`, uses `<legend>`.
+Same shape as Radio but `<input type="checkbox">` and array-membership checks. Registered with `hidesLabel: true`, uses `<legend>`.
 
 #### `CheckboxRenderer` — `Checkbox` (explicit, including non-Bool)
 
@@ -765,6 +819,7 @@ Default registrations:
 ```tsx
 [
   { type: "Icon",      kind: "control", priority: 0,    render: IconAdornment },
+  { type: "HelpText",  kind: "control", priority: 0,    render: HelpTextAdornment },
   { type: "Optional",  kind: "control", priority: 0,    render: OptionalAdornment },
   { type: "SetField",  kind: "field",   priority: 0,    render: SetFieldAdornment },
   { type: "Accordion", kind: "field",   priority: 1000, render: AccordionAdornment },
@@ -783,6 +838,21 @@ function IconAdornment({ adornment, children }: AdornmentRenderProps<IconAdornme
 ```
 
 `LabelStart`/`LabelEnd` placements ignored for v1 — moved to `kind: "label"` adornment if/when needed (not used by any production schema we've audited).
+
+#### `HelpTextAdornment`
+
+```tsx
+function HelpTextAdornment({ adornment, children }: AdornmentRenderProps<HelpTextAdornmentDef>) {
+  const help = <p className="help-text">{adornment.helpText}</p>;
+  switch (adornment.placement) {
+    case "ControlStart": return <span className="inline-flex items-center gap-1">{help}{children}</span>;
+    case "ControlEnd":   return <span className="inline-flex items-center gap-1">{children}{help}</span>;
+    default:             return <div>{children}{help}</div>;  // default: below the control on its own line
+  }
+}
+```
+
+Same shape as `IconAdornment`: `kind: "control"`, placement decides inline-vs-block. `LabelStart`/`LabelEnd` deferred to `kind: "label"` registration in Phase 4b. There is no separate `helperText` slot on `Layout` — placement is the adornment's job, not the layout's.
 
 #### `OptionalAdornment`
 
@@ -939,6 +1009,84 @@ From the `Field` flow:
 
 Visibility is outside field-kind adornments. When a field hides, the entire layout — including any Accordion/SetField wrappers — unmounts. If you want an accordion that animates collapse but keeps mounted children, that's a different feature (an animated `<Accordion>` component handling its own internal show/hide), not a Visibility concern.
 
+## Design mode
+
+The renderer engine doesn't ship an editor, but its extension surfaces are designed so an editor package can be built without forking the engine. This section documents the patterns the future `@rxc/forms-editor` will use — they all fall out of primitives already defined above.
+
+### Ambient `designMode`
+
+`designMode` is read from a context, not just `FieldProps`:
+
+```tsx
+const DesignModeContext = createContext<boolean>(false);
+function useDesignMode(): boolean { return useContext(DesignModeContext); }
+```
+
+`Field` resolves: `props.designMode ?? useContext(DesignModeContext)` and passes the result down via the same provider — children inherit, callers can override per-subtree. Renderers and adornments call `useDesignMode()` rather than receiving it as a prop.
+
+The editor wraps its preview region in `<DesignModeContext.Provider value={true}>` and never threads the flag through individual `<Field>` calls.
+
+### Selection chrome (field-kind adornment)
+
+The editor registers a high-priority field-kind adornment that wraps every node with click-capture and selection chrome:
+
+```tsx
+function SelectionAdornment({ node, children }: AdornmentRenderProps) {
+  const designing = useDesignMode();
+  const selection = useSelection();   // editor-provided context
+  if (!designing) return children;
+  const isSelected = selection.id === node.id;
+  return (
+    <div
+      onClickCapture={(e) => { e.stopPropagation(); selection.select(node.id); }}
+      style={isSelected ? { outline: "2px solid rgb(25, 118, 210)" } : undefined}
+      data-form-node={node.id}
+    >
+      {children}
+    </div>
+  );
+}
+```
+
+Registered globally (e.g. via the editor's `combineRegistries(editorRegistry, defaultRegistry())`) so it wraps every node automatically. `useDesignMode()` short-circuits in production.
+
+Metadata badges (visibility-icon, field-name overlays from the legacy editor) layer on the same way — additional field-kind adornments at higher priority.
+
+### Action stubbing
+
+The editor wraps its preview in `<ActionScope onAction={() => true}>` to swallow every action ID. Buttons render normally but their handlers are no-ops in design mode. Specific actions the editor wants to expose (e.g. dialog-trigger preview) can be intercepted explicitly before the catch-all returns true.
+
+### Visibility override
+
+`<Form visibility={DesignVisibility}>` swaps `DefaultVisibility` for one that always renders, optionally with a "hidden" affordance:
+
+```tsx
+function DesignVisibility({ visible, children }: VisibilityProps) {
+  return <span style={visible === true ? undefined : { opacity: 0.4 }}>{children}</span>;
+}
+```
+
+### Per-render-type options editor
+
+The `editor?` slot on `dataPlugin` (and friends) carries the editor-side analog of `schema`:
+
+```tsx
+interface EditorPluginSlot {
+  optionsEditor?: ComponentType<OptionsEditorProps>;   // form rendered when this render type is selected
+  paletteLabel?: string;                               // human-readable name for the tools palette
+  paletteIcon?: ReactNode;
+  // additional fields tightened by the editor package's typing
+}
+```
+
+The renderer engine carries this through opaquely (typed as `unknown` here, narrowed by the editor package's typings); the editor package iterates its own registry to populate the properties panel. This keeps "register one logical plugin" intact — adding an editor for an existing render type doesn't require touching the renderer registration.
+
+### Live schema mutation
+
+Reactive definitions come for free. The renderer is rc-driven end-to-end — every renderer is a `controls()` component, every read goes through `node.getState(rc)` / `node.getChildren(rc)`, and `Field` itself re-renders on any tracked change. If the editor holds `ControlDefinition` / `SchemaField` as Controls and `FormStateNode` derives its state reactively from those (which it does), mutations re-flow through the entire tree without the renderer doing anything special.
+
+The form-engine-side question (CLAUDE.md flags it as open work) is *how* the editor exposes definitions as Controls — i.e. the `trackedValue` proxy adaptation that lets a `SchemaField`/`ControlDefinition` be read through an explicit `ReadContext`. That's `@rxc/forms-core` work, not renderer work.
+
 ## Label resolution
 
 `useLabelText(node, rc)`:
@@ -993,8 +1141,6 @@ This is finer-grained than legacy `@trackControls` — each renderer subscribes 
 - **Label as adornment or as Layout slot?** Today's design has `<Label>` as a separate component invoked by `Field`, decorated by label-kind adornments, then handed to Layout as a prop. Alternative: Layout owns label rendering entirely (it gets `node` and renders its own label). The current design splits the work; the alternative is fewer moving parts. Probably the right call once we've implemented one MUI-style alternate Layout.
 
 - **Label-text encoding hook (HTML/markdown labels).** Real-world legacy hosts use `LabelRendererRegistration` with `labelType: LabelType.Text` to register a global label-text transformer — e.g. ServiceTas registers an `HtmlLabelRenderer` that runs strings through `html-react-parser` so any `title` declared in a schema can contain HTML markup. The legacy engine exposed `renderers.renderLabelText(text)` and called it from *every* place a label string materialized: the main `<Label>`, `HelpText` adornment titles, action button labels, custom renderers that needed to render a sublabel. The current rxc design only swaps `<Label>` (via prop / `<LabelProvider>` / Layout) — that covers the main field label but **not** adornment-rendered labels or any other place a `title: string` becomes DOM. To preserve parity we likely need either: (a) a `useLabelText(): (text: string) => ReactNode` hook backed by a `<LabelTextProvider>` context that every label-string-rendering site (Field's `<Label>`, HelpText adornment, action button text, anywhere a renderer renders `title`) funnels through, or (b) require all label strings to flow through a single `<LabelText>{title}</LabelText>` component that hosts swap. Option (a) is closer to the legacy ergonomics; option (b) is more discoverable. Either way, the contract needs to be documented so adornment authors know to route label strings through the hook rather than dropping them into JSX directly.
-
-- **Renderer "absorbs label" mechanism.** `Renderer.hidesLabel` as a static property on the component is unusual in React. Alternatives: a sentinel return (`Renderer` returns a `[input, label]` tuple), or a `LabelContext` the renderer suppresses. The current approach is the most conservative.
 
 - **`<ActionScope>` propagation.** Walking the React tree to find action handlers is clean but means a handler installed in one subtree can't shadow a parent handler that already returned `undefined` (React doesn't re-walk). For nested dialogs this is correct; for unusual cases hosts may need to compose handlers explicitly.
 
