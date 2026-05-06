@@ -10,11 +10,11 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 |---|---|---|
 | `@rxc/controls-core` | `packages/controls-core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
 | `@rxc/controls` | `packages/controls` | React adapter: `controls()` wrapper, `ControlContextProvider`. Re-exports all of controls-core. |
-| `@rxc/forms-core` | `packages/forms-core` | Full canonical schema types (SchemaField, ControlDefinition) + persistent SchemaNode/DataNode/FormNode handles with cursor-based reactive traversal. FormStateNode and expression evaluation not yet migrated. |
-| `@rxc/forms` | `packages/forms` | Schema-driven rendering. **Not yet implemented — needs design doc first.** |
+| `@rxc/forms-core` | `packages/forms-core` | Full canonical schema types + persistent SchemaNode/DataNode/FormNode handles, cursor-based reactive traversal, FormStateNode, validators, jsonata, scripted-proxy. |
+| `@rxc/forms` | `packages/forms` | Schema-driven rendering. Phase 4a complete: Field/Form/registry, default data + group + display + adornment renderers, action infra, plugin bundle helpers, design mode. **Phase 4b backlog below.** |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
-| `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Has simple form demo (`/`) and tree visualizer (`/tree`). |
+| `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo. |
 
 ## Commands
 
@@ -60,6 +60,7 @@ All in `docs/`:
 
 - **CONTROL-SEMANTICS.md** — The authoritative reference for control tree behavior: value propagation, error handling, dirty/touched/disabled cascading, element lifecycle, null materialization. **These semantics are settled and must be preserved.**
 - **FORM-SEMANTICS.md** — The authoritative reference for form state behavior: FormStateNode lifecycle, visibility/disabled/readonly cascading, children resolution, data node syncing, script overrides. **These semantics are settled and must be preserved.**
+- **RENDERER-DESIGN.md** — The authoritative reference for `@rxc/forms`: Field/Form dispatch, FormRegistry, matchers + plugin helpers, Layout/Visibility/Label/Error, adornment composition (label/control/field kinds with priority + reduce), action infra (ActionScope/useActionHandler/useAsyncAction), design-mode hooks. **Phase 4a is settled; Phase 4b items are listed below.**
 - **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, controls() wrapper rationale.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
@@ -167,34 +168,95 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 - `src/nodes/formStateNode.ts` — `variables` now plumbed from the node's `FormNodeOptions` through `createEvaluatedDefinition`.
 - **Variables reactivity:** `VariablesFunc` is `(rc: ReadContext) => Record<string, any>` — invoked with the same `TrackingReadContext` that drives jsonata's data reads, so reactive reads inside the producer (e.g. `optionSelected` derived from a data control via `rc.getValue`) trigger jsonata re-evaluation when their inputs change. `combineVariables` and `isOptionSelected` use the rc directly.
 
-### Phase 6 (partial): Dev app ✅
+### Phase 4 — @rxc/forms (renderer) ✅
 
-- `/` — Simple form demo (validation, dirty/clean, submit/reset) using controls-core directly
-- `/tree` — Three-panel visualizer: rendered form (FormStateNode-driven), FormStateNode tree inspector, raw Control tree. Demonstrates `required`, `onlyForTypes` (field entirely hidden), scripted `Disabled` via `dynamic[]` (field visible but disabled), compound fields.
+Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.md`. Design in `docs/RENDERER-DESIGN.md`.
+
+#### Phase 4a-1: Skeleton + minimal renderers ✅
+- `Form`, `Field` components; `useFormStateNode` helper; `FormRegistry`, `combineRegistries`, `defaultRegistry`; matcher types + sugar (`matchRenderType`, `matchSchemaType`, `matchAll`, `matchAny`, `matchHasOptions`, `matchCollection`, `matchCompoundField`, `matchAlways`)
+- `DefaultLayout`, `DefaultVisibility`, `<Label>`, `<Error>`, `useLabelText`
+- Phase-1 renderers: `TextfieldRenderer` (catch-all), `NumberRenderer` (Int/Double, parse-on-blur), `CompoundDelegate`, `StandardGroupRenderer`
+- `id` prop on `DataRendererProps` (generated once per Field via `useId()`); `<Label htmlFor>` and `<Error id>` threaded from Field
+- `ControlContext.uniqueId` counter moved off the module global onto `ControlContextImpl` — fresh contexts always start from 1, so SSR/hydration produce identical `Control.uniqueId`/`FormStateNode.uniqueId` sequences
+- `/tree` page migrated to `<Form>`
+
+#### Phase 4a-2: Full default renderer set ✅
+- Data: `MultilineRenderer`, `BoolRenderer` (hidesLabel), `CheckboxRenderer` (alias), `DateRenderer`/`DateTimeRenderer`/`TimeRenderer`, `SelectRenderer` (with optgroup), `RadioRenderer` (hidesLabel, fieldset/legend), `ChecklistRenderer` (hidesLabel, array membership), `AutocompleteRenderer` (single-mode, no Downshift), `DisplayOnlyRenderer`, `ArrayRenderer` (renderer-internal `wc.addElement`/`wc.removeElement`)
+- Group: `InlineGroupRenderer`, `FlexRenderer`, `GridRenderer`, `ContentsRenderer`, `SelectChildRenderer`
+- Display: `TextDisplayRenderer`, `HtmlDisplayRenderer`, `IconDisplayRenderer` (FontAwesome/Material/CssClass), `CustomDisplayRenderer` (FormOptions.customDisplays)
+- `useExpression(rc, node, expr)` — synchronous Data expressions only; Jsonata deferred
+- Matcher ordering rules locked in by tests: `matchCompoundField` excludes the array node of a collection-compound (uses `DataCursor.elementIndex`); `matchCollection` excludes individual elements; explicit renderType matchers run before defaults so CheckList collection routes to ChecklistRenderer not ArrayRenderer; bare `matchHasOptions(SelectRenderer)` after explicit matchers handles options-bearing fields with no renderType
+- `/showcase` page
+
+#### Phase 4a-3: Adornments + complex groups + actions ✅
+- Adornment system (`src/Adornment.tsx`): `AdornmentKind` (`label`/`control`/`field`), `AdornmentRegistration<A>`, `wrapAdornments` (priority asc + reduce so highest priority is outermost), `indexAdornments`
+- Default adornments (`src/adornments/`): Icon, HelpText (placement-driven inline/block), Optional (allowNull checkbox), SetField (useExpression effect → sibling), Accordion (priority 1000, native `<details>`)
+- Field's render now wraps: Visibility → field-kind adornments → Layout → control-kind adornments → renderer; label-kind adornments wrap the label inside Layout
+- `<ActionScope>` context + `useActionHandler` ancestor walker + `runAsyncAction` / `useAsyncAction` (`.catch` + `.finally` so rejection releases busy)
+- `ButtonAction` (icon placement variants, ActionStyle classes)
+- Group: `TabsRenderer`, `AccordionGroupRenderer` (per-child native `<details>`), `DialogRenderer` (native `<dialog>` + ActionScope intercepts `openDialog`/`closeDialog`)
+- `/interactive` page
+
+#### Phase 4a-4: Plugins + design mode ✅
+- `dataPlugin` / `groupPlugin` / `actionPlugin` / `displayPlugin` (`src/plugins.ts`) — emit `Partial<FormRegistry>`; `EditorPluginSlot` opaque carry-through
+- `collectExtraRenderOptionFields(registry)` flattens schemaExtensions; `useFormStateNode` passes via `FormGlobalOptions.extraRenderOptionFields`
+- forms-core change: `createEvaluatedDefinition` accepts `extraRenderOptionFields: SchemaField[]` — appended when buildLevel descends into the `renderOptions` compound, so plugin scriptable options register correctly
+- forms-core fix: `createOverrideProxy` checks the nested-builder branch *before* the override-value branch so a partial nested override (e.g. `{ maxStars }`) doesn't shadow base compound fields (e.g. `renderOptions.type`)
+- `DesignModeContext` + `useDesignMode()`; `Field` and `Form` accept `designMode?: boolean` prop that installs the provider
+- `/designer` page: custom Stars data plugin with scripted `maxStars` option, design-mode toggle (DesignVisibility, ActionScope-stubbed actions, high-priority field-kind SelectionAdornment)
+
+#### Tailwind v4 in dev app
+`apps/dev/src/app/globals.css` registers `@source "../../../../packages/forms/src/**/*.{ts,tsx}"` so renderer utility classes from `@rxc/forms` are emitted into the generated stylesheet.
 
 ## Testing
 
 - **Framework**: Vitest + fast-check (property-based testing)
 - **Location**: `test/` dir in each package
 - **Config**: `vitest.config.ts` per package
-- Current count: **103 tests** in forms-core (65 node/cursor + 32 FormStateNode covering layers 1–4b + 6 jsonata covering Layer 4c, including reactive variables). controls-core has 51.
+- Current counts:
+  - `controls-core`: **54** (added uniqueId determinism tests)
+  - `forms-core`: **107** (added 4 override-proxy regression tests)
+  - `forms`: **76** (registry, matchers, builtins, adornments, useAsyncAction, plugins)
 
 ## Next steps
 
-### Phase 4: @rxc/forms (renderer redesign)
+### Phase 4b — additive renderer features (deferred, none blocks the design)
 
-Write a design doc first (`docs/RENDERER-DESIGN.md`) before implementing. Key questions:
-- How do renderers register for specific control/render types?
-- How does `controls()` integration work for every renderer component?
-- How do labels, layouts, adornments, and visibility compose?
-- How should different UI libraries (Tailwind, MUI, React Native) plug in?
+- `WizardRenderer` (group) + `useWizardController` hook
+- `ScrollListRenderer` (data, collection — IntersectionObserver + meta-driven loading state)
+- `JsonataRenderer` (data) — needs full async expression evaluation through `useExpression`
+- `ElementSelectedRenderer` (data, Bool)
+- `ArrayElementRenderer` (data, dialog-based external edit)
+- `OptionalAdornment.editSelectable` flag
+- `LabelStart` / `LabelEnd` placements via `kind: "label"` adornment registration (HelpText + Icon currently defer these)
+- Optional `@rxc/forms-motion` add-on package shipping `FadeVisibility`, `SlideVisibility`, animated `<Accordion>` (Framer Motion-based)
+- Reorder support in arrays (separate `SortableArrayRenderer` consuming `dnd-kit`)
+- Multi-error rendering primitive (Error currently shows the first error only)
+- `acquireDisabler` + FormNodeUi disabler stack in forms-core — enables `disableType: "Form"` / `"Global"` for `useAsyncAction` (Phase 3 supports `Self` only)
+- `useExpression`: handle Jsonata + DataMatch + NotEmpty + UUID + Not via the full forms-core evaluator (today only `Data` is wired)
 
-### Phase 5: Legacy compat packages
+### `@rxc/forms-editor` (visual designer, separate project)
+
+The renderer engine already provides every hook the editor needs (no further `@rxc/forms` work required to start the port):
+- Ambient `designMode` via `DesignModeContext`
+- Selection chrome as a high-priority field-kind adornment (`/designer` page demonstrates the pattern)
+- `<Form visibility={DesignVisibility}>` to render hidden fields anyway
+- `<ActionScope onAction={() => true}>` to stub actions
+- `EditorPluginSlot` on plugin specs — opaque carry-through for the editor package's typings
+- Reactive definition input falls out of the rc-driven render pipeline; the only piece is exposing `ControlDefinition`/`SchemaField` as Controls (the `trackedValue` adaptation noted under "Open for redesign" — `@rxc/forms-core` work, not renderer work). `createReactiveFormTree` already does this for definitions.
+
+Reference port target: `astrolabe-common/astrolabe-schemas-editor/src/`.
+
+### Phase 5 — Legacy compat packages
 
 - `@rxc/compat-controls` — Monkey-patches `Control.prototype` to restore `.value`, `.touched` getters, `useControl()` hook, `Finput`/`Fselect`/`Fcheckbox` components, global transaction machinery.
-- `@rxc/compat-forms` — Wraps `@rxc/forms` with the old `createFormRenderer()` / `FormRenderer` interface.
+- `@rxc/compat-forms` — Wraps `@rxc/forms` with the old `createFormRenderer()` / `FormRenderer` interface. Mapping legacy `RendererRegistration[]` to new matcher functions; renderers that returned plain `ReactNode` port mechanically; renderers that mutated `ControlLayoutProps` need manual translation (documented limitation).
 
 ### Smaller follow-ups
 
-- Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `src/nodes/formNode.ts`)
+- Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `forms-core/src/nodes/formNode.ts`)
 - Consider re-adding `validDataCursor` result caching via `ensureMetaValue` on the data control (old code had per-control `validForSchema` cache; current port re-walks the parent chain per call)
+- AccordionAdornment / AccordionGroupRenderer expanded state survives unmount/remount via `data.meta` (Phase 3 keeps it as React-local `useState`)
+- ArrayRenderer reorder + per-row chrome customization
+- ButtonAction supports `disableType: "Form"` / `"Global"` once forms-core gets `acquireDisabler`
+- Action stubbing in `/designer` could be a dedicated `<DesignActionScope>` rather than ad-hoc `<ActionScope onAction={() => true}>`
