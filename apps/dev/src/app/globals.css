@@ -1,1 +1,7 @@
 @import "tailwindcss";
+
+/* Tailwind v4 only scans the consuming app by default. Workspace
+ * packages whose components carry Tailwind utility classes need to be
+ * registered explicitly so their class names are emitted into the
+ * generated stylesheet. */
+@source "../../../../packages/forms/src/**/*.{ts,tsx}";

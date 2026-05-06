@@ -35,17 +35,27 @@ interface FakeStateInput {
   definition: ControlDefinition;
   field?: SchemaField;
   fieldOptions?: FieldOption[];
+  /** When set, simulates an array element at this index. */
+  elementIndex?: number;
 }
 
 function fakeNode({
   definition,
   field,
   fieldOptions,
+  elementIndex,
 }: FakeStateInput): FormStateNode {
+  const dataNode = field
+    ? ({
+        id: "fake",
+        cursor: () => ({ elementIndex }),
+      } as unknown as NonNullable<FormState["dataNode"]>)
+    : undefined;
   const state: Partial<FormState> = {
     definition,
     field,
     fieldOptions,
+    dataNode,
     visible: true,
     disabled: false,
     readonly: false,
@@ -144,6 +154,41 @@ describe("data matchers", () => {
       field: { type: FieldType.Compound, field: "address" },
     });
     expect(m(node, rc)?.component).toBe(Renderer);
+  });
+
+  it("matchCompoundField skips the array itself for collection compounds", () => {
+    const m = matchCompoundField(Renderer);
+    const node = fakeNode({
+      definition: dataDef(),
+      field: { type: FieldType.Compound, field: "addresses", collection: true },
+    });
+    expect(m(node, rc)).toBeNull();
+  });
+
+  it("matchCompoundField hits on array elements of collection compounds", () => {
+    const m = matchCompoundField(Renderer);
+    const node = fakeNode({
+      definition: dataDef(),
+      field: { type: FieldType.Compound, field: "addresses", collection: true },
+      elementIndex: 0,
+    });
+    expect(m(node, rc)?.component).toBe(Renderer);
+  });
+
+  it("matchCollection skips elements (only matches the array itself)", () => {
+    const m = matchCollection(Renderer);
+    const arrayNode = fakeNode({
+      definition: dataDef(),
+      field: { type: FieldType.String, field: "tags", collection: true },
+    });
+    expect(m(arrayNode, rc)?.component).toBe(Renderer);
+
+    const elementNode = fakeNode({
+      definition: dataDef(),
+      field: { type: FieldType.String, field: "tags", collection: true },
+      elementIndex: 2,
+    });
+    expect(m(elementNode, rc)).toBeNull();
   });
 
   it("matchRenderTypeOneOf hits any of the listed types", () => {

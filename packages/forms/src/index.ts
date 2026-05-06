@@ -68,14 +68,42 @@ export {
 // Default built-ins
 export { defaultRegistry } from "./builtins";
 
-// Phase 1 renderers
+// Data renderers
 export { TextfieldRenderer } from "./renderers/data/Textfield";
 export { NumberRenderer } from "./renderers/data/Number";
+export { MultilineRenderer } from "./renderers/data/Multiline";
+export { BoolRenderer } from "./renderers/data/Bool";
+export { CheckboxRenderer } from "./renderers/data/Checkbox";
+export {
+  DateRenderer,
+  DateTimeRenderer,
+  TimeRenderer,
+} from "./renderers/data/Date";
+export { SelectRenderer } from "./renderers/data/Select";
+export { RadioRenderer } from "./renderers/data/Radio";
+export { ChecklistRenderer } from "./renderers/data/Checklist";
+export { AutocompleteRenderer } from "./renderers/data/Autocomplete";
+export { DisplayOnlyRenderer } from "./renderers/data/DisplayOnly";
+export { ArrayRenderer } from "./renderers/data/Array";
 export { CompoundDelegate } from "./renderers/data/Compound";
+
+// Group renderers
 export { StandardGroupRenderer } from "./renderers/group/Standard";
+export { InlineGroupRenderer } from "./renderers/group/Inline";
+export { FlexRenderer } from "./renderers/group/Flex";
+export { GridRenderer } from "./renderers/group/Grid";
+export { ContentsRenderer } from "./renderers/group/Contents";
+export { SelectChildRenderer } from "./renderers/group/SelectChild";
+
+// Display renderers
+export { TextDisplayRenderer } from "./renderers/display/Text";
+export { HtmlDisplayRenderer } from "./renderers/display/Html";
+export { IconDisplayRenderer, iconClassFor } from "./renderers/display/Icon";
+export { CustomDisplayRenderer } from "./renderers/display/Custom";
 
 // Helpers
 export { useLabelText } from "./labelText";
+export { useExpression } from "./useExpression";
 
 // Types
 export type {
