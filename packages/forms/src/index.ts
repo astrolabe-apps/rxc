@@ -120,6 +120,7 @@ export type {
   HtmlLayoutTheme,
   HtmlMultilineTheme,
   HtmlOptionalAdornmentTheme,
+  OptionalCustomRenderProps,
   HtmlOptionGroupTheme,
   HtmlSelectTheme,
   HtmlTabsTheme,

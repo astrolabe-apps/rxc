@@ -1,3 +1,6 @@
+import type { ReactNode } from "react";
+import type { Control } from "@rxc/controls-core";
+import type { FormStateNode } from "@rxc/forms-core";
 import type { FormOptions } from "@rxc/forms-react-core";
 
 /**
@@ -211,6 +214,45 @@ export interface HtmlOptionalAdornmentTheme {
   childWrapperClass?: string;
   nullWrapperClass?: string;
   setNullText?: string;
+  /** Replaces the default control-slot body. Receives the resolved
+   * data + editing controls, current `isNull` / `isEditing` / disabled
+   * state, the wrapped field (`children`), and the `defaultBody` that
+   * the adornment would otherwise render. Hosts can return either:
+   *   - the `defaultBody` to fall through to the normal rendering, or
+   *   - a custom node (e.g. a "Differing values" summary when several
+   *     records are being bulk-edited) — they're responsible for
+   *     re-emitting the field if they want it shown.
+   *
+   * Multi-value detection lives in the host: the adornment exposes the
+   * data control so a host that maintains its own bulk-edit projection
+   * (e.g. a `Control<unknown[]>` of distinct values stored in `meta`)
+   * can read it inside `customRender` and branch on it. */
+  customRender?: (props: OptionalCustomRenderProps) => ReactNode;
+}
+
+export interface OptionalCustomRenderProps {
+  node: FormStateNode;
+  /** Data control bound to this node. Same one the adornment writes
+   * to when the null toggle flips. */
+  data: Control<unknown>;
+  /** Per-node editing toggle (`true` = editing). Persisted on the
+   * FormStateNode meta under `$optional/editing`. */
+  editing: Control<boolean>;
+  /** `data.value == null`, evaluated against the active read context. */
+  isNull: boolean;
+  /** Current value of `editing`, evaluated against the active read context. */
+  isEditing: boolean;
+  /** Whether the inner field is force-disabled by the adornment.
+   * Already applied to the FormStateNode — provided for hosts that
+   * want to mirror the styling. */
+  shouldDisable: boolean;
+  /** The wrapped renderer output (the field itself). */
+  children: ReactNode;
+  /** Pre-rendered null toggle row (`null` if `allowNull` is off). */
+  nullToggle: ReactNode | null;
+  /** What the adornment would have rendered if `customRender` were
+   * unset. Return this to fall through. */
+  defaultBody: ReactNode;
 }
 
 export interface HtmlAccordionAdornmentTheme {
