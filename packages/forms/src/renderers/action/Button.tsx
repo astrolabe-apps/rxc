@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { controls } from "@rxc/controls";
 import {
   ActionStyle,
@@ -17,10 +17,13 @@ import {
 import { resolveIcon } from "../display/Icon";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_BUTTON = "px-3 py-1 rounded text-sm disabled:opacity-40";
+const DEFAULT_BUTTON =
+  "inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded text-sm disabled:opacity-40";
 const DEFAULT_PRIMARY = "bg-blue-600 text-white";
 const DEFAULT_SECONDARY = "border border-zinc-300 dark:border-zinc-600";
-const DEFAULT_LINK = "text-blue-600 hover:underline disabled:opacity-40";
+const DEFAULT_LINK =
+  "inline-flex items-center gap-1 text-blue-600 hover:underline disabled:opacity-40";
+const DEFAULT_GROUP = "inline-flex items-center gap-1";
 
 export const ButtonAction = controls<ActionRendererProps>(
   "ButtonAction",
@@ -29,7 +32,7 @@ export const ButtonAction = controls<ActionRendererProps>(
     const actionTheme = useHtmlTheme().action ?? {};
     if (!isActionControl(definition)) return null;
     const dispatch = useActionHandler();
-    const runHandler = useAsyncAction(
+    const handler = useAsyncAction(
       node,
       dispatch,
       definition.actionId,
@@ -42,49 +45,33 @@ export const ButtonAction = controls<ActionRendererProps>(
     const isGroup = style === ActionStyle.Group;
     const isSecondary = style === ActionStyle.Secondary;
 
-    // Variant chrome — legacy:
-    //   isLink  → linkClass
-    //   isGroup → groupClass
-    //   else    → rendererClass(buttonClass, primary/secondary)
     const variantClass = isLink
       ? actionTheme.linkClass ?? DEFAULT_LINK
       : isGroup
-        ? actionTheme.groupClass
-        : rendererClass(
-            actionTheme.buttonClass ?? DEFAULT_BUTTON,
-            isSecondary
-              ? actionTheme.secondaryClass ?? DEFAULT_SECONDARY
-              : actionTheme.primaryClass ?? DEFAULT_PRIMARY,
-          );
-
-    // Text class — legacy:
-    //   rendererClass(definition.textClass,
-    //     isLink ? linkTextClass
-    //            : rendererClass(textClass, primary/secondaryTextClass))
-    const variantTextClass = isLink
-      ? actionTheme.linkTextClass
-      : rendererClass(
-          actionTheme.textClass,
-          isSecondary
-            ? actionTheme.secondaryTextClass
-            : actionTheme.primaryTextClass,
-        );
-    const textClassNames = rendererClass(
-      definition.textClass,
-      variantTextClass,
+        ? actionTheme.groupClass ?? DEFAULT_GROUP
+        : isSecondary
+          ? actionTheme.secondaryClass ?? DEFAULT_SECONDARY
+          : actionTheme.primaryClass ?? DEFAULT_PRIMARY;
+    // Link/Group don't carry the base button padding/rounding.
+    const baseButton =
+      isLink || isGroup ? null : actionTheme.buttonClass ?? DEFAULT_BUTTON;
+    const cls = rendererClass(
+      definition.styleClass,
+      rendererClass(baseButton, variantClass),
     );
 
-    // Container className — legacy DefaultHtmlButtonRenderer:
-    //   nonTextContent (Group) → className alone
-    //   else                   → clsx(className, textClass)
-    const styledClass = rendererClass(definition.styleClass, variantClass);
-    const containerClass = isGroup
-      ? styledClass
-      : rendererClass(styledClass, textClassNames);
+    const variantTextClass = isLink
+      ? actionTheme.linkTextClass
+      : isSecondary
+        ? actionTheme.secondaryTextClass
+        : actionTheme.primaryTextClass;
+    const textCls = rendererClass(
+      definition.textClass,
+      rendererClass(actionTheme.textClass, variantTextClass),
+    );
 
-    // Icon resolution — while busy, prefer the theme's busyIcon
-    // (typically a spinner). Otherwise fall back to definition.icon →
-    // theme.icon.
+    // Icon resolution: while busy, prefer the theme's busy icon (typical
+    // spinner). Otherwise fall back to definition.icon → theme.icon.
     const restingIcon = definition.icon ?? actionTheme.icon;
     const activeIcon = busy ? actionTheme.busyIcon ?? restingIcon : restingIcon;
     const restingPlacement =
@@ -97,17 +84,13 @@ export const ButtonAction = controls<ActionRendererProps>(
         : restingPlacement;
 
     const resolved = activeIcon ? resolveIcon(undefined, activeIcon) : null;
-    const placementClass =
-      placement === IconPlacement.BeforeText
-        ? actionTheme.iconBeforeClass
-        : placement === IconPlacement.AfterText
-          ? actionTheme.iconAfterClass
-          : undefined;
-    // Legacy: iconElement className = rendererClass(textClassNames,
-    // iconBefore/AfterClass) — text class is threaded into the icon span.
     const iconCls = rendererClass(
       resolved?.className,
-      rendererClass(textClassNames, placementClass),
+      placement === IconPlacement.AfterText
+        ? actionTheme.iconAfterClass
+        : placement === IconPlacement.BeforeText
+          ? actionTheme.iconBeforeClass
+          : undefined,
     );
     const iconNode: ReactNode = resolved ? (
       <i className={iconCls} aria-hidden>
@@ -116,40 +99,29 @@ export const ButtonAction = controls<ActionRendererProps>(
     ) : null;
 
     const text = definition.title ?? definition.actionId;
-    const textSpan: ReactNode = text ? (
-      <span className={textClassNames}>{text}</span>
+    const textNode: ReactNode = text ? (
+      <span className={textCls}>{text}</span>
     ) : null;
 
-    // Legacy three-slot conditional fragment.
-    const body = (
-      <>
-        {placement === IconPlacement.BeforeText && iconNode}
-        {placement !== IconPlacement.ReplaceText && textSpan}
-        {placement !== IconPlacement.BeforeText && iconNode}
-      </>
-    );
-
-    const titleAttr =
-      placement === IconPlacement.ReplaceText && text ? text : undefined;
-    const onClick = (e: MouseEvent) => {
-      e.stopPropagation();
-      runHandler();
-    };
-
-    // Legacy: nonTextContent (Group) renders <div role="button">; else
-    // <button>.
-    if (isGroup) {
-      const inert = disabled || busy;
-      return (
-        <div
-          role="button"
-          aria-disabled={inert ? true : undefined}
-          title={titleAttr}
-          onClick={inert ? undefined : onClick}
-          className={containerClass}
-        >
-          {body}
-        </div>
+    let body: ReactNode;
+    if (placement === IconPlacement.ReplaceText) {
+      // Spinner-only / icon-only button — fall back to text if the
+      // active icon couldn't be resolved (e.g. busy with no busyIcon
+      // configured) so the button isn't empty.
+      body = iconNode ?? textNode;
+    } else if (placement === IconPlacement.AfterText) {
+      body = (
+        <>
+          {textNode}
+          {iconNode}
+        </>
+      );
+    } else {
+      body = (
+        <>
+          {iconNode}
+          {textNode}
+        </>
       );
     }
 
@@ -157,9 +129,14 @@ export const ButtonAction = controls<ActionRendererProps>(
       <button
         type="button"
         disabled={disabled || busy}
-        title={titleAttr}
-        onClick={onClick}
-        className={containerClass}
+        title={
+          placement === IconPlacement.ReplaceText && text ? text : undefined
+        }
+        onClick={(e) => {
+          e.stopPropagation();
+          handler();
+        }}
+        className={cls}
       >
         {body}
       </button>
