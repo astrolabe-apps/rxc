@@ -6,6 +6,8 @@ import {
   type IconReference,
 } from "@rxc/forms-core";
 import type { DisplayRendererProps } from "@rxc/forms-react-core";
+import { rendererClass } from "@rxc/forms-react-core";
+import { useHtmlTheme } from "../../useHtmlTheme";
 
 export function iconClassFor(
   iconClass: string | null | undefined,
@@ -26,8 +28,10 @@ export function iconClassFor(
 }
 
 export function IconDisplayRenderer({ data }: DisplayRendererProps) {
+  const displayTheme = useHtmlTheme().display ?? {};
   const d = data as IconDisplay;
   const cls = iconClassFor(d.iconClass, d.icon);
-  if (!cls) return null;
-  return <i className={cls} aria-hidden />;
+  const finalClass = rendererClass(cls, displayTheme.iconClass);
+  if (!finalClass) return null;
+  return <i className={finalClass} aria-hidden />;
 }

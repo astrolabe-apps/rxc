@@ -1,8 +1,12 @@
 "use client";
 
 import { controls } from "@rxc/controls";
-import { Field } from "../../Field";
+import { rendererClass } from "@rxc/forms-react-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { Field } from "../../Field";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_CLASS = "inline-flex flex-wrap items-center gap-2";
 
 /**
  * Inline group: lays out children horizontally as a `<span>`. Children
@@ -11,9 +15,15 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
 export const InlineGroupRenderer = controls<GroupRendererProps>(
   "InlineGroupRenderer",
   ({ node }, { rc }) => {
+    const { definition } = node.getState(rc);
+    const groupTheme = useHtmlTheme().group ?? {};
     const children = node.getChildren(rc);
+    const className = rendererClass(
+      definition.styleClass,
+      groupTheme.inlineClass ?? DEFAULT_CLASS,
+    );
     return (
-      <span className="inline-flex flex-wrap items-center gap-2">
+      <span className={className}>
         {children.map((c) => (
           <Field key={c.uniqueId} node={c} />
         ))}

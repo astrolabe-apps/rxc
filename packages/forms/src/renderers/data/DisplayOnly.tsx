@@ -3,6 +3,10 @@
 import { controls } from "@rxc/controls";
 import { FieldType } from "@rxc/forms-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
+import { rendererClass } from "@rxc/forms-react-core";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_CLASS = "text-sm text-zinc-700 dark:text-zinc-300";
 
 function formatScalar(value: unknown, type: string | undefined): string {
   if (value == null) return "";
@@ -19,7 +23,8 @@ function formatScalar(value: unknown, type: string | undefined): string {
 export const DisplayOnlyRenderer = controls<DataRendererProps>(
   "DisplayOnlyRenderer",
   ({ node, id }, { rc }) => {
-    const { data, field, fieldOptions } = node.getState(rc);
+    const { data, field, fieldOptions, definition } = node.getState(rc);
+    const dataTheme = useHtmlTheme().data ?? {};
     if (!data) return null;
     const value = rc.getValue(data);
     let text: string;
@@ -36,8 +41,12 @@ export const DisplayOnlyRenderer = controls<DataRendererProps>(
     } else {
       text = formatScalar(value, field?.type);
     }
+    const className = rendererClass(
+      definition.styleClass,
+      dataTheme.displayOnlyClass ?? DEFAULT_CLASS,
+    );
     return (
-      <span id={id} className="text-sm text-zinc-700 dark:text-zinc-300">
+      <span id={id} className={className}>
         {text || <span className="text-zinc-400 italic">(empty)</span>}
       </span>
     );

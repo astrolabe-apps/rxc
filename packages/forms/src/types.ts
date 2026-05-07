@@ -1,6 +1,7 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
 import type { FormStateNode, SchemaInterface } from "@rxc/forms-core";
-import type { FormOptions, FormRegistry } from "@rxc/forms-react-core";
+import type { FormRegistry } from "@rxc/forms-react-core";
+import type { HtmlFormOptions } from "./theme";
 
 // ── Layout / Visibility (HTML-shaped) ────────────────────────────────
 
@@ -37,7 +38,7 @@ export interface FormProps {
   registry?: FormRegistry;
   layout?: LayoutComponent;
   visibility?: VisibilityComponent;
-  options?: FormOptions;
+  options?: HtmlFormOptions;
   /** Mark the entire form subtree as design-mode. Renderers and
    * adornments read this via `useDesignMode()`. */
   designMode?: boolean;

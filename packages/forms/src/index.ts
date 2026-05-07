@@ -91,3 +91,32 @@ export type {
   VisibilityComponent,
   VisibilityProps,
 } from "./types";
+
+// ── Theme + class-merge utilities ────────────────────────────────────
+
+export type {
+  HtmlAccordionAdornmentTheme,
+  HtmlAccordionGroupTheme,
+  HtmlActionTheme,
+  HtmlAdornmentTheme,
+  HtmlArrayTheme,
+  HtmlAutocompleteTheme,
+  HtmlBoolTheme,
+  HtmlDataTheme,
+  HtmlDialogTheme,
+  HtmlDisplayTheme,
+  HtmlErrorTheme,
+  HtmlFormOptions,
+  HtmlFormTheme,
+  HtmlGridTheme,
+  HtmlGroupTheme,
+  HtmlHelpTextTheme,
+  HtmlLabelTheme,
+  HtmlLayoutTheme,
+  HtmlMultilineTheme,
+  HtmlOptionalAdornmentTheme,
+  HtmlOptionGroupTheme,
+  HtmlSelectTheme,
+  HtmlTabsTheme,
+} from "./theme";
+export { useHtmlTheme } from "./useHtmlTheme";

@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 import { controls } from "@rxc/controls";
-import { Field } from "../../Field";
+import { rendererClass } from "@rxc/forms-react-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { Field } from "../../Field";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_WRAPPER = "flex flex-col gap-2";
+const DEFAULT_SECTION =
+  "rounded border border-zinc-200 dark:border-zinc-700 p-2";
+const DEFAULT_TITLE =
+  "cursor-pointer text-sm font-semibold text-zinc-700 dark:text-zinc-300";
+const DEFAULT_CONTENT = "mt-2";
 
 /**
  * Accordion group: each child becomes a `<details>` section. Uses native
@@ -13,9 +22,15 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
 export const AccordionGroupRenderer = controls<GroupRendererProps>(
   "AccordionGroupRenderer",
   ({ node }, { rc }) => {
+    const { definition } = node.getState(rc);
+    const accTheme = useHtmlTheme().group?.accordion ?? {};
     const children = node.getChildren(rc);
+    const wrapperClass = rendererClass(
+      definition.styleClass,
+      accTheme.className ?? DEFAULT_WRAPPER,
+    );
     return (
-      <div className="flex flex-col gap-2">
+      <div className={wrapperClass}>
         {children.map((c) => (
           <AccordionSection key={c.uniqueId} node={c} />
         ))}
@@ -28,17 +43,18 @@ const AccordionSection = controls<{
   node: import("@rxc/forms-core").FormStateNode;
 }>("AccordionSection", ({ node }, { rc }) => {
   const def = node.getState(rc).definition;
+  const accTheme = useHtmlTheme().group?.accordion ?? {};
   const [open, setOpen] = useState(false);
   return (
     <details
       open={open}
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
-      className="rounded border border-zinc-200 dark:border-zinc-700 p-2"
+      className={DEFAULT_SECTION}
     >
-      <summary className="cursor-pointer text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+      <summary className={accTheme.titleClass ?? DEFAULT_TITLE}>
         {def.title ?? "Section"}
       </summary>
-      <div className="mt-2">
+      <div className={accTheme.contentClass ?? DEFAULT_CONTENT}>
         <Field node={node} />
       </div>
     </details>

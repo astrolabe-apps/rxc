@@ -3,6 +3,13 @@
 import { controls } from "@rxc/controls";
 import { useLabelText } from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
+import { rendererClass } from "@rxc/forms-react-core";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_FIELDSET = "flex flex-col gap-1";
+const DEFAULT_LEGEND = "text-xs font-medium text-zinc-600 dark:text-zinc-400";
+const DEFAULT_ENTRY =
+  "inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300";
 
 /**
  * Multi-select via checkboxes against a collection field. Stores an
@@ -12,7 +19,9 @@ import type { DataRendererProps } from "@rxc/forms-react-core";
 export const ChecklistRenderer = controls<DataRendererProps>(
   "ChecklistRenderer",
   ({ node, id }, { rc, update }) => {
-    const { data, fieldOptions, disabled, readonly } = node.getState(rc);
+    const { data, fieldOptions, disabled, readonly, definition } =
+      node.getState(rc);
+    const checkTheme = useHtmlTheme().data?.checkList ?? {};
     const labelText = useLabelText(node, rc);
     if (!data) return null;
     const value = rc.getValue(data);
@@ -27,15 +36,20 @@ export const ChecklistRenderer = controls<DataRendererProps>(
       update((wc) => wc.setValue(data!, next));
     }
 
+    const fieldsetClass = rendererClass(
+      definition.styleClass,
+      checkTheme.className ?? DEFAULT_FIELDSET,
+    );
+
     return (
       <fieldset
         id={id}
         disabled={disabled}
-        className="flex flex-col gap-1"
+        className={fieldsetClass}
         aria-describedby={`${id}-error`}
       >
         {labelText && (
-          <legend className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <legend className={checkTheme.labelClass ?? DEFAULT_LEGEND}>
             {labelText}
           </legend>
         )}
@@ -45,12 +59,13 @@ export const ChecklistRenderer = controls<DataRendererProps>(
           return (
             <label
               key={optKey}
-              className="inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300"
+              className={checkTheme.entryClass ?? DEFAULT_ENTRY}
             >
               <input
                 type="checkbox"
                 checked={isChecked}
                 disabled={disabled || readonly}
+                className={checkTheme.inputClass}
                 onChange={(e) => toggle(o.value, e.target.checked)}
                 onBlur={() => update((wc) => wc.setTouched(data!, true, true))}
               />

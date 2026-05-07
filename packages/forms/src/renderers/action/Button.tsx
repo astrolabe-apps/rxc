@@ -7,14 +7,25 @@ import {
   isActionControl,
 } from "@rxc/forms-core";
 import type { ActionRendererProps } from "@rxc/forms-react-core";
-import { useActionHandler } from "@rxc/forms-react-core";
-import { useAsyncAction } from "@rxc/forms-react-core";
+import {
+  rendererClass,
+  useActionHandler,
+  useAsyncAction,
+} from "@rxc/forms-react-core";
 import { iconClassFor } from "../display/Icon";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_PRIMARY =
+  "px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-40";
+const DEFAULT_SECONDARY =
+  "px-3 py-1 rounded border border-zinc-300 dark:border-zinc-600 text-sm disabled:opacity-40";
+const DEFAULT_LINK = "text-blue-600 hover:underline disabled:opacity-40";
 
 export const ButtonAction = controls<ActionRendererProps>(
   "ButtonAction",
   ({ node }, { rc }) => {
     const { definition, disabled, busy } = node.getState(rc);
+    const actionTheme = useHtmlTheme().action ?? {};
     if (!isActionControl(definition)) return null;
     const dispatch = useActionHandler();
     const handler = useAsyncAction(
@@ -27,12 +38,17 @@ export const ButtonAction = controls<ActionRendererProps>(
     const icon = iconCls ? <i className={iconCls} aria-hidden /> : null;
     const placement = definition.iconPlacement ?? IconPlacement.BeforeText;
     const text = busy ? "…" : (definition.title ?? definition.actionId);
-    const cls =
+
+    const baseClass =
       definition.actionStyle === ActionStyle.Link
-        ? "text-blue-600 hover:underline disabled:opacity-40"
+        ? actionTheme.linkClass ?? DEFAULT_LINK
         : definition.actionStyle === ActionStyle.Secondary
-          ? "px-3 py-1 rounded border border-zinc-300 dark:border-zinc-600 text-sm disabled:opacity-40"
-          : "px-3 py-1 rounded bg-blue-600 text-white text-sm disabled:opacity-40";
+          ? actionTheme.secondaryClass ?? DEFAULT_SECONDARY
+          : actionTheme.primaryClass ?? DEFAULT_PRIMARY;
+    const cls = rendererClass(definition.styleClass, baseClass);
+
+    const beforeIconClass = actionTheme.iconBeforeClass ?? "mr-1";
+    const afterIconClass = actionTheme.iconAfterClass ?? "ml-1";
 
     let body: React.ReactNode;
     if (placement === IconPlacement.ReplaceText) {
@@ -41,13 +57,13 @@ export const ButtonAction = controls<ActionRendererProps>(
       body = (
         <>
           <span>{text}</span>
-          {icon && <span className="ml-1">{icon}</span>}
+          {icon && <span className={afterIconClass}>{icon}</span>}
         </>
       );
     } else {
       body = (
         <>
-          {icon && <span className="mr-1">{icon}</span>}
+          {icon && <span className={beforeIconClass}>{icon}</span>}
           <span>{text}</span>
         </>
       );

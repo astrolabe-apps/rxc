@@ -3,6 +3,13 @@
 import { controls } from "@rxc/controls";
 import { FieldType } from "@rxc/forms-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
+import { rendererClass } from "@rxc/forms-react-core";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_INPUT_CLASS =
+  "rounded border px-2.5 py-1.5 text-sm dark:bg-zinc-800 dark:text-zinc-100";
+const VALID_BORDER = "border-zinc-300 dark:border-zinc-600";
+const INVALID_BORDER = "border-red-400 dark:border-red-600";
 
 /** Convert a stored value to/from the string select uses on the wire. */
 function valueToString(value: unknown): string {
@@ -26,14 +33,31 @@ function stringToValue(raw: string, fieldType: string | undefined): unknown {
 export const SelectRenderer = controls<DataRendererProps>(
   "SelectRenderer",
   ({ node, id }, { rc, update }) => {
-    const { data, field, fieldOptions, disabled, readonly, touched } =
+    const { data, field, fieldOptions, disabled, readonly, touched, definition } =
       node.getState(rc);
+    const dataTheme = useHtmlTheme().data ?? {};
+    const selectTheme = dataTheme.select ?? {};
     if (!data) return null;
     const value = rc.getValue(data);
     const hasError = touched && !!rc.getError(data);
     const options = fieldOptions ?? [];
     const required = !!field?.required;
     const stored = valueToString(value);
+    const baseClass = rendererClass(
+      definition.styleClass,
+      selectTheme.className ?? dataTheme.inputClass ?? DEFAULT_INPUT_CLASS,
+    );
+    const stateClass = [
+      hasError ? INVALID_BORDER : VALID_BORDER,
+      disabled ? "opacity-50 cursor-not-allowed" : "",
+      readonly ? "bg-zinc-50 dark:bg-zinc-800/50" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const placeholder =
+      stored === "" && required
+        ? selectTheme.requiredText ?? "—"
+        : selectTheme.emptyText ?? "—";
 
     // Group options by their `group` if any have one
     const groups = new Map<string | null, typeof options>();
@@ -52,13 +76,7 @@ export const SelectRenderer = controls<DataRendererProps>(
         disabled={disabled || readonly}
         aria-describedby={`${id}-error`}
         aria-invalid={hasError || undefined}
-        className={`rounded border px-2.5 py-1.5 text-sm dark:bg-zinc-800 dark:text-zinc-100 ${
-          hasError
-            ? "border-red-400 dark:border-red-600"
-            : "border-zinc-300 dark:border-zinc-600"
-        } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${
-          readonly ? "bg-zinc-50 dark:bg-zinc-800/50" : ""
-        }`}
+        className={`${baseClass ?? ""} ${stateClass}`.trim()}
         onChange={(e) =>
           update((wc) =>
             wc.setValue(data, stringToValue(e.target.value, field?.type)),
@@ -66,7 +84,7 @@ export const SelectRenderer = controls<DataRendererProps>(
         }
         onBlur={() => update((wc) => wc.setTouched(data, true, true))}
       >
-        {(!required || stored === "") && <option value="">—</option>}
+        {(!required || stored === "") && <option value="">{placeholder}</option>}
         {usesGroups
           ? groupKeys.map((g) =>
               g == null ? (

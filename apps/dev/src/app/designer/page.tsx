@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type MouseEvent, type SyntheticEvent } from "react";
 import {
   ControlContextProvider,
   controls,
@@ -72,9 +72,7 @@ const StarsRenderer = controls<DataRendererProps>(
             disabled={disabled || readonly}
             onClick={() => update((wc) => wc.setValue(data, i))}
             className={`text-2xl leading-none ${
-              i <= value
-                ? "text-amber-400"
-                : "text-zinc-300 dark:text-zinc-600"
+              i <= value ? "text-amber-400" : "text-zinc-300 dark:text-zinc-600"
             } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-110 transition"}`}
             aria-label={`${i} star${i > 1 ? "s" : ""}`}
             aria-pressed={i <= value}
@@ -119,31 +117,78 @@ import { createContext, useContext } from "react";
 
 const SelectionContext = createContext<SelectionState | null>(null);
 
-function SelectionAdornmentRender({ node, children }: AdornmentRenderProps) {
-  const designing = useDesignMode();
-  const sel = useContext(SelectionContext);
-  if (!designing || !sel) return <>{children}</>;
-  const isSelected = sel.selected === node.uniqueId;
-  return (
-    <div
-      onClickCapture={(e) => {
-        e.stopPropagation();
-        sel.setSelected(node.uniqueId);
-      }}
-      data-form-node={node.uniqueId}
-      style={{
-        outline: isSelected ? "2px solid rgb(37, 99, 235)" : "1px dashed transparent",
-        outlineOffset: "2px",
-        cursor: "pointer",
-        padding: "2px",
-        borderRadius: "4px",
-        background: isSelected ? "rgba(37, 99, 235, 0.06)" : undefined,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+const SelectionAdornmentRender = controls<AdornmentRenderProps>(
+  "SelectionAdornmentRender",
+  ({ node, children }, { rc }) => {
+    const designing = useDesignMode();
+    const sel = useContext(SelectionContext);
+    if (!designing || !sel) return <>{children}</>;
+    const isSelected = sel.selected === node.uniqueId;
+    const def = node.getState(rc).definition as ControlDefinition & {
+      field?: string;
+      compoundField?: string;
+      title?: string;
+    };
+    const badge = def.field ?? def.compoundField ?? def.title ?? null;
+    // Mirror legacy FormControlPreview mouse-capture: containers (groups
+    // and data-with-children) use bubbling onClick so the deepest leaf
+    // wins; leaves use onClickCapture + onMouseDownCapture to block input
+    // focus before the browser can deliver it.
+    const hasChildren = (def.children?.length ?? 0) > 0;
+    const isContainer = def.type === "Group" || hasChildren;
+    const select = (e: SyntheticEvent) => {
+      e.stopPropagation();
+      sel.setSelected(node.uniqueId);
+    };
+    const mouseCapture = isContainer
+      ? { onClick: select }
+      : {
+          onClickCapture: (e: MouseEvent) => {
+            e.preventDefault();
+            select(e);
+          },
+          onMouseDownCapture: (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+          },
+        };
+    return (
+      <div
+        {...mouseCapture}
+        data-form-node={node.uniqueId}
+        style={{
+          position: "relative",
+          backgroundColor: isSelected ? "rgba(25, 118, 210, 0.08)" : undefined,
+          cursor: "pointer",
+          padding: "2px",
+          borderRadius: "4px",
+        }}
+      >
+        {badge && (
+          <span
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              fontSize: "10px",
+              padding: "1px 4px",
+              border: "solid 1px rgba(0, 0, 0, 0.4)",
+              background: "white",
+              color: "black",
+              borderRadius: "2px",
+              fontFamily: "monospace",
+              pointerEvents: "none",
+              zIndex: 1,
+            }}
+          >
+            {badge}
+          </span>
+        )}
+        {children}
+      </div>
+    );
+  },
+);
 
 const SelectionAdornment: AdornmentRegistration = {
   type: "_Selection",
@@ -161,14 +206,10 @@ const SelectionAdornment: AdornmentRegistration = {
 // listing the type in its definition adornments. For the demo we'll
 // inject programmatically below.
 
-// ── Design-mode visibility (renders hidden fields with reduced opacity) ─
+// ── Design-mode visibility (always renders, matching legacy preview) ─
 
-function DesignVisibility({ visible, children }: VisibilityProps) {
-  return (
-    <span style={visible === true ? undefined : { opacity: 0.4 }}>
-      {children}
-    </span>
-  );
+function DesignVisibility({ children }: VisibilityProps) {
+  return <>{children}</>;
 }
 
 // ── Schema and form definition ───────────────────────────────────────
@@ -215,26 +256,16 @@ function designerFormDef(designing: boolean): GroupedControlsDefinition {
     "maxStarsLimit",
     "Max stars (drives the Stars plugin via $scripts)",
   );
-  // Always-hidden field — visible only in design mode (DesignVisibility).
+  // Always-hidden field — visible only in design mode (DesignVisibility
+  // renders hidden nodes with reduced opacity).
   const hiddenDef: ControlDefinition = {
     ...dataControl("secret", "Hidden field (visible in design mode)"),
+    hidden: true,
   };
   hiddenDef.adornments = [];
-  // Hide via runtime rule: just set the dynamic visible to a constant
-  // false. We'll fake this with a Data expression that always reads
-  // `false`. Simpler: set `forceHidden` via a script.
-  // For demo simplicity, set up a hidden field via scripts.
-  (hiddenDef as { $scripts?: Record<string, unknown> }).$scripts = {
-    visible: dataExpr("../alwaysFalse"), // missing field → falsy → hidden
-  };
 
   const root: GroupedControlsDefinition = groupedControl(
-    [
-      dataControl("name", "Name"),
-      ratingDef,
-      limitDef,
-      hiddenDef,
-    ],
+    [dataControl("name", "Name"), ratingDef, limitDef, hiddenDef],
     "Custom plugin demo",
   );
   return designing
@@ -253,10 +284,7 @@ const emptyFormResolver: FormTreeResolver = {
 
 const controlContext = createControlContext();
 
-const DesignerInner = controls(function DesignerInner(
-  {},
-  { controlContext },
-) {
+const DesignerInner = controls(function DesignerInner({}, { controlContext }) {
   const [designing, setDesigning] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -326,9 +354,9 @@ const DesignerInner = controls(function DesignerInner(
             Custom <code>Stars</code> data plugin with a scripted
             <code> maxStars</code> option (driven by the &ldquo;Max stars&rdquo;
             field via the registry&apos;s <code>schemaExtensions</code>). Toggle
-            design mode to see the hidden field rendered with reduced
-            opacity, click any node to select it, and notice that actions
-            are stubbed.
+            design mode to render every node (hidden fields included) read-only
+            with selection chrome — click any node to select it, and notice
+            that actions are stubbed.
           </p>
 
           <div className="mb-4 flex items-center gap-4">

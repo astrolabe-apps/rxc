@@ -6,9 +6,15 @@ import {
   isGroupControl,
   type DialogRenderOptions,
 } from "@rxc/forms-core";
-import { ActionScope } from "@rxc/forms-react-core";
-import { Field } from "../../Field";
+import { ActionScope, rendererClass } from "@rxc/forms-react-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { Field } from "../../Field";
+import { useHtmlTheme } from "../../useHtmlTheme";
+
+const DEFAULT_DIALOG =
+  "rounded-lg p-6 max-w-lg w-full bg-white dark:bg-zinc-900 dark:text-zinc-100 backdrop:bg-black/40";
+const DEFAULT_TITLE = "text-lg font-semibold mb-3";
+const DEFAULT_CONTAINER = "flex flex-col gap-3";
 
 /**
  * Trigger + modal pattern. Children whose `placement === "trigger"`
@@ -20,6 +26,7 @@ export const DialogRenderer = controls<GroupRendererProps>(
   ({ node }, { rc }) => {
     const children = node.getChildren(rc);
     const def = node.getState(rc).definition;
+    const dialogTheme = useHtmlTheme().group?.dialog ?? {};
     const opts = isGroupControl(def)
       ? (def.groupOptions as DialogRenderOptions | undefined)
       : undefined;
@@ -42,6 +49,11 @@ export const DialogRenderer = controls<GroupRendererProps>(
       (c) => c.getState(rc).definition.placement !== "trigger",
     );
 
+    const dialogClass = rendererClass(
+      def.styleClass,
+      dialogTheme.className ?? DEFAULT_DIALOG,
+    );
+
     return (
       <ActionScope
         onAction={(id) => {
@@ -62,12 +74,12 @@ export const DialogRenderer = controls<GroupRendererProps>(
         <dialog
           ref={dialogRef}
           onClose={() => setOpen(false)}
-          className="rounded-lg p-6 max-w-lg w-full bg-white dark:bg-zinc-900 dark:text-zinc-100 backdrop:bg-black/40"
+          className={dialogClass}
         >
           {title && (
-            <h2 className="text-lg font-semibold mb-3">{title}</h2>
+            <h2 className={dialogTheme.titleClass ?? DEFAULT_TITLE}>{title}</h2>
           )}
-          <div className="flex flex-col gap-3">
+          <div className={dialogTheme.containerClass ?? DEFAULT_CONTAINER}>
             {content.map((c) => (
               <Field key={c.uniqueId} node={c} />
             ))}
