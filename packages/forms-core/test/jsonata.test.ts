@@ -245,6 +245,78 @@ describe("jsonataValidator", () => {
     expect(nNode.getState(rd).valid).toBe(true);
   });
 
+  it("publishes a literal error from required + jsonata together", async () => {
+    const fields: SchemaField[] = [stringField("tag")];
+    const jsonataV: JsonataValidator = {
+      type: ValidatorType.Jsonata,
+      expression: '"Tag must contain a hyphen"',
+    };
+    const defs = [
+      {
+        ...dataDef("tag"),
+        required: true,
+        validators: [jsonataV],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, dataControl, globals } = makeEnv(
+      fields,
+      defs,
+      { tag: "" },
+    );
+    const root = createFormStateNode(ctx, formTree.rootNode, dataNode, globals);
+    const [tagNode] = root.getChildren(rd);
+
+    await flush();
+    const tagControl = (
+      dataControl as unknown as { fields: { tag: Control<string> } }
+    ).fields.tag;
+
+    expect(tagNode.getState(rd).valid).toBe(false);
+    // The bound data control should carry BOTH error keys: the default
+    // (required) under `<uniqueId>default` and the jsonata one under
+    // the literal "jsonata" key.
+    const errors = tagControl.errorsNow ?? {};
+    expect(errors["jsonata"]).toBe("Tag must contain a hyphen");
+    expect(Object.keys(errors).filter((k) => k.endsWith("default"))).toHaveLength(
+      1,
+    );
+  });
+
+  it("keeps the jsonata error after a value change (literal expression)", async () => {
+    const fields: SchemaField[] = [stringField("tag")];
+    const jsonataV: JsonataValidator = {
+      type: ValidatorType.Jsonata,
+      expression: '"Tag must contain a hyphen"',
+    };
+    const defs = [
+      {
+        ...dataDef("tag"),
+        required: true,
+        validators: [jsonataV],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, dataControl, globals } = makeEnv(
+      fields,
+      defs,
+      { tag: "" },
+    );
+    const root = createFormStateNode(ctx, formTree.rootNode, dataNode, globals);
+    root.getChildren(rd);
+    await flush();
+
+    const tagControl = (
+      dataControl as unknown as { fields: { tag: Control<string> } }
+    ).fields.tag;
+
+    // Type a single character — required clears, but jsonata literal
+    // should still be set.
+    ctx.update((wc) => wc.setValue(tagControl, "a"));
+    await flush();
+
+    const errors = tagControl.errorsNow ?? {};
+    expect(errors["jsonata"]).toBe("Tag must contain a hyphen");
+  });
+
   it("suppresses the error while the node is hidden (validationEnabled=false)", async () => {
     const fields: SchemaField[] = [intField("n")];
     const jsonataV: JsonataValidator = {

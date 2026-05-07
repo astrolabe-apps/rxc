@@ -29,6 +29,7 @@ export const Error = controls<ErrorProps>("Error", ({ node, id, all }, { rc }) =
     const errors = rc.getErrors(data);
     const entries = Object.entries(errors);
     if (entries.length === 0) return null;
+    console.log(entries);
     return (
       <ul
         role="alert"

@@ -5,25 +5,50 @@ import {
   DisplayDataType,
   DynamicPropertyType,
   GroupRenderType,
+  IconLibrary,
 } from "./controlDefinition";
 import type {
   AccordionAdornment,
+  AccordionRenderer,
   ActionControlDefinition,
+  ArrayElementRenderOptions,
+  ArrayRenderOptions,
   AutocompleteRenderOptions,
   CheckListRenderOptions,
+  ControlAdornment,
   ControlDefinition,
+  CustomDisplay,
   DataControlDefinition,
+  DateTimeRenderOptions,
+  DialogRenderOptions,
   DisplayControlDefinition,
   DisplayOnlyRenderOptions,
   DynamicProperty,
+  ElementSelectedRenderOptions,
+  FlexRenderer,
+  GridRendererOptions,
+  GroupRenderOptions,
   GroupedControlsDefinition,
+  HelpTextAdornment,
   HtmlDisplay,
+  IconAdornment,
+  IconDisplay,
+  IconReference,
   JsonataRenderOptions,
+  OptionalAdornment,
   RadioButtonRenderOptions,
   RenderOptions,
+  ScrollListRenderOptions,
+  SelectChildRenderer,
+  SetFieldAdornment,
+  StandardGroupRenderer,
+  TabsRenderOptions,
   TextDisplay,
   TextfieldRenderOptions,
+  TooltipAdornment,
+  WizardRenderOptions,
 } from "./controlDefinition";
+import { AdornmentPlacement } from "./controlDefinition";
 import { ValidatorType } from "./schemaValidator";
 import type {
   DateValidator,
@@ -233,4 +258,171 @@ export function withScripts<T extends ControlDefinition>(
   scripts: Record<string, EntityExpression>,
 ): T {
   return { ...def, ["$scripts"]: scripts } as T;
+}
+
+export function withAdornments<T extends ControlDefinition>(
+  def: T,
+  adornments: ControlAdornment[],
+): T {
+  return { ...def, adornments } as T;
+}
+
+// ── Render options helpers ────────────────────────────────────────────
+
+export const arrayOptions = renderOptionsFor<ArrayRenderOptions>(
+  DataRenderType.Array,
+);
+
+export const arrayElementOptions = renderOptionsFor<ArrayElementRenderOptions>(
+  DataRenderType.ArrayElement,
+);
+
+export const elementSelectedOptions =
+  renderOptionsFor<ElementSelectedRenderOptions>(
+    DataRenderType.ElementSelected,
+  );
+
+export const scrollListOptions = renderOptionsFor<ScrollListRenderOptions>(
+  DataRenderType.ScrollList,
+);
+
+export const dateTimeOptions = renderOptionsFor<DateTimeRenderOptions>(
+  DataRenderType.DateTime,
+);
+
+// ── Group options helpers ─────────────────────────────────────────────
+
+export function groupOptionsFor<A extends GroupRenderOptions>(
+  type: GroupRenderType,
+): (options?: Omit<A, "type">) => { groupOptions: A } {
+  return (o) => ({ groupOptions: { type, ...(o ?? {}) } as A });
+}
+
+export const standardGroupOptions =
+  groupOptionsFor<StandardGroupRenderer>(GroupRenderType.Standard);
+
+export const flexOptions = groupOptionsFor<FlexRenderer>(GroupRenderType.Flex);
+
+export const gridOptions = groupOptionsFor<GridRendererOptions>(
+  GroupRenderType.Grid,
+);
+
+export const tabsOptions = groupOptionsFor<TabsRenderOptions>(
+  GroupRenderType.Tabs,
+);
+
+export const accordionGroupOptions = groupOptionsFor<AccordionRenderer>(
+  GroupRenderType.Accordion,
+);
+
+export const inlineOptions = groupOptionsFor<StandardGroupRenderer>(
+  GroupRenderType.Inline,
+);
+
+export const contentsOptions = groupOptionsFor<StandardGroupRenderer>(
+  GroupRenderType.Contents,
+);
+
+export const selectChildOptions = groupOptionsFor<SelectChildRenderer>(
+  GroupRenderType.SelectChild,
+);
+
+export const dialogOptions = groupOptionsFor<DialogRenderOptions>(
+  GroupRenderType.Dialog,
+);
+
+export const wizardOptions = groupOptionsFor<WizardRenderOptions>(
+  GroupRenderType.Wizard,
+);
+
+// ── Display control helpers ───────────────────────────────────────────
+
+export function iconDisplayControl(
+  icon: IconReference,
+  options?: Partial<DisplayControlDefinition> & { iconClass?: string },
+): DisplayControlDefinition {
+  const { iconClass = "", ...rest } = options ?? {};
+  return {
+    type: ControlDefinitionType.Display,
+    displayData: { type: DisplayDataType.Icon, iconClass, icon } as IconDisplay,
+    ...rest,
+  };
+}
+
+export function customDisplayControl(
+  customId: string,
+  options?: Partial<DisplayControlDefinition>,
+): DisplayControlDefinition {
+  return {
+    type: ControlDefinitionType.Display,
+    displayData: { type: DisplayDataType.Custom, customId } as CustomDisplay,
+    ...options,
+  };
+}
+
+// ── Icon helpers ──────────────────────────────────────────────────────
+// `fontAwesomeIcon` already lives in controlDefinition.ts.
+
+export function materialIcon(name: string): IconReference {
+  return { library: IconLibrary.Material, name };
+}
+
+export function cssClassIcon(name: string): IconReference {
+  return { library: IconLibrary.CssClass, name };
+}
+
+// ── Adornment builders ────────────────────────────────────────────────
+
+export function iconAdornment(
+  icon: IconReference,
+  options?: { iconClass?: string; placement?: AdornmentPlacement | null },
+): IconAdornment {
+  const { iconClass = "", placement } = options ?? {};
+  return {
+    type: ControlAdornmentType.Icon,
+    iconClass,
+    icon,
+    ...(placement !== undefined ? { placement } : {}),
+  };
+}
+
+export function helpTextAdornment(
+  helpText: string,
+  placement?: AdornmentPlacement | null,
+): HelpTextAdornment {
+  return {
+    type: ControlAdornmentType.HelpText,
+    helpText,
+    ...(placement !== undefined ? { placement } : {}),
+  };
+}
+
+export function tooltipAdornment(tooltip: string): TooltipAdornment {
+  return { type: ControlAdornmentType.Tooltip, tooltip };
+}
+
+export function setFieldAdornment(
+  field: string,
+  expression: EntityExpression,
+  options?: Omit<SetFieldAdornment, "type" | "field" | "expression">,
+): SetFieldAdornment {
+  return {
+    type: ControlAdornmentType.SetField,
+    field,
+    expression,
+    ...options,
+  };
+}
+
+export function optionalAdornment(
+  options?: Omit<OptionalAdornment, "type">,
+): OptionalAdornment {
+  return { type: ControlAdornmentType.Optional, ...options };
+}
+
+export function accordionAdornment(
+  title: string,
+  options?: Omit<AccordionAdornment, "type" | "title">,
+): AccordionAdornment {
+  return { type: ControlAdornmentType.Accordion, title, ...options };
 }

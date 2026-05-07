@@ -15,22 +15,25 @@ import {
   createControlContext,
 } from "@rxc/controls";
 import {
-  type ControlAdornment,
-  type ControlDefinition,
+  buildSchema,
   createDataNode,
   createStaticFormTree,
   createStaticSchemaTree,
   dataControl,
-  type DataControlDefinition,
   dataExpr,
-  FieldType,
-  type FormTreeResolver,
   groupedControl,
+  intField,
+  SchemaTags,
+  stringField,
+  type ControlAdornment,
+  type ControlDefinition,
+  type DataControlDefinition,
+  type FormTreeResolver,
   type GroupedControlsDefinition,
   type SchemaField,
-  SchemaTags,
   type SchemaTreeResolver,
 } from "@rxc/forms-core";
+import { FieldType } from "@rxc/forms-core";
 import {
   ActionScope,
   type AdornmentRegistration,
@@ -203,13 +206,6 @@ const SelectionAdornment: AdornmentRegistration = {
   render: SelectionAdornmentRender,
 };
 
-// Synthetic adornment: applied on every node in design mode by injecting
-// it into the registry's adornment list and into every definition's
-// `adornments` array via a child-resolver hook... actually simpler:
-// register it in the adornments list, and inject into each node by
-// listing the type in its definition adornments. For the demo we'll
-// inject programmatically below.
-
 // ── Design-mode visibility (always renders, matching legacy preview) ─
 
 function DesignVisibility({ children }: VisibilityProps) {
@@ -218,13 +214,20 @@ function DesignVisibility({ children }: VisibilityProps) {
 
 // ── Schema and form definition ───────────────────────────────────────
 
+interface DesignerData {
+  name: string;
+  rating: number;
+  maxStarsLimit: number;
+  secret: string;
+}
+
 function designerSchema(): SchemaField[] {
-  return [
-    { type: FieldType.String, field: "name" },
-    { type: FieldType.Int, field: "rating" },
-    { type: FieldType.Int, field: "maxStarsLimit" },
-    { type: FieldType.String, field: "secret" },
-  ];
+  return buildSchema<DesignerData>({
+    name: stringField("Name"),
+    rating: intField("Rating"),
+    maxStarsLimit: intField("Max stars limit"),
+    secret: stringField("Secret"),
+  });
 }
 
 /** Inject `_Selection` into every node's adornment list when designing,
@@ -243,32 +246,34 @@ function withSelectionAdornments(def: ControlDefinition): ControlDefinition {
 }
 
 function designerFormDef(designing: boolean): GroupedControlsDefinition {
-  const ratingDef: DataControlDefinition = {
-    ...dataControl("rating", "Rating (custom Stars plugin)"),
-    renderOptions: {
-      type: "Stars",
-      maxStars: 5,
-      // Script on the plugin's own option — this only works when the
-      // schemaExtensions for the Stars render type are threaded into
-      // the FormStateNode's scripted-proxy walker.
-      $scripts: {
-        maxStars: dataExpr("../maxStarsLimit"),
-      },
-    } as unknown as DataControlDefinition["renderOptions"],
-  };
-  const limitDef: DataControlDefinition = dataControl(
+  const ratingDef: DataControlDefinition = dataControl(
+    "rating",
+    "Rating (custom Stars plugin)",
+    {
+      renderOptions: {
+        type: "Stars",
+        maxStars: 5,
+        // Script on the plugin's own option — this only works when the
+        // schemaExtensions for the Stars render type are threaded into
+        // the FormStateNode's scripted-proxy walker.
+        $scripts: {
+          maxStars: dataExpr("../maxStarsLimit"),
+        },
+      } as DataControlDefinition["renderOptions"],
+    },
+  );
+  const limitDef = dataControl(
     "maxStarsLimit",
     "Max stars (drives the Stars plugin via $scripts)",
   );
   // Always-hidden field — visible only in design mode (DesignVisibility
   // renders hidden nodes with reduced opacity).
-  const hiddenDef: ControlDefinition = {
-    ...dataControl("secret", "Hidden field (visible in design mode)"),
+  const hiddenDef = dataControl("secret", "Hidden field (visible in design mode)", {
     hidden: true,
-  };
-  hiddenDef.adornments = [];
+    adornments: [],
+  });
 
-  const root: GroupedControlsDefinition = groupedControl(
+  const root = groupedControl(
     [dataControl("name", "Name"), ratingDef, limitDef, hiddenDef],
     "Custom plugin demo",
   );

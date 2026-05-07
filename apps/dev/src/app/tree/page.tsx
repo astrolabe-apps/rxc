@@ -8,7 +8,6 @@ import {
   createControlContext,
 } from "@rxc/controls";
 import type {
-  CompoundField,
   ControlDefinition,
   FormStateNode,
   GroupedControlsDefinition,
@@ -17,16 +16,19 @@ import type {
   FormTreeResolver,
 } from "@rxc/forms-core";
 import {
+  buildSchema,
   compoundControl,
+  compoundField,
   createDataNode,
   createReactiveFormTree,
   createStaticSchemaTree,
   dataControl,
   dataMatchExpr,
-  DynamicPropertyType,
-  FieldType,
   groupedControl,
+  intField,
   notExpr,
+  stringField,
+  withScripts,
 } from "@rxc/forms-core";
 import { Form, useFormStateNode } from "@rxc/forms";
 
@@ -405,34 +407,40 @@ const FormStateNodeRenderer = controls(function FormStateNodeRenderer(
 
 // ── Demo scenario ────────────────────────────────────────────────────
 
+interface PersonData {
+  type: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  age: number;
+  address: { street: string; city: string; zip: string };
+  company: string;
+  taxId: string;
+}
+
 function personSchema(): SchemaField[] {
-  return [
-    { type: FieldType.String, field: "type", isTypeField: true },
-    { type: FieldType.String, field: "firstName" },
-    { type: FieldType.String, field: "lastName" },
-    { type: FieldType.String, field: "email" },
-    { type: FieldType.Int, field: "age" },
-    {
-      type: FieldType.Compound,
-      field: "address",
-      children: [
-        { type: FieldType.String, field: "street" },
-        { type: FieldType.String, field: "city" },
-        { type: FieldType.String, field: "zip" },
-      ],
-    } as CompoundField,
+  return buildSchema<PersonData>({
+    type: stringField("Type", { isTypeField: true }),
+    firstName: stringField("First name"),
+    lastName: stringField("Last name"),
+    email: stringField("Email"),
+    age: intField("Age"),
+    address: compoundField(
+      "Address",
+      buildSchema<{ street: string; city: string; zip: string }>({
+        street: stringField("Street"),
+        city: stringField("City"),
+        zip: stringField("ZIP"),
+      }),
+    ),
     // `company` — no `onlyForTypes` gate so the scripted `Disabled` rule
     // below is observable (otherwise visibility would hide it outright and
     // we'd never see the disabled state).
-    { type: FieldType.String, field: "company" },
+    company: stringField("Company"),
     // `taxId` — schema-level `onlyForTypes` so we can also see that rule
     // removing a field entirely when the discriminator doesn't match.
-    {
-      type: FieldType.String,
-      field: "taxId",
-      onlyForTypes: ["business"],
-    },
-  ];
+    taxId: stringField("Tax ID", { onlyForTypes: ["business"] }),
+  });
 }
 
 function personFormDef(): GroupedControlsDefinition {
@@ -448,18 +456,12 @@ function personFormDef(): GroupedControlsDefinition {
         dataControl("city", "City", { required: true }),
         dataControl("zip", "ZIP"),
       ]),
-      // `company` — disabled when `type != "business"` via the scripted
-      // dynamic Disabled property. Stays visible so you can see the
-      // disabled state flip in the UI.
-      {
-        ...dataControl("company", "Company (scripted disabled)"),
-        dynamic: [
-          {
-            type: DynamicPropertyType.Disabled,
-            expr: notExpr(dataMatchExpr("../type", "business")),
-          },
-        ],
-      } as ControlDefinition,
+      // `company` — disabled when `type != "business"` via a $scripts
+      // disabled binding. Stays visible so you can see the disabled state
+      // flip in the UI.
+      withScripts(dataControl("company", "Company (scripted disabled)"), {
+        disabled: notExpr(dataMatchExpr("../type", "business")),
+      }),
       // `taxId` — onlyForTypes on the schema field; entirely hidden when
       // `type != "business"`.
       dataControl("taxId", "Tax ID (business only, onlyForTypes)"),

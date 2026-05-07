@@ -8,39 +8,37 @@ import {
 } from "@rxc/controls";
 import type { Control } from "@rxc/controls";
 import {
+  accordionAdornment,
   actionControl,
   AdornmentPlacement,
-  ControlAdornmentType,
-  ControlDefinitionType,
+  arrayElementOptions,
+  boolField,
+  buildSchema,
+  compoundField,
   ControlDisableType,
   createDataNode,
   createStaticFormTree,
   createStaticSchemaTree,
   dataControl,
-  dataExpr,
-  DataRenderType,
-  FieldType,
-  GroupRenderType,
+  displayOnlyOptions,
+  elementSelectedOptions,
   groupedControl,
-  IconLibrary,
+  iconAdornment,
+  intField,
   jsonataExpr,
-  lengthValidator,
+  jsonataOptions,
+  jsonataValidator,
+  materialIcon,
+  optionalAdornment,
+  scrollListOptions,
+  stringField,
   textDisplayControl,
-  type AccordionAdornment,
-  type ArrayElementRenderOptions,
-  type CompoundField,
-  type ControlAdornment,
-  type ControlDefinition,
-  type ElementSelectedRenderOptions,
+  wizardOptions,
+  withAdornments,
   type FormTreeResolver,
   type GroupedControlsDefinition,
-  type IconAdornment,
-  type JsonataRenderOptions,
-  type OptionalAdornment,
   type SchemaField,
   type SchemaTreeResolver,
-  type ScrollListRenderOptions,
-  type WizardRenderOptions,
 } from "@rxc/forms-core";
 import {
   ActionScope,
@@ -82,66 +80,56 @@ const FAVORITE_OPTIONS: { id: string; label: string }[] = [
 ];
 
 function pageSchema(): SchemaField[] {
-  return [
-    { type: FieldType.String, field: "firstName" },
-    { type: FieldType.String, field: "lastName" },
-    { type: FieldType.String, field: "optionalNote" },
-    { type: FieldType.String, field: "multiErrorTag" },
-    {
-      type: FieldType.String,
-      field: "favorites",
+  return buildSchema<PageData>({
+    firstName: stringField("First name"),
+    lastName: stringField("Last name"),
+    optionalNote: stringField("Optional note"),
+    multiErrorTag: stringField("Multi-error tag"),
+    favorites: stringField("Favorites", {
       collection: true,
       options: FAVORITE_OPTIONS.map((o) => ({ name: o.label, value: o.id })),
-    },
-    {
-      type: FieldType.Compound,
-      field: "feed",
-      collection: true,
-      children: [
-        { type: FieldType.Int, field: "id" },
-        { type: FieldType.String, field: "label" },
-      ],
-    } as CompoundField,
-    {
-      type: FieldType.Compound,
-      field: "todos",
-      collection: true,
-      children: [
-        { type: FieldType.String, field: "title" },
-        { type: FieldType.Bool, field: "done" },
-      ],
-    } as CompoundField,
-    {
-      type: FieldType.Compound,
-      field: "reorderable",
-      collection: true,
-      children: [{ type: FieldType.String, field: "name" }],
-    } as CompoundField,
-    { type: FieldType.String, field: "wizardName" },
-    { type: FieldType.String, field: "wizardEmail" },
-    { type: FieldType.Bool, field: "wizardConfirmed" },
-  ];
+    }),
+    feed: compoundField(
+      "Feed",
+      buildSchema<{ id: number; label: string }>({
+        id: intField("ID"),
+        label: stringField("Label"),
+      }),
+      { collection: true },
+    ),
+    todos: compoundField(
+      "Todos",
+      buildSchema<{ title: string; done: boolean }>({
+        title: stringField("Title"),
+        done: boolField("Done"),
+      }),
+      { collection: true },
+    ),
+    reorderable: compoundField(
+      "Reorderable",
+      buildSchema<{ name: string }>({
+        name: stringField("Name"),
+      }),
+      { collection: true },
+    ),
+    wizardName: stringField("Wizard name"),
+    wizardEmail: stringField("Wizard email"),
+    wizardConfirmed: boolField("Wizard confirmed"),
+  });
 }
 
 // ── Definition ───────────────────────────────────────────────────────
 
-function adorn(
-  base: ControlDefinition,
-  adornments: ControlAdornment[],
-): ControlDefinition {
-  return { ...base, adornments } as ControlDefinition;
-}
-
 function pageDef(): GroupedControlsDefinition {
   // Jsonata data renderer — renders a computed greeting.
-  const jsonataGreeting = {
-    ...dataControl("firstName", "Greeting (Jsonata)"),
-    renderOptions: {
-      type: DataRenderType.Jsonata,
+  const jsonataGreeting = dataControl(
+    "firstName",
+    "Greeting (Jsonata)",
+    jsonataOptions({
       expression:
         '"Hello <strong>" & (firstName ? firstName : "stranger") & " " & (lastName ? lastName : "") & "</strong>"',
-    } as JsonataRenderOptions,
-  } as ControlDefinition;
+    }),
+  );
 
   // ElementSelected — one checkbox per option, toggling membership.
   const favoritesGroup = groupedControl(
@@ -149,15 +137,14 @@ function pageDef(): GroupedControlsDefinition {
       textDisplayControl(
         "ElementSelected: each checkbox toggles membership in the favorites array.",
       ),
-      ...FAVORITE_OPTIONS.map(
-        (o) =>
-          ({
-            ...dataControl("favorites", o.label),
-            renderOptions: {
-              type: DataRenderType.ElementSelected,
-              elementExpression: jsonataExpr(`'${o.id}'`),
-            } as ElementSelectedRenderOptions,
-          }) as ControlDefinition,
+      ...FAVORITE_OPTIONS.map((o) =>
+        dataControl(
+          "favorites",
+          o.label,
+          elementSelectedOptions({
+            elementExpression: jsonataExpr(`'${o.id}'`),
+          }),
+        ),
       ),
     ],
     "ElementSelected",
@@ -165,64 +152,59 @@ function pageDef(): GroupedControlsDefinition {
 
   // ScrollList — bottom-action driven pagination.
   const scrollList = {
-    ...dataControl("feed", "Infinite feed (ScrollList)"),
-    renderOptions: {
-      type: DataRenderType.ScrollList,
-      bottomActionId: "loadMoreFeed",
-    } as ScrollListRenderOptions,
+    ...dataControl(
+      "feed",
+      "Infinite feed (ScrollList)",
+      scrollListOptions({ bottomActionId: "loadMoreFeed" }),
+    ),
     children: [
-      {
-        ...dataControl("label", undefined, { hideTitle: true }),
-        renderOptions: { type: DataRenderType.DisplayOnly },
-      } as ControlDefinition,
+      dataControl("label", undefined, {
+        hideTitle: true,
+        ...displayOnlyOptions({}),
+      }),
     ],
-  } as ControlDefinition;
+  };
 
   // ArrayElement — collection rendered as one-line summary + edit dialog.
   const todoArray = {
-    ...dataControl("todos", "Todo list (ArrayElement summary + dialog)"),
-    renderOptions: {
-      type: DataRenderType.ArrayElement,
-    } as ArrayElementRenderOptions,
-    children: [
-      dataControl("title", "Title"),
-      dataControl("done", "Done"),
-    ],
-  } as ControlDefinition;
+    ...dataControl(
+      "todos",
+      "Todo list (ArrayElement summary + dialog)",
+      arrayElementOptions({}),
+    ),
+    children: [dataControl("title", "Title"), dataControl("done", "Done")],
+  };
 
   // Optional adornment — wraps a field with null toggle + edit selector.
-  const optionalNote = adorn(dataControl("optionalNote", "Optional note"), [
-    {
-      type: ControlAdornmentType.Optional,
-      allowNull: true,
-      editSelectable: true,
-    } as OptionalAdornment,
-  ]);
+  const optionalNote = withAdornments(
+    dataControl("optionalNote", "Optional note"),
+    [optionalAdornment({ allowNull: true, editSelectable: true })],
+  );
 
-  // Multi-error rendering — two validators that both fail when empty/short.
-  const multiError = {
-    ...dataControl("multiErrorTag", "Tag (multi-error demo)", {
+  // Multi-error rendering — `required` writes its message under
+  // `<uniqueId>default`; the jsonata validator writes under `"jsonata"`.
+  // Two distinct error keys on the same data control → `showAllErrors`
+  // renders both as a <ul>. Try empty (both fire), "abc" (jsonata only),
+  // or "ab-cd" (neither).
+  const multiError = dataControl(
+    "multiErrorTag",
+    'Tag (multi-error demo — required + must contain "-")',
+    {
       required: true,
-      validators: [lengthValidator(4, 8)],
-    }),
-  } as ControlDefinition;
+      validators: [jsonataValidator('"Tag must contain a hyphen"')],
+    },
+  );
 
   // LabelStart + LabelEnd icon adornments — both placements on one label.
-  const labelPlacements = adorn(
+  const labelPlacements = withAdornments(
     dataControl("lastName", "Last name (label-start + label-end icons)"),
     [
-      {
-        type: ControlAdornmentType.Icon,
-        iconClass: "",
-        icon: { library: IconLibrary.Material, name: "play_arrow" },
+      iconAdornment(materialIcon("play_arrow"), {
         placement: AdornmentPlacement.LabelStart,
-      } as IconAdornment,
-      {
-        type: ControlAdornmentType.Icon,
-        iconClass: "",
-        icon: { library: IconLibrary.Material, name: "arrow_back" },
+      }),
+      iconAdornment(materialIcon("arrow_back"), {
         placement: AdornmentPlacement.LabelEnd,
-      } as IconAdornment,
+      }),
     ],
   );
 
@@ -234,48 +216,42 @@ function pageDef(): GroupedControlsDefinition {
   );
 
   // Wizard with three pages.
-  const wizard = {
-    ...groupedControl(
-      [
-        groupedControl(
-          [dataControl("wizardName", "Name", { required: true })],
-          "Step 1: Name",
-        ),
-        groupedControl(
-          [dataControl("wizardEmail", "Email", { required: true })],
-          "Step 2: Email",
-        ),
-        groupedControl(
-          [dataControl("wizardConfirmed", "I confirm the details above")],
-          "Step 3: Confirm",
-        ),
-      ],
-      "Wizard demo",
-    ),
-    groupOptions: {
-      type: GroupRenderType.Wizard,
-      showSteps: true,
-    } as WizardRenderOptions,
-  } as ControlDefinition;
+  const wizard = groupedControl(
+    [
+      groupedControl(
+        [dataControl("wizardName", "Name", { required: true })],
+        "Step 1: Name",
+      ),
+      groupedControl(
+        [dataControl("wizardEmail", "Email", { required: true })],
+        "Step 2: Email",
+      ),
+      groupedControl(
+        [dataControl("wizardConfirmed", "I confirm the details above")],
+        "Step 3: Confirm",
+      ),
+    ],
+    "Wizard demo",
+    wizardOptions({ showSteps: true }),
+  );
 
   // SortableArray — uses a custom renderType so only this collection
   // routes to SortableArrayRenderer (registered below).
   const sortable = {
-    ...dataControl("reorderable", "Reorderable list (dnd-kit)"),
-    renderOptions: { type: "SortableArray" },
+    ...dataControl("reorderable", "Reorderable list (dnd-kit)", {
+      renderOptions: { type: "SortableArray" },
+    }),
     children: [dataControl("name", "Name")],
-  } as ControlDefinition;
+  };
 
   // Accordion adornment — overridden to MotionAccordionAdornment via the
   // registry below, so the per-field accordion animates.
-  const accordionWrapped = adorn(
+  const accordionWrapped = withAdornments(
     dataControl("firstName", "First name (Motion accordion adornment)"),
     [
-      {
-        type: ControlAdornmentType.Accordion,
-        title: "Show first-name field (animated)",
+      accordionAdornment("Show first-name field (animated)", {
         defaultExpanded: false,
-      } as AccordionAdornment,
+      }),
     ],
   );
 
@@ -326,9 +302,9 @@ const customRegistry = combineRegistries(
         matchRenderType("SortableArray", SortableArrayRenderer),
       ),
     ],
-    adornments: [
-      MotionAccordionAdornment,
-    ] as unknown as ReturnType<typeof defaultRegistry>["adornments"],
+    adornments: [MotionAccordionAdornment] as unknown as ReturnType<
+      typeof defaultRegistry
+    >["adornments"],
   },
   defaultRegistry(),
 );
@@ -356,16 +332,14 @@ const Phase4bInner = controls(function Phase4bInner({}, { controlContext }) {
         { title: "Buy milk", done: false },
         { title: "Walk the dog", done: true },
       ],
-      reorderable: [
-        { name: "Alpha" },
-        { name: "Bravo" },
-        { name: "Charlie" },
-      ],
+      reorderable: [{ name: "Alpha" }, { name: "Bravo" }, { name: "Charlie" }],
       wizardName: "",
       wizardEmail: "",
       wizardConfirmed: false,
     });
-    const feedControl = (rootControl.fields as { feed: Control<{ id: number; label: string }[]> }).feed;
+    const feedControl = (
+      rootControl.fields as { feed: Control<{ id: number; label: string }[]> }
+    ).feed;
     // Seed the ScrollList state — host owns the loading/hasMore flags
     // on the bound data control's `meta`. The renderer reads them and
     // dispatches the bottom action when the sentinel is in view.
@@ -426,12 +400,11 @@ const Phase4bInner = controls(function Phase4bInner({}, { controlContext }) {
         </h1>
         <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
           Phase 4b renderers + add-on packages. Form-wide{" "}
-          <code>showAllErrors</code> renders every error attached to a
-          field. Visibility uses <code>SlideVisibility</code> from
+          <code>showAllErrors</code> renders every error attached to a field.
+          Visibility uses <code>SlideVisibility</code> from
           <code>@rxc/forms-motion</code>; the per-field accordion uses
-          <code>MotionAccordionAdornment</code>; the reorderable list
-          uses <code>SortableArrayRenderer</code> from{" "}
-          <code>@rxc/forms-dnd</code>.
+          <code>MotionAccordionAdornment</code>; the reorderable list uses{" "}
+          <code>SortableArrayRenderer</code> from <code>@rxc/forms-dnd</code>.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
@@ -475,5 +448,3 @@ export default function Phase4bPage() {
     </ControlContextProvider>
   );
 }
-
-void ControlDefinitionType;

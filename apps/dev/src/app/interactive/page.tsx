@@ -8,21 +8,23 @@ import {
 } from "@rxc/controls";
 import type { Control } from "@rxc/controls";
 import {
+  accordionGroupOptions,
   actionControl,
   AdornmentPlacement,
-  compoundControl,
-  ControlAdornmentType,
+  buildSchema,
   createDataNode,
   createStaticFormTree,
   createStaticSchemaTree,
   dataControl,
-  DataRenderType,
   dataExpr,
-  FieldType,
-  GroupRenderType,
+  dialogOptions,
+  helpTextAdornment,
+  setFieldAdornment,
+  stringField,
+  tabsOptions,
+  textfieldOptions,
   groupedControl,
-  type ControlAdornment,
-  type ControlDefinition,
+  withAdornments,
   type FormTreeResolver,
   type GroupedControlsDefinition,
   type SchemaField,
@@ -37,145 +39,114 @@ import {
 
 // ── Schema ───────────────────────────────────────────────────────────
 
+interface InteractiveData {
+  name: string;
+  email: string;
+  displayLabel: string;
+  preferredContact: string;
+  notes: string;
+  feedback: string;
+  submissionId: string;
+}
+
 function interactiveSchema(): SchemaField[] {
-  return [
-    { type: FieldType.String, field: "name" },
-    { type: FieldType.String, field: "email" },
-    { type: FieldType.String, field: "displayLabel" },
-    { type: FieldType.String, field: "preferredContact" },
-    { type: FieldType.String, field: "notes" },
-    { type: FieldType.String, field: "feedback" },
-    { type: FieldType.String, field: "submissionId" },
-  ];
+  return buildSchema<InteractiveData>({
+    name: stringField("Name"),
+    email: stringField("Email"),
+    displayLabel: stringField("Display label"),
+    preferredContact: stringField("Preferred contact"),
+    notes: stringField("Notes"),
+    feedback: stringField("Feedback"),
+    submissionId: stringField("Submission ID"),
+  });
 }
 
 // ── Form definition ──────────────────────────────────────────────────
 
-function adorn(
-  base: ControlDefinition,
-  adornments: ControlAdornment[],
-): ControlDefinition {
-  return { ...base, adornments } as ControlDefinition;
-}
-
 function interactiveFormDef(): GroupedControlsDefinition {
   // Tabs: Personal / Notes
-  const tabs = {
-    ...groupedControl(
-      [
-        {
-          ...groupedControl(
-            [
-              dataControl("name", "Name", { required: true }),
-              dataControl("email", "Email"),
-            ],
-            "Personal",
+  const tabs = groupedControl(
+    [
+      groupedControl(
+        [
+          dataControl("name", "Name", { required: true }),
+          dataControl("email", "Email"),
+        ],
+        "Personal",
+      ),
+      groupedControl(
+        [
+          withAdornments(
+            dataControl(
+              "notes",
+              "Notes",
+              textfieldOptions({ multiline: true }),
+            ),
+            [helpTextAdornment("Markdown supported")],
           ),
-        } as ControlDefinition,
-        {
-          ...groupedControl(
-            [
-              adorn(
-                {
-                  ...dataControl("notes", "Notes"),
-                  renderOptions: {
-                    type: DataRenderType.Textfield,
-                    multiline: true,
-                  },
-                } as ControlDefinition,
-                [
-                  {
-                    type: ControlAdornmentType.HelpText,
-                    helpText: "Markdown supported",
-                  } as ControlAdornment,
-                ],
-              ),
-            ],
-            "Notes",
-          ),
-        } as ControlDefinition,
-      ],
-      "Tabs demo",
-    ),
-    groupOptions: { type: GroupRenderType.Tabs },
-  } as ControlDefinition;
+        ],
+        "Notes",
+      ),
+    ],
+    "Tabs demo",
+    tabsOptions(),
+  );
 
   // Accordion group: two sections
-  const accordion = {
-    ...groupedControl(
-      [
-        groupedControl(
-          [dataControl("preferredContact", "Preferred contact channel")],
-          "Section 1: Contact",
-        ),
-        groupedControl(
-          [dataControl("submissionId", "Submission id (auto-filled below)")],
-          "Section 2: Metadata",
-        ),
-      ],
-      "Accordion demo",
-    ),
-    groupOptions: { type: GroupRenderType.Accordion },
-  } as ControlDefinition;
+  const accordion = groupedControl(
+    [
+      groupedControl(
+        [dataControl("preferredContact", "Preferred contact channel")],
+        "Section 1: Contact",
+      ),
+      groupedControl(
+        [dataControl("submissionId", "Submission id (auto-filled below)")],
+        "Section 2: Metadata",
+      ),
+    ],
+    "Accordion demo",
+    accordionGroupOptions(),
+  );
 
   // SetField adornment: writes "label-{name}" into displayLabel
-  const setFieldDemo = adorn(
-    {
-      ...groupedControl(
-        [
-          dataControl("name", "Name (drives display label)"),
-          dataControl("displayLabel", "Display label (auto from name)"),
-        ],
-        "SetField demo",
-      ),
-      groupOptions: { type: GroupRenderType.Standard },
-    } as ControlDefinition,
-    [
-      {
-        type: ControlAdornmentType.SetField,
-        field: "displayLabel",
-        expression: dataExpr("name"),
-      } as ControlAdornment,
-    ],
+  const setFieldDemo = withAdornments(
+    groupedControl(
+      [
+        dataControl("name", "Name (drives display label)"),
+        dataControl("displayLabel", "Display label (auto from name)"),
+      ],
+      "SetField demo",
+    ),
+    [setFieldAdornment("displayLabel", dataExpr("name"))],
   );
 
   // Field with HelpText adornment placed at ControlEnd
-  const helpTextField = adorn(dataControl("feedback", "Feedback"), [
-    {
-      type: ControlAdornmentType.HelpText,
-      helpText: "We read every submission",
-      placement: AdornmentPlacement.ControlEnd,
-    } as ControlAdornment,
-  ]);
+  const helpTextField = withAdornments(
+    dataControl("feedback", "Feedback"),
+    [
+      helpTextAdornment(
+        "We read every submission",
+        AdornmentPlacement.ControlEnd,
+      ),
+    ],
+  );
 
   // Dialog group with a trigger + content
-  const dialog = {
-    ...groupedControl(
-      [
-        {
-          ...actionControl("Open dialog", "openDialog"),
-          placement: "trigger",
-        } as ControlDefinition,
-        dataControl("name", "Name"),
-        actionControl("Close", "closeDialog"),
-      ],
-      "Edit",
-    ),
-    groupOptions: { type: GroupRenderType.Dialog, title: "Edit name" },
-  } as ControlDefinition;
+  const dialog = groupedControl(
+    [
+      { ...actionControl("Open dialog", "openDialog"), placement: "trigger" },
+      dataControl("name", "Name"),
+      actionControl("Close", "closeDialog"),
+    ],
+    "Edit",
+    dialogOptions({ title: "Edit name" }),
+  );
 
   // Async submit button — handled by the host's ActionScope
   const submit = actionControl("Submit", "submit");
 
   return groupedControl(
-    [
-      tabs,
-      accordion,
-      setFieldDemo,
-      helpTextField,
-      dialog,
-      submit,
-    ],
+    [tabs, accordion, setFieldDemo, helpTextField, dialog, submit],
     "Interactive form",
   );
 }
