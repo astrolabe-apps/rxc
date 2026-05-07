@@ -191,7 +191,11 @@ function pageDef(): GroupedControlsDefinition {
     'Tag (multi-error demo — required + must contain "-")',
     {
       required: true,
-      validators: [jsonataValidator('"Tag must contain a hyphen"')],
+      validators: [
+        jsonataValidator(
+          '$contains(multiErrorTag, "-") ? null : "Tag must contain a hyphen"',
+        ),
+      ],
     },
   );
 

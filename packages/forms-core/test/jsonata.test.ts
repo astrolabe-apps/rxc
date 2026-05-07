@@ -282,7 +282,12 @@ describe("jsonataValidator", () => {
     );
   });
 
-  it("keeps the jsonata error after a value change (literal expression)", async () => {
+  it("re-publishes a literal jsonata error after a value change", async () => {
+    // Constant-message expression: no data reads inside the expression,
+    // so the evaluator's own data tracking can't re-fire it. The
+    // validator's `isEnabled` gate subscribes to the data control's
+    // value, ensuring a re-evaluation (and therefore a re-publish)
+    // after `setValueImpl`'s auto-clear of the errors map.
     const fields: SchemaField[] = [stringField("tag")];
     const jsonataV: JsonataValidator = {
       type: ValidatorType.Jsonata,
@@ -307,14 +312,54 @@ describe("jsonataValidator", () => {
     const tagControl = (
       dataControl as unknown as { fields: { tag: Control<string> } }
     ).fields.tag;
+    expect(tagControl.errorsNow?.["jsonata"]).toBe("Tag must contain a hyphen");
 
-    // Type a single character — required clears, but jsonata literal
-    // should still be set.
     ctx.update((wc) => wc.setValue(tagControl, "a"));
     await flush();
+    expect(tagControl.errorsNow?.["jsonata"]).toBe("Tag must contain a hyphen");
+  });
 
-    const errors = tagControl.errorsNow ?? {};
-    expect(errors["jsonata"]).toBe("Tag must contain a hyphen");
+  it("re-publishes the jsonata error after a value change clears errors", async () => {
+    // Realistic case: data-bound expression that produces the same
+    // message for multiple values. `setValueImpl` clears every error
+    // on the control on each value write (controlImpl.ts), so the
+    // jsonata key gets nuked when the user types — the validator must
+    // re-publish from the next jsonata evaluation.
+    const fields: SchemaField[] = [stringField("tag")];
+    const jsonataV: JsonataValidator = {
+      type: ValidatorType.Jsonata,
+      expression: '$contains(tag, "-") ? null : "Tag must contain a hyphen"',
+    };
+    const defs = [
+      {
+        ...dataDef("tag"),
+        required: true,
+        validators: [jsonataV],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, dataControl, globals } = makeEnv(
+      fields,
+      defs,
+      { tag: "" },
+    );
+    const root = createFormStateNode(ctx, formTree.rootNode, dataNode, globals);
+    root.getChildren(rd);
+    await flush();
+
+    const tagControl = (
+      dataControl as unknown as { fields: { tag: Control<string> } }
+    ).fields.tag;
+
+    // Type a single character — required clears (non-empty), jsonata
+    // re-evaluates to the same message and must republish.
+    ctx.update((wc) => wc.setValue(tagControl, "a"));
+    await flush();
+    expect(tagControl.errorsNow?.["jsonata"]).toBe("Tag must contain a hyphen");
+
+    // Type a hyphen — jsonata flips to null, key clears.
+    ctx.update((wc) => wc.setValue(tagControl, "ab-cd"));
+    await flush();
+    expect(tagControl.errorsNow?.["jsonata"]).toBeUndefined();
   });
 
   it("suppresses the error while the node is hidden (validationEnabled=false)", async () => {

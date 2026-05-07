@@ -151,8 +151,14 @@ const evalDateValidator: ValidatorEval<DateValidator> = (dv, context) => {
  * `"jsonata"` key. A null/undefined result clears the error; a non-null
  * falsy result (e.g. `""`) is normalised to no-error by the Control.
  *
- * Errors are only published while `validationEnabled` is true, matching
- * the general "invisible fields don't report errors" semantics.
+ * Visibility gating is delegated to the evaluator via `isEnabled` on
+ * `ExpressionEvalContext`: when the host node is hidden the evaluator
+ * skips work and publishes `undefined`, and the evaluator's own tracked
+ * subscription on `validationEnabled` re-runs it when visibility flips
+ * back. Each call to `returnResult` writes `setError` directly so that
+ * `setValueImpl`'s auto-clear of all errors on the data control (see
+ * controlImpl.ts) is unconditionally re-asserted on every evaluation —
+ * no `Control`-level result dedup that could swallow the re-publish.
  */
 const evalJsonataValidator: ValidatorEval<JsonataValidator> = (
   validation,
@@ -169,22 +175,6 @@ const evalJsonataValidator: ValidatorEval<JsonataValidator> = (
     addCleanup,
   } = context;
 
-  const resultControl = ctx.newControl<unknown>(undefined);
-
-  // Publisher effect: republishes the error whenever the async result or
-  // `validationEnabled` changes.
-  const publisher = effect(ctx, (rc) => {
-    const enabled = rc.getValue(validationEnabled);
-    const result = rc.getValue(resultControl);
-    const errStr = enabled
-      ? result == null
-        ? null
-        : String(result)
-      : null;
-    ctx.update((wc) => wc.setError(data.control, "jsonata", errStr));
-  });
-  addCleanup(() => publisher.cleanup());
-
   jsonataEval(
     { type: ExpressionType.Jsonata, expression: validation.expression },
     {
@@ -194,9 +184,18 @@ const evalJsonataValidator: ValidatorEval<JsonataValidator> = (
       variables,
       runAsync,
       returnResult: (v) => {
-        ctx.update((wc) => wc.setValue(resultControl, v));
+        const errStr = v == null ? null : String(v);
+        ctx.update((wc) => wc.setError(data.control, "jsonata", errStr));
       },
       addCleanup,
+      isEnabled: (rc) => {
+        // Track the data control's value so the evaluator re-fires on
+        // every edit — covers "constant message" expressions that don't
+        // read the data themselves and so wouldn't otherwise re-evaluate
+        // after `setValueImpl`'s auto-clear of the errors map.
+        rc.getValue(data.control);
+        return rc.getValue(validationEnabled);
+      },
     },
   );
 

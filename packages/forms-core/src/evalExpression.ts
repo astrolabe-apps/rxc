@@ -3,6 +3,7 @@ import {
   type ControlContext,
   effect,
   noopReadContext,
+  type ReadContext,
 } from "@rxc/controls-core";
 import {
   SubscriptionReconciler,
@@ -46,6 +47,14 @@ export interface ExpressionEvalContext {
   runAsync: (fn: () => void) => void;
   /** Cleanup registration — called when the evaluator's effects should be disposed. */
   addCleanup(fn: () => void): void;
+  /**
+   * Optional gate — when supplied and reading `false`, the evaluator
+   * publishes `undefined` and skips the actual evaluation. The reactive
+   * read registers a dependency, so the evaluator re-runs when the gate
+   * flips. Used by validators to suppress evaluation while the host
+   * node is hidden.
+   */
+  isEnabled?: (rc: ReadContext) => boolean;
 }
 
 /** Evaluator function for a given {@link EntityExpression} kind. */
@@ -63,9 +72,13 @@ export type ExpressionEval<T extends EntityExpression> = (
  */
 const dataEval: ExpressionEval<DataExpression> = (
   expr,
-  { dataNode, returnResult, ctx, addCleanup },
+  { dataNode, returnResult, ctx, addCleanup, isEnabled },
 ) => {
   const ef = effect(ctx, (rc) => {
+    if (isEnabled && !isEnabled(rc)) {
+      returnResult(undefined);
+      return;
+    }
     const other = dataRef(dataNode.cursor(rc), expr.field);
     returnResult(other ? rc.getValue(other.control) : undefined);
   });
@@ -78,9 +91,13 @@ const dataEval: ExpressionEval<DataExpression> = (
  */
 const dataMatchEval: ExpressionEval<DataMatchExpression> = (
   expr,
-  { dataNode, returnResult, ctx, addCleanup },
+  { dataNode, returnResult, ctx, addCleanup, isEnabled },
 ) => {
   const ef = effect(ctx, (rc) => {
+    if (isEnabled && !isEnabled(rc)) {
+      returnResult(undefined);
+      return;
+    }
     const other = dataRef(dataNode.cursor(rc), expr.field);
     if (!other) {
       returnResult(false);
@@ -98,10 +115,14 @@ const dataMatchEval: ExpressionEval<DataMatchExpression> = (
  */
 const notEmptyEval: ExpressionEval<NotEmptyExpression> = (
   expr,
-  { dataNode, returnResult, schemaInterface, ctx, addCleanup },
+  { dataNode, returnResult, schemaInterface, ctx, addCleanup, isEnabled },
 ) => {
   const empty = !!expr.empty;
   const ef = effect(ctx, (rc) => {
+    if (isEnabled && !isEnabled(rc)) {
+      returnResult(undefined);
+      return;
+    }
     const other = dataRef(dataNode.cursor(rc), expr.field);
     if (!other) {
       returnResult(false);
@@ -247,7 +268,7 @@ function getRootDataNode(dataNode: DataNode): DataNode {
  */
 const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
   expr,
-  { dataNode, returnResult, variables, runAsync, addCleanup },
+  { dataNode, returnResult, variables, runAsync, addCleanup, isEnabled },
 ) => {
   const pathSegments = getSchemaPath(dataNode);
   const path = pathSegments.map((s) => s.key);
@@ -305,6 +326,17 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
     aborter = new AbortController();
     const signal = aborter.signal;
     rc.reset();
+
+    // Optional gate — when disabled, skip the actual evaluation. The
+    // `isEnabled` read registers a dependency, so flipping it back
+    // schedules a re-run via the reconciler.
+    if (isEnabled && !isEnabled(rc)) {
+      reconciler.reconcile(rc.tracked);
+      returnResult(undefined);
+      running = false;
+      aborter = undefined;
+      return;
+    }
 
     const trackedVars = variables?.(rc);
     const data = ensurePathNavigable(
