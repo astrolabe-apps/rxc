@@ -147,6 +147,7 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
   { href: "/interactive", label: "/interactive", description: "tabs, dialog, accordion, async actions" },
   { href: "/designer", label: "/designer", description: "plugin + design-mode demo" },
   { href: "/phase4b", label: "/phase4b", description: "Phase 4b additions + motion / dnd add-ons" },
+  { href: "/buttons", label: "/buttons", description: "ButtonAction renderer — variants, icons, busy spinner, theming" },
 ];
 
 const Home = controls(function Home({}, { controlContext }) {

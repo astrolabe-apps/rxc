@@ -1,3 +1,10 @@
+/* Font Awesome — same Kit the legacy ServiceTas / formServer / storybook
+ * apps load, so icon-by-name comparisons with legacy renderers match
+ * exactly. Must precede `@import "tailwindcss"` because all CSS
+ * @import rules must come before any other rules, and the tailwind
+ * import expands into rules. */
+@import "https://kit.fontawesome.com/95cc77b353.css";
+
 @import "tailwindcss";
 
 /* Tailwind v4 only scans the consuming app by default. Workspace

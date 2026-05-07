@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import type { Control } from "@rxc/controls-core";
-import type { FormStateNode } from "@rxc/forms-core";
+import type {
+  FormStateNode,
+  IconPlacement,
+  IconReference,
+} from "@rxc/forms-core";
 import type { FormOptions } from "@rxc/forms-react-core";
 
 /**
@@ -172,7 +176,11 @@ export interface HtmlDialogTheme {
 // ── Action renderers ─────────────────────────────────────────────────
 
 export interface HtmlActionTheme {
+  /** Base class always applied to the `<button>`, layered beneath the
+   * variant class (primary/secondary/link/group). */
   buttonClass?: string;
+  /** Base class applied to the text `<span>`, layered beneath the
+   * variant text class. */
   textClass?: string;
   primaryClass?: string;
   primaryTextClass?: string;
@@ -180,8 +188,19 @@ export interface HtmlActionTheme {
   secondaryTextClass?: string;
   linkClass?: string;
   linkTextClass?: string;
+  /** Wrapper class for `ActionStyle.Group` buttons (action bars / icon
+   * groups). */
+  groupClass?: string;
   iconBeforeClass?: string;
   iconAfterClass?: string;
+  /** Default icon used when the action definition does not specify one. */
+  icon?: IconReference;
+  /** Icon shown while the action is busy (e.g. spinner). When set,
+   * replaces the resting icon for the duration of the async action. */
+  busyIcon?: IconReference;
+  /** Placement for `busyIcon`. Defaults to `ReplaceText` so a spinner
+   * takes the place of the label, matching legacy behaviour. */
+  busyIconPlacement?: IconPlacement;
 }
 
 // ── Display renderers ────────────────────────────────────────────────
