@@ -126,11 +126,7 @@ function matchDisplayOnly(component: typeof DisplayOnlyRenderer): DataMatcher {
   };
 }
 
-/**
- * Default registry for `@rxc/forms`. Phase 2 covers the full default
- * data + group + display set documented in RENDERER-DESIGN.md (Phase 4a
- * minus adornments, complex groups, and actions — those land in Phase 3).
- */
+/** Default registry for `@rxc/forms`. */
 export function defaultRegistry(): FormRegistry {
   return combineRegistries({
     data: [

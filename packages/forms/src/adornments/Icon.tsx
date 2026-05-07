@@ -9,15 +9,20 @@ import type {
   AdornmentRegistration,
   AdornmentRenderProps,
 } from "@rxc/forms-react-core";
-import { iconClassFor } from "../renderers/display/Icon";
+import { resolveIcon } from "../renderers/display/Icon";
 
 function IconAdornmentRender({
   adornment,
   children,
   kind,
 }: AdornmentRenderProps<IconAdornmentDef>) {
-  const cls = iconClassFor(adornment.iconClass, adornment.icon);
-  const icon = cls ? <i className={cls} aria-hidden /> : null;
+  const resolved = resolveIcon(adornment.iconClass, adornment.icon);
+  const icon =
+    resolved.className || resolved.text ? (
+      <i className={resolved.className} aria-hidden>
+        {resolved.text}
+      </i>
+    ) : null;
   const placement = adornment.placement;
 
   if (kind === "label") {

@@ -9,26 +9,39 @@ import {
 import type { Control } from "@rxc/controls";
 import {
   compoundControl,
+  ControlAdornmentType,
   ControlDefinitionType,
   createDataNode,
   createStaticFormTree,
   createStaticSchemaTree,
   dataControl,
+  dataExpr,
   DataRenderType,
+  DisplayDataType,
   FieldType,
   GroupRenderType,
   groupedControl,
   htmlDisplayControl,
+  IconLibrary,
   textDisplayControl,
+  type AccordionAdornment,
   type CompoundField,
+  type ControlAdornment,
   type ControlDefinition,
+  type CustomDisplay,
   type DisplayControlDefinition,
   type FormTreeResolver,
   type GroupedControlsDefinition,
+  type IconAdornment,
+  type IconDisplay,
   type SchemaField,
   type SchemaTreeResolver,
+  type SelectChildRenderer as SelectChildRenderOptions,
 } from "@rxc/forms-core";
 import { Form, useFormStateNode } from "@rxc/forms";
+import type { HtmlFormOptions } from "@rxc/forms";
+import type { ComponentType } from "react";
+import type { DisplayData } from "@rxc/forms-core";
 
 // ── Schema ───────────────────────────────────────────────────────────
 
@@ -95,6 +108,13 @@ function showcaseSchema(): SchemaField[] {
         { type: FieldType.String, field: "zip" },
       ],
     } as CompoundField,
+    // Pre-existing-gap fields
+    { type: FieldType.String, field: "firstName" },
+    { type: FieldType.String, field: "lastName" },
+    { type: FieldType.String, field: "secret" },
+    { type: FieldType.Int, field: "shownChildIndex" },
+    { type: FieldType.String, field: "panelA" },
+    { type: FieldType.String, field: "panelB" },
   ];
 }
 
@@ -166,6 +186,109 @@ function showcaseFormDef(): GroupedControlsDefinition {
         dataControl("city", "City"),
         dataControl("zip", "ZIP"),
       ]),
+      // Inline group: lays children out as a horizontal <span>
+      {
+        ...groupedControl(
+          [
+            textDisplayControl("Hello,"),
+            dataControl("firstName", "First"),
+            dataControl("lastName", "Last"),
+          ],
+          "Inline group",
+        ),
+        groupOptions: { type: GroupRenderType.Inline },
+      } as ControlDefinition,
+      // Contents group: transparent passthrough (no wrapper element)
+      {
+        ...groupedControl(
+          [
+            textDisplayControl(
+              "Contents group renders children with no wrapper element.",
+            ),
+            dataControl("secret", "Inside contents group"),
+          ],
+          "Contents group",
+        ),
+        groupOptions: { type: GroupRenderType.Contents },
+      } as ControlDefinition,
+      // SelectChild group: shows the child at index `shownChildIndex`
+      groupedControl(
+        [
+          dataControl("shownChildIndex", "Shown child (0–2)"),
+          {
+            ...groupedControl(
+              [
+                groupedControl(
+                  [textDisplayControl("Panel 0 — first child")],
+                  "Panel 0",
+                ),
+                groupedControl(
+                  [
+                    textDisplayControl("Panel 1 — second child"),
+                    dataControl("panelA", "Panel A field"),
+                  ],
+                  "Panel 1",
+                ),
+                groupedControl(
+                  [
+                    textDisplayControl("Panel 2 — third child"),
+                    dataControl("panelB", "Panel B field"),
+                  ],
+                  "Panel 2",
+                ),
+              ],
+              "SelectChild target",
+            ),
+            groupOptions: {
+              type: GroupRenderType.SelectChild,
+              childIndexExpression: dataExpr("shownChildIndex"),
+            } as SelectChildRenderOptions,
+          } as ControlDefinition,
+        ],
+        "SelectChild group",
+      ),
+      // Icon display
+      {
+        type: ControlDefinitionType.Display,
+        title: "Icon display",
+        displayData: {
+          type: DisplayDataType.Icon,
+          iconClass: "",
+          icon: { library: IconLibrary.Material, name: "star" },
+        } as IconDisplay,
+      } as DisplayControlDefinition,
+      // Custom display (resolved via FormOptions.customDisplays)
+      {
+        type: ControlDefinitionType.Display,
+        title: "Custom display",
+        displayData: {
+          type: DisplayDataType.Custom,
+          customId: "showcase-banner",
+        } as CustomDisplay,
+      } as DisplayControlDefinition,
+      // Icon adornment (LabelStart) on a field
+      {
+        ...dataControl("displayed", "Field with label-start icon"),
+        adornments: [
+          {
+            type: ControlAdornmentType.Icon,
+            iconClass: "",
+            icon: { library: IconLibrary.Material, name: "star" },
+            placement: "LabelStart",
+          } as IconAdornment,
+        ] as ControlAdornment[],
+      } as ControlDefinition,
+      // Accordion adornment (per-field <details> wrapper)
+      {
+        ...dataControl("secret", "Wrapped in an accordion (per-field)"),
+        adornments: [
+          {
+            type: ControlAdornmentType.Accordion,
+            title: "Show secret field",
+            defaultExpanded: false,
+          } as AccordionAdornment,
+        ] as ControlAdornment[],
+      } as ControlDefinition,
     ],
     "Renderer Showcase",
   );
@@ -178,6 +301,18 @@ const emptySchemaResolver: SchemaTreeResolver = {
 };
 const emptyFormResolver: FormTreeResolver = {
   getFormTree: () => undefined,
+};
+
+const ShowcaseBanner: ComponentType<{ data: DisplayData }> = () => (
+  <div className="rounded bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900 dark:text-amber-100">
+    Custom display rendered via FormOptions.customDisplays
+  </div>
+);
+
+const showcaseFormOptions: HtmlFormOptions = {
+  customDisplays: {
+    "showcase-banner": ShowcaseBanner,
+  },
 };
 
 const controlContext = createControlContext();
@@ -207,6 +342,12 @@ const ShowcaseInner = controls(function ShowcaseInner({}, { controlContext }) {
       address: [
         { street: "1 Main St", city: "Hobart", zip: "7000" },
       ],
+      firstName: "Ada",
+      lastName: "Lovelace",
+      secret: "shhh",
+      shownChildIndex: 1,
+      panelA: "panel-a",
+      panelB: "panel-b",
     });
     const schemaTree = createStaticSchemaTree(
       showcaseSchema(),
@@ -234,13 +375,13 @@ const ShowcaseInner = controls(function ShowcaseInner({}, { controlContext }) {
           Renderer Showcase
         </h1>
         <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Every default Phase 2 renderer rendered against a kitchen-sink
-          schema. Edit values on the left and watch the JSON on the right
-          update reactively.
+          Every default renderer rendered against a kitchen-sink schema.
+          Edit values on the left and watch the JSON on the right update
+          reactively.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">
-            <Form node={formNode} />
+            <Form node={formNode} options={showcaseFormOptions} />
           </div>
           <div className="rounded-lg bg-white dark:bg-zinc-900 p-4 shadow lg:sticky lg:top-6 lg:self-start">
             <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">

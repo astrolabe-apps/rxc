@@ -141,6 +141,14 @@ const formSetup: ControlSetup<FormData> = {
 
 const controlContext = createControlContext();
 
+const NAV_LINKS: { href: string; label: string; description: string }[] = [
+  { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
+  { href: "/showcase", label: "/showcase", description: "kitchen-sink default renderers" },
+  { href: "/interactive", label: "/interactive", description: "tabs, dialog, accordion, async actions" },
+  { href: "/designer", label: "/designer", description: "plugin + design-mode demo" },
+  { href: "/phase4b", label: "/phase4b", description: "Phase 4b additions + motion / dnd add-ons" },
+];
+
 const Home = controls(function Home({}, { controlContext }) {
   const formRef = useRef<Control<FormData> | null>(null);
   if (!formRef.current) {
@@ -151,6 +159,27 @@ const Home = controls(function Home({}, { controlContext }) {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="w-full max-w-md rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
         <MyForm form={formRef.current} />
+        <nav className="mt-6 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+          <h3 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            Demos
+          </h3>
+          <ul className="flex flex-col gap-1 text-sm">
+            {NAV_LINKS.map((l) => (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  className="text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  {l.label}
+                </a>
+                <span className="text-zinc-500 dark:text-zinc-400">
+                  {" — "}
+                  {l.description}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </main>
     </div>
   );

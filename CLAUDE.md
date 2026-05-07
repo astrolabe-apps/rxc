@@ -67,7 +67,7 @@ All in `docs/`:
 
 - **CONTROL-SEMANTICS.md** — The authoritative reference for control tree behavior: value propagation, error handling, dirty/touched/disabled cascading, element lifecycle, null materialization. **These semantics are settled and must be preserved.**
 - **FORM-SEMANTICS.md** — The authoritative reference for form state behavior: FormStateNode lifecycle, visibility/disabled/readonly cascading, children resolution, data node syncing, script overrides. **These semantics are settled and must be preserved.**
-- **RENDERER-DESIGN.md** — The authoritative reference for the renderer engine across `@rxc/forms-react-core` (headless: registry, matchers, plugin helpers, contexts, hooks, adornment composition, action infra, design-mode) and `@rxc/forms` (HTML platform: Field/Form/Label/Error/Layout/Visibility, default renderers, default registry). **Phase 4a is settled; Phase 4b items are listed below.**
+- **MIGRATION-FROM-LEGACY.md** — Rosetta stone for porting hosts and custom renderer sets from `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` onto `@rxc/forms` + `@rxc/forms-react-core`. Maps every legacy registration shape, hook, and slot to its new equivalent, calls out mechanical ports vs translations, and lists known gaps. The renderer engine itself has no design doc — the implementation in `packages/forms-react-core/src` and `packages/forms/src` is the source of truth.
 - **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, controls() wrapper rationale.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
@@ -177,7 +177,7 @@ Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteCo
 
 ### Phase 4 — @rxc/forms (renderer) ✅
 
-Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.md`. Design in `docs/RENDERER-DESIGN.md`.
+Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.md`. The implementation in `packages/forms-react-core/src` and `packages/forms/src` is the source of truth; legacy → new mapping for porting hosts is in `docs/MIGRATION-FROM-LEGACY.md`.
 
 #### Phase 4a-1: Skeleton + minimal renderers ✅
 - `Form`, `Field` components; `useFormStateNode` helper; `FormRegistry`, `combineRegistries`, `defaultRegistry`; matcher types + sugar (`matchRenderType`, `matchSchemaType`, `matchAll`, `matchAny`, `matchHasOptions`, `matchCollection`, `matchCompoundField`, `matchAlways`)
