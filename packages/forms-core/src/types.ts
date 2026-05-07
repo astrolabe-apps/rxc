@@ -122,10 +122,8 @@ export interface FormStateNode {
    * disabled cascade, all its descendants) is forced disabled.
    *
    * - `Self`: hold targets this node only.
-   * - `Form` / `Global`: hold walks to the root of the form state tree
-   *   and targets that. (`Global` currently behaves like `Form`; a
-   *   process-level registry can be wired in later without changing
-   *   the call site.)
+   * - `Global`: hold walks to the root of the form state tree and
+   *   targets that, matching legacy `getDisabler(Global)` semantics.
    * - `None`: hold is a no-op; the returned release function does
    *   nothing.
    */
