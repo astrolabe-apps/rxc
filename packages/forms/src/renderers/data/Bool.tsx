@@ -1,8 +1,8 @@
 "use client";
 
 import { controls } from "@rxc/controls";
-import { useLabelText } from "../../labelText";
-import type { DataRendererProps } from "../../types";
+import { useLabelText } from "@rxc/forms-react-core";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Bool checkbox that absorbs its label into the renderer's own DOM:

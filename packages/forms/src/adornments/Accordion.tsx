@@ -5,7 +5,7 @@ import {
   ControlAdornmentType,
   type AccordionAdornment as AccordionAdornmentDef,
 } from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "../Adornment";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
 
 function AccordionAdornmentRender({
   adornment,

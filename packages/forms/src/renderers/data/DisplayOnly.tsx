@@ -2,7 +2,7 @@
 
 import { controls } from "@rxc/controls";
 import { FieldType } from "@rxc/forms-core";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 function formatScalar(value: unknown, type: string | undefined): string {
   if (value == null) return "";

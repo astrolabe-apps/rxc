@@ -1,13 +1,13 @@
 "use client";
 
+import {
+  DesignModeProvider,
+  OptionsProvider,
+  RegistryProvider,
+} from "@rxc/forms-react-core";
 import { Field } from "./Field";
 import { LayoutProvider, DefaultLayout } from "./Layout";
 import { VisibilityProvider, DefaultVisibility } from "./Visibility";
-import { DesignModeProvider } from "./DesignMode";
-import {
-  OptionsProvider,
-  RegistryProvider,
-} from "./FormProvider";
 import { defaultRegistry } from "./builtins";
 import type { FormProps } from "./types";
 

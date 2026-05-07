@@ -2,7 +2,7 @@
 
 import { controls } from "@rxc/controls";
 import type { TextfieldRenderOptions } from "@rxc/forms-core";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 export const MultilineRenderer = controls<DataRendererProps>(
   "MultilineRenderer",

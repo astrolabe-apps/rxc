@@ -7,7 +7,7 @@ import {
   type LengthValidator,
 } from "@rxc/forms-core";
 import { Field } from "../../Field";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 interface ArrayLengthRange {
   min: number;

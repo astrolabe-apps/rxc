@@ -154,6 +154,9 @@ importers:
       '@rxc/forms-core':
         specifier: workspace:*
         version: link:../forms-core
+      '@rxc/forms-react-core':
+        specifier: workspace:*
+        version: link:../forms-react-core
     devDependencies:
       '@types/react':
         specifier: ~19.1.0
@@ -183,6 +186,31 @@ importers:
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(jiti@2.6.1)(lightningcss@1.30.2)
+
+  ../../packages/forms-react-core:
+    dependencies:
+      '@rxc/controls':
+        specifier: workspace:*
+        version: link:../controls
+      '@rxc/controls-core':
+        specifier: workspace:*
+        version: link:../controls-core
+      '@rxc/forms-core':
+        specifier: workspace:*
+        version: link:../forms-core
+    devDependencies:
+      '@types/react':
+        specifier: ~19.1.0
+        version: 19.1.17
+      react:
+        specifier: ~19.1.0
+        version: 19.1.5
       typescript:
         specifier: ~5.8.0
         version: 5.8.3

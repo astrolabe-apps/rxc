@@ -31,7 +31,7 @@ export function runAsyncAction(
     result = handler(actionId, actionData);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("[@rxc/forms] action threw", err);
+    console.error("[@rxc/forms-react-core] action threw", err);
     return;
   }
   if (result instanceof Promise) {
@@ -39,7 +39,7 @@ export function runAsyncAction(
     result
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.error("[@rxc/forms] action rejected", err);
+        console.error("[@rxc/forms-react-core] action rejected", err);
       })
       .finally(() => {
         node.setBusy(false);

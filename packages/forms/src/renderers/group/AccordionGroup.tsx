@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { controls } from "@rxc/controls";
 import { Field } from "../../Field";
-import type { GroupRendererProps } from "../../types";
+import type { GroupRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Accordion group: each child becomes a `<details>` section. Uses native

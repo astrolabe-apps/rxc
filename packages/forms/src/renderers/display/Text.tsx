@@ -1,7 +1,7 @@
 "use client";
 
 import type { TextDisplay } from "@rxc/forms-core";
-import type { DisplayRendererProps } from "../../types";
+import type { DisplayRendererProps } from "@rxc/forms-react-core";
 
 export function TextDisplayRenderer({ data }: DisplayRendererProps) {
   const text = (data as TextDisplay).text;

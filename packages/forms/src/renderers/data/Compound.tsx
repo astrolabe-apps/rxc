@@ -1,9 +1,9 @@
 "use client";
 
 import { controls } from "@rxc/controls";
-import { pickGroupRenderer } from "../../registry";
-import { useRegistry } from "../../FormProvider";
-import type { DataRendererProps } from "../../types";
+import { pickGroupRenderer } from "@rxc/forms-react-core";
+import { useRegistry } from "@rxc/forms-react-core";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 /**
  * A `Compound`-typed data control delegates rendering to the group

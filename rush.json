@@ -21,6 +21,11 @@
       "shouldPublish": true
     },
     {
+      "packageName": "@rxc/forms-react-core",
+      "projectFolder": "packages/forms-react-core",
+      "shouldPublish": true
+    },
+    {
       "packageName": "@rxc/forms",
       "projectFolder": "packages/forms",
       "shouldPublish": true

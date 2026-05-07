@@ -2,8 +2,8 @@
 
 import { controls } from "@rxc/controls";
 import { FieldType } from "@rxc/forms-core";
-import { useLabelText } from "../../labelText";
-import type { DataRendererProps } from "../../types";
+import { useLabelText } from "@rxc/forms-react-core";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 function valueToString(value: unknown): string {
   if (value == null) return "";

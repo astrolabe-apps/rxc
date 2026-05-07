@@ -6,9 +6,9 @@ import {
   IconPlacement,
   isActionControl,
 } from "@rxc/forms-core";
-import type { ActionRendererProps } from "../../types";
-import { useActionHandler } from "../../ActionScope";
-import { useAsyncAction } from "../../useAsyncAction";
+import type { ActionRendererProps } from "@rxc/forms-react-core";
+import { useActionHandler } from "@rxc/forms-react-core";
+import { useAsyncAction } from "@rxc/forms-react-core";
 import { iconClassFor } from "../display/Icon";
 
 export const ButtonAction = controls<ActionRendererProps>(

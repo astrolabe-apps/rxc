@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { controls } from "@rxc/controls";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Single-select combobox. Filters the option list against the input's

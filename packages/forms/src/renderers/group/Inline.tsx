@@ -2,7 +2,7 @@
 
 import { controls } from "@rxc/controls";
 import { Field } from "../../Field";
-import type { GroupRendererProps } from "../../types";
+import type { GroupRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Inline group: lays out children horizontally as a `<span>`. Children

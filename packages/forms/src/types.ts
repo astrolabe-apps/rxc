@@ -1,69 +1,8 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import type {
-  Control,
-  ControlContext,
-  ReadContext,
-} from "@rxc/controls-core";
-import type {
-  DataNode,
-  DisplayData,
-  FormNode,
-  FormStateNode,
-  SchemaInterface,
-} from "@rxc/forms-core";
+import type { FormStateNode, SchemaInterface } from "@rxc/forms-core";
+import type { FormOptions, FormRegistry } from "@rxc/forms-react-core";
 
-// ── Renderer component types ─────────────────────────────────────────
-
-export interface DataRendererProps {
-  node: FormStateNode;
-  /**
-   * DOM id for the input element. Wire it to your input's `id={...}` and
-   * to `aria-describedby={`${id}-error`}` so the chrome's `<Label
-   * htmlFor>` and `<Error id>` line up. Generated once per Field via
-   * React's `useId()` — stable across SSR/hydration.
-   */
-  id: string;
-}
-
-export interface GroupRendererProps {
-  node: FormStateNode;
-}
-
-export interface ActionRendererProps {
-  node: FormStateNode;
-}
-
-export interface DisplayRendererProps {
-  node: FormStateNode;
-  data: DisplayData;
-}
-
-export type DataRenderer = ComponentType<DataRendererProps>;
-export type GroupRenderer = ComponentType<GroupRendererProps>;
-export type ActionRenderer = ComponentType<ActionRendererProps>;
-export type DisplayRenderer = ComponentType<DisplayRendererProps>;
-
-// ── Match results (component + dispatch metadata) ────────────────────
-
-export interface DataMatch {
-  component: DataRenderer;
-  hidesLabel?: boolean;
-}
-
-export interface GroupMatch {
-  component: GroupRenderer;
-  hidesLabel?: boolean;
-}
-
-export interface ActionMatch {
-  component: ActionRenderer;
-}
-
-export interface DisplayMatch {
-  component: DisplayRenderer;
-}
-
-// ── Layout / Visibility ──────────────────────────────────────────────
+// ── Layout / Visibility (HTML-shaped) ────────────────────────────────
 
 export interface LayoutProps {
   node: FormStateNode;
@@ -92,14 +31,10 @@ export interface FieldProps {
   designMode?: boolean;
 }
 
-export interface FormOptions {
-  customDisplays?: Record<string, ComponentType<{ data: DisplayData }>>;
-}
-
 export interface FormProps {
   /** Pre-built root FormStateNode (see `useFormStateNode` helper). */
   node: FormStateNode;
-  registry?: import("./registry").FormRegistry;
+  registry?: FormRegistry;
   layout?: LayoutComponent;
   visibility?: VisibilityComponent;
   options?: FormOptions;
@@ -109,16 +44,8 @@ export interface FormProps {
 }
 
 export interface UseFormStateNodeOptions {
-  registry?: import("./registry").FormRegistry;
+  registry?: FormRegistry;
   schemaInterface?: SchemaInterface;
   clearHidden?: boolean;
   runAsync?: (fn: () => void) => void;
 }
-
-// Re-exports for callers building FormStateNodes themselves
-export type { DataNode, FormNode };
-export type { ControlContext } from "@rxc/controls-core";
-
-// ── Read-context helper passed to matcher functions ──────────────────
-
-export type { ReadContext };

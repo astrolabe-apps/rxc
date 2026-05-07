@@ -5,7 +5,7 @@ import {
   ControlAdornmentType,
   type OptionalAdornment as OptionalAdornmentDef,
 } from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "../Adornment";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
 
 const OptionalAdornmentRender = controls<
   AdornmentRenderProps<OptionalAdornmentDef>

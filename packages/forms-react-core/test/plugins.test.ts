@@ -15,10 +15,10 @@ import {
   collectExtraRenderOptionFields,
   combineRegistries,
   dataPlugin,
-  defaultRegistry,
   displayPlugin,
   emptyRegistry,
   groupPlugin,
+  matchRenderType,
   pickActionRenderer,
   pickDataRenderer,
   pickDisplayRenderer,
@@ -76,9 +76,14 @@ describe("dataPlugin", () => {
     expect(m?.hidesLabel).toBe(true);
   });
 
-  it("custom plugin matcher prepended via combineRegistries wins over default", () => {
+  it("custom plugin matcher prepended via combineRegistries wins over a built-in matcher for the same renderType", () => {
+    const Builtin = () => null;
+    Builtin.displayName = "BuiltinRadio";
+    const builtinReg = {
+      data: [matchRenderType(DataRenderType.Radio, Builtin)],
+    };
     const custom = dataPlugin({ type: DataRenderType.Radio, component: Marker });
-    const reg = combineRegistries(custom, defaultRegistry());
+    const reg = combineRegistries(custom, builtinReg);
     const node = fakeNode({
       type: ControlDefinitionType.Data,
       field: "x",

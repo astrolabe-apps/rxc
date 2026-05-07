@@ -5,7 +5,7 @@ import {
   ControlAdornmentType,
   type HelpTextAdornment as HelpTextAdornmentDef,
 } from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "../Adornment";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
 
 function HelpTextAdornmentRender({
   adornment,

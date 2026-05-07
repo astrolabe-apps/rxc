@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { controls } from "@rxc/controls";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 function makeDateRenderer(
   inputType: "date" | "datetime-local" | "time",

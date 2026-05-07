@@ -6,8 +6,8 @@ import {
   ControlAdornmentType,
   type SetFieldAdornment as SetFieldAdornmentDef,
 } from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "../Adornment";
-import { useExpression } from "../useExpression";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
+import { useExpression } from "@rxc/forms-react-core";
 
 /**
  * Evaluates an expression against the parent data context and writes the

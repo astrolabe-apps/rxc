@@ -1,8 +1,8 @@
 "use client";
 
-import { useFormOptions } from "../../FormProvider";
+import { useFormOptions } from "@rxc/forms-react-core";
 import type { CustomDisplay } from "@rxc/forms-core";
-import type { DisplayRendererProps } from "../../types";
+import type { DisplayRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Custom display dispatch. Looks up the registered component for the

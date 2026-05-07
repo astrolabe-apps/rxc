@@ -11,7 +11,8 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | `@rxc/controls-core` | `packages/controls-core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
 | `@rxc/controls` | `packages/controls` | React adapter: `controls()` wrapper, `ControlContextProvider`. Re-exports all of controls-core. |
 | `@rxc/forms-core` | `packages/forms-core` | Full canonical schema types + persistent SchemaNode/DataNode/FormNode handles, cursor-based reactive traversal, FormStateNode, validators, jsonata, scripted-proxy. |
-| `@rxc/forms` | `packages/forms` | Schema-driven rendering. Phase 4a complete: Field/Form/registry, default data + group + display + adornment renderers, action infra, plugin bundle helpers, design mode. **Phase 4b backlog below.** |
+| `@rxc/forms-react-core` | `packages/forms-react-core` | Headless React forms layer: registry, matchers, dispatch helpers, adornment composition, plugin builders, contexts (Registry/Options/ActionScope/DesignMode), and hooks (useFormStateNode/useLabelText/useExpression/useAsyncAction). No DOM-emitting components — platform packages provide those. |
+| `@rxc/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rxc/forms` only. **Phase 4b backlog below.** |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
 | `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo. |
@@ -47,8 +48,12 @@ rushx test:watch     # Watch mode
     ↑
 @rxc/forms-core            (controls-core + jsonata, uuid)
     ↑
-@rxc/forms                 (controls + forms-core + react)
+@rxc/forms-react-core      (controls + forms-core + react, no DOM)
+    ↑
+@rxc/forms                 (HTML platform: components + renderers + adornments)
 ```
+
+A future `@rxc/forms-native` would sit alongside `@rxc/forms`, depending on the same `forms-react-core` for dispatch + hooks but emitting React Native views/text instead of DOM.
 
 ### Internal subpath export
 
@@ -60,7 +65,7 @@ All in `docs/`:
 
 - **CONTROL-SEMANTICS.md** — The authoritative reference for control tree behavior: value propagation, error handling, dirty/touched/disabled cascading, element lifecycle, null materialization. **These semantics are settled and must be preserved.**
 - **FORM-SEMANTICS.md** — The authoritative reference for form state behavior: FormStateNode lifecycle, visibility/disabled/readonly cascading, children resolution, data node syncing, script overrides. **These semantics are settled and must be preserved.**
-- **RENDERER-DESIGN.md** — The authoritative reference for `@rxc/forms`: Field/Form dispatch, FormRegistry, matchers + plugin helpers, Layout/Visibility/Label/Error, adornment composition (label/control/field kinds with priority + reduce), action infra (ActionScope/useActionHandler/useAsyncAction), design-mode hooks. **Phase 4a is settled; Phase 4b items are listed below.**
+- **RENDERER-DESIGN.md** — The authoritative reference for the renderer engine across `@rxc/forms-react-core` (headless: registry, matchers, plugin helpers, contexts, hooks, adornment composition, action infra, design-mode) and `@rxc/forms` (HTML platform: Field/Form/Label/Error/Layout/Visibility, default renderers, default registry). **Phase 4a is settled; Phase 4b items are listed below.**
 - **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, controls() wrapper rationale.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
@@ -216,7 +221,8 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
 - Current counts:
   - `controls-core`: **54** (added uniqueId determinism tests)
   - `forms-core`: **107** (added 4 override-proxy regression tests)
-  - `forms`: **76** (registry, matchers, builtins, adornments, useAsyncAction, plugins)
+  - `forms-react-core`: **46** (registry, matchers, adornments, useAsyncAction, plugins)
+  - `forms`: **30** (builtins matcher ordering)
 
 ## Next steps
 

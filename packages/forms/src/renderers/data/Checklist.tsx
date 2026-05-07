@@ -1,8 +1,8 @@
 "use client";
 
 import { controls } from "@rxc/controls";
-import { useLabelText } from "../../labelText";
-import type { DataRendererProps } from "../../types";
+import { useLabelText } from "@rxc/forms-react-core";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Multi-select via checkboxes against a collection field. Stores an

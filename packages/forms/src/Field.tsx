@@ -5,22 +5,22 @@ import { controls } from "@rxc/controls";
 import {
   ControlDefinitionType,
   isDisplayControl,
-  type FormStateNode,
 } from "@rxc/forms-core";
 import {
+  DesignModeProvider,
+  indexAdornments,
   pickActionRenderer,
   pickDataRenderer,
   pickDisplayRenderer,
   pickGroupRenderer,
-} from "./registry";
-import { useRegistry } from "./FormProvider";
+  useLabelText,
+  useRegistry,
+  wrapAdornments,
+} from "@rxc/forms-react-core";
 import { useLayout } from "./Layout";
 import { useVisibility } from "./Visibility";
 import { Label } from "./Label";
 import { Error } from "./Error";
-import { useLabelText } from "./labelText";
-import { indexAdornments, wrapAdornments } from "./Adornment";
-import { DesignModeProvider } from "./DesignMode";
 import type { FieldProps } from "./types";
 
 /**

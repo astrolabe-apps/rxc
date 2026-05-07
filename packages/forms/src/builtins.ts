@@ -9,6 +9,7 @@ import {
 } from "@rxc/forms-core";
 import type { ReadContext } from "@rxc/controls-core";
 import {
+  combineRegistries,
   matchAll,
   matchCollection,
   matchCompoundField,
@@ -19,8 +20,9 @@ import {
   matchHasOptions,
   matchRenderType,
   matchSchemaType,
-} from "./matchers";
-import { combineRegistries, type DataMatcher, type FormRegistry } from "./registry";
+  type DataMatcher,
+  type FormRegistry,
+} from "@rxc/forms-react-core";
 
 // Data renderers
 import { TextfieldRenderer } from "./renderers/data/Textfield";

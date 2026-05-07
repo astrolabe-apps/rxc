@@ -6,9 +6,9 @@ import {
   isGroupControl,
   type DialogRenderOptions,
 } from "@rxc/forms-core";
-import { ActionScope } from "../../ActionScope";
+import { ActionScope } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
-import type { GroupRendererProps } from "../../types";
+import type { GroupRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Trigger + modal pattern. Children whose `placement === "trigger"`

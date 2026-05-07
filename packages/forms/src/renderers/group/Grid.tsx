@@ -4,7 +4,7 @@ import { controls } from "@rxc/controls";
 import type { GridRendererOptions } from "@rxc/forms-core";
 import { isGroupControl } from "@rxc/forms-core";
 import { Field } from "../../Field";
-import type { GroupRendererProps } from "../../types";
+import type { GroupRendererProps } from "@rxc/forms-react-core";
 
 export const GridRenderer = controls<GroupRendererProps>(
   "GridRenderer",

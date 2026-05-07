@@ -6,8 +6,8 @@ import {
   type SelectChildRenderer as SelectChildRenderOptions,
 } from "@rxc/forms-core";
 import { Field } from "../../Field";
-import { useExpression } from "../../useExpression";
-import type { GroupRendererProps } from "../../types";
+import { useExpression } from "@rxc/forms-react-core";
+import type { GroupRendererProps } from "@rxc/forms-react-core";
 
 export const SelectChildRenderer = controls<GroupRendererProps>(
   "SelectChildRenderer",

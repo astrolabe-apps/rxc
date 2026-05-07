@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { controls } from "@rxc/controls";
 import { FieldType } from "@rxc/forms-core";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 /**
  * Number input with parse-on-blur. Maintains a local string buffer while

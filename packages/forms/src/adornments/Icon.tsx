@@ -5,7 +5,7 @@ import {
   ControlAdornmentType,
   type IconAdornment as IconAdornmentDef,
 } from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "../Adornment";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
 import { iconClassFor } from "../renderers/display/Icon";
 
 function IconAdornmentRender({

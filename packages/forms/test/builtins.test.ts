@@ -19,7 +19,7 @@ import {
   pickDataRenderer,
   pickDisplayRenderer,
   pickGroupRenderer,
-} from "../src/registry";
+} from "@rxc/forms-react-core";
 
 interface FakeStateInput {
   definition: ControlDefinition;

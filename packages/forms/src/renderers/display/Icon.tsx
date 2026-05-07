@@ -5,7 +5,7 @@ import {
   type IconDisplay,
   type IconReference,
 } from "@rxc/forms-core";
-import type { DisplayRendererProps } from "../../types";
+import type { DisplayRendererProps } from "@rxc/forms-react-core";
 
 export function iconClassFor(
   iconClass: string | null | undefined,

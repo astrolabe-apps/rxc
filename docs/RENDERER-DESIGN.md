@@ -1,6 +1,6 @@
-# `@rxc/forms` Renderer Design
+# Renderer Design (`@rxc/forms-react-core` + `@rxc/forms`)
 
-Design doc for the Phase 4 renderer package. Settles the core abstractions and specifies enough renderers to implement against. Scope: most of the legacy default set — text/number/date inputs, options (select/radio/checklist/autocomplete), display-only, arrays, compound; standard/inline/flex/grid/tabs/accordion/dialog groups; the button action; the four display data types; icon/optional/setfield/accordion adornments. Out of scope for this round: wizard, scroll-list, jsonata data, element-selected, array-element external dialog, multi-value optional rendering. Those go in Phase 4b once the core lands.
+Design doc for the Phase 4 renderer engine. Settles the core abstractions and specifies enough renderers to implement against. The engine ships in two packages — a headless `@rxc/forms-react-core` and an HTML platform package `@rxc/forms` (see [Package layout](#package-layout)) — but the abstractions described here cut across both. Scope: most of the legacy default set — text/number/date inputs, options (select/radio/checklist/autocomplete), display-only, arrays, compound; standard/inline/flex/grid/tabs/accordion/dialog groups; the button action; the four display data types; icon/optional/setfield/accordion adornments. Out of scope for this round: wizard, scroll-list, jsonata data, element-selected, array-element external dialog, multi-value optional rendering. Those go in Phase 4b once the core lands.
 
 This doc supersedes `FORM-FUTURE-API-DESIGN.md` for the **rendering** half (FormStateNode internals are still authoritative there). Legacy details referenced from `docs/legacy/`.
 
@@ -18,7 +18,7 @@ This doc supersedes `FORM-FUTURE-API-DESIGN.md` for the **rendering** half (Form
 - **Backwards compatibility with `@react-typed-forms/schemas`.** That's `@rxc/compat-forms`'s job, layered on top.
 - **Bundling an animation library.** `Visibility` is a swappable component (see below). The default unmounts immediately; hosts that want enter/exit animations bring their own library (Framer Motion, react-transition-group, etc.) and supply a custom Visibility component.
 - **Editor-mode features.** The visual form designer lives in a separate `@rxc/forms-editor` package. The renderer engine provides the hooks the editor needs — ambient `designMode` context, swappable `Visibility`/`Layout`, `<ActionScope>` for stubbing actions, field-kind adornments for selection chrome and metadata badges, and an `editor` slot on the plugin spec for per-render-type options editors — but no renderer is *required* to vary on `designMode`. Live schema mutation falls out of the rc-driven render pipeline automatically; the only form-engine work the editor depends on (exposing `ControlDefinition` / `SchemaField` as rc-readable handles) is in `@rxc/forms-core`, not here.
-- **Rendering for non-React hosts.** React Native / MUI ports are out of scope here; the abstractions are React-shaped.
+- **Rendering for non-React hosts.** The abstractions are React-shaped; non-React ports (e.g. raw DOM, web components) are out of scope. **React Native** is *not* out of scope — see [Package layout](#package-layout) below: the dispatch + hooks live in a headless `@rxc/forms-react-core` that an `@rxc/forms-native` could consume alongside the HTML `@rxc/forms`. MUI bindings would be a separate `@rxc/forms-mui` package on the same headless layer.
 
 ## Lessons from the legacy renderer
 
@@ -91,29 +91,58 @@ The legacy click handler did `result.then(() => { cleanup(); setBusy(false); })`
 
 ## Package layout
 
+The renderer engine is split across two packages: a headless `@rxc/forms-react-core` carrying the dispatch, registries, and hooks, and a platform package `@rxc/forms` providing the HTML components, renderers, adornments, and the default registry. A future `@rxc/forms-native` would sit alongside `@rxc/forms` on the same headless base.
+
 ```
-@rxc/forms
+@rxc/forms-react-core         // headless: registration machinery + hooks. No DOM.
 ├── src/
-│   ├── Field.tsx            // entry point: renders a FormStateNode
-│   ├── Form.tsx             // builds the root FormStateNode + renders Field
-│   ├── registry.ts          // Renderer + matcher types, FormRegistry
-│   ├── matchers.ts          // matchRenderType, matchSchemaType, etc.
-│   ├── Layout.tsx           // DefaultLayout component + Layout context
-│   ├── Adornment.tsx        // Adornment base types + composition
+│   ├── registry.ts           // FormRegistry, combineRegistries, pickX dispatch helpers
+│   ├── matchers.ts           // matchRenderType, matchSchemaType, matchAll, …
+│   ├── Adornment.tsx         // AdornmentRegistration types + wrapAdornments + indexAdornments
+│   ├── FormProvider.tsx      // RegistryProvider/useRegistry, OptionsProvider/useFormOptions
+│   ├── ActionScope.tsx       // <ActionScope> + useActionHandler walker
+│   ├── DesignMode.tsx        // DesignModeContext + useDesignMode
+│   ├── plugins.ts            // dataPlugin/groupPlugin/actionPlugin/displayPlugin
+│   ├── labelText.ts          // useLabelText
+│   ├── useExpression.ts      // useExpression (Data expressions today; jsonata Phase 4b)
+│   ├── useAsyncAction.ts     // runAsyncAction + useAsyncAction
+│   ├── useFormStateNode.ts   // root FormStateNode helper (registry parameter required)
+│   ├── types.ts              // DataRendererProps/GroupRendererProps/ActionRendererProps/
+│   │                         //   DisplayRendererProps, DataMatch/GroupMatch/…, FormOptions,
+│   │                         //   UseFormStateNodeOptions
+│   └── index.ts
+
+@rxc/forms                    // HTML platform package on top of forms-react-core.
+├── src/
+│   ├── Field.tsx             // entry point — picks renderer, composes adornments,
+│   │                         //   wraps in HTML Layout/Visibility, emits HTML <Label>/<Error>
+│   ├── Form.tsx              // provider stack (Registry/Options/Layout/Visibility/DesignMode)
+│   │                         //   defaulting to HTML chrome + defaultRegistry()
+│   ├── Layout.tsx            // DefaultLayout (HTML <div>/<span>) + LayoutProvider/useLayout
+│   ├── Visibility.tsx        // DefaultVisibility (null-or-children gate) + provider/hook
+│   ├── Label.tsx             // HTML <label htmlFor> + required asterisk
+│   ├── Error.tsx             // HTML <span role="alert">
+│   ├── useFormStateNode.ts   // wrapper defaulting registry to defaultRegistry()
+│   ├── builtins.ts           // assembles HTML defaultRegistry
 │   ├── renderers/
-│   │   ├── data/{Textfield,Multiline,Number,Date,Bool,Select,Radio,
-│   │   │         CheckList,Autocomplete,DisplayOnly,Array,Compound}.tsx
-│   │   ├── group/{Standard,Inline,Flex,Grid,Tabs,Accordion,Dialog,
+│   │   ├── data/{Textfield,Multiline,Number,Date,Bool,Checkbox,Select,Radio,
+│   │   │         Checklist,Autocomplete,DisplayOnly,Array,Compound}.tsx
+│   │   ├── group/{Standard,Inline,Flex,Grid,Tabs,AccordionGroup,Dialog,
 │   │   │          SelectChild,Contents}.tsx
 │   │   ├── action/Button.tsx
 │   │   └── display/{Icon,Text,Html,Custom}.tsx
-│   ├── adornments/{Icon,Optional,SetField,Accordion}.tsx
-│   ├── builtins.ts          // assembles default registry
-│   └── index.ts
-└── package.json
+│   ├── adornments/{Icon,HelpText,Optional,SetField,Accordion}.tsx
+│   ├── types.ts              // LayoutProps/VisibilityProps/FieldProps/FormProps (HTML-shaped)
+│   └── index.ts              // re-exports * from @rxc/forms-react-core + HTML extras
 ```
 
-No subpath exports. Compat layers (`@rxc/compat-forms`) reach into source via the published index only.
+`@rxc/forms` re-exports the headless surface so consumers import from `@rxc/forms` only — the split is an internal architecture concern, not a consumer one. No subpath exports. Compat layers (`@rxc/compat-forms`) reach into the published index of `@rxc/forms` (which already includes the headless API).
+
+### Why the split
+
+Layout, Visibility, Label, and Error are platform-specific: HTML's `LayoutProps` carries `className: string` and `style: CSSProperties`; React Native's wouldn't. Forcing those four chrome components through a shared cross-platform contract would either lock the HTML implementation into the lowest common denominator or pile on injection ceremony for components that are ~30 lines each. Better: dispatch + hooks share, components don't. Each platform writes its own `<Field>` (just calls `pickXRenderer` + `wrapAdornments`) and its own renderers/adornments.
+
+The boundary line: **does it emit DOM?** If yes, it lives in the platform package. If no — it's pure dispatch, type, hook, or context — it lives in `@rxc/forms-react-core`.
 
 ## Core abstractions
 

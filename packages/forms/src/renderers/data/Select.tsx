@@ -2,7 +2,7 @@
 
 import { controls } from "@rxc/controls";
 import { FieldType } from "@rxc/forms-core";
-import type { DataRendererProps } from "../../types";
+import type { DataRendererProps } from "@rxc/forms-react-core";
 
 /** Convert a stored value to/from the string select uses on the wire. */
 function valueToString(value: unknown): string {

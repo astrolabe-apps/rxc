@@ -1,74 +1,36 @@
-// Public API for @rxc/forms
+// Public API for @rxc/forms (HTML platform package)
+//
+// Re-exports the headless surface from @rxc/forms-react-core, then adds
+// HTML-specific components (Field/Form/Label/Error/Layout/Visibility),
+// HTML renderers + adornments, and the HTML defaultRegistry.
 
-// Components
+// ── Headless surface ─────────────────────────────────────────────────
+
+export * from "@rxc/forms-react-core";
+
+// ── HTML components ──────────────────────────────────────────────────
+
 export { Form } from "./Form";
 export { Field } from "./Field";
 export { Label } from "./Label";
 export { Error } from "./Error";
 
-// FormStateNode helper hook
+// FormStateNode helper hook (HTML wrapper that defaults registry)
 export { useFormStateNode } from "./useFormStateNode";
 
-// Layout / Visibility
-export {
-  DefaultLayout,
-  LayoutProvider,
-  useLayout,
-} from "./Layout";
+// Layout / Visibility (HTML chrome)
+export { DefaultLayout, LayoutProvider, useLayout } from "./Layout";
 export {
   DefaultVisibility,
   VisibilityProvider,
   useVisibility,
 } from "./Visibility";
 
-// Provider hooks
-export {
-  RegistryProvider,
-  useRegistry,
-  OptionsProvider,
-  useFormOptions,
-} from "./FormProvider";
-
-// Registry + dispatch
-export {
-  combineRegistries,
-  emptyRegistry,
-  pickActionRenderer,
-  pickDataRenderer,
-  pickDisplayRenderer,
-  pickGroupRenderer,
-} from "./registry";
-export type {
-  ActionMatcher,
-  DataMatcher,
-  DisplayMatcher,
-  FormRegistry,
-  GroupMatcher,
-} from "./registry";
-
-// Matcher sugar helpers
-export {
-  matchActionAlways,
-  matchActionId,
-  matchAll,
-  matchAny,
-  matchCollection,
-  matchCompoundField,
-  matchDataAlways,
-  matchDisplayAlways,
-  matchDisplayDataType,
-  matchGroupAlways,
-  matchGroupRenderType,
-  matchHasOptions,
-  matchRenderType,
-  matchRenderTypeOneOf,
-  matchSchemaType,
-} from "./matchers";
-
-// Default built-ins
+// Default built-ins (HTML registry)
 export { defaultRegistry } from "./builtins";
 
-// Data renderers
+// ── HTML data renderers ──────────────────────────────────────────────
+
 export { TextfieldRenderer } from "./renderers/data/Textfield";
 export { NumberRenderer } from "./renderers/data/Number";
 export { MultilineRenderer } from "./renderers/data/Multiline";
@@ -87,7 +49,8 @@ export { DisplayOnlyRenderer } from "./renderers/data/DisplayOnly";
 export { ArrayRenderer } from "./renderers/data/Array";
 export { CompoundDelegate } from "./renderers/data/Compound";
 
-// Group renderers
+// ── HTML group renderers ─────────────────────────────────────────────
+
 export { StandardGroupRenderer } from "./renderers/group/Standard";
 export { InlineGroupRenderer } from "./renderers/group/Inline";
 export { FlexRenderer } from "./renderers/group/Flex";
@@ -98,84 +61,33 @@ export { TabsRenderer } from "./renderers/group/Tabs";
 export { AccordionGroupRenderer } from "./renderers/group/AccordionGroup";
 export { DialogRenderer } from "./renderers/group/Dialog";
 
-// Action renderers
+// ── HTML action renderers ────────────────────────────────────────────
+
 export { ButtonAction } from "./renderers/action/Button";
 
-// Display renderers
+// ── HTML display renderers ───────────────────────────────────────────
+
 export { TextDisplayRenderer } from "./renderers/display/Text";
 export { HtmlDisplayRenderer } from "./renderers/display/Html";
 export { IconDisplayRenderer, iconClassFor } from "./renderers/display/Icon";
 export { CustomDisplayRenderer } from "./renderers/display/Custom";
 
-// Adornments
+// ── HTML adornments ──────────────────────────────────────────────────
+
 export { IconAdornment } from "./adornments/Icon";
 export { HelpTextAdornment } from "./adornments/HelpText";
 export { OptionalAdornment } from "./adornments/Optional";
 export { SetFieldAdornment } from "./adornments/SetField";
 export { AccordionAdornment } from "./adornments/Accordion";
 
-// Adornment composition primitives
-export {
-  indexAdornments,
-  wrapAdornments,
-  type AdornmentKind,
-  type AdornmentRegistration,
-  type AdornmentRenderProps,
-} from "./Adornment";
+// ── HTML-specific types ──────────────────────────────────────────────
 
-// Action infrastructure
-export {
-  ActionScope,
-  useActionHandler,
-  type ActionHandler,
-  type ActionHandlerResult,
-} from "./ActionScope";
-export { useAsyncAction, runAsyncAction } from "./useAsyncAction";
-
-// Plugin bundle helpers
-export {
-  actionPlugin,
-  collectExtraRenderOptionFields,
-  dataPlugin,
-  displayPlugin,
-  groupPlugin,
-  type ActionPluginSpec,
-  type DataPluginSpec,
-  type DisplayPluginSpec,
-  type EditorPluginSlot,
-  type GroupPluginSpec,
-} from "./plugins";
-
-// Design mode
-export {
-  DesignModeContext,
-  DesignModeProvider,
-  useDesignMode,
-} from "./DesignMode";
-
-// Helpers
-export { useLabelText } from "./labelText";
-export { useExpression } from "./useExpression";
-
-// Types
 export type {
-  ActionMatch,
-  ActionRenderer,
-  ActionRendererProps,
-  DataMatch,
-  DataRenderer,
-  DataRendererProps,
-  DisplayMatch,
-  DisplayRenderer,
-  DisplayRendererProps,
   FieldProps,
-  FormOptions,
   FormProps,
-  GroupMatch,
-  GroupRenderer,
-  GroupRendererProps,
   LayoutComponent,
   LayoutProps,
+  UseFormStateNodeOptions,
   VisibilityComponent,
   VisibilityProps,
 } from "./types";
