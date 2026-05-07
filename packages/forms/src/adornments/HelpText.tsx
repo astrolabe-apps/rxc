@@ -18,42 +18,75 @@ const DEFAULT_BLOCK = "flex flex-col gap-1";
 function HelpTextAdornmentRender({
   adornment,
   children,
+  kind,
 }: AdornmentRenderProps<HelpTextAdornmentDef>) {
   const helpTheme = useHtmlTheme().adornment?.helpText ?? {};
+  const placement = adornment.placement;
   const help = (
-    <p className={helpTheme.contentTextClass ?? DEFAULT_TEXT}>
+    <span className={helpTheme.contentTextClass ?? DEFAULT_TEXT}>
       {adornment.helpText}
-    </p>
+    </span>
   );
   const inlineClass = helpTheme.contentClass ?? DEFAULT_INLINE;
-  switch (adornment.placement) {
-    case AdornmentPlacement.ControlStart:
+
+  if (kind === "label") {
+    if (placement === AdornmentPlacement.LabelStart) {
       return (
         <span className={inlineClass}>
           {help}
           {children}
         </span>
       );
-    case AdornmentPlacement.ControlEnd:
+    }
+    if (placement === AdornmentPlacement.LabelEnd) {
       return (
         <span className={inlineClass}>
           {children}
           {help}
         </span>
       );
-    default:
-      return (
-        <div className={DEFAULT_BLOCK}>
-          {children}
-          {help}
-        </div>
-      );
+    }
+    return <>{children}</>;
   }
+
+  // kind === "control"
+  if (placement === AdornmentPlacement.ControlStart) {
+    return (
+      <span className={inlineClass}>
+        {help}
+        {children}
+      </span>
+    );
+  }
+  if (placement === AdornmentPlacement.ControlEnd) {
+    return (
+      <span className={inlineClass}>
+        {children}
+        {help}
+      </span>
+    );
+  }
+  if (
+    placement === AdornmentPlacement.LabelStart ||
+    placement === AdornmentPlacement.LabelEnd
+  ) {
+    // Handled by the label-kind registration; pass through for control kind.
+    return <>{children}</>;
+  }
+  // No placement set → block layout below the control.
+  return (
+    <div className={DEFAULT_BLOCK}>
+      {children}
+      <p className={helpTheme.contentTextClass ?? DEFAULT_TEXT}>
+        {adornment.helpText}
+      </p>
+    </div>
+  );
 }
 
 export const HelpTextAdornment: AdornmentRegistration<HelpTextAdornmentDef> = {
   type: ControlAdornmentType.HelpText,
-  kind: "control",
+  kind: ["label", "control"],
   priority: 0,
   render: HelpTextAdornmentRender,
 };

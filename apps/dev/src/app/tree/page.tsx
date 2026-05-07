@@ -531,9 +531,15 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: form editor driven by FormStateNode */}
           <div className="rounded-lg bg-white dark:bg-zinc-900 p-4 shadow">
-            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-3">
-              Form (driven by FormStateNode)
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                Form (driven by FormStateNode)
+              </h2>
+              <div className="flex gap-2">
+                <SetTouchedButton node={formNode} />
+                <ValidateButton node={formNode} rootControl={rootControl} />
+              </div>
+            </div>
             <Form node={formNode} />
           </div>
 
@@ -574,6 +580,62 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+});
+
+// ── Set touched button ──────────────────────────────────────────────
+
+function SetTouchedButton({ node }: { node: FormStateNode }) {
+  return (
+    <button
+      type="button"
+      onClick={() => node.setTouched(true)}
+      className="text-xs px-3 py-1 rounded border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300"
+    >
+      Set Touched
+    </button>
+  );
+}
+
+// ── Validate button ─────────────────────────────────────────────────
+
+const ValidateButton = controls(function ValidateButton(
+  {
+    node,
+    rootControl,
+  }: {
+    node: FormStateNode;
+    rootControl: Control<any>;
+  },
+  { rc },
+) {
+  const valid = rc.isValid(rootControl);
+  const [validated, setValidated] = useState(false);
+
+  return (
+    <div className="flex items-center gap-2">
+      {validated && (
+        <span
+          className={`text-xs font-mono ${
+            valid
+              ? "text-green-600 dark:text-green-400"
+              : "text-red-600 dark:text-red-400"
+          }`}
+        >
+          {valid ? "valid ✓" : "invalid ✗"}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          node.validate();
+          setValidated(true);
+        }}
+        className="text-xs px-3 py-1 rounded bg-blue-600 text-white"
+      >
+        Validate
+      </button>
     </div>
   );
 });

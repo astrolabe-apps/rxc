@@ -112,6 +112,11 @@ interface FormStateBaseImpl {
   childIndex: number;
   nodeOptions: FormNodeOptions;
   busy: boolean;
+  /** Number of active {@link FormStateNode.acquireDisabler} holds on this
+   * node. The disabled cascade treats `disablerCount > 0` as forced
+   * disabled (alongside `nodeOptions.forceDisabled`), so multiple
+   * concurrent disablers compose without clobbering each other. */
+  disablerCount: number;
 }
 
 const FORM_STATE_META_KEY = "$FormState";
@@ -163,6 +168,7 @@ class FormStateNodeImpl implements FormStateNode {
         childIndex,
         nodeOptions,
         busy: false,
+        disablerCount: 0,
       },
       { dontClearError: true },
     );
@@ -258,6 +264,28 @@ class FormStateNodeImpl implements FormStateNode {
         forceDisabled: forceDisable,
       })),
     );
+  }
+
+  acquireDisabler(type: ControlDisableType): () => void {
+    if (type === "None" || !type) return () => {};
+    let target: FormStateNodeImpl = this;
+    if (type !== "Self") {
+      while (target.parentNode) {
+        target = target.parentNode as FormStateNodeImpl;
+      }
+    }
+    const counter = target.base.fields.disablerCount;
+    target.ctx.update((wc) =>
+      wc.updateValue(counter, (n) => n + 1),
+    );
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      target.ctx.update((wc) =>
+        wc.updateValue(counter, (n) => Math.max(0, n - 1)),
+      );
+    };
   }
 
   // ── internal helpers used by initFormState / initChildren ────────
@@ -553,6 +581,7 @@ function initFormState(
     }
     const opts = rc.getValue(base.fields.nodeOptions);
     if (opts.forceDisabled) return true;
+    if (rc.getValue(base.fields.disablerCount) > 0) return true;
     return isControlDisabled(proxyFor(rc));
   });
   impl.addCleanup(() => disabledComputed.cleanup());

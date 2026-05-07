@@ -12,7 +12,9 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | `@rxc/controls` | `packages/controls` | React adapter: `controls()` wrapper, `ControlContextProvider`. Re-exports all of controls-core. |
 | `@rxc/forms-core` | `packages/forms-core` | Full canonical schema types + persistent SchemaNode/DataNode/FormNode handles, cursor-based reactive traversal, FormStateNode, validators, jsonata, scripted-proxy. |
 | `@rxc/forms-react-core` | `packages/forms-react-core` | Headless React forms layer: registry, matchers, dispatch helpers, adornment composition, plugin builders, contexts (Registry/Options/ActionScope/DesignMode), and hooks (useFormStateNode/useLabelText/useExpression/useAsyncAction). No DOM-emitting components — platform packages provide those. |
-| `@rxc/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rxc/forms` only. **Phase 4b backlog below.** |
+| `@rxc/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rxc/forms` only. |
+| `@rxc/forms-motion` | `packages/forms-motion` | Optional Framer Motion add-on. Ships `FadeVisibility`, `SlideVisibility`, and `MotionAccordionAdornment` to upgrade the no-op default Visibility / native `<details>` accordion. |
+| `@rxc/forms-dnd` | `packages/forms-dnd` | Optional dnd-kit add-on. Ships `SortableArrayRenderer` for reorderable arrays. |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
 | `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo. |
@@ -219,27 +221,29 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
 - **Location**: `test/` dir in each package
 - **Config**: `vitest.config.ts` per package
 - Current counts:
-  - `controls-core`: **54** (added uniqueId determinism tests)
-  - `forms-core`: **107** (added 4 override-proxy regression tests)
-  - `forms-react-core`: **46** (registry, matchers, adornments, useAsyncAction, plugins)
-  - `forms`: **30** (builtins matcher ordering)
+  - `controls-core`: **54** (uniqueId determinism)
+  - `forms-core`: **110** (+3 acquireDisabler / disabler stack)
+  - `forms-react-core`: **47** (+1 multi-kind adornment registration)
+  - `forms`: **36** (+6 new renderers — Jsonata / ElementSelected / ScrollList / Wizard / ArrayElement levels)
 
 ## Next steps
 
-### Phase 4b — additive renderer features (deferred, none blocks the design)
+### Phase 4b — additive renderer features ✅
 
-- `WizardRenderer` (group) + `useWizardController` hook
-- `ScrollListRenderer` (data, collection — IntersectionObserver + meta-driven loading state)
-- `JsonataRenderer` (data) — needs full async expression evaluation through `useExpression`
-- `ElementSelectedRenderer` (data, Bool)
-- `ArrayElementRenderer` (data, dialog-based external edit)
-- `OptionalAdornment.editSelectable` flag
-- `LabelStart` / `LabelEnd` placements via `kind: "label"` adornment registration (HelpText + Icon currently defer these)
-- Optional `@rxc/forms-motion` add-on package shipping `FadeVisibility`, `SlideVisibility`, animated `<Accordion>` (Framer Motion-based)
-- Reorder support in arrays (separate `SortableArrayRenderer` consuming `dnd-kit`)
-- Multi-error rendering primitive (Error currently shows the first error only)
-- `acquireDisabler` + FormNodeUi disabler stack in forms-core — enables `disableType: "Form"` / `"Global"` for `useAsyncAction` (Phase 3 supports `Self` only)
-- `useExpression`: handle Jsonata + DataMatch + NotEmpty + UUID + Not via the full forms-core evaluator (today only `Data` is wired)
+All shipped. Notes on the moving pieces:
+
+- **Multi-error rendering** — `<Error all>` per-call or `HtmlFormOptions.showAllErrors` form-wide. Renders a `<ul>` of `rc.getErrors(data)`.
+- **Full `useExpression` evaluator** — wraps `defaultEvaluators` from forms-core. Allocates a result Control per call site, registers the evaluator on mount + when `expr` identity changes, returns `rc.getValue(container)`. Async (Jsonata) updates land via `returnResult` and re-render through the rc subscription. Variables are read once at registration via `noopReadContext` — the function reference is stable across the form's lifetime.
+- **`JsonataRenderer`** — `DataRenderType.Jsonata` → renders the result as HTML (`dangerouslySetInnerHTML`). Memoizes the expression object by string content so `useExpression` doesn't re-register every render.
+- **`ElementSelectedRenderer`** — `DataRenderType.ElementSelected`, `hidesLabel`. Resolves `elementExpression` via `useExpression`, toggles array membership.
+- **`OptionalAdornment.editSelectable`** — adds an "Edit" toggle alongside the null toggle. Toggle state lives on a per-node Control via `node.ensureMeta("$optional/editing", …)`. While not editing, an effect calls `node.setForceDisabled(true)` so the inner cascade picks it up.
+- **`LabelStart`/`LabelEnd` placements** — `AdornmentRegistration.kind` accepts an array. `wrapAdornments` filters by `kind` membership and threads the active `kind` into `AdornmentRenderProps` so the render fn can branch. HelpText + Icon now register for both `["label", "control"]`.
+- **`acquireDisabler` + disabler stack** — counter field `disablerCount` on FormStateBaseImpl. Cascade treats `disablerCount > 0` as forced disabled (alongside `forceDisabled`). `Self` increments on the node, `Form` / `Global` walk to the root. `useAsyncAction` accepts a `disableType` param; `ButtonAction` passes the action's. `Global` currently aliases `Form`; a process-wide registry can replace the walk-to-root later.
+- **`WizardRenderer` + `useWizardController`** — `GroupRenderType.Wizard`. Hook exposes `currentPage` / `pageChildren` / `steps` / `next` / `prev` / `goToPage` / `validatePage`. Page index Control comes from `pageIndexField` resolution against the parent data cursor, falling back to a per-hook internal Control. Children with `placement: "leftNav" | "middleNav" | "rightNav"` are exposed separately for chrome around the page.
+- **`ScrollListRenderer`** — `DataRenderType.ScrollList` on a collection. Reads `data.meta.$scrollList.{loading, hasMore}` (host-driven) and dispatches `bottomActionId` via `useActionHandler` when an `IntersectionObserver` sentinel becomes visible.
+- **`ArrayElementRenderer`** — `DataRenderType.ArrayElement`. Two-level dispatch: array level routes to `ArrayRenderer`; per-element level (matched via `DataCursor.elementIndex`) routes to `ArrayElementRenderer`, which renders a one-line summary + Edit button popping a native `<dialog>`. `showInline: true` skips the dialog and renders children inline.
+- **`@rxc/forms-motion`** — separate package. `FadeVisibility` / `SlideVisibility` (cross-fade / slide-down via `<AnimatePresence>` + `motion.div`); `MotionAccordionAdornment` replaces the native-`<details>` Accordion with a height-animated panel.
+- **`@rxc/forms-dnd`** — separate package. `SortableArrayRenderer` mirrors `ArrayRenderer` and reorders via `wc.updateElements(arr, (elems) => arrayMove(elems, …))` driven by `@dnd-kit/sortable`. `dnd-kit` is a peer dep so apps that don't import this package don't pay for it.
 
 ### `@rxc/forms-editor` (visual designer, separate project)
 
@@ -263,6 +267,6 @@ Reference port target: `astrolabe-common/astrolabe-schemas-editor/src/`.
 - Replace brute-force `childRefId` scans with reactive indexed lookup (two TODOs in `forms-core/src/nodes/formNode.ts`)
 - Consider re-adding `validDataCursor` result caching via `ensureMetaValue` on the data control (old code had per-control `validForSchema` cache; current port re-walks the parent chain per call)
 - AccordionAdornment / AccordionGroupRenderer expanded state survives unmount/remount via `data.meta` (Phase 3 keeps it as React-local `useState`)
-- ArrayRenderer reorder + per-row chrome customization
-- ButtonAction supports `disableType: "Form"` / `"Global"` once forms-core gets `acquireDisabler`
 - Action stubbing in `/designer` could be a dedicated `<DesignActionScope>` rather than ad-hoc `<ActionScope onAction={() => true}>`
+- `Global` disabler currently aliases `Form` — wire a process-level registry for true global-scope disabling.
+- `ScrollListRenderer` host data plumbing — `meta.$scrollList.{loading, hasMore}` is the contract; ship a small helper for hosts to keep that in sync with their data fetcher.

@@ -38,6 +38,10 @@ import { ChecklistRenderer } from "./renderers/data/Checklist";
 import { AutocompleteRenderer } from "./renderers/data/Autocomplete";
 import { DisplayOnlyRenderer } from "./renderers/data/DisplayOnly";
 import { ArrayRenderer } from "./renderers/data/Array";
+import { JsonataRenderer } from "./renderers/data/Jsonata";
+import { ElementSelectedRenderer } from "./renderers/data/ElementSelected";
+import { ScrollListRenderer } from "./renderers/data/ScrollList";
+import { ArrayElementRenderer } from "./renderers/data/ArrayElement";
 
 // Group renderers
 import { StandardGroupRenderer } from "./renderers/group/Standard";
@@ -49,6 +53,7 @@ import { SelectChildRenderer } from "./renderers/group/SelectChild";
 import { TabsRenderer } from "./renderers/group/Tabs";
 import { AccordionGroupRenderer } from "./renderers/group/AccordionGroup";
 import { DialogRenderer } from "./renderers/group/Dialog";
+import { WizardRenderer } from "./renderers/group/Wizard";
 
 // Action renderers
 import { ButtonAction } from "./renderers/action/Button";
@@ -91,6 +96,26 @@ function matchMultiline(component: typeof MultilineRenderer): DataMatcher {
   };
 }
 
+/**
+ * Match an *element* of a collection that has `renderType: ArrayElement`
+ * — the element-level renderer that pops a dialog. The collection
+ * itself routes to `ArrayRenderer` via the array matcher above.
+ */
+function matchArrayElementChild(component: typeof ArrayElementRenderer): DataMatcher {
+  return (node, rc) => {
+    const state = node.getState(rc);
+    if (!isDataControl(state.definition)) return null;
+    if (state.definition.renderOptions?.type !== DataRenderType.ArrayElement) {
+      return null;
+    }
+    const dn = state.dataNode;
+    if (!dn) return null;
+    const cursor = dn.cursor(rc);
+    if (cursor.elementIndex === undefined) return null;
+    return { component };
+  };
+}
+
 /** Match `displayOnly: true` on the data control definition. */
 function matchDisplayOnly(component: typeof DisplayOnlyRenderer): DataMatcher {
   return (node, rc) => {
@@ -118,6 +143,15 @@ export function defaultRegistry(): FormRegistry {
         matchCollection(ArrayRenderer),
         matchRenderType(DataRenderType.Array, ArrayRenderer),
       ),
+      matchAll(
+        matchCollection(ScrollListRenderer),
+        matchRenderType(DataRenderType.ScrollList, ScrollListRenderer),
+      ),
+      matchAll(
+        matchCollection(ArrayRenderer),
+        matchRenderType(DataRenderType.ArrayElement, ArrayRenderer),
+      ),
+      matchArrayElementChild(ArrayElementRenderer),
       matchCompoundField(CompoundDelegate),
       matchDisplayOnly(DisplayOnlyRenderer),
       matchBoolDefault(BoolRenderer),
@@ -133,6 +167,12 @@ export function defaultRegistry(): FormRegistry {
       matchRenderType(DataRenderType.Dropdown, SelectRenderer),
       matchRenderType(DataRenderType.Autocomplete, AutocompleteRenderer),
       matchRenderType(DataRenderType.DisplayOnly, DisplayOnlyRenderer),
+      matchRenderType(DataRenderType.Jsonata, JsonataRenderer),
+      matchRenderType(
+        DataRenderType.ElementSelected,
+        ElementSelectedRenderer,
+        { hidesLabel: true },
+      ),
       // Defaults: options-bearing → Select, collection → Array.
       // Absent renderType is treated as "default" — legacy semantics.
       matchHasOptions(SelectRenderer),
@@ -147,6 +187,7 @@ export function defaultRegistry(): FormRegistry {
     ],
     group: [
       matchGroupRenderType(GroupRenderType.Tabs, TabsRenderer),
+      matchGroupRenderType(GroupRenderType.Wizard, WizardRenderer),
       matchGroupRenderType(GroupRenderType.Accordion, AccordionGroupRenderer),
       matchGroupRenderType(GroupRenderType.Dialog, DialogRenderer),
       matchGroupRenderType(GroupRenderType.Grid, GridRenderer),

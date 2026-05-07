@@ -31,6 +31,16 @@
       "shouldPublish": true
     },
     {
+      "packageName": "@rxc/forms-motion",
+      "projectFolder": "packages/forms-motion",
+      "shouldPublish": true
+    },
+    {
+      "packageName": "@rxc/forms-dnd",
+      "projectFolder": "packages/forms-dnd",
+      "shouldPublish": true
+    },
+    {
       "packageName": "@rxc/compat-controls",
       "projectFolder": "packages/compat-controls",
       "shouldPublish": true

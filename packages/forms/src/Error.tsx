@@ -2,24 +2,57 @@
 
 import { controls } from "@rxc/controls";
 import type { FormStateNode } from "@rxc/forms-core";
+import { useFormOptions } from "@rxc/forms-react-core";
+import type { HtmlFormOptions } from "./theme";
 import { useHtmlTheme } from "./useHtmlTheme";
 
-export const Error = controls<{ node: FormStateNode; id: string }>(
-  "Error",
-  ({ node, id }, { rc }) => {
-    const { data, touched } = node.getState(rc);
-    const theme = useHtmlTheme().error ?? {};
-    if (!data || !touched) return null;
-    const message = rc.getError(data);
-    if (!message) return null;
+export interface ErrorProps {
+  node: FormStateNode;
+  id: string;
+  /**
+   * When true, render every error message attached to the bound data
+   * control as a `<ul>` of `<li>`. When false, render only the first
+   * error as a `<span>`. Defaults to the `showAllErrors` option on
+   * `HtmlFormOptions`, which itself defaults to false.
+   */
+  all?: boolean;
+}
+
+export const Error = controls<ErrorProps>("Error", ({ node, id, all }, { rc }) => {
+  const { data, touched } = node.getState(rc);
+  const theme = useHtmlTheme().error ?? {};
+  const opts = useFormOptions() as HtmlFormOptions;
+  const showAll = all ?? !!opts.showAllErrors;
+  if (!data || !touched) return null;
+
+  if (showAll) {
+    const errors = rc.getErrors(data);
+    const entries = Object.entries(errors);
+    if (entries.length === 0) return null;
     return (
-      <span
+      <ul
         role="alert"
         id={id}
         className={theme.className ?? "text-xs text-red-500"}
       >
-        {message}
-      </span>
+        {entries.map(([key, message]) => (
+          <li key={key} className={theme.itemClass}>
+            {message}
+          </li>
+        ))}
+      </ul>
     );
-  },
-);
+  }
+
+  const message = rc.getError(data);
+  if (!message) return null;
+  return (
+    <span
+      role="alert"
+      id={id}
+      className={theme.className ?? "text-xs text-red-500"}
+    >
+      {message}
+    </span>
+  );
+});

@@ -114,6 +114,22 @@ export interface FormStateNode {
   attachUi(f: FormNodeUi): void;
   setBusy(busy: boolean): void;
   setForceDisabled(forceDisable: boolean): void;
+  /**
+   * Acquire a disabler hold scoped per {@link ControlDisableType}. The
+   * returned function releases the hold; multiple concurrent holds
+   * compose via an internal counter so callers can't stomp on each
+   * other. While any hold is active, the targeted node (and via the
+   * disabled cascade, all its descendants) is forced disabled.
+   *
+   * - `Self`: hold targets this node only.
+   * - `Form` / `Global`: hold walks to the root of the form state tree
+   *   and targets that. (`Global` currently behaves like `Form`; a
+   *   process-level registry can be wired in later without changing
+   *   the call site.)
+   * - `None`: hold is a no-op; the returned release function does
+   *   nothing.
+   */
+  acquireDisabler(type: ControlDisableType): () => void;
 }
 
 export interface FormState extends FormNodeOptions {

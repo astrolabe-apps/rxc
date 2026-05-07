@@ -48,6 +48,10 @@ export { AutocompleteRenderer } from "./renderers/data/Autocomplete";
 export { DisplayOnlyRenderer } from "./renderers/data/DisplayOnly";
 export { ArrayRenderer } from "./renderers/data/Array";
 export { CompoundDelegate } from "./renderers/data/Compound";
+export { JsonataRenderer } from "./renderers/data/Jsonata";
+export { ElementSelectedRenderer } from "./renderers/data/ElementSelected";
+export { ScrollListRenderer } from "./renderers/data/ScrollList";
+export { ArrayElementRenderer } from "./renderers/data/ArrayElement";
 
 // ── HTML group renderers ─────────────────────────────────────────────
 
@@ -60,6 +64,7 @@ export { SelectChildRenderer } from "./renderers/group/SelectChild";
 export { TabsRenderer } from "./renderers/group/Tabs";
 export { AccordionGroupRenderer } from "./renderers/group/AccordionGroup";
 export { DialogRenderer } from "./renderers/group/Dialog";
+export { WizardRenderer } from "./renderers/group/Wizard";
 
 // ── HTML action renderers ────────────────────────────────────────────
 

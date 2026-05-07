@@ -1,53 +1,94 @@
 "use client";
 
-import type { ReadContext } from "@rxc/controls-core";
+import { useEffect, useRef } from "react";
+import {
+  noopReadContext,
+  type Control,
+  type ReadContext,
+} from "@rxc/controls-core";
+import { useControlContext } from "@rxc/controls";
 import {
   ExpressionType,
-  type DataExpression,
+  defaultEvaluators,
   type EntityExpression,
+  type ExpressionEval,
+  type ExpressionEvalContext,
   type FormStateNode,
+  type NotExpression,
 } from "@rxc/forms-core";
 
 /**
  * Read the value produced by an `EntityExpression` against a node's data
  * context.
  *
- * Phase 2: synchronous evaluation only — `Data` expressions resolve via
- * the data cursor relative to the node's parent. `Jsonata` and other
- * async expressions return `undefined` and will be handled in a later
- * phase that wires `forms-core`'s full evaluator infrastructure.
+ * Supports every kind in {@link defaultEvaluators}: `Data`, `DataMatch`,
+ * `NotEmpty`, `UUID`, `Jsonata`, and `Not` wrappers around any of those.
+ * Async expressions (Jsonata) update reactively as their inputs change;
+ * the latest result is exposed through the returned value.
  *
- * Not a React hook (despite the name) — call from any rc-tracked render.
+ * The hook allocates a single result `Control<unknown>` per call site
+ * (kept across renders) and registers the evaluator on mount + when
+ * `expr` identity changes; cleanup runs on unmount and on swap.
+ *
+ * Must be called from a `controls()` render so a `ReadContext` is in
+ * scope (passed in as the first argument) and a `ControlContext` is
+ * available via `useControlContext()`.
  */
 export function useExpression(
   rc: ReadContext,
   node: FormStateNode,
   expr: EntityExpression | null | undefined,
 ): unknown {
-  if (!expr?.type) return undefined;
-  if (expr.type === ExpressionType.Data) {
-    const path = (expr as DataExpression).field;
-    const parent = node.parent;
-    if (!parent) return undefined;
-    let cursor = parent.cursor(rc);
-    // Resolve `../field`-style paths
-    const segments = path.split("/");
-    for (const seg of segments) {
-      if (seg === "" || seg === ".") continue;
-      if (seg === "..") {
-        if (!cursor.parent) return undefined;
-        cursor = cursor.parent;
-        continue;
-      }
-      const next = cursor.childField?.(seg);
-      if (!next) return undefined;
-      cursor = next;
-    }
-    const data = cursor.control;
-    if (!data) return undefined;
-    return rc.getValue(data);
+  const ctx = useControlContext();
+
+  const containerRef = useRef<Control<unknown> | null>(null);
+  if (!containerRef.current) {
+    containerRef.current = ctx.newControl<unknown>(undefined);
   }
-  // Other expression types (Jsonata, DataMatch, NotEmpty, UUID, Not) —
-  // need the full forms-core evaluator. Phase 3 / 4b.
-  return undefined;
+  const container = containerRef.current;
+
+  useEffect(() => {
+    if (!expr?.type) {
+      ctx.update((wc) => wc.setValue(container, undefined));
+      return;
+    }
+
+    let actualExpr: EntityExpression = expr;
+    let coerce: (r: unknown) => unknown = (r) => r;
+    while (actualExpr?.type === ExpressionType.Not) {
+      const inner = (actualExpr as NotExpression).innerExpression;
+      if (!inner) break;
+      const prev = coerce;
+      coerce = (r) => prev(!r);
+      actualExpr = inner;
+    }
+    const evaluator = actualExpr?.type
+      ? (defaultEvaluators[actualExpr.type] as ExpressionEval<EntityExpression> | undefined)
+      : undefined;
+    if (!evaluator) {
+      ctx.update((wc) => wc.setValue(container, undefined));
+      return;
+    }
+
+    const cleanups: Array<() => void> = [];
+    const evalCtx: ExpressionEvalContext = {
+      ctx,
+      dataNode: node.parent,
+      schemaInterface: node.schemaInterface,
+      variables: node.getState(noopReadContext).variables,
+      runAsync: (fn) => queueMicrotask(fn),
+      addCleanup: (f) => cleanups.push(f),
+      returnResult: (r) =>
+        ctx.update((wc) => wc.setValue(container, coerce(r))),
+    };
+
+    evaluator(actualExpr, evalCtx);
+
+    return () => {
+      for (const f of cleanups) f();
+      ctx.update((wc) => wc.setValue(container, undefined));
+    };
+  }, [expr, ctx, container, node]);
+
+  return rc.getValue(container);
 }

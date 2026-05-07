@@ -198,6 +198,86 @@ describe("createFormStateNode — Layer 1", () => {
     expect(xNode.getState(rd).data?.valueNow).toBeUndefined();
   });
 
+  it("acquireDisabler('Self') stacks holds and the cascade reverts on release", () => {
+    const fields = [stringField("name")];
+    const defs = [dataDef("name")];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      name: "alice",
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [n] = root.getChildren(rd);
+    expect(n.getState(rd).disabled).toBe(false);
+
+    const r1 = n.acquireDisabler("Self");
+    expect(n.getState(rd).disabled).toBe(true);
+    const r2 = n.acquireDisabler("Self");
+    expect(n.getState(rd).disabled).toBe(true);
+    r1();
+    // Still held by r2.
+    expect(n.getState(rd).disabled).toBe(true);
+    r2();
+    expect(n.getState(rd).disabled).toBe(false);
+    // Idempotent release.
+    r2();
+    expect(n.getState(rd).disabled).toBe(false);
+  });
+
+  it("acquireDisabler('Form') from a child disables the entire tree", () => {
+    const fields = [compoundField("addr", [stringField("street")])];
+    const defs = [
+      {
+        type: ControlDefinitionType.Group,
+        compoundField: "addr",
+        children: [dataDef("street")],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      addr: { street: "1 Main St" },
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [addr] = root.getChildren(rd);
+    const [street] = addr.getChildren(rd);
+    expect(street.getState(rd).disabled).toBe(false);
+
+    const release = street.acquireDisabler("Form");
+    // Hold lives on the root → cascade hits both descendants.
+    expect(root.getState(rd).disabled).toBe(true);
+    expect(addr.getState(rd).disabled).toBe(true);
+    expect(street.getState(rd).disabled).toBe(true);
+    release();
+    expect(root.getState(rd).disabled).toBe(false);
+    expect(street.getState(rd).disabled).toBe(false);
+  });
+
+  it("acquireDisabler('None') is a no-op release", () => {
+    const fields = [stringField("name")];
+    const defs = [dataDef("name")];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      name: "alice",
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [n] = root.getChildren(rd);
+    const release = n.acquireDisabler("None");
+    expect(n.getState(rd).disabled).toBe(false);
+    release();
+    expect(n.getState(rd).disabled).toBe(false);
+  });
+
   it("applies defaultValue when visible and the data is undefined", () => {
     const fields = [stringField("x")];
     const defs = [dataDef("x", { defaultValue: "the-default" })];

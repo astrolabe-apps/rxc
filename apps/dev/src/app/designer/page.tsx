@@ -1,42 +1,48 @@
 "use client";
 
-import { useState, useRef, type MouseEvent, type SyntheticEvent } from "react";
+import {
+  createContext,
+  type MouseEvent,
+  type SyntheticEvent,
+  useContext,
+  useRef,
+  useState,
+} from "react";
+import type { Control } from "@rxc/controls";
 import {
   ControlContextProvider,
   controls,
   createControlContext,
 } from "@rxc/controls";
-import type { Control } from "@rxc/controls";
 import {
-  ControlAdornmentType,
+  type ControlAdornment,
+  type ControlDefinition,
   createDataNode,
   createStaticFormTree,
   createStaticSchemaTree,
   dataControl,
+  type DataControlDefinition,
   dataExpr,
   FieldType,
-  groupedControl,
-  SchemaTags,
-  type ControlAdornment,
-  type ControlDefinition,
-  type DataControlDefinition,
   type FormTreeResolver,
+  groupedControl,
   type GroupedControlsDefinition,
   type SchemaField,
+  SchemaTags,
   type SchemaTreeResolver,
 } from "@rxc/forms-core";
 import {
   ActionScope,
-  combineRegistries,
-  dataPlugin,
-  defaultRegistry,
-  Form,
-  useDesignMode,
-  useFormStateNode,
   type AdornmentRegistration,
   type AdornmentRenderProps,
+  combineRegistries,
+  dataPlugin,
   type DataRendererProps,
+  defaultRegistry,
+  Form,
   type FormRegistry,
+  useDesignMode,
+  useFormStateNode,
   type VisibilityProps,
 } from "@rxc/forms";
 
@@ -112,8 +118,6 @@ interface SelectionState {
   selected: string | null;
   setSelected: (id: string | null) => void;
 }
-
-import { createContext, useContext } from "react";
 
 const SelectionContext = createContext<SelectionState | null>(null);
 
@@ -355,8 +359,8 @@ const DesignerInner = controls(function DesignerInner({}, { controlContext }) {
             <code> maxStars</code> option (driven by the &ldquo;Max stars&rdquo;
             field via the registry&apos;s <code>schemaExtensions</code>). Toggle
             design mode to render every node (hidden fields included) read-only
-            with selection chrome — click any node to select it, and notice
-            that actions are stubbed.
+            with selection chrome — click any node to select it, and notice that
+            actions are stubbed.
           </p>
 
           <div className="mb-4 flex items-center gap-4">
@@ -422,5 +426,3 @@ export default function DesignerPage() {
     </ControlContextProvider>
   );
 }
-
-void ControlAdornmentType;

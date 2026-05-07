@@ -292,6 +292,90 @@ describe("defaultRegistry — data dispatch", () => {
     );
   });
 
+  it("ArrayElement renderType — array level routes to ArrayRenderer", () => {
+    const node = fakeNode({
+      definition: dataDef({
+        renderOptions: { type: DataRenderType.ArrayElement },
+      }),
+      field: { type: FieldType.String, field: "items", collection: true },
+    });
+    const m = pickDataRenderer(reg.data, node, rc);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "ArrayRenderer",
+    );
+  });
+
+  it("ArrayElement renderType — element level routes to ArrayElementRenderer", () => {
+    const node = fakeNode({
+      definition: dataDef({
+        renderOptions: { type: DataRenderType.ArrayElement },
+      }),
+      field: { type: FieldType.String, field: "items", collection: true },
+      elementIndex: 0,
+    });
+    const m = pickDataRenderer(reg.data, node, rc);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "ArrayElementRenderer",
+    );
+  });
+
+  it("ScrollList renderType on a collection picks ScrollListRenderer", () => {
+    const node = fakeNode({
+      definition: dataDef({
+        renderOptions: { type: DataRenderType.ScrollList },
+      }),
+      field: { type: FieldType.String, field: "items", collection: true },
+    });
+    const m = pickDataRenderer(reg.data, node, rc);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "ScrollListRenderer",
+    );
+  });
+
+  it("Wizard renderType picks WizardRenderer", () => {
+    const reg2 = defaultRegistry();
+    const def: GroupedControlsDefinition = {
+      type: ControlDefinitionType.Group,
+      children: [],
+      groupOptions: { type: GroupRenderType.Wizard } as never,
+    } as GroupedControlsDefinition;
+    const node = fakeNode({ definition: def });
+    const m = pickGroupRenderer(reg2.group, node, rc);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "WizardRenderer",
+    );
+  });
+
+  it("ElementSelected renderType picks ElementSelectedRenderer with hidesLabel", () => {
+    const node = fakeNode({
+      definition: dataDef({
+        renderOptions: {
+          type: DataRenderType.ElementSelected,
+          elementExpression: { type: "Data", field: "value" },
+        } as never,
+      }),
+      field: { type: FieldType.String, field: "selected", collection: true },
+    });
+    const m = pickDataRenderer(reg.data, node, rc);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "ElementSelectedRenderer",
+    );
+    expect(m?.hidesLabel).toBe(true);
+  });
+
+  it("Jsonata renderType picks JsonataRenderer", () => {
+    const node = fakeNode({
+      definition: dataDef({
+        renderOptions: { type: DataRenderType.Jsonata, expression: "value" },
+      }),
+      field: { type: FieldType.String, field: "x" },
+    });
+    const m = pickDataRenderer(reg.data, node, rc);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "JsonataRenderer",
+    );
+  });
+
   it("Autocomplete renderType picks AutocompleteRenderer", () => {
     const node = fakeNode({
       definition: dataDef({ renderOptions: { type: DataRenderType.Autocomplete } }),

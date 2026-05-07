@@ -3,6 +3,7 @@
 import { controls } from "@rxc/controls";
 import {
   ActionStyle,
+  ControlDisableType,
   IconPlacement,
   isActionControl,
 } from "@rxc/forms-core";
@@ -33,6 +34,7 @@ export const ButtonAction = controls<ActionRendererProps>(
       dispatch,
       definition.actionId,
       definition.actionData,
+      definition.disableType ?? ControlDisableType.None,
     );
     const iconCls = iconClassFor(undefined, definition.icon);
     const icon = iconCls ? <i className={iconCls} aria-hidden /> : null;

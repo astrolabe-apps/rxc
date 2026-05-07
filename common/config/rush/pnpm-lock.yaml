@@ -193,6 +193,80 @@ importers:
         specifier: ~3.1.0
         version: 3.1.4(@types/node@22.15.35)(jiti@2.6.1)(lightningcss@1.30.2)
 
+  ../../packages/forms-dnd:
+    dependencies:
+      '@rxc/controls':
+        specifier: workspace:*
+        version: link:../controls
+      '@rxc/controls-core':
+        specifier: workspace:*
+        version: link:../controls-core
+      '@rxc/forms':
+        specifier: workspace:*
+        version: link:../forms
+      '@rxc/forms-core':
+        specifier: workspace:*
+        version: link:../forms-core
+      '@rxc/forms-react-core':
+        specifier: workspace:*
+        version: link:../forms-react-core
+    devDependencies:
+      '@dnd-kit/core':
+        specifier: ~6.3.0
+        version: 6.3.1(react-dom@19.1.5(react@19.1.5))(react@19.1.5)
+      '@dnd-kit/sortable':
+        specifier: ~10.0.0
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.1.5(react@19.1.5))(react@19.1.5))(react@19.1.5)
+      '@dnd-kit/utilities':
+        specifier: ~3.2.0
+        version: 3.2.2(react@19.1.5)
+      '@types/react':
+        specifier: ~19.1.0
+        version: 19.1.17
+      react:
+        specifier: ~19.1.0
+        version: 19.1.5
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(jiti@2.6.1)(lightningcss@1.30.2)
+
+  ../../packages/forms-motion:
+    dependencies:
+      '@rxc/controls':
+        specifier: workspace:*
+        version: link:../controls
+      '@rxc/controls-core':
+        specifier: workspace:*
+        version: link:../controls-core
+      '@rxc/forms':
+        specifier: workspace:*
+        version: link:../forms
+      '@rxc/forms-core':
+        specifier: workspace:*
+        version: link:../forms-core
+      '@rxc/forms-react-core':
+        specifier: workspace:*
+        version: link:../forms-react-core
+    devDependencies:
+      '@types/react':
+        specifier: ~19.1.0
+        version: 19.1.17
+      framer-motion:
+        specifier: ~12.0.0
+        version: 12.0.11(react-dom@19.1.5(react@19.1.5))(react@19.1.5)
+      react:
+        specifier: ~19.1.0
+        version: 19.1.5
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(jiti@2.6.1)(lightningcss@1.30.2)
+
   ../../packages/forms-react-core:
     dependencies:
       '@rxc/controls':
@@ -248,6 +322,28 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@dnd-kit/accessibility@3.1.1':
+    resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
+    peerDependencies:
+      react: '>=16.8.0'
+
+  '@dnd-kit/core@6.3.1':
+    resolution: {integrity: sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@dnd-kit/sortable@10.0.0':
+    resolution: {integrity: sha512-+xqhmIIzvAYMGfBYYnbKuNicfSsk4RksY2XdmJhT+HAC01nix6fHCztU68jooFiMUB01Ky3F0FyOvhG/BZrWkg==}
+    peerDependencies:
+      '@dnd-kit/core': ^6.3.0
+      react: '>=16.8.0'
+
+  '@dnd-kit/utilities@3.2.2':
+    resolution: {integrity: sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   '@emnapi/runtime@1.9.1':
     resolution: {integrity: sha512-VYi5+ZVLhpgK4hQ0TAjiQiZ6ol0oe4mBx7mVv7IflsiEp0OWoVsp/+f9Vc1hOhE0TtkORVrI1GvzyreqpgWtkA==}
@@ -1023,6 +1119,20 @@ packages:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
 
+  framer-motion@12.0.11:
+    resolution: {integrity: sha512-1F+YNXr3bSHxt5sCzeCVL56sc4MngbOhdU5ptv02vaepdFYcQd0fZtuAHvFJgMbn5V7SOsaX/3hVqr21ZaCKhA==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -1174,6 +1284,12 @@ packages:
   minipass@7.1.3:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
+
+  motion-dom@12.38.0:
+    resolution: {integrity: sha512-pdkHLD8QYRp8VfiNLb8xIBJis1byQ9gPT3Jnh2jqfFtAsWUA3dEepDlsWe/xMpO8McV+VdpKVcp+E+TGJEtOoA==}
+
+  motion-utils@12.36.0:
+    resolution: {integrity: sha512-eHWisygbiwVvf6PZ1vhaHCLamvkSbPIeAYxWUuL3a2PD/TROgE7FvfHWTIH4vMl798QLfMw15nRqIaRDXTlYRg==}
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
@@ -1487,6 +1603,31 @@ snapshots:
       '@babel/helper-validator-identifier': 7.28.5
 
   '@bcoe/v8-coverage@1.0.2': {}
+
+  '@dnd-kit/accessibility@3.1.1(react@19.1.5)':
+    dependencies:
+      react: 19.1.5
+      tslib: 2.8.1
+
+  '@dnd-kit/core@6.3.1(react-dom@19.1.5(react@19.1.5))(react@19.1.5)':
+    dependencies:
+      '@dnd-kit/accessibility': 3.1.1(react@19.1.5)
+      '@dnd-kit/utilities': 3.2.2(react@19.1.5)
+      react: 19.1.5
+      react-dom: 19.1.5(react@19.1.5)
+      tslib: 2.8.1
+
+  '@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.1.5(react@19.1.5))(react@19.1.5))(react@19.1.5)':
+    dependencies:
+      '@dnd-kit/core': 6.3.1(react-dom@19.1.5(react@19.1.5))(react@19.1.5)
+      '@dnd-kit/utilities': 3.2.2(react@19.1.5)
+      react: 19.1.5
+      tslib: 2.8.1
+
+  '@dnd-kit/utilities@3.2.2(react@19.1.5)':
+    dependencies:
+      react: 19.1.5
+      tslib: 2.8.1
 
   '@emnapi/runtime@1.9.1':
     dependencies:
@@ -2072,6 +2213,15 @@ snapshots:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
+  framer-motion@12.0.11(react-dom@19.1.5(react@19.1.5))(react@19.1.5):
+    dependencies:
+      motion-dom: 12.38.0
+      motion-utils: 12.36.0
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.1.5
+      react-dom: 19.1.5(react@19.1.5)
+
   fsevents@2.3.3:
     optional: true
 
@@ -2201,6 +2351,12 @@ snapshots:
       brace-expansion: 2.0.3
 
   minipass@7.1.3: {}
+
+  motion-dom@12.38.0:
+    dependencies:
+      motion-utils: 12.36.0
+
+  motion-utils@12.36.0: {}
 
   ms@2.1.3: {}
 

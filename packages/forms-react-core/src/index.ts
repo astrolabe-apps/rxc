@@ -96,6 +96,11 @@ export { useFormStateNode } from "./useFormStateNode";
 // Helpers
 export { useLabelText } from "./labelText";
 export { useExpression } from "./useExpression";
+export {
+  useWizardController,
+  type WizardController,
+  type WizardStepInfo,
+} from "./useWizardController";
 export { clsx, getOverrideClass, rendererClass } from "./className";
 
 // Types

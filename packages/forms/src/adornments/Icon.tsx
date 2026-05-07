@@ -5,22 +5,55 @@ import {
   ControlAdornmentType,
   type IconAdornment as IconAdornmentDef,
 } from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
+import type {
+  AdornmentRegistration,
+  AdornmentRenderProps,
+} from "@rxc/forms-react-core";
 import { iconClassFor } from "../renderers/display/Icon";
 
 function IconAdornmentRender({
   adornment,
   children,
+  kind,
 }: AdornmentRenderProps<IconAdornmentDef>) {
   const cls = iconClassFor(adornment.iconClass, adornment.icon);
   const icon = cls ? <i className={cls} aria-hidden /> : null;
-  if (adornment.placement === AdornmentPlacement.ControlEnd) {
+  const placement = adornment.placement;
+
+  if (kind === "label") {
+    if (placement === AdornmentPlacement.LabelStart) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          {icon}
+          {children}
+        </span>
+      );
+    }
+    if (placement === AdornmentPlacement.LabelEnd) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          {children}
+          {icon}
+        </span>
+      );
+    }
+    return <>{children}</>;
+  }
+
+  // kind === "control"
+  if (placement === AdornmentPlacement.ControlEnd) {
     return (
       <span className="inline-flex items-center gap-1">
         {children}
         {icon}
       </span>
     );
+  }
+  if (
+    placement === AdornmentPlacement.LabelStart ||
+    placement === AdornmentPlacement.LabelEnd
+  ) {
+    return <>{children}</>;
   }
   return (
     <span className="inline-flex items-center gap-1">
@@ -32,7 +65,7 @@ function IconAdornmentRender({
 
 export const IconAdornment: AdornmentRegistration<IconAdornmentDef> = {
   type: ControlAdornmentType.Icon,
-  kind: "control",
+  kind: ["label", "control"],
   priority: 0,
   render: IconAdornmentRender,
 };

@@ -87,6 +87,20 @@ describe("wrapAdornments", () => {
     expect(wrapAdornments([], map, "control", target, fakeNode)).toBe(target);
   });
 
+  it("multi-kind registration — same adornment renders in every listed slot", () => {
+    const reg: AdornmentRegistration = {
+      type: "Multi",
+      kind: ["label", "control"],
+      render: makeMarker("Multi"),
+    };
+    const map = indexAdornments([reg]);
+    const adornments = [{ type: "Multi" }];
+    const target = "X" as unknown as ReactNode;
+    expect(readMarkers(wrapAdornments(adornments, map, "label", target, fakeNode))).toEqual(["Multi"]);
+    expect(readMarkers(wrapAdornments(adornments, map, "control", target, fakeNode))).toEqual(["Multi"]);
+    expect(readMarkers(wrapAdornments(adornments, map, "field", target, fakeNode))).toEqual([]);
+  });
+
   it("indexAdornments — earlier registration shadows later for same type", () => {
     const first: AdornmentRegistration = {
       type: "Same",

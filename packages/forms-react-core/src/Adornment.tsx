@@ -13,6 +13,10 @@ export interface AdornmentRenderProps<
 > {
   adornment: A;
   node: FormStateNode;
+  /** Which composition slot the adornment is being rendered into — set
+   * when a single registration declares multiple kinds, so the render
+   * function can branch on placement. */
+  kind: AdornmentKind;
   /** The wrapped target — label content, the renderer's output, or the
    * Layout element, depending on `kind`. */
   children: ReactNode;
@@ -23,10 +27,21 @@ export interface AdornmentRegistration<
 > {
   /** Adornment `type` discriminator (`ControlAdornmentType.HelpText`, etc.). */
   type: A["type"];
-  kind: AdornmentKind;
+  /** Composition slot(s) this registration participates in. Pass an
+   * array to register the same adornment in multiple slots — the
+   * render function receives the active `kind` so it can decide what
+   * to emit per slot. */
+  kind: AdornmentKind | readonly AdornmentKind[];
   /** Higher = outer wrap. Default 0. */
   priority?: number;
   render: ComponentType<AdornmentRenderProps<A>>;
+}
+
+function matchesKind(
+  regKind: AdornmentKind | readonly AdornmentKind[],
+  kind: AdornmentKind,
+): boolean {
+  return Array.isArray(regKind) ? regKind.includes(kind) : regKind === kind;
 }
 
 /** Variance escape hatch — registrations are stored as the unspecified
@@ -55,7 +70,7 @@ export function wrapAdornments(
   for (const adornment of adornments) {
     const reg = registrations.get(adornment.type);
     if (!reg) continue;
-    if (reg.kind !== kind) continue;
+    if (!matchesKind(reg.kind, kind)) continue;
     filtered.push({ adornment, reg });
   }
   filtered.sort(
@@ -64,7 +79,7 @@ export function wrapAdornments(
   return filtered.reduce<ReactNode>((wrapped, { adornment, reg }) => {
     const Render = reg.render as ComponentType<AdornmentRenderProps>;
     return (
-      <Render adornment={adornment} node={node}>
+      <Render adornment={adornment} node={node} kind={kind}>
         {wrapped}
       </Render>
     );

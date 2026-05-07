@@ -12,14 +12,12 @@ import {
   AdornmentPlacement,
   compoundControl,
   ControlAdornmentType,
-  ControlDefinitionType,
   createDataNode,
   createStaticFormTree,
   createStaticSchemaTree,
   dataControl,
   DataRenderType,
   dataExpr,
-  ExpressionType,
   FieldType,
   GroupRenderType,
   groupedControl,
@@ -287,6 +285,3 @@ export default function InteractivePage() {
     </ControlContextProvider>
   );
 }
-
-void ControlDefinitionType;
-void ExpressionType;

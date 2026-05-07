@@ -47,8 +47,10 @@ export interface HtmlLabelTheme {
 }
 
 export interface HtmlErrorTheme {
-  /** Class on the error <span role="alert">. */
+  /** Class on the error element (`<span>` for single, `<ul>` for `all`). */
   className?: string;
+  /** Class on each `<li>` when rendering all errors. */
+  itemClass?: string;
 }
 
 // ── Data renderers ───────────────────────────────────────────────────
@@ -226,4 +228,10 @@ export interface HtmlAccordionAdornmentTheme {
  */
 export interface HtmlFormOptions extends FormOptions {
   theme?: HtmlFormTheme;
+  /**
+   * When true, `<Error>` renders every error message attached to the
+   * bound data control. Default `false` shows only the first error.
+   * Per-Field overrides can still pass `<Error all>` directly.
+   */
+  showAllErrors?: boolean;
 }
