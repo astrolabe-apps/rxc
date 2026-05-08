@@ -1,0 +1,56 @@
+/* Font Awesome Kit — same URL as apps/dev so glyph metrics match for
+ * side-by-side comparison. Must precede `@import "tailwindcss"` since
+ * all CSS @import rules must come before any other rules. */
+@import "https://kit.fontawesome.com/95cc77b353.css";
+
+/* Material Symbols stylesheet — without this, the legacy
+ * IconLibrary.Material renderer falls back to ligature text
+ * (matches the new demo's behavior). Loaded so Material rows
+ * display as glyphs. */
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
+
+@import "tailwindcss";
+
+/* Tailwind v4 only scans the consuming app by default; classes baked
+ * into @react-typed-forms/schemas-html's compiled lib (e.g.
+ * `bg-primary-500`, `flex`, etc.) need to be registered explicitly
+ * so they're emitted into the generated stylesheet. */
+@source "../node_modules/@react-typed-forms/schemas-html/lib/**/*.js";
+
+/* RTOeForms production palette — gives the stock `defaultTailwindTheme`
+ * meaningful colors for `bg-primary-500` / `bg-secondary-500` etc. */
+@theme {
+  --color-primary-50: #f2f5f8;
+  --color-primary-100: #e4eaf1;
+  --color-primary-200: #c3d1df;
+  --color-primary-300: #9fb4cb;
+  --color-primary-400: #6d8eb1;
+  --color-primary-500: #39516a;
+  --color-primary-600: #32475d;
+  --color-primary-700: #2e4256;
+  --color-primary-800: #243242;
+  --color-primary-900: #1d2835;
+  --color-primary-950: #121921;
+
+  --color-secondary-50: #e8eff7;
+  --color-secondary-100: #d1e0f0;
+  --color-secondary-200: #a7c3e2;
+  --color-secondary-300: #79a4d2;
+  --color-secondary-400: #4f88c4;
+  --color-secondary-500: #3669a1;
+  --color-secondary-600: #2c5685;
+  --color-secondary-700: #22426a;
+  --color-secondary-800: #192f4e;
+  --color-secondary-900: #0e1b2d;
+
+  --color-surface-50: #fafafa;
+  --color-surface-100: #f4f4f5;
+  --color-surface-200: #e4e4e7;
+  --color-surface-300: #d4d4d8;
+  --color-surface-400: #a1a1aa;
+  --color-surface-500: #71717a;
+  --color-surface-600: #52525b;
+  --color-surface-700: #3f3f46;
+  --color-surface-800: #27272a;
+  --color-surface-900: #18181b;
+}

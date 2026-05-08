@@ -54,6 +54,11 @@
       "packageName": "rxc-dev-app",
       "projectFolder": "apps/dev",
       "shouldPublish": false
+    },
+    {
+      "packageName": "rxc-legacy-buttons-demo",
+      "projectFolder": "apps/legacy-buttons",
+      "shouldPublish": false
     }
   ]
 }
