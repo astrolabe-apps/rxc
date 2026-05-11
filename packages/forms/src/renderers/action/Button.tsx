@@ -17,13 +17,18 @@ import {
 import { resolveIcon } from "../display/Icon";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_BUTTON =
-  "inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded text-sm disabled:opacity-40";
+// Layout invariants — always applied so icon + text compose cleanly even
+// when a theme overrides buttonClass/linkClass/groupClass (which otherwise
+// only carry chrome: padding, colors, rounding).
+const BUTTON_LAYOUT = "inline-flex items-center justify-center gap-1.5";
+const LINK_LAYOUT = "inline-flex items-center gap-1";
+const GROUP_LAYOUT = "inline-flex items-center gap-1";
+
+const DEFAULT_BUTTON = "px-3 py-1 rounded text-sm disabled:opacity-40";
 const DEFAULT_PRIMARY = "bg-blue-600 text-white";
 const DEFAULT_SECONDARY = "border border-zinc-300 dark:border-zinc-600";
-const DEFAULT_LINK =
-  "inline-flex items-center gap-1 text-blue-600 hover:underline disabled:opacity-40";
-const DEFAULT_GROUP = "inline-flex items-center gap-1";
+const DEFAULT_LINK = "text-blue-600 hover:underline disabled:opacity-40";
+const DEFAULT_GROUP = "";
 
 export const ButtonAction = controls<ActionRendererProps>(
   "ButtonAction",
@@ -55,9 +60,10 @@ export const ButtonAction = controls<ActionRendererProps>(
     // Link/Group don't carry the base button padding/rounding.
     const baseButton =
       isLink || isGroup ? null : actionTheme.buttonClass ?? DEFAULT_BUTTON;
+    const layout = isLink ? LINK_LAYOUT : isGroup ? GROUP_LAYOUT : BUTTON_LAYOUT;
     const cls = rendererClass(
       definition.styleClass,
-      rendererClass(baseButton, variantClass),
+      rendererClass(layout, rendererClass(baseButton, variantClass)),
     );
 
     const variantTextClass = isLink

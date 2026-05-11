@@ -296,9 +296,7 @@ const formOptions: HtmlFormOptions = {
         "text-indigo-600 hover:underline disabled:opacity-40 dark:text-indigo-400",
       linkTextClass: "underline-offset-2",
       groupClass:
-        "inline-flex gap-1 rounded border border-zinc-300 dark:border-zinc-700 p-1",
-      iconBeforeClass: "mr-2",
-      iconAfterClass: "ml-2",
+        "rounded border border-zinc-300 dark:border-zinc-700 p-1",
       // Default action icon — used when definition.icon is unset.
       icon: materialIcon("touch_app"),
       // Busy spinner.
