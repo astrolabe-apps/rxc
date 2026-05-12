@@ -59,6 +59,11 @@
       "packageName": "rxc-legacy-buttons-demo",
       "projectFolder": "apps/legacy-buttons",
       "shouldPublish": false
+    },
+    {
+      "packageName": "rxc-legacy-compare-demo",
+      "projectFolder": "apps/legacy-compare",
+      "shouldPublish": false
     }
   ]
 }
