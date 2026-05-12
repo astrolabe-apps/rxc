@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import type { JSX } from "react";
 import { newControl } from "@react-typed-forms/core";
 import {
   ActionControlDefinition,
@@ -289,7 +288,7 @@ const onAction = (
 
 // ── Page ─────────────────────────────────────────────────────────────
 
-export default function Page(): JSX.Element {
+export default function Page() {
   const { dataNode, formNode } = useMemo(() => {
     const rootControl = newControl<EmptyData>({});
     const schemaTree = createSchemaTree(emptySchema());

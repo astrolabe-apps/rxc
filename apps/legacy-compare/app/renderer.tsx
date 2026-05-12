@@ -56,7 +56,7 @@ export function createHtmlRenderer(
   makeOnClick: (actionId: string, data: any) => () => void,
 ) {
   return createDisplayRenderer(
-    (props): JSX.Element => (
+    (props) => (
       <HtmlDisplayRenderer
         {...props}
         html={(props.data as HtmlDisplay).html ?? ""}
@@ -69,7 +69,7 @@ export function createHtmlRenderer(
 
 function createHtmlDataRenderer() {
   return createDataRenderer(
-    (props): JSX.Element => (
+    (props) => (
       <HtmlDisplayRenderer
         {...props}
         html={props.control.value ?? ""}
@@ -81,22 +81,20 @@ function createHtmlDataRenderer() {
 }
 
 const HtmlLabelRenderer = createLabelRenderer(
-  (p): JSX.Element => <HtmlLabel label={p.label} />,
+  (p) => <HtmlLabel label={p.label} />,
   { labelType: LabelType.Text },
 );
 
-function HtmlLabel({ label }: { label: ReactNode }): JSX.Element {
+function HtmlLabel({ label }: { label: ReactNode }) {
   const labelText = useMemo(() => {
     if (typeof label === "string") return parse(label);
     return label;
   }, [label]);
-  return <>{labelText}</>;
+  return labelText;
 }
 
 const topLevelGroupRenderer = createGroupRenderer(
-  (p, renderers): JSX.Element => (
-    <TopLevelGroup groupProps={p} renderers={renderers} />
-  ),
+  (p, renderers) => <TopLevelGroup groupProps={p} renderers={renderers} />,
   { renderType: TopLevelGroupOption.value },
 );
 

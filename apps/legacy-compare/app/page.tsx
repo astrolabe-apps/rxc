@@ -8,16 +8,21 @@ import {
   createSchemaDataNode,
   createSchemaTree,
   groupedControl,
-  legacyFormNode,
+  legacyFormNode, createSchemaLookup, SchemaField,
 } from "@react-typed-forms/schemas";
 import { Fire } from "./formDefs";
 import { useFormTypeRenderer } from "./renderer";
+import {SchemaMap} from "./schemas";
+
+const schemaLookup = createSchemaLookup(
+    SchemaMap as Record<string, SchemaField[]>,
+);
 
 export default function Page(): JSX.Element {
   const renderer = useFormTypeRenderer("Fire");
   const { dataNode, formNode } = useMemo(() => {
     const rootControl = newControl({});
-    const schemaTree = createSchemaTree(Fire.formFields);
+    const schemaTree = schemaLookup.getSchemaTree(Fire.schemaName, Fire.formFields);
     const dataNode = createSchemaDataNode(schemaTree.rootNode, rootControl);
     const formNode = legacyFormNode(groupedControl(Fire.controls, Fire.name));
     return { dataNode, formNode };

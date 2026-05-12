@@ -4,6 +4,7 @@
   "pnpmVersion": "9.15.9",
   "nodeSupportedVersionRange": ">=20.0.0",
   "projectFolderMaxDepth": 3,
+  "ensureConsistentVersions": true,
   "projects": [
     {
       "packageName": "@rxc/controls-core",

@@ -17,20 +17,22 @@
  * so they're emitted into the generated stylesheet. */
 @source "../node_modules/@react-typed-forms/schemas-html/lib/**/*.js";
 
-/* RTOeForms production palette — gives the stock `defaultTailwindTheme`
- * meaningful colors for `bg-primary-500` / `bg-secondary-500` etc. */
+/* ServiceTas "portal" site palette — sourced from
+ * client-common/tailwindColours.ts so the stock `defaultTailwindTheme`
+ * renders with the same brand colours as the portal app. */
 @theme {
-  --color-primary-50: #f2f5f8;
-  --color-primary-100: #e4eaf1;
-  --color-primary-200: #c3d1df;
-  --color-primary-300: #9fb4cb;
-  --color-primary-400: #6d8eb1;
-  --color-primary-500: #39516a;
-  --color-primary-600: #32475d;
-  --color-primary-700: #2e4256;
-  --color-primary-800: #243242;
-  --color-primary-900: #1d2835;
-  --color-primary-950: #121921;
+  --color-primary-50: #f0f9f4;
+  --color-primary-100: #dbf0e3;
+  --color-primary-200: #b9e1cb;
+  --color-primary-300: #8acbaa;
+  --color-primary-400: #59ae86;
+  --color-primary-500: #37926a;
+  --color-primary-600: #256f50;
+  --color-primary-700: #1f5d44;
+  --color-primary-800: #1b4a38;
+  --color-primary-900: #173d2f;
+  --color-primary-950: #0c221b;
+  --color-primary: #098851;
 
   --color-secondary-50: #e8eff7;
   --color-secondary-100: #d1e0f0;
@@ -38,10 +40,12 @@
   --color-secondary-300: #79a4d2;
   --color-secondary-400: #4f88c4;
   --color-secondary-500: #3669a1;
-  --color-secondary-600: #2c5685;
-  --color-secondary-700: #22426a;
-  --color-secondary-800: #192f4e;
-  --color-secondary-900: #0e1b2d;
+  --color-secondary-600: #2c5582;
+  --color-secondary-700: #203f5f;
+  --color-secondary-800: #162b41;
+  --color-secondary-900: #0a141f;
+  --color-secondary-950: #050a0f;
+  --color-secondary: #3669a1;
 
   --color-surface-50: #fafafa;
   --color-surface-100: #f4f4f5;
@@ -53,4 +57,91 @@
   --color-surface-700: #3f3f46;
   --color-surface-800: #27272a;
   --color-surface-900: #18181b;
+
+  --color-accent: #267151;
+  --color-primaryText: #ffffff;
+  --color-primaryLight: #098851;
+  --color-text: #343534;
+  --color-darkGrey: #404041;
+  --color-grey: #c4c4c4;
+  --color-lightGrey: #f5f5f5;
+  --color-lightGreen: #e6f3ee;
+  --color-border: #e7e7e8;
+}
+
+/* Utility / component classes ported from client-common/globals.css —
+ * these are the ones the schemas-html renderer actively invokes.
+ *
+ * NOTE: intentionally NOT wrapped in `@layer utilities { ... }`. In
+ * Tailwind v3 that directive was a build-time hint and rules emitted
+ * unlayered. In Tailwind v4 it's the real CSS Cascade Layers feature,
+ * and any rule placed in a layer always loses to unlayered rules in
+ * theme.css. Keeping these top-level matches the v3 cascade behavior
+ * client-common relies on. */
+* {
+  @apply border-gray-200 border-0 border-solid;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+svg {
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  @apply font-bold text-3xl text-inherit;
+}
+
+.link,
+.html a {
+  @apply font-extrabold underline text-primary;
+}
+
+.html p {
+  @apply mb-2.5 leading-snug;
+}
+
+.form-control {
+  @apply border bg-white disabled:bg-neutral-50 border-neutral-400 focus:outline-none focus:ring-0 shadow-inner focus:border-primary-500 p-2;
+}
+
+.button {
+  @apply inline-flex items-baseline bg-primary py-3 justify-center px-2 md:px-10 text-primaryText no-underline font-semibold;
+}
+
+.button:disabled {
+  @apply opacity-50;
+}
+
+.error {
+  @apply text-red-700;
+}
+
+input[type="radio"] {
+  @apply border-primary-600 appearance-none w-[20px] h-[20px] border-2 checked:border-[7px] rounded-3xl;
+}
+
+input[type="checkbox"] {
+  @apply border-2 border-primary-500 rounded-[0.15em] grid place-content-center;
+}
+
+.headline {
+  @apply font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+
+.body {
+  @apply font-normal text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+
+.subhead {
+  @apply font-semibold text-[15px] leading-[20px] tracking-[-0.23px] text-text;
+}
+
+.callout {
+  @apply font-semibold text-[16px] leading-[21px] tracking-[-0.31px] text-text;
 }

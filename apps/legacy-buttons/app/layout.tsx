@@ -1,17 +1,13 @@
-import type { Metadata } from "next";
-import type { ReactNode, JSX } from "react";
-import "./globals.css";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Legacy ButtonAction Demo",
-  description: "Side-by-side comparator for @react-typed-forms/schemas-html",
-};
+import type { ReactNode } from "react";
+import "./globals.css";
 
 export default function RootLayout({
   children,
 }: {
   children: ReactNode;
-}): JSX.Element {
+}) {
   return (
     <html lang="en">
       <body>{children}</body>
