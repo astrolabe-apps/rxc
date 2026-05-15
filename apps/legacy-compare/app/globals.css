@@ -9,7 +9,31 @@
  * display as glyphs. */
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined");
 
-@import "tailwindcss";
+/* Legacy ServiceTas baseline stylesheets, in the same order the
+ * portal app loads them (see `sites/portal/src/app/css/pp.css`):
+ *   1. bootstrap.min.css — Bootstrap v3.3.6 + normalize.css v3.0.3
+ *   2. theme.css         — ServiceTas theme on top of Bootstrap
+ * Served as static assets from /public so their embedded `url(...)`
+ * references resolve at runtime — JS-importing them via webpack tries
+ * to bundle those URLs and fails. Loading via CSS `@import` here also
+ * places them before the rules below in cascade order, so our custom
+ * `@apply` rules (and the `@tailwind utilities` at EOF) correctly
+ * override the legacy baseline. */
+@import url("/css/bootstrap.min.css");
+@import url("/css/theme.css");
+
+/* Replicate legacy ServiceTas v3 CSS priorities via cascade order
+ * instead of the v3 `important: "#app"` selector trick:
+ *
+ *   1. theme.css (@import above) — legacy baseline (lowest priority)
+ *   2. tailwind theme vars — just CSS custom properties
+ *   3. custom @apply rules below — override theme.css element styling
+ *   4. @tailwind utilities at EOF — beats both #1 and #3 on source
+ *      order at equal specificity
+ *
+ * `corePlugins: { preflight: false }` from the legacy config is
+ * replicated by omitting `@import "tailwindcss/preflight.css"`. */
+@import "tailwindcss/theme.css" layer(theme);
 
 /* Tailwind v4 only scans the consuming app by default; classes baked
  * into @react-typed-forms/schemas-html's compiled lib (e.g.
@@ -17,10 +41,40 @@
  * so they're emitted into the generated stylesheet. */
 @source "../node_modules/@react-typed-forms/schemas-html/lib/**/*.js";
 
-/* ServiceTas "portal" site palette — sourced from
- * client-common/tailwindColours.ts so the stock `defaultTailwindTheme`
- * renders with the same brand colours as the portal app. */
+/* ServiceTas "portal" site palette + font-size / spacing scale —
+ * sourced from `client-common/tailwind.ts` and `tailwindColours.ts`.
+ *
+ * NOTE on rem values: Bootstrap v3 (loaded via the @import above)
+ * sets `html { font-size: 10px }` — the classic "1rem = 10px"
+ * convention. The legacy Tailwind config compensates by sizing every
+ * text/spacing utility with rem values 1.6× the Tailwind defaults so
+ * the rendered pixel sizes still match a 16px design baseline
+ * (e.g. `--text-2xl: 2.4rem` × 10px = 24px, same as Tailwind's
+ * default `1.5rem × 16px`). We replicate that here rather than
+ * overriding the html root so theme.css's own rem-based rules
+ * (~104 refs) continue to render at their designed sizes. */
 @theme {
+  --text-xs: 1.2rem;
+  --text-sm: 1.4rem;
+  --text-base: 1.6rem;
+  --text-lg: 1.8rem;
+  --text-xl: 2rem;
+  --text-2xl: 2.4rem;
+  --text-3xl: 3rem;
+
+  /* v4 spacing is `N * var(--spacing)`. Legacy used per-step rem
+   * values forming a 0.4rem-per-step scale (1 = 0.4rem, 2 = 0.8rem,
+   * 4 = 1.6rem …). Setting `--spacing: 0.4rem` reproduces the entire
+   * legacy scale. (Legacy had one exception, `96 = 28.4rem` instead
+   * of 38.4rem — likely a typo in the legacy config, not honoured.) */
+  --spacing: 0.4rem;
+
+  /* Nunito font family — legacy `sans: ["nunito"]` and a custom
+   * `regular: ["Nunito-Regular"]`. With only Regular and SemiBold
+   * TTFs present (see comments above), other weights fall back. */
+  --font-sans: nunito, sans-serif;
+  --font-regular: "Nunito-Regular", sans-serif;
+
   --color-primary-50: #f0f9f4;
   --color-primary-100: #dbf0e3;
   --color-primary-200: #b9e1cb;
@@ -71,20 +125,33 @@
 
 /* Utility / component classes ported from client-common/globals.css —
  * these are the ones the schemas-html renderer actively invokes.
+ * Emitted unlayered (between the @import-ed theme.css above and the
+ * `@tailwind utilities` block at the bottom of the file) so they
+ * override theme.css element styling while still losing to utility
+ * classes on equal specificity.
  *
- * NOTE: intentionally NOT wrapped in `@layer utilities { ... }`. In
- * Tailwind v3 that directive was a build-time hint and rules emitted
- * unlayered. In Tailwind v4 it's the real CSS Cascade Layers feature,
- * and any rule placed in a layer always loses to unlayered rules in
- * theme.css. Keeping these top-level matches the v3 cascade behavior
- * client-common relies on. */
+ * Legacy used `#app { font-size: 16px }` to bump the base from
+ * Bootstrap v3's 15px to 16px; since we no longer wrap in
+ * `<div id="app">`, the same effect is achieved on `body`. */
+body {
+  font-size: 16px;
+}
+
 * {
   @apply border-gray-200 border-0 border-solid;
+}
+
+label {
+  margin: 0;
 }
 
 a {
   color: inherit;
   text-decoration: inherit;
+}
+
+button {
+  @apply bg-transparent;
 }
 
 svg {
@@ -110,6 +177,11 @@ h3 {
   @apply border bg-white disabled:bg-neutral-50 border-neutral-400 focus:outline-none focus:ring-0 shadow-inner focus:border-primary-500 p-2;
 }
 
+.form-container {
+  width: 614px;
+  @apply mx-auto pb-4 max-md:w-full max-md:px-8;
+}
+
 .button {
   @apply inline-flex items-baseline bg-primary py-3 justify-center px-2 md:px-10 text-primaryText no-underline font-semibold;
 }
@@ -130,6 +202,27 @@ input[type="checkbox"] {
   @apply border-2 border-primary-500 rounded-[0.15em] grid place-content-center;
 }
 
+/* iOS-style typography scale (`.large-title` through `.caption2`) and
+ * italic variants — ported verbatim from client-common/globals.css.
+ * Legacy used `@apply <className> italic` on the italic variants;
+ * inlined here because @apply'ing a sibling custom class isn't
+ * guaranteed to work outside `@layer utilities` in Tailwind v4. */
+.large-title {
+  @apply font-extrabold text-[34px] leading-[41px] tracking-[0.4px] text-text;
+}
+
+.title1 {
+  @apply font-extrabold text-[28px] leading-[34px] tracking-[0.38px] text-text;
+}
+
+.title2 {
+  @apply font-extrabold text-[22px] leading-[28px] tracking-[-0.26px] text-text;
+}
+
+.title3 {
+  @apply font-extrabold text-[20px] leading-[25px] tracking-[-0.45px] text-text;
+}
+
 .headline {
   @apply font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
 }
@@ -138,10 +231,83 @@ input[type="checkbox"] {
   @apply font-normal text-[17px] leading-[22px] tracking-[-0.43px] text-text;
 }
 
-.subhead {
-  @apply font-semibold text-[15px] leading-[20px] tracking-[-0.23px] text-text;
+.body-bold {
+  @apply font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+
+.body-extra-bold {
+  @apply font-extrabold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
 }
 
 .callout {
   @apply font-semibold text-[16px] leading-[21px] tracking-[-0.31px] text-text;
 }
+
+.subhead {
+  @apply font-semibold text-[15px] leading-[20px] tracking-[-0.23px] text-text;
+}
+
+.footnote {
+  @apply font-normal text-[13px] leading-[18px] tracking-[-0.08px] text-text;
+}
+
+.footnote-bold {
+  @apply font-semibold text-[13px] leading-[18px] tracking-[-0.08px] text-text;
+}
+
+.caption1 {
+  @apply font-semibold text-[12px] leading-[16px] tracking-[0px] text-text;
+}
+
+.caption2 {
+  @apply font-semibold text-[11px] leading-[13px] tracking-[0.06px] text-text;
+}
+
+.large-title-italic {
+  @apply italic font-extrabold text-[34px] leading-[41px] tracking-[0.4px] text-text;
+}
+
+.title1-italic {
+  @apply italic font-extrabold text-[28px] leading-[34px] tracking-[0.38px] text-text;
+}
+
+.title2-italic {
+  @apply italic font-extrabold text-[22px] leading-[28px] tracking-[-0.26px] text-text;
+}
+
+.title3-italic {
+  @apply italic font-extrabold text-[20px] leading-[25px] tracking-[-0.45px] text-text;
+}
+
+.headline-italic {
+  @apply italic font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+
+.body-italic {
+  @apply italic font-normal text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+
+.callout-italic {
+  @apply italic font-semibold text-[16px] leading-[21px] tracking-[-0.31px] text-text;
+}
+
+.subhead-italic {
+  @apply italic font-semibold text-[15px] leading-[20px] tracking-[-0.23px] text-text;
+}
+
+.footnote-italic {
+  @apply italic font-normal text-[13px] leading-[18px] tracking-[-0.08px] text-text;
+}
+
+.caption1-italic {
+  @apply italic font-semibold text-[12px] leading-[16px] tracking-[0px] text-text;
+}
+
+.caption2-italic {
+  @apply italic font-semibold text-[11px] leading-[13px] tracking-[0.06px] text-text;
+}
+
+/* Utilities at the bottom of the file — beats theme.css and the
+ * custom @apply rules above on source order at equal specificity.
+ * This replaces the legacy `important: "#app"` specificity trick. */
+@tailwind utilities;
