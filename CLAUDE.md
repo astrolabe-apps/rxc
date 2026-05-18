@@ -18,6 +18,9 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
 | `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo. |
+| `rxc-legacy-buttons-demo` | `apps/legacy-buttons` | Visual baseline for `ButtonAction` parity — renders legacy button variants via the published `@react-typed-forms/schemas-html` so the rxc `ButtonAction` renderer can be checked side-by-side. |
+| `rxc-legacy-compare-demo` | `apps/legacy-compare` | Renders the canonical "Fire" form using the published legacy `@react-typed-forms/schemas` (port 3002). Loads the same `Fire.json`, the same `bootstrap.min.css` + `theme.css` baseline as the legacy ServiceTas portal — the reference rendering that `rxc-compare-demo` is compared against. |
+| `rxc-compare-demo` | `apps/rxc-compare` | Mirrors `legacy-compare` via `@rxc/forms` (port 3003). Same `Fire.json`, same schemas, same CSS baseline. Drives upstream `@rxc/*` API improvements whenever the port hits a gap (see "Comparison-app workstream" below). |
 
 ## Commands
 
@@ -225,6 +228,36 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
   - `forms-core`: **110** (+3 acquireDisabler / disabler stack)
   - `forms-react-core`: **47** (+1 multi-kind adornment registration)
   - `forms`: **36** (+6 new renderers — Jsonata / ElementSelected / ScrollList / Wizard / ArrayElement levels)
+
+## Comparison-app workstream
+
+The `apps/legacy-compare` + `apps/rxc-compare` pairing exists to validate that the rxc renderer set can reproduce the legacy `@react-typed-forms/schemas`-html rendering of real-world forms (currently just the "Fire" registration form from ServiceTas) **and to drive upstream API improvements in `@rxc/*` whenever the port hits a gap.**
+
+### Goals
+
+1. **Visual parity on the Fire form.** Both apps share the same `Fire.json` definition, the same generated `schemas.ts` (import path swapped to `@rxc/forms-core` in the new app), and the same `bootstrap.min.css` + `theme.css` baseline. Run side-by-side: legacy on port 3002, rxc on port 3003.
+2. **Use the comparison to find missing capabilities in `@rxc/forms`.** Each parity gap is evaluated for whether it's host-specific (handle in the compare app's customizations) or a missing core capability (extend `@rxc/forms`, update `docs/MIGRATION-FROM-LEGACY.md`, then use the new API in the compare app).
+
+### Upstream changes already driven by this work
+
+- `@rxc/forms`: `Label` is now an alias for `DefaultLabel`. Added `LabelProvider` + `useLabel()` and `<Form label={MyLabel}>` so hosts can swap the label component without rebuilding Field. Same pattern for `Error`: `DefaultError` + `ErrorProvider` + `useError()` + `<Form error={MyError}>`. `FieldProps` and `FormProps` gained matching `label?` / `error?` slots for per-Field overrides.
+
+### Known gaps still to address
+
+Each of these is a candidate for upstream support; the compare app currently works around them locally.
+
+- **`forms-core` does not re-export `createSchemaTreeResolver` / `createFormTreeResolver`.** They exist in source (`nodes/schemaNode.ts`, `nodes/formNode.ts`) but aren't in `nodes/index.ts`. The compare app inlines a small cached resolver in `page.tsx`. Worth promoting to public API.
+- **No `groupLabelClass` slot on `HtmlLabelTheme`.** The legacy renderer applied `text-2xl` to labels for group-style controls. The compare app handles this in its custom `HtmlLabel` by checking `isGroupControl(def) || (isDataControl(def) && def.renderOptions?.type === "Group")`. A `theme.label.groupClassName` (and matching `isGroupLabel` predicate) would let stock `<DefaultLabel>` cover the case.
+- **No reusable form-walker hook for error summaries.** `AllErrors` in `apps/rxc-compare/app/components/AllErrors.tsx` recursively walks `getChildren(rc)` collecting `{ definition, error }` per node. A reusable `useFormErrors(rc, node)` (or `walkFormState(rc, node, visitor)`) in `@rxc/forms-react-core` would let any error summary / submit-blocker panel skip the manual walk.
+- **`HtmlDisplayRenderer` does not parse anchor `href` for action dispatch.** Legacy's HtmlDisplay parses `<a href="https://action/...">` to intercept clicks and dispatch via the renderer set. Fire doesn't use this, so the compare app skips it; would be a small extension via `<ActionScope>` + `useActionHandler` if/when a form needs it.
+- **HelpText popover variant.** The default `HelpTextAdornment` in `@rxc/forms` emits inline `<p>` text. The legacy ServiceTas theme uses a Radix Popover with an info-circle trigger. The compare app ships its own `PopoverHelpTextAdornment` (Radix + FontAwesome) and registers it before `defaultRegistry()` so it shadows the default. Either pattern is valid; the popover variant could ship as an opt-in alternative in `@rxc/forms` or a future `@rxc/forms-radix` companion.
+- **No "labelContainer" hook in `DefaultLayout`.** Legacy `DefaultRendererOptions.label.labelContainer` wrapped label + label-adornments in a flex row. The compare app's `HtmlLayout` re-implements this by wrapping the `label` prop in a `<div class="flex gap-4 items-baseline flex-wrap">`. A theme slot (`theme.label.containerClass` or a `labelContainer` render function) would avoid the host-side Layout rewrite.
+
+### Workflow when porting reveals a gap
+
+1. Try to satisfy the gap with existing `@rxc/forms` extension points (theme, providers, plugin registrations, custom renderer).
+2. If that ends up duplicating substantial work from `@rxc/forms` source, treat it as a signal that the core is missing a slot. Add the slot upstream — keep the change small, document it in `docs/MIGRATION-FROM-LEGACY.md` if it shifts the legacy→new mapping, and add a test.
+3. Strict-mode safety matters. The legacy lib isn't strict-mode-safe (see `apps/legacy-compare/next.config.mjs`: `reactStrictMode: false`). The rxc lib should be — verify by toggling strict mode on in `apps/rxc-compare` once basic parity is reached.
 
 ## Next steps
 
