@@ -112,6 +112,16 @@ export interface HtmlSelectTheme {
 export interface HtmlOptionGroupTheme {
   /** Outer fieldset wrapper. */
   className?: string;
+  /** Per-option wrapper around the input+label and any per-option
+   * children (description/image etc.). Layered with the per-control
+   * `renderOptions.entryWrapperClass` from the form definition. */
+  entryWrapperClass?: string;
+  /** Class applied to the per-option wrapper when that option is
+   * currently checked. Layered with `renderOptions.selectedClass`. */
+  selectedClass?: string;
+  /** Class applied to the per-option wrapper when that option is
+   * currently NOT checked. Layered with `renderOptions.notSelectedClass`. */
+  notSelectedClass?: string;
   /** Each row (label + input). */
   entryClass?: string;
   /** The <input>. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { ControlContext } from "@rxc/controls-core";
 import {
   createFormStateNode,
@@ -65,6 +65,39 @@ export function useFormStateNode(
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  // ── Deferred runAsync ───────────────────────────────────────────────
+  //
+  // Mirrors the legacy `useAsyncRunner` semantics from
+  // `astrolabe-common/schemas/src/RenderForm.tsx`: callbacks passed to
+  // `runAsync` during a render are queued and drained inside a `useEffect`
+  // *after* React commits. This is what keeps SSR snapshots and the first
+  // client hydration in agreement when scripts (Jsonata especially) would
+  // otherwise resolve via `queueMicrotask` between SSR HTML ship and CSR
+  // commit, causing hydration mismatches on dynamically scripted content.
+  //
+  // Scripts that schedule themselves later (via the reconciler's
+  // microtask `schedule()`) also funnel back through `runAsync`, so they
+  // queue and drain on the next commit cycle — never running mid-commit.
+  //
+  // Identity of the `runAsync` closure is kept stable (useCallback over a
+  // ref-bound queue) because `FormStateNode.globals.runAsync` is captured
+  // at creation time and lives across renders.
+  const queueRef = useRef<Array<() => void>>([]);
+  const runAsync = useCallback((fn: () => void) => {
+    queueRef.current.push(fn);
+  }, []);
+  useEffect(() => {
+    const q = queueRef.current;
+    if (q.length === 0) return;
+    queueRef.current = [];
+    for (const fn of q) fn();
+  });
+
+  // Allow callers to opt back in to a custom runner (e.g. tests) via
+  // `options.runAsync`. We snapshot once at node-creation time, so the
+  // override is sticky to that node instance.
+  const runAsyncForNode = optionsRef.current.runAsync ?? runAsync;
+
   // Tracking ref for the (key, node) pair currently in use. We compare
   // against incoming identity inputs to decide when to rebuild.
   const slotRef = useRef<{ key: NodeCacheKey; node: FormStateNode } | null>(
@@ -87,7 +120,7 @@ export function useFormStateNode(
     const globals: FormGlobalOptions = {
       schemaInterface: opts.schemaInterface,
       resolveChildren: makeResolveChildren(reg),
-      runAsync: opts.runAsync ?? ((fn) => fn()),
+      runAsync: runAsyncForNode,
       clearHidden: opts.clearHidden ?? true,
       extraRenderOptionFields: collectExtraRenderOptionFields(reg),
     };

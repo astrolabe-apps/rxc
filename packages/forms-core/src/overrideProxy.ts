@@ -35,6 +35,35 @@ export type NestedProxyBuilder = (
  *    subtree, wraps the base value via the registered nested builder.
  * 3. Otherwise falls through to the underlying target's own property.
  */
+// Warn once per call-site about reads through a proxy whose rc has been
+// finalized. The pre-mounted Set is keyed by the call-site's frame
+// fingerprint so a single offender doesn't spam the console.
+const warnedSites = new Set<string>();
+declare const process: { env?: { NODE_ENV?: string } } | undefined;
+function warnEscapedRead(propertyKey: string): void {
+  if (typeof process !== "undefined" && process?.env?.NODE_ENV === "production")
+    return;
+  // Two frames up from inside the warn helper lands at the proxy get; one
+  // more skips that and points at the consumer's actual read site.
+  const stack = new Error().stack ?? "";
+  const callerLine = stack.split("\n").slice(3, 4).join("") || "(unknown)";
+  const key = `${propertyKey}@${callerLine}`;
+  if (warnedSites.has(key)) return;
+  warnedSites.add(key);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[@rxc/forms-core] Scripted-override proxy read for ".${propertyKey}" ` +
+      `happened after its owning rc was finalized. The read returned the ` +
+      `current value but did NOT register a subscription — when the ` +
+      `script's override lands, no component will re-render. The proxy ` +
+      `was likely passed as a prop and read inside a child component ` +
+      `whose own controls() reconcile had not yet seen the property. ` +
+      `Wrap the consuming component in controls() and read through its own ` +
+      `rc (e.g. node.getState(rc).definition.X) instead of the passed-in prop.\n` +
+      `Site: ${callerLine.trim()}`,
+  );
+}
+
 export function createOverrideProxy<A extends object, B extends object>(
   target: A,
   overridesControl: Control<B>,
@@ -68,6 +97,7 @@ export function createOverrideProxy<A extends object, B extends object>(
           return childBase;
         }
         if (Object.hasOwn(overrideFields, p)) {
+          if (rc.isFinalized) warnEscapedRead(p);
           const nv = rc.getValue(overrideFields[p]);
           if (nv !== NoOverride) return nv;
         }

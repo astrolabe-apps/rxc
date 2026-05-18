@@ -140,6 +140,17 @@ export interface ReadContext {
    * will incorrectly route their property access through lazy child controls.
    */
   getValueRx<V>(control: Control<V>): V;
+
+  /**
+   * `true` if this rc is past its render window (the wrapping
+   * `controls()` component has reconciled). Reads still return current
+   * values but no longer register tracked dependencies — late reads
+   * cannot establish live subscriptions and silently fail to trigger
+   * re-renders. Code paths that legitimately use a captured rc outside
+   * its owning render should check this and either route through their
+   * own rc or accept the read as a one-shot snapshot.
+   */
+  readonly isFinalized: boolean;
 }
 
 // ── WriteContext ──────────────────────────────────────────────────────

@@ -81,7 +81,7 @@ export { ButtonAction } from "./renderers/action/Button";
 
 export { TextDisplayRenderer } from "./renderers/display/Text";
 export { HtmlDisplayRenderer } from "./renderers/display/Html";
-export { IconDisplayRenderer, iconClassFor } from "./renderers/display/Icon";
+export { IconDisplayRenderer } from "./renderers/display/Icon";
 export { CustomDisplayRenderer } from "./renderers/display/Custom";
 
 // ── HTML adornments ──────────────────────────────────────────────────

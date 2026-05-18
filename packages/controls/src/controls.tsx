@@ -112,6 +112,13 @@ export function controls<P extends object>(
     // Reconcile subscriptions (during render, not in effect)
     reconciler.reconcile(rc.tracked);
 
+    // Close the rc's render window. Any further reads through this rc
+    // (in JSX descendants reading via escaped proxies, event handlers,
+    // etc.) return current values but no longer register tracked
+    // dependencies — preventing silently-lost subscriptions when a
+    // proxy is read past its owning component's render.
+    rc.finalize();
+
     // Effect: manage alive/dead lifecycle
     useEffect(() => {
       controlContext.reviveTracker(reconciler);

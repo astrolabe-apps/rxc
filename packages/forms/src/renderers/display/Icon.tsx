@@ -1,7 +1,9 @@
 "use client";
 
+import { controls } from "@rxc/controls";
 import {
   IconLibrary,
+  isDisplayControl,
   type IconDisplay,
   type IconReference,
 } from "@rxc/forms-core";
@@ -38,23 +40,29 @@ export function resolveIcon(
   return { className: iconClass ?? "" };
 }
 
-/** @deprecated Use `resolveIcon` — Material library needs text content. */
-export function iconClassFor(
-  iconClass: string | null | undefined,
-  icon: IconReference | null | undefined,
-): string {
-  return resolveIcon(iconClass, icon).className;
-}
-
-export function IconDisplayRenderer({ data }: DisplayRendererProps) {
-  const displayTheme = useHtmlTheme().display ?? {};
-  const d = data as IconDisplay;
-  const resolved = resolveIcon(d.iconClass, d.icon);
-  const finalClass = rendererClass(resolved.className, displayTheme.iconClass);
-  if (!finalClass && !resolved.text) return null;
-  return (
-    <i className={finalClass} aria-hidden>
-      {resolved.text}
-    </i>
-  );
-}
+// See `HtmlDisplayRenderer` for the rationale on `controls()` wrapping
+// and reading through `node.getState(rc)` rather than the `data` prop.
+export const IconDisplayRenderer = controls<DisplayRendererProps>(
+  "IconDisplayRenderer",
+  ({ node }, { rc }) => {
+    const displayTheme = useHtmlTheme().display ?? {};
+    const def = node.getState(rc).definition;
+    const d = isDisplayControl(def)
+      ? (def.displayData as IconDisplay)
+      : undefined;
+    const resolved = resolveIcon(d?.iconClass, d?.icon);
+    // Layer per-control `styleClass` from the definition over the
+    // icon-library-derived class (FA / Material / CssClass) and the
+    // theme's iconClass. Same convention as the data renderers.
+    const finalClass = rendererClass(
+      def.styleClass,
+      rendererClass(resolved.className, displayTheme.iconClass),
+    );
+    if (!finalClass && !resolved.text) return null;
+    return (
+      <i className={finalClass} aria-hidden>
+        {resolved.text}
+      </i>
+    );
+  },
+);

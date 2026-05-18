@@ -1,7 +1,11 @@
 "use client";
 
-import type { HtmlDisplay } from "@rxc/forms-core";
-import type { DisplayRendererProps } from "@rxc/forms-react-core";
+import { controls } from "@rxc/controls";
+import {
+  isDisplayControl,
+  type HtmlDisplay,
+} from "@rxc/forms-core";
+import { rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 const DEFAULT_CLASS = "text-sm text-zinc-700 dark:text-zinc-300";
@@ -10,14 +14,33 @@ const DEFAULT_CLASS = "text-sm text-zinc-700 dark:text-zinc-300";
  * Renders raw HTML. **Caller is responsible for sanitization** — Display
  * data flows through the renderer untouched. Use only with trusted
  * authoring sources.
+ *
+ * Wrapped in `controls()` and reads `displayData.html` from
+ * `node.getState(rc).definition` rather than the passed-in `data` prop —
+ * `data` is a scripted-proxy bound to the dispatching `<Field>`'s rc,
+ * whose reconcile has already happened by the time this renderer's body
+ * runs, so reads through it land in nobody's subscription. Reading via
+ * the renderer's own `rc` puts the dependency on this component's own
+ * tracker, so async `Display` script overrides on `displayData.html`
+ * re-render this component when they land.
  */
-export function HtmlDisplayRenderer({ data }: DisplayRendererProps) {
-  const displayTheme = useHtmlTheme().display ?? {};
-  const html = (data as HtmlDisplay).html ?? "";
-  return (
-    <div
-      className={displayTheme.htmlClass ?? DEFAULT_CLASS}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-}
+export const HtmlDisplayRenderer = controls<DisplayRendererProps>(
+  "HtmlDisplayRenderer",
+  ({ node }, { rc }) => {
+    const displayTheme = useHtmlTheme().display ?? {};
+    const def = node.getState(rc).definition;
+    const html = isDisplayControl(def)
+      ? (def.displayData as HtmlDisplay).html ?? ""
+      : "";
+    const className = rendererClass(
+      def.styleClass,
+      displayTheme.htmlClass ?? DEFAULT_CLASS,
+    );
+    return (
+      <div
+        className={className}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  },
+);

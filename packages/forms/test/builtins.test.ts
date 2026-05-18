@@ -439,8 +439,9 @@ describe("defaultRegistry — display dispatch", () => {
   ] as const)("%s → %s", (type, expectedName) => {
     const data: DisplayData = { type };
     const m = pickDisplayRenderer(reg.display, data);
-    // Display renderers are plain functions — name comes from Function.name.
-    expect((m?.component as { name?: string })?.name).toBe(expectedName);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      expectedName,
+    );
   });
 
   it("returns null for unknown display data type", () => {

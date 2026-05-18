@@ -97,6 +97,9 @@ export const noopReadContext: ReadContext = {
   getValueRx<V>(control: Control<V>): V {
     return createValueRxProxy(control, this);
   },
+  // The noop rc is permanently non-tracking; treat it as "always
+  // finalized" so subscribers know reads here are snapshots only.
+  isFinalized: true,
 };
 
 // ── TrackingReadContext ──────────────────────────────────────────────
@@ -104,8 +107,29 @@ export const noopReadContext: ReadContext = {
 export class TrackingReadContext implements ReadContext {
   tracked = new Map<ControlImpl, ControlChange>();
 
+  /**
+   * True between `reset()` and `finalize()` — the rc is in its
+   * "rendering" window and reads register tracked dependencies that
+   * subsequent `reconcile()` will turn into live subscriptions.
+   *
+   * After `finalize()` (called by the React wrapper right after it
+   * reconciles), the rc remains usable for reading current values
+   * (event handlers, refs, etc. legitimately read here) but reads no
+   * longer mutate `tracked` — preventing late additions that would
+   * never reach a reconciler and silently break subscriptions.
+   *
+   * The next `reset()` flips it back to true for the next render.
+   */
+  private rendering = true;
+
+  /** Whether this rc is past its render window (post-reconcile). */
+  get isFinalized(): boolean {
+    return !this.rendering;
+  }
+
   private track(control: Control<any>, change: ControlChange): ControlImpl {
     const c = toImpl(control);
+    if (!this.rendering) return c;
     const existing = this.tracked.get(c);
     if (existing !== undefined) {
       this.tracked.set(c, existing | change);
@@ -117,6 +141,17 @@ export class TrackingReadContext implements ReadContext {
 
   reset(): void {
     this.tracked.clear();
+    this.rendering = true;
+  }
+
+  /**
+   * Close the render window. Called by the React `controls()` wrapper
+   * immediately after `reconcile()` so reads happening later (in JSX
+   * descendants, event handlers, async effects) no longer pollute
+   * `tracked`. Reads still return current values.
+   */
+  finalize(): void {
+    this.rendering = false;
   }
 
   getValue<V>(control: Control<V>): V {
