@@ -178,6 +178,64 @@ importers:
         specifier: ~5.8.0
         version: 5.8.3
 
+  ../../apps/rxc-compare:
+    dependencies:
+      '@radix-ui/react-popover':
+        specifier: ^1.1.6
+        version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
+      '@rxc/controls':
+        specifier: workspace:*
+        version: link:../../packages/controls
+      '@rxc/controls-core':
+        specifier: workspace:*
+        version: link:../../packages/controls-core
+      '@rxc/forms':
+        specifier: workspace:*
+        version: link:../../packages/forms
+      '@rxc/forms-core':
+        specifier: workspace:*
+        version: link:../../packages/forms-core
+      '@rxc/forms-react-core':
+        specifier: workspace:*
+        version: link:../../packages/forms-react-core
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      html-react-parser:
+        specifier: ^5.2.2
+        version: 5.2.17(@types/react@19.1.17)(react@19.1.7)
+      next:
+        specifier: ~16.1.0
+        version: 16.1.7(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
+      react:
+        specifier: ~19.1.0
+        version: 19.1.7
+      react-dom:
+        specifier: ~19.1.0
+        version: 19.1.7(react@19.1.7)
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ~4.1.0
+        version: 4.1.18
+      '@types/node':
+        specifier: ~22.15.0
+        version: 22.15.35
+      '@types/react':
+        specifier: ~19.1.0
+        version: 19.1.17
+      '@types/react-dom':
+        specifier: ~19.1.0
+        version: 19.1.11(@types/react@19.1.17)
+      postcss:
+        specifier: ~8.5.0
+        version: 8.5.14
+      tailwindcss:
+        specifier: ~4.1.0
+        version: 4.1.18
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+
   ../../packages/compat-controls:
     dependencies:
       '@rxc/controls':

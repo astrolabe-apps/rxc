@@ -12,8 +12,10 @@ export * from "@rxc/forms-react-core";
 
 export { Form } from "./Form";
 export { Field } from "./Field";
-export { Label } from "./Label";
-export { Error } from "./Error";
+export { Label, DefaultLabel, LabelProvider, useLabel } from "./Label";
+export type { LabelProps, LabelComponent } from "./Label";
+export { Error, DefaultError, ErrorProvider, useError } from "./Error";
+export type { ErrorProps, ErrorComponent } from "./Error";
 
 // FormStateNode helper hook (HTML wrapper that defaults registry)
 export { useFormStateNode } from "./useFormStateNode";

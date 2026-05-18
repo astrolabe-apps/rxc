@@ -65,6 +65,11 @@
       "packageName": "rxc-legacy-compare-demo",
       "projectFolder": "apps/legacy-compare",
       "shouldPublish": false
+    },
+    {
+      "packageName": "rxc-compare-demo",
+      "projectFolder": "apps/rxc-compare",
+      "shouldPublish": false
     }
   ]
 }

@@ -19,8 +19,8 @@ import {
 } from "@rxc/forms-react-core";
 import { useLayout } from "./Layout";
 import { useVisibility } from "./Visibility";
-import { Label } from "./Label";
-import { Error } from "./Error";
+import { useLabel } from "./Label";
+import { useError } from "./Error";
 import type { FieldProps } from "./types";
 
 /**
@@ -38,14 +38,25 @@ import type { FieldProps } from "./types";
 export const Field = controls<FieldProps>(
   "Field",
   (
-    { node, layout: layoutProp, visibility: visibilityProp, designMode },
+    {
+      node,
+      layout: layoutProp,
+      visibility: visibilityProp,
+      label: labelProp,
+      error: errorProp,
+      designMode,
+    },
     { rc },
   ) => {
     const state = node.getState(rc);
     const ctxLayout = useLayout();
     const ctxVisibility = useVisibility();
+    const ctxLabel = useLabel();
+    const ctxError = useError();
     const Layout = layoutProp ?? ctxLayout;
     const Visibility = visibilityProp ?? ctxVisibility;
+    const Label = labelProp ?? ctxLabel;
+    const Error = errorProp ?? ctxError;
     const registry = useRegistry();
     const id = useId();
     const errorId = `${id}-error`;

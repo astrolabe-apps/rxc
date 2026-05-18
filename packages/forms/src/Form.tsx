@@ -8,12 +8,14 @@ import {
 import { Field } from "./Field";
 import { LayoutProvider, DefaultLayout } from "./Layout";
 import { VisibilityProvider, DefaultVisibility } from "./Visibility";
+import { LabelProvider, DefaultLabel } from "./Label";
+import { ErrorProvider, DefaultError } from "./Error";
 import { defaultRegistry } from "./builtins";
 import type { FormProps } from "./types";
 
 /**
- * Root form renderer. Provides the registry, layout, visibility, and
- * options contexts to the subtree, and renders the supplied
+ * Root form renderer. Provides the registry, layout, visibility, label,
+ * error, and options contexts to the subtree, and renders the supplied
  * `FormStateNode` via `<Field>`.
  *
  * Build the FormStateNode separately (e.g. with `useFormStateNode`) and
@@ -25,6 +27,8 @@ export function Form({
   registry,
   layout,
   visibility,
+  label,
+  error,
   options,
   designMode,
 }: FormProps) {
@@ -34,7 +38,11 @@ export function Form({
       <OptionsProvider value={options ?? {}}>
         <LayoutProvider value={layout ?? DefaultLayout}>
           <VisibilityProvider value={visibility ?? DefaultVisibility}>
-            <Field node={node} />
+            <LabelProvider value={label ?? DefaultLabel}>
+              <ErrorProvider value={error ?? DefaultError}>
+                <Field node={node} />
+              </ErrorProvider>
+            </LabelProvider>
           </VisibilityProvider>
         </LayoutProvider>
       </OptionsProvider>

@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  createContext,
+  useContext,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import { controls } from "@rxc/controls";
 import type { FormStateNode } from "@rxc/forms-core";
 import { useFormOptions } from "@rxc/forms-react-core";
@@ -18,41 +24,66 @@ export interface ErrorProps {
   all?: boolean;
 }
 
-export const Error = controls<ErrorProps>("Error", ({ node, id, all }, { rc }) => {
-  const { data, touched } = node.getState(rc);
-  const theme = useHtmlTheme().error ?? {};
-  const opts = useFormOptions() as HtmlFormOptions;
-  const showAll = all ?? !!opts.showAllErrors;
-  if (!data || !touched) return null;
+export type ErrorComponent = ComponentType<ErrorProps>;
 
-  if (showAll) {
-    const errors = rc.getErrors(data);
-    const entries = Object.entries(errors);
-    if (entries.length === 0) return null;
+export const DefaultError = controls<ErrorProps>(
+  "DefaultError",
+  ({ node, id, all }, { rc }) => {
+    const { data, touched } = node.getState(rc);
+    const theme = useHtmlTheme().error ?? {};
+    const opts = useFormOptions() as HtmlFormOptions;
+    const showAll = all ?? !!opts.showAllErrors;
+    if (!data || !touched) return null;
+
+    if (showAll) {
+      const errors = rc.getErrors(data);
+      const entries = Object.entries(errors);
+      if (entries.length === 0) return null;
+      return (
+        <ul
+          role="alert"
+          id={id}
+          className={theme.className ?? "text-xs text-red-500"}
+        >
+          {entries.map(([key, message]) => (
+            <li key={key} className={theme.itemClass}>
+              {message}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    const message = rc.getError(data);
+    if (!message) return null;
     return (
-      <ul
+      <span
         role="alert"
         id={id}
         className={theme.className ?? "text-xs text-red-500"}
       >
-        {entries.map(([key, message]) => (
-          <li key={key} className={theme.itemClass}>
-            {message}
-          </li>
-        ))}
-      </ul>
+        {message}
+      </span>
     );
-  }
+  },
+);
 
-  const message = rc.getError(data);
-  if (!message) return null;
-  return (
-    <span
-      role="alert"
-      id={id}
-      className={theme.className ?? "text-xs text-red-500"}
-    >
-      {message}
-    </span>
-  );
-});
+/** @deprecated Prefer `DefaultError` for the built-in implementation, or
+ *  `useError()` to honor any `<ErrorProvider>` override in scope. */
+export const Error = DefaultError;
+
+const ErrorCtx = createContext<ErrorComponent>(DefaultError);
+
+export function ErrorProvider({
+  value,
+  children,
+}: {
+  value: ErrorComponent;
+  children: ReactNode;
+}) {
+  return <ErrorCtx.Provider value={value}>{children}</ErrorCtx.Provider>;
+}
+
+export function useError(): ErrorComponent {
+  return useContext(ErrorCtx);
+}
