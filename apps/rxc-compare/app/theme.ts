@@ -13,6 +13,7 @@ export const fireTheme: HtmlFormTheme = {
     className: "py-4",
     textClass: "",
     requiredClass: "text-red-500",
+    groupClassName: "text-2xl",
   },
   data: {
     inputClass: "form-control",
@@ -33,6 +34,11 @@ export const fireTheme: HtmlFormTheme = {
     htmlClass: "html",
   },
   group: {
+    // Legacy groups have no border / padding / rounded chrome — children
+    // just stack. Keep a flex column with a moderate gap so the spacing
+    // matches the legacy rendering without inheriting rxc's default
+    // bordered card look.
+    standardClass: "flex flex-col gap-3",
     defaultFlexGap: "1em",
     grid: { defaultColumns: 1 },
   },

@@ -68,10 +68,6 @@ export const DefaultError = controls<ErrorProps>(
   },
 );
 
-/** @deprecated Prefer `DefaultError` for the built-in implementation, or
- *  `useError()` to honor any `<ErrorProvider>` override in scope. */
-export const Error = DefaultError;
-
 const ErrorCtx = createContext<ErrorComponent>(DefaultError);
 
 export function ErrorProvider({

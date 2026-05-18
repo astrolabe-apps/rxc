@@ -1,7 +1,7 @@
 // Public API for @rxc/forms (HTML platform package)
 //
 // Re-exports the headless surface from @rxc/forms-react-core, then adds
-// HTML-specific components (Field/Form/Label/Error/Layout/Visibility),
+// HTML-specific components (Field/Form/DefaultLabel/DefaultError/Layout/Visibility),
 // HTML renderers + adornments, and the HTML defaultRegistry.
 
 // ── Headless surface ─────────────────────────────────────────────────
@@ -12,9 +12,14 @@ export * from "@rxc/forms-react-core";
 
 export { Form } from "./Form";
 export { Field } from "./Field";
-export { Label, DefaultLabel, LabelProvider, useLabel } from "./Label";
+export {
+  DefaultLabel,
+  LabelProvider,
+  useLabel,
+  isGroupLabel,
+} from "./Label";
 export type { LabelProps, LabelComponent } from "./Label";
-export { Error, DefaultError, ErrorProvider, useError } from "./Error";
+export { DefaultError, ErrorProvider, useError } from "./Error";
 export type { ErrorProps, ErrorComponent } from "./Error";
 
 // FormStateNode helper hook (HTML wrapper that defaults registry)

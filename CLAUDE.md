@@ -109,6 +109,10 @@ FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
 - How form context flows to renderers (context vs props)
 - Editor-mode reactive proxies for `SchemaField`/`ControlDefinition` (how `trackedValue` adapts to explicit `ReadContext`)
 
+### No deprecations — `@rxc/*` is pre-release
+
+The `@rxc/*` packages haven't been published. Don't add `@deprecated` aliases, "legacy" re-exports, backwards-compat shims, or rename-with-pointer transitions when refactoring the public surface. Just change the name / shape and update every call site. The dedicated `@rxc/compat-controls` and `@rxc/compat-forms` packages exist for legacy `@react-typed-forms/*` consumers — that's the only place compat shims belong.
+
 ## Completed
 
 ### Phase 1–2: @rxc/controls-core + @rxc/controls
@@ -240,15 +244,15 @@ The `apps/legacy-compare` + `apps/rxc-compare` pairing exists to validate that t
 
 ### Upstream changes already driven by this work
 
-- `@rxc/forms`: `Label` is now an alias for `DefaultLabel`. Added `LabelProvider` + `useLabel()` and `<Form label={MyLabel}>` so hosts can swap the label component without rebuilding Field. Same pattern for `Error`: `DefaultError` + `ErrorProvider` + `useError()` + `<Form error={MyError}>`. `FieldProps` and `FormProps` gained matching `label?` / `error?` slots for per-Field overrides.
+- **`@rxc/forms`: swappable `Label` / `Error`.** `Label` is now an alias for `DefaultLabel`. Added `LabelProvider` + `useLabel()` and `<Form label={MyLabel}>` so hosts can swap the label component without rebuilding Field. Same pattern for `Error`: `DefaultError` + `ErrorProvider` + `useError()` + `<Form error={MyError}>`. `FieldProps` and `FormProps` gained matching `label?` / `error?` slots for per-Field overrides.
+- **`@rxc/forms`: `theme.label.groupClassName` + `isGroupLabel()` predicate.** `DefaultLabel` now layers `theme.label.groupClassName` on top of `theme.label.className` whenever the rendered control is group-shaped (`type: "Group"` definitions OR compound Data controls with `renderOptions.type === "Group"`). Mirrors the legacy `DefaultRendererOptions.label.groupLabelClass` slot. The `isGroupLabel(def)` predicate is exported so custom `<Label>` components can reuse it.
+- **`@rxc/forms-react-core`: `useFormErrors(rc, node)`.** Recursive walker returning `FormError[]` (`{ node, uniqueId, error }`) — one entry per touched descendant with a published validation error. Skips hidden subtrees (`visible === false`) so messages don't surface for fields the user can't see. Replaces hand-rolled walkers in error-summary panels.
+- **`@rxc/forms-core`: resolver factories exported.** `createSchemaTreeResolver` and `createFormTreeResolver` (plus their `SchemaTreeFactory` / `FormTreeFactory` types) are now re-exported from `nodes/index.ts`. Hosts that previously inlined a cached `Record<string, SchemaField[]> → SchemaTree` resolver can drop the boilerplate.
 
 ### Known gaps still to address
 
 Each of these is a candidate for upstream support; the compare app currently works around them locally.
 
-- **`forms-core` does not re-export `createSchemaTreeResolver` / `createFormTreeResolver`.** They exist in source (`nodes/schemaNode.ts`, `nodes/formNode.ts`) but aren't in `nodes/index.ts`. The compare app inlines a small cached resolver in `page.tsx`. Worth promoting to public API.
-- **No `groupLabelClass` slot on `HtmlLabelTheme`.** The legacy renderer applied `text-2xl` to labels for group-style controls. The compare app handles this in its custom `HtmlLabel` by checking `isGroupControl(def) || (isDataControl(def) && def.renderOptions?.type === "Group")`. A `theme.label.groupClassName` (and matching `isGroupLabel` predicate) would let stock `<DefaultLabel>` cover the case.
-- **No reusable form-walker hook for error summaries.** `AllErrors` in `apps/rxc-compare/app/components/AllErrors.tsx` recursively walks `getChildren(rc)` collecting `{ definition, error }` per node. A reusable `useFormErrors(rc, node)` (or `walkFormState(rc, node, visitor)`) in `@rxc/forms-react-core` would let any error summary / submit-blocker panel skip the manual walk.
 - **`HtmlDisplayRenderer` does not parse anchor `href` for action dispatch.** Legacy's HtmlDisplay parses `<a href="https://action/...">` to intercept clicks and dispatch via the renderer set. Fire doesn't use this, so the compare app skips it; would be a small extension via `<ActionScope>` + `useActionHandler` if/when a form needs it.
 - **HelpText popover variant.** The default `HelpTextAdornment` in `@rxc/forms` emits inline `<p>` text. The legacy ServiceTas theme uses a Radix Popover with an info-circle trigger. The compare app ships its own `PopoverHelpTextAdornment` (Radix + FontAwesome) and registers it before `defaultRegistry()` so it shadows the default. Either pattern is valid; the popover variant could ship as an opt-in alternative in `@rxc/forms` or a future `@rxc/forms-radix` companion.
 - **No "labelContainer" hook in `DefaultLayout`.** Legacy `DefaultRendererOptions.label.labelContainer` wrapped label + label-adornments in a flex row. The compare app's `HtmlLayout` re-implements this by wrapping the `label` prop in a `<div class="flex gap-4 items-baseline flex-wrap">`. A theme slot (`theme.label.containerClass` or a `labelContainer` render function) would avoid the host-side Layout rewrite.
@@ -257,7 +261,7 @@ Each of these is a candidate for upstream support; the compare app currently wor
 
 1. Try to satisfy the gap with existing `@rxc/forms` extension points (theme, providers, plugin registrations, custom renderer).
 2. If that ends up duplicating substantial work from `@rxc/forms` source, treat it as a signal that the core is missing a slot. Add the slot upstream — keep the change small, document it in `docs/MIGRATION-FROM-LEGACY.md` if it shifts the legacy→new mapping, and add a test.
-3. Strict-mode safety matters. The legacy lib isn't strict-mode-safe (see `apps/legacy-compare/next.config.mjs`: `reactStrictMode: false`). The rxc lib should be — verify by toggling strict mode on in `apps/rxc-compare` once basic parity is reached.
+3. Strict-mode safety: `apps/rxc-compare` runs with `reactStrictMode: true`. The legacy lib isn't strict-safe (`apps/legacy-compare/next.config.mjs` flips it off) but the rxc lib should remain so — preserve this baseline. SSR + first render is green; full validation requires browser-side interaction (mount/unmount transitions) once parity work resumes.
 
 ## Next steps
 

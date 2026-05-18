@@ -9,13 +9,12 @@ import {
 } from "@rxc/controls";
 import {
   createDataNode,
+  createSchemaTreeResolver,
   createStaticFormTree,
   createStaticSchemaTree,
   groupedControl,
   type FormTreeResolver,
   type SchemaField,
-  type SchemaTree,
-  type SchemaTreeResolver,
 } from "@rxc/forms-core";
 import { Form, useFormStateNode } from "@rxc/forms";
 import FireJson from "./formDefs/Fire.json";
@@ -35,25 +34,11 @@ const Fire = {
 
 const schemaMap = SchemaMap as Record<string, SchemaField[]>;
 
-function makeSchemaResolver(
-  map: Record<string, SchemaField[]>,
-): SchemaTreeResolver {
-  const cache = new Map<string, SchemaTree>();
-  const resolver: SchemaTreeResolver = {
-    getSchemaTree(name: string): SchemaTree | undefined {
-      const cached = cache.get(name);
-      if (cached) return cached;
-      const fields = map[name];
-      if (!fields) return undefined;
-      const tree = createStaticSchemaTree(fields, resolver);
-      cache.set(name, tree);
-      return tree;
-    },
-  };
-  return resolver;
-}
-
-const schemaResolver = makeSchemaResolver(schemaMap);
+const schemaResolver = createSchemaTreeResolver((name, resolver) => {
+  const fields = schemaMap[name];
+  if (!fields) return undefined;
+  return createStaticSchemaTree(fields, resolver);
+});
 
 const emptyFormResolver: FormTreeResolver = {
   getFormTree: () => undefined,

@@ -3,10 +3,13 @@
 import { cloneElement, isValidElement, type ReactNode } from "react";
 import parse from "html-react-parser";
 import { controls } from "@rxc/controls";
-import { isDataControl, isGroupControl } from "@rxc/forms-core";
+import { isDataControl } from "@rxc/forms-core";
 import { rendererClass } from "@rxc/forms-react-core";
-import type { LabelProps } from "@rxc/forms";
-import { useHtmlTheme } from "@rxc/forms";
+import {
+  isGroupLabel,
+  useHtmlTheme,
+  type LabelProps,
+} from "@rxc/forms";
 
 function looksLikeHtml(s: string): boolean {
   return s.indexOf("<") !== -1 && s.indexOf(">") !== -1;
@@ -24,32 +27,28 @@ function htmlParseStrings(n: ReactNode): ReactNode {
   return n;
 }
 
+// Same as `<DefaultLabel>` but HTML-parses any string leaves in `children`.
+// Group-shaped labels still pick up `theme.label.groupClassName` because
+// the predicate is shared with the default.
 export const HtmlLabel = controls<LabelProps>(
   "HtmlLabel",
   ({ node, htmlFor, children }, { rc }) => {
     const def = node.getState(rc).definition;
     const required = isDataControl(def) && !!def.required;
-    // Legacy `groupLabelClass: "text-2xl"` applied whenever the renderer
-    // emitted a group-style label — both `type: "Group"` definitions and
-    // compound Data controls rendered via `renderOptions.type: "Group"`.
-    const isGroupLabel =
-      isGroupControl(def) ||
-      (isDataControl(def) &&
-        (def.renderOptions as { type?: string } | undefined)?.type === "Group");
     const theme = useHtmlTheme().label ?? {};
     const labelClassName = rendererClass(
       def.labelClass,
-      theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
+      [
+        theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
+        isGroupLabel(def) ? theme.groupClassName : undefined,
+      ]
+        .filter(Boolean)
+        .join(" "),
     );
     const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const parsed = htmlParseStrings(children);
     return (
-      <label
-        htmlFor={htmlFor}
-        className={[labelClassName, isGroupLabel ? "text-2xl" : undefined]
-          .filter(Boolean)
-          .join(" ")}
-      >
+      <label htmlFor={htmlFor} className={labelClassName}>
         {textClassName ? <span className={textClassName}>{parsed}</span> : parsed}
         {required && (
           <span

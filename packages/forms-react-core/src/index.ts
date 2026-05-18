@@ -96,6 +96,8 @@ export { useFormStateNode } from "./useFormStateNode";
 // Helpers
 export { useLabelText } from "./labelText";
 export { useExpression } from "./useExpression";
+export { useFormErrors } from "./useFormErrors";
+export type { FormError } from "./useFormErrors";
 export {
   useWizardController,
   type WizardController,

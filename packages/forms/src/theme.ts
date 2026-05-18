@@ -51,6 +51,12 @@ export interface HtmlLabelTheme {
   textClass?: string;
   /** Class on the required-asterisk span. */
   requiredClass?: string;
+  /** Additional class on the <label> when the rendered control is
+   * group-shaped — true for `type: "Group"` definitions and for compound
+   * Data controls with `renderOptions.type === "Group"`. Layered on top
+   * of `className` and the control's `labelClass`. Mirrors the legacy
+   * `DefaultRendererOptions.label.groupLabelClass` slot. */
+  groupClassName?: string;
 }
 
 export interface HtmlErrorTheme {
@@ -290,9 +296,10 @@ export interface HtmlAccordionAdornmentTheme {
 export interface HtmlFormOptions extends FormOptions {
   theme?: HtmlFormTheme;
   /**
-   * When true, `<Error>` renders every error message attached to the
-   * bound data control. Default `false` shows only the first error.
-   * Per-Field overrides can still pass `<Error all>` directly.
+   * When true, `<DefaultError>` renders every error message attached to
+   * the bound data control. Default `false` shows only the first error.
+   * Per-Field overrides can still pass `all` directly to a custom error
+   * component, or to `<DefaultError all />`.
    */
   showAllErrors?: boolean;
 }
