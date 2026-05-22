@@ -19,7 +19,7 @@ export const HtmlLayout = controls<LayoutProps>(
       );
     const merged = rendererClass(
       def.layoutClass,
-      inline ? undefined : "flex flex-col gap-1",
+      inline ? undefined : "flex flex-col",
     );
     const finalClass =
       [merged, className].filter(Boolean).join(" ") || undefined;

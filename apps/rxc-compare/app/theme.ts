@@ -38,7 +38,7 @@ export const fireTheme: HtmlFormTheme = {
     // just stack. Keep a flex column with a moderate gap so the spacing
     // matches the legacy rendering without inheriting rxc's default
     // bordered card look.
-    standardClass: "flex flex-col gap-3",
+    standardClass: "flex flex-col gap-4",
     defaultFlexGap: "1em",
     grid: { defaultColumns: 1 },
   },

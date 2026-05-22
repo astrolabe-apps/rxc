@@ -55,7 +55,9 @@ function row(label: string, ...buttons: ActionControlDefinition[]) {
 // ── Pages ────────────────────────────────────────────────────────────
 
 function buttonsDef(): GroupedControlsDefinition {
-  // 1. ActionStyle variants — Button / Secondary / Link / Group.
+  // 1. ActionStyle variants — Button / Secondary / Link. Group is a
+  // "make-arbitrary-children-act-as-a-button" style and not exercised
+  // here since ActionRendererProps doesn't yet expose caller children.
   const variants = groupedControl(
     [
       row(
@@ -67,24 +69,6 @@ function buttonsDef(): GroupedControlsDefinition {
           actionStyle: ActionStyle.Secondary,
         }),
         actionControl("Link", "noop", { actionStyle: ActionStyle.Link }),
-      ),
-      row(
-        "Group (action bar):",
-        actionControl("", "noop", {
-          actionStyle: ActionStyle.Group,
-          icon: materialIcon("save"),
-          iconPlacement: IconPlacement.ReplaceText,
-        }),
-        actionControl("", "noop", {
-          actionStyle: ActionStyle.Group,
-          icon: materialIcon("delete"),
-          iconPlacement: IconPlacement.ReplaceText,
-        }),
-        actionControl("", "noop", {
-          actionStyle: ActionStyle.Group,
-          icon: materialIcon("share"),
-          iconPlacement: IconPlacement.ReplaceText,
-        }),
       ),
     ],
     "ActionStyle variants",
@@ -206,19 +190,19 @@ function buttonsDef(): GroupedControlsDefinition {
         }),
       ),
       row(
-        "Navigation (icon-only Group):",
-        actionControl("", "noop", {
-          actionStyle: ActionStyle.Group,
+        "Navigation (icon-only secondary):",
+        actionControl("Previous", "noop", {
+          actionStyle: ActionStyle.Secondary,
           icon: fontAwesomeIcon("chevron-left"),
           iconPlacement: IconPlacement.ReplaceText,
         }),
-        actionControl("", "noop", {
-          actionStyle: ActionStyle.Group,
+        actionControl("Next", "noop", {
+          actionStyle: ActionStyle.Secondary,
           icon: fontAwesomeIcon("chevron-right"),
           iconPlacement: IconPlacement.ReplaceText,
         }),
-        actionControl("", "noop", {
-          actionStyle: ActionStyle.Group,
+        actionControl("More", "noop", {
+          actionStyle: ActionStyle.Secondary,
           icon: fontAwesomeIcon("ellipsis-vertical"),
           iconPlacement: IconPlacement.ReplaceText,
         }),

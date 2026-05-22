@@ -120,3 +120,4 @@ dist-storybook/
 # Heft temporary files
 .cache/
 .heft/
+next-env.d.ts

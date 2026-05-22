@@ -4,6 +4,7 @@ import { controls } from "@rxc/controls";
 import {
   combineRegistries,
   groupPlugin,
+  type AnyAdornmentRegistration,
   type FormRegistry,
   type GroupRendererProps,
 } from "@rxc/forms-react-core";
@@ -33,7 +34,9 @@ export function createRegistry(): FormRegistry {
       type: TopLevelGroupValue,
       component: TopLevelGroup,
     }),
-    { adornments: [PopoverHelpTextAdornment] },
+    {
+      adornments: [PopoverHelpTextAdornment as unknown as AnyAdornmentRegistration],
+    },
     defaultRegistry(),
   );
 }

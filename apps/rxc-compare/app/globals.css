@@ -91,6 +91,22 @@ label {
   margin: 0;
 }
 
+/* Tailwind preflight is disabled (see top of file), so the user-agent
+ * styles on <fieldset>/<legend> bleed through — visible groove border,
+ * ~6/10/12px padding, 2px margin-inline. The rxc renderers use these
+ * elements for semantic radio/checklist groups; legacy used a plain
+ * <div role="group">. Reset to baseline so the rendered box matches. */
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+legend {
+  padding: 0;
+}
+
 a {
   color: inherit;
   text-decoration: inherit;
