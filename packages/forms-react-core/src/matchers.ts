@@ -1,5 +1,6 @@
 import type { ReadContext } from "@rxc/controls-core";
 import {
+  getGroupRendererOptions,
   isDataControl,
   isDisplayControl,
   isGroupControl,
@@ -175,6 +176,19 @@ function groupMatch(component: GroupRenderer, meta?: GroupMeta): GroupMatch {
   return meta ? { component, ...meta } : { component };
 }
 
+/**
+ * Match by `groupOptions.type`. Accepts both shapes that can be
+ * "group-rendered":
+ *   - `type: "Group"` definitions — `def.groupOptions.type`
+ *   - compound Data controls with `renderOptions.type: "Group"` —
+ *     `def.renderOptions.groupOptions.type`
+ *
+ * Without the compound case, custom group renderers (e.g. host-defined
+ * `"TopLevelGroup"`) silently fall through to the group catch-all when
+ * a form definition wires a compound field as a group, because
+ * `CompoundDelegate` routes through `pickGroupRenderer` but the
+ * definition is still `type: "Data"`.
+ */
 export function matchGroupRenderType(
   type: string,
   component: GroupRenderer,
@@ -182,8 +196,9 @@ export function matchGroupRenderType(
 ): GroupMatcher {
   return (node, rc) => {
     const def = node.getState(rc).definition;
-    if (!isGroupControl(def)) return null;
-    if (def.groupOptions?.type !== type) return null;
+    const groupOptions = getGroupRendererOptions(def);
+    if (!groupOptions) return null;
+    if (groupOptions.type !== type) return null;
     return groupMatch(component, meta);
   };
 }
