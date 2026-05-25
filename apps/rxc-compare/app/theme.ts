@@ -54,4 +54,21 @@ export const fireTheme: HtmlFormTheme = {
     defaultFlexGap: "1em",
     grid: { defaultColumns: 1 },
   },
+  action: {
+    // Legacy renders buttons as plain block-shaped `<button>` with no
+    // inline-flex wrapper. Suppress the rxc default layout class so the
+    // emitted markup matches.
+    buttonLayoutClass: "",
+    linkLayoutClass: "",
+    // Legacy button chrome: rounded-lg / p-3 / disabled-state classes.
+    // The variantClass (primary/secondary) layers the background on top.
+    buttonClass:
+      "rounded-lg p-3 text-white disabled:opacity-75 disabled:cursor-not-allowed",
+    primaryClass: "bg-primary-500",
+    secondaryClass: "bg-secondary-500",
+    // Inline "link" actions in the legacy app are `body-bold underline
+    // !text-accent` text — no flex, no blue colour. `@` prefix replaces
+    // rxc's `text-blue-600 hover:underline disabled:opacity-40` default.
+    linkClass: "@ body-bold underline !text-accent",
+  },
 };

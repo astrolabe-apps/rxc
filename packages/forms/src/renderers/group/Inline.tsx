@@ -25,7 +25,7 @@ export const InlineGroupRenderer = controls<GroupRendererProps>(
     return (
       <span className={className}>
         {children.map((c) => (
-          <Field key={c.uniqueId} node={c} />
+          <Field key={c.uniqueId} node={c} inline />
         ))}
       </span>
     );

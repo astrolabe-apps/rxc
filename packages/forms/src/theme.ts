@@ -196,6 +196,17 @@ export interface HtmlDialogTheme {
 // ── Action renderers ─────────────────────────────────────────────────
 
 export interface HtmlActionTheme {
+  /** Layout class for non-Link / non-Group `<button>`. Defaults to
+   * `"inline-flex items-center justify-center gap-1.5"` so icon + text
+   * compose cleanly. Set to `""` to opt out entirely (e.g. when the
+   * legacy form definition supplies a block-level button shape via
+   * `buttonClass`). */
+  buttonLayoutClass?: string;
+  /** Layout class for `ActionStyle.Link` `<button>`. Defaults to
+   * `"inline-flex items-center gap-1"`. Set to `""` to render the link
+   * as a pure inline element with no flex container — required for
+   * inline-text links that need to flow as part of surrounding text. */
+  linkLayoutClass?: string;
   /** Base class always applied to the `<button>`, layered beneath the
    * variant class (primary/secondary/link/group). */
   buttonClass?: string;

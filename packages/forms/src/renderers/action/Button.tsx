@@ -61,7 +61,15 @@ export const ButtonAction = controls<ActionRendererProps>(
     // Link/Group don't carry the base button padding/rounding.
     const baseButton =
       isLink || isGroup ? null : actionTheme.buttonClass ?? DEFAULT_BUTTON;
-    const layout = isLink ? LINK_LAYOUT : isGroup ? null : BUTTON_LAYOUT;
+    // Layout is a theme-overridable hook — hosts that want plain inline
+    // markup (legacy parity) set `*LayoutClass: ""` to suppress the
+    // default inline-flex wrap. `?? DEFAULT_*` so `undefined` keeps the
+    // default; `""` opts out.
+    const layout = isLink
+      ? actionTheme.linkLayoutClass ?? LINK_LAYOUT
+      : isGroup
+        ? null
+        : actionTheme.buttonLayoutClass ?? BUTTON_LAYOUT;
     const cls = rendererClass(
       definition.styleClass,
       rendererClass(layout, rendererClass(baseButton, variantClass)),

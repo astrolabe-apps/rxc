@@ -22,13 +22,16 @@ export const TextDisplayRenderer = controls<DisplayRendererProps>(
     if (!text) return null;
     // textClass goes on the rendered element to match the legacy
     // `<div class="body">` shape; styleClass is layered on top so per-
-    // control styling still wins.
+    // control styling still wins. Both go through `rendererClass` so
+    // the `@`-prefix override convention is consumed instead of landing
+    // in the DOM as a literal class.
     const textClassName = rendererClass(
       def.textClass,
       displayTheme.textClass ?? DEFAULT_CLASS,
     );
+    const styleClassName = rendererClass(def.styleClass, undefined);
     const className =
-      [def.styleClass, textClassName].filter(Boolean).join(" ") || undefined;
+      [styleClassName, textClassName].filter(Boolean).join(" ") || undefined;
     return <span className={className}>{text}</span>;
   },
 );

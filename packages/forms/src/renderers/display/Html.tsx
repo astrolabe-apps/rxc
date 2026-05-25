@@ -40,8 +40,9 @@ export const HtmlDisplayRenderer = controls<DisplayRendererProps>(
       def.textClass,
       displayTheme.htmlClass ?? DEFAULT_CLASS,
     );
+    const styleClassName = rendererClass(def.styleClass, undefined);
     const className =
-      [def.styleClass, textClassName].filter(Boolean).join(" ") || undefined;
+      [styleClassName, textClassName].filter(Boolean).join(" ") || undefined;
     return (
       <div
         className={className}

@@ -45,6 +45,7 @@ export const Field = controls<FieldProps>(
       label: labelProp,
       error: errorProp,
       designMode,
+      inline,
     },
     { rc },
   ) => {
@@ -111,6 +112,17 @@ export const Field = controls<FieldProps>(
         def,
       );
       return null;
+    }
+
+    // Inline mode: render the renderer output directly. No Layout wrap,
+    // no label, no error slot, no adornments. Visibility still applies
+    // (hidden subtrees collapse to null) so dynamic show/hide inside an
+    // inline group works. Used by `InlineGroupRenderer` for legacy
+    // parity, where inline-group children are composed as raw inline
+    // content with no per-child wrapper.
+    if (inline) {
+      if (state.visible === false) return null;
+      return inner;
     }
 
     // Build label (suppressed when the renderer absorbs it)

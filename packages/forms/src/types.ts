@@ -34,6 +34,13 @@ export interface FieldProps {
   label?: LabelComponent;
   error?: ErrorComponent;
   designMode?: boolean;
+  /** Render the child's renderer output **without** Field's Layout
+   * wrapper, label slot, error slot, or `field`/`label`/`control`-kind
+   * adornments. Visibility still applies (hidden subtrees render as
+   * `null`). Used by `InlineGroupRenderer` so children flow as raw
+   * inline content inside the group's `<span>` — matches the legacy
+   * inline-group composition where children appear directly. */
+  inline?: boolean;
 }
 
 export interface FormProps {
