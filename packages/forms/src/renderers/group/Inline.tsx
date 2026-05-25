@@ -6,11 +6,13 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_CLASS = "inline-flex flex-wrap items-center gap-2";
-
 /**
- * Inline group: lays out children horizontally as a `<span>`. Children
- * inherit the inline placement from their containing flow.
+ * Inline group: lays out children as raw inline content inside a `<span>`.
+ * Children render with the `inline` flag (no per-child Layout wrapper) and
+ * participate in natural text flow, so prose with embedded form controls
+ * or action links wraps on word boundaries. Matches legacy
+ * `defaultTailwindTheme.inlineClass = ""` — hosts that want a flex layout
+ * should set `theme.group.inlineClass` (or per-control `styleClass`).
  */
 export const InlineGroupRenderer = controls<GroupRendererProps>(
   "InlineGroupRenderer",
@@ -20,7 +22,7 @@ export const InlineGroupRenderer = controls<GroupRendererProps>(
     const children = node.getChildren(rc);
     const className = rendererClass(
       definition.styleClass,
-      groupTheme.inlineClass ?? DEFAULT_CLASS,
+      groupTheme.inlineClass,
     );
     return (
       <span className={className}>

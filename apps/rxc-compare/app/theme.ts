@@ -10,13 +10,16 @@ import type { HtmlFormTheme } from "@rxc/forms";
 // definition.
 export const fireTheme: HtmlFormTheme = {
   label: {
-    className: "py-4",
+    // Mirror the ServiceTas portal: `formStyles.defaults` blanks
+    // `className` and `groupLabelClass`, so the only label class in
+    // production is the form-definition's `labelClass` (e.g. "title1").
+    className: "",
     textClass: "",
     requiredClass: "text-red-500",
     // Legacy renders `<span class="text-red-500"></span>` — the span exists
     // for layout/CSS, but the asterisk is intentionally suppressed.
     requiredText: "",
-    groupClassName: "text-2xl",
+    groupClassName: "",
   },
   data: {
     inputClass: "form-control",
@@ -46,11 +49,11 @@ export const fireTheme: HtmlFormTheme = {
     textClass: "",
   },
   group: {
-    // Legacy groups have no border / padding / rounded chrome — children
-    // just stack. Keep a flex column with a moderate gap so the spacing
-    // matches the legacy rendering without inheriting rxc's default
-    // bordered card look.
-    standardClass: "flex flex-col gap-4",
+    // Mirror the ServiceTas portal: `formStyles.defaults` blanks
+    // `standardClassName` so Standard groups inherit no opinionated
+    // flex/gap chrome — only the form-definition's `styleClass`
+    // (e.g. "flex flex-col gap-[24px] bg-white …") determines layout.
+    standardClass: "",
     defaultFlexGap: "1em",
     grid: { defaultColumns: 1 },
   },

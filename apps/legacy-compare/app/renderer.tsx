@@ -179,9 +179,12 @@ export const DefaultRenderOptions = deepMerge(
   {
     label: {
       requiredElement: ({ Span }) => <Span className="text-red-500"></Span>,
-      className: "py-4",
+      // Mirror the ServiceTas portal: `formStyles.defaults` blanks
+      // `className` and `groupLabelClass`, so the only label class in
+      // production is the form-definition's `labelClass` (e.g. "title1").
+      className: "",
       controlLabelTextClass: "",
-      groupLabelClass: "text-2xl",
+      groupLabelClass: "",
       labelContainer: (c) => (
         <div className="flex gap-4 items-baseline flex-wrap" children={c} />
       ),
@@ -208,6 +211,10 @@ export const DefaultRenderOptions = deepMerge(
     },
     display: { htmlClassName: "html" },
     group: {
+      // Mirror the ServiceTas portal: `formStyles.defaults` blanks
+      // `standardClassName` so Standard groups inherit no opinionated
+      // flex/gap chrome — only the form-definition's `styleClass`.
+      standardClassName: "",
       grid: { defaultColumns: 1 },
       defaultFlexGap: "1em",
     },

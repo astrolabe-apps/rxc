@@ -21,12 +21,15 @@ export function resolveIcon(
   icon: IconReference | null | undefined,
 ): ResolvedIcon {
   if (icon) {
+    if (!icon.name) return { className: "" };
     switch (icon.library) {
       case IconLibrary.FontAwesome:
         return { className: `fa fa-${icon.name}` };
       case IconLibrary.Material:
         // Google Material Symbols / Icons use ligatures — wrapper class
-        // plus the icon name as text content.
+        // plus the icon name as text content. (Diverges from legacy,
+        // which returns just `icon.name` and never rendered Material
+        // correctly — the dev `/buttons` page documents this.)
         return {
           className: "material-symbols-outlined",
           text: icon.name,
@@ -34,7 +37,11 @@ export function resolveIcon(
       case IconLibrary.CssClass:
         return { className: icon.name };
       default:
-        return { className: icon.name };
+        // FA6 family classes — `library` is the style class
+        // (`fa-regular` / `fa-solid` / `fa-brands` / …) and the icon
+        // name gets the legacy `fa-` prefix. Matches legacy
+        // `schemas-html` default branch.
+        return { className: `${icon.library} fa-${icon.name}` };
     }
   }
   return { className: iconClass ?? "" };

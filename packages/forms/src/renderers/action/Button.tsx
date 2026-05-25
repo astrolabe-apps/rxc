@@ -99,6 +99,12 @@ export const ButtonAction = controls<ActionRendererProps>(
         : restingPlacement;
 
     const resolved = activeIcon ? resolveIcon(undefined, activeIcon) : null;
+    // Form definitions sometimes carry `icon: {}` on actions that
+    // shouldn't render an icon (legacy parity — Cancel/Next button
+    // pairs where only Next has an icon). `resolveIcon` returns
+    // `{ className: "" }` for that; treat it as no-icon here so we
+    // don't emit an empty `<i>`.
+    const hasResolvedIcon = !!(resolved && (resolved.className || resolved.text));
     const iconCls = rendererClass(
       resolved?.className,
       placement === IconPlacement.AfterText
@@ -107,9 +113,9 @@ export const ButtonAction = controls<ActionRendererProps>(
           ? actionTheme.iconBeforeClass
           : undefined,
     );
-    const iconNode: ReactNode = resolved ? (
+    const iconNode: ReactNode = hasResolvedIcon ? (
       <i className={iconCls} aria-hidden>
-        {resolved.text}
+        {resolved!.text}
       </i>
     ) : null;
 
