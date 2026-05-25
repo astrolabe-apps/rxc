@@ -6,16 +6,13 @@ import {
   type FormStateNode,
   type RadioButtonRenderOptions,
 } from "@rxc/forms-core";
-import { useLabelText } from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 const DEFAULT_FIELDSET = "flex flex-col gap-1";
-const DEFAULT_LEGEND = "text-xs font-medium text-zinc-600 dark:text-zinc-400";
-const DEFAULT_ENTRY =
-  "inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300";
+const DEFAULT_ENTRY = "inline-flex items-center gap-2";
 
 function valueToString(value: unknown): string {
   if (value == null) return "";
@@ -36,8 +33,11 @@ function stringToValue(raw: string, fieldType: string | undefined): unknown {
 }
 
 /**
- * Radio group. Registered with `hidesLabel: true` — the `<legend>` is the
- * accessible label, no separate Field-emitted label.
+ * Radio group. Field emits the external label (via the standard `<Label>`
+ * dispatch + label-kind adornments); the renderer uses `aria-labelledby`
+ * to wire it as the fieldset's accessible name. No legend — keeps the
+ * markup symmetrical with every other data field and lets the host CSS
+ * style the label via the bare `<label>` element selector.
  *
  * Per-option children expansion: each option spawned by
  * `defaultResolveChildren` carries `meta.fieldOptionValue = option.value`,
@@ -52,7 +52,6 @@ export const RadioRenderer = controls<DataRendererProps>(
     const { data, field, fieldOptions, disabled, readonly, definition } =
       node.getState(rc);
     const radioTheme = useHtmlTheme().data?.radio ?? {};
-    const labelText = useLabelText(node, rc);
     if (!data) return null;
     const value = rc.getValue(data);
     const stored = valueToString(value);
@@ -83,13 +82,9 @@ export const RadioRenderer = controls<DataRendererProps>(
         id={id}
         disabled={disabled}
         className={fieldsetClass}
+        aria-labelledby={`${id}-label`}
         aria-describedby={`${id}-error`}
       >
-        {labelText && (
-          <legend className={radioTheme.labelClass ?? DEFAULT_LEGEND}>
-            {labelText}
-          </legend>
-        )}
         {(fieldOptions ?? []).map((o, i) => {
           const optValue = valueToString(o.value);
           const checked = stored === optValue;

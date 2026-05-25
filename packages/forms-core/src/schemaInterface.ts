@@ -93,6 +93,11 @@ export interface SchemaInterface {
  * computation accepts any `SchemaInterface` via `FormGlobalOptions`.
  */
 export class DefaultSchemaInterface implements SchemaInterface {
+  protected booleanOptions: FieldOption[] = [
+    { name: "Yes", value: true },
+    { name: "No", value: false },
+  ];
+
   isEmptyValue(field: SchemaField, value: unknown): boolean {
     if (field.collection) {
       return Array.isArray(value) ? value.length === 0 : value == null;
@@ -108,8 +113,10 @@ export class DefaultSchemaInterface implements SchemaInterface {
     }
   }
 
-  getOptions({ options }: SchemaField): FieldOption[] | null | undefined {
-    return options && options.length > 0 ? options : null;
+  getOptions(field: SchemaField): FieldOption[] | null | undefined {
+    if (field.options && field.options.length > 0) return field.options;
+    if (field.type === FieldType.Bool) return this.booleanOptions;
+    return null;
   }
 
   getNodeOptions(cursor: SchemaCursor): FieldOption[] | null | undefined {

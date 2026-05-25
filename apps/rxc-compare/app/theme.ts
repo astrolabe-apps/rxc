@@ -13,6 +13,9 @@ export const fireTheme: HtmlFormTheme = {
     className: "py-4",
     textClass: "",
     requiredClass: "text-red-500",
+    // Legacy renders `<span class="text-red-500"></span>` — the span exists
+    // for layout/CSS, but the asterisk is intentionally suppressed.
+    requiredText: "",
     groupClassName: "text-2xl",
   },
   data: {

@@ -34,14 +34,13 @@ export {
 } from "./Visibility";
 
 // Default built-ins (HTML registry)
-export { defaultRegistry } from "./builtins";
+export { defaultRegistry, matchBoolField } from "./builtins";
 
 // ── HTML data renderers ──────────────────────────────────────────────
 
 export { TextfieldRenderer } from "./renderers/data/Textfield";
 export { NumberRenderer } from "./renderers/data/Number";
 export { MultilineRenderer } from "./renderers/data/Multiline";
-export { BoolRenderer } from "./renderers/data/Bool";
 export { CheckboxRenderer } from "./renderers/data/Checkbox";
 export {
   DateRenderer,
@@ -113,7 +112,7 @@ export type {
   HtmlAdornmentTheme,
   HtmlArrayTheme,
   HtmlAutocompleteTheme,
-  HtmlBoolTheme,
+  HtmlCheckboxTheme,
   HtmlDataTheme,
   HtmlDialogTheme,
   HtmlDisplayTheme,

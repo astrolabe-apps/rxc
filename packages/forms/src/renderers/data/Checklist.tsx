@@ -5,21 +5,19 @@ import type {
   CheckListRenderOptions,
   FormStateNode,
 } from "@rxc/forms-core";
-import { useLabelText } from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 const DEFAULT_FIELDSET = "flex flex-col gap-1";
-const DEFAULT_LEGEND = "text-xs font-medium text-zinc-600 dark:text-zinc-400";
-const DEFAULT_ENTRY =
-  "inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300";
+const DEFAULT_ENTRY = "inline-flex items-center gap-2";
 
 /**
  * Multi-select via checkboxes against a collection field. Stores an
- * array of selected option values. Registered with `hidesLabel: true`
- * — `<legend>` is the label.
+ * array of selected option values. Field emits the external label (via
+ * the standard `<Label>` dispatch + label-kind adornments); the renderer
+ * uses `aria-labelledby` to wire it as the fieldset's accessible name.
  *
  * Per-option children expansion: each option spawned by
  * `defaultResolveChildren` carries `meta.fieldOptionValue = option.value`,
@@ -33,7 +31,6 @@ export const ChecklistRenderer = controls<DataRendererProps>(
     const { data, fieldOptions, disabled, readonly, definition } =
       node.getState(rc);
     const checkTheme = useHtmlTheme().data?.checkList ?? {};
-    const labelText = useLabelText(node, rc);
     if (!data) return null;
     const value = rc.getValue(data);
     const selected = Array.isArray(value) ? (value as unknown[]) : [];
@@ -70,13 +67,9 @@ export const ChecklistRenderer = controls<DataRendererProps>(
         id={id}
         disabled={disabled}
         className={fieldsetClass}
+        aria-labelledby={`${id}-label`}
         aria-describedby={`${id}-error`}
       >
-        {labelText && (
-          <legend className={checkTheme.labelClass ?? DEFAULT_LEGEND}>
-            {labelText}
-          </legend>
-        )}
         {(fieldOptions ?? []).map((o, i) => {
           const optKey = String(o.value);
           const isChecked = selected.includes(o.value);

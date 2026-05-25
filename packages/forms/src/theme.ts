@@ -49,8 +49,14 @@ export interface HtmlLabelTheme {
   /** Class on the label text wrapper (combined with the control's
    * `labelTextClass`). */
   textClass?: string;
-  /** Class on the required-asterisk span. */
+  /** Class on the required-indicator span. */
   requiredClass?: string;
+  /** Content of the required-indicator span. Defaults to `"*"`. Pass an
+   * empty string to suppress the visible asterisk (the span is still
+   * rendered with `requiredClass` so host CSS can position / decorate
+   * the indicator without renderer changes — matches the legacy
+   * `<span class="text-red-500"></span>` shape). */
+  requiredText?: ReactNode;
   /** Additional class on the <label> when the rendered control is
    * group-shaped — true for `type: "Group"` definitions and for compound
    * Data controls with `renderOptions.type === "Group"`. Layered on top
@@ -80,7 +86,7 @@ export interface HtmlDataTheme {
   displayOnlyClass?: string;
 
   multiline?: HtmlMultilineTheme;
-  bool?: HtmlBoolTheme;
+  checkbox?: HtmlCheckboxTheme;
   select?: HtmlSelectTheme;
   radio?: HtmlOptionGroupTheme;
   checkList?: HtmlOptionGroupTheme;
@@ -92,13 +98,11 @@ export interface HtmlMultilineTheme {
   className?: string;
 }
 
-export interface HtmlBoolTheme {
+export interface HtmlCheckboxTheme {
   /** Wrapper around the checkbox + its inline label. */
   className?: string;
   /** The <input type="checkbox"> itself. */
   inputClass?: string;
-  /** The inline label text. */
-  labelClass?: string;
 }
 
 export interface HtmlSelectTheme {

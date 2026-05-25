@@ -117,23 +117,18 @@ export const Field = controls<FieldProps>(
     const labelText = hidesLabel ? null : useLabelText(node, rc);
     const labelEl =
       labelText != null ? (
-        <Label node={node} htmlFor={id}>
+        <Label node={node} htmlFor={id} id={`${id}-label`}>
           {labelText}
         </Label>
       ) : null;
 
-    // Compose adornments by kind
+    // Compose adornments by kind. Label-kind adornments are composed
+    // inside the Label component itself — `labelEl` is already
+    // adorned (or null when the renderer is `hidesLabel`).
     const adornmentList = state.definition.adornments ?? [];
     const adornmentMap = useMemo(
       () => indexAdornments(registry.adornments),
       [registry.adornments],
-    );
-    const decoratedLabel = wrapAdornments(
-      adornmentList,
-      adornmentMap,
-      "label",
-      labelEl,
-      node,
     );
     const decoratedInner = wrapAdornments(
       adornmentList,
@@ -146,7 +141,7 @@ export const Field = controls<FieldProps>(
     const layoutEl = (
       <Layout
         node={node}
-        label={decoratedLabel}
+        label={labelEl}
         error={<Error node={node} id={errorId} />}
       >
         {decoratedInner}

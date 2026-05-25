@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useMemo,
   type ComponentType,
   type ReactNode,
 } from "react";
@@ -12,12 +13,28 @@ import {
   isGroupControl,
   type FormStateNode,
 } from "@rxc/forms-core";
-import { rendererClass } from "@rxc/forms-react-core";
+import {
+  indexAdornments,
+  rendererClass,
+  useRegistry,
+  wrapAdornments,
+} from "@rxc/forms-react-core";
 import { useHtmlTheme } from "./useHtmlTheme";
+
+export type LabelTag = "label" | "legend" | "span" | "div";
 
 export interface LabelProps {
   node: FormStateNode;
-  htmlFor: string;
+  /** Target input id when rendering as `<label>`. Ignored for tags that
+   * don't accept `for` (e.g. `<legend>`). */
+  htmlFor?: string;
+  /** Element to render. Defaults to `"label"`. Radio / Checklist renderers
+   * pass `"legend"` so the title sits inside their `<fieldset>` but still
+   * picks up the same Label component, theme, and host overrides. */
+  as?: LabelTag;
+  /** DOM id for the rendered element. Field passes `${fieldId}-label` so
+   * fieldset-using renderers can wire `aria-labelledby` at it. */
+  id?: string;
   children: ReactNode;
 }
 
@@ -49,7 +66,7 @@ export function isGroupLabel(def: {
 
 export const DefaultLabel = controls<LabelProps>(
   "DefaultLabel",
-  ({ node, htmlFor, children }, { rc }) => {
+  ({ node, htmlFor, as: tag, id, children }, { rc }) => {
     const def = node.getState(rc).definition;
     const required = isDataControl(def) && !!def.required;
     const theme = useHtmlTheme().label ?? {};
@@ -63,8 +80,13 @@ export const DefaultLabel = controls<LabelProps>(
         .join(" "),
     );
     const textClassName = rendererClass(def.labelTextClass, theme.textClass);
-    return (
-      <label htmlFor={htmlFor} className={labelClassName}>
+    const Tag = tag ?? "label";
+    const tagProps = {
+      ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
+      ...(id ? { id } : {}),
+    };
+    const labelEl = (
+      <Tag {...tagProps} className={labelClassName}>
         {textClassName ? (
           <span className={textClassName}>{children}</span>
         ) : (
@@ -75,11 +97,24 @@ export const DefaultLabel = controls<LabelProps>(
             aria-hidden
             className={theme.requiredClass ?? "text-red-400 ml-0.5"}
           >
-            *
+            {theme.requiredText ?? "*"}
           </span>
         )}
-      </label>
+      </Tag>
     );
+    // Compose label-kind adornments here so any caller that renders
+    // a <Label> (Field by default, or renderers like Bool/Radio that
+    // want their own inline label) automatically picks up HelpText /
+    // Icon / etc. adornments. When no <Label> is rendered, no
+    // adornment fires — which is the correct behavior for
+    // `hidesLabel` renderers that intentionally omit a label slot.
+    const adornments = def.adornments ?? [];
+    const registry = useRegistry();
+    const adornmentMap = useMemo(
+      () => indexAdornments(registry.adornments),
+      [registry.adornments],
+    );
+    return wrapAdornments(adornments, adornmentMap, "label", labelEl, node);
   },
 );
 

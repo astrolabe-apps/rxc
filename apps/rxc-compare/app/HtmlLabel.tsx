@@ -1,10 +1,20 @@
 "use client";
 
-import { cloneElement, isValidElement, type ReactNode } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useMemo,
+  type ReactNode,
+} from "react";
 import parse from "html-react-parser";
 import { controls } from "@rxc/controls";
 import { isDataControl } from "@rxc/forms-core";
-import { rendererClass } from "@rxc/forms-react-core";
+import {
+  indexAdornments,
+  rendererClass,
+  useRegistry,
+  wrapAdornments,
+} from "@rxc/forms-react-core";
 import {
   isGroupLabel,
   useHtmlTheme,
@@ -32,7 +42,7 @@ function htmlParseStrings(n: ReactNode): ReactNode {
 // the predicate is shared with the default.
 export const HtmlLabel = controls<LabelProps>(
   "HtmlLabel",
-  ({ node, htmlFor, children }, { rc }) => {
+  ({ node, htmlFor, as: tag, id, children }, { rc }) => {
     const def = node.getState(rc).definition;
     const required = isDataControl(def) && !!def.required;
     const theme = useHtmlTheme().label ?? {};
@@ -47,18 +57,33 @@ export const HtmlLabel = controls<LabelProps>(
     );
     const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const parsed = htmlParseStrings(children);
-    return (
-      <label htmlFor={htmlFor} className={labelClassName}>
+    const Tag = tag ?? "label";
+    const tagProps = {
+      ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
+      ...(id ? { id } : {}),
+    };
+    const labelEl = (
+      <Tag {...tagProps} className={labelClassName}>
         {textClassName ? <span className={textClassName}>{parsed}</span> : parsed}
         {required && (
           <span
             aria-hidden
             className={theme.requiredClass ?? "text-red-400 ml-0.5"}
           >
-            *
+            {theme.requiredText ?? "*"}
           </span>
         )}
-      </label>
+      </Tag>
     );
+    // Label-kind adornments are now composed inside the Label
+    // component, mirroring the DefaultLabel contract — Field no
+    // longer wraps adornments around the label slot.
+    const adornments = def.adornments ?? [];
+    const registry = useRegistry();
+    const adornmentMap = useMemo(
+      () => indexAdornments(registry.adornments),
+      [registry.adornments],
+    );
+    return wrapAdornments(adornments, adornmentMap, "label", labelEl, node);
   },
 );

@@ -103,8 +103,26 @@ fieldset {
   min-inline-size: 0;
 }
 
+/* Bootstrap 3 styles <legend> as a section header (22.5px font, full-width
+ * bottom border, 21px margin-bottom). The rxc Radio/Checklist renderers
+ * use <legend> as the accessible label for the group; neutralize back to
+ * a plain inline label so it matches the legacy external-label rendering.
+ *
+ * `!important` is required: Next.js 16 / Turbopack injects this CSS chunk
+ * BEFORE the `<link>` tags rendered in `app/layout.tsx`, so bootstrap.min.css
+ * loads after globals.css in cascade order. Without `!important`, the
+ * legacy `legend { font-size:22.5px; border-bottom:... }` rule wins. */
 legend {
-  padding: 0;
+  display: inline-block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 0 0 5px !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: bold !important;
+  line-height: inherit !important;
+  color: inherit !important;
+  border: 0 !important;
 }
 
 a {

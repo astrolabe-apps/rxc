@@ -75,7 +75,7 @@ function groupDef(renderType: string): GroupedControlsDefinition {
 describe("defaultRegistry — data dispatch", () => {
   const reg = defaultRegistry();
 
-  it("Bool field with no renderType picks BoolRenderer with hidesLabel", () => {
+  it("Bool field with no renderType picks CheckboxRenderer with hidesLabel", () => {
     const node = fakeNode({
       definition: dataDef(),
       field: { type: FieldType.Bool, field: "active" },
@@ -83,11 +83,11 @@ describe("defaultRegistry — data dispatch", () => {
     const m = pickDataRenderer(reg.data, node, rc);
     expect(m?.hidesLabel).toBe(true);
     expect((m?.component as { displayName?: string })?.displayName).toBe(
-      "BoolRenderer",
+      "CheckboxRenderer",
     );
   });
 
-  it("Bool field WITH options does not pick BoolRenderer", () => {
+  it("Bool field WITH options does not pick CheckboxRenderer", () => {
     const node = fakeNode({
       definition: dataDef(),
       field: { type: FieldType.Bool, field: "active" },
@@ -98,7 +98,7 @@ describe("defaultRegistry — data dispatch", () => {
     });
     const m = pickDataRenderer(reg.data, node, rc);
     expect((m?.component as { displayName?: string })?.displayName).not.toBe(
-      "BoolRenderer",
+      "CheckboxRenderer",
     );
   });
 
@@ -129,7 +129,7 @@ describe("defaultRegistry — data dispatch", () => {
     );
   });
 
-  it("Radio renderType picks RadioRenderer with hidesLabel", () => {
+  it("Radio renderType picks RadioRenderer (Field emits external label, fieldset uses aria-labelledby)", () => {
     const node = fakeNode({
       definition: dataDef({ renderOptions: { type: DataRenderType.Radio } }),
       field: { type: FieldType.String, field: "size" },
@@ -139,10 +139,10 @@ describe("defaultRegistry — data dispatch", () => {
     expect((m?.component as { displayName?: string })?.displayName).toBe(
       "RadioRenderer",
     );
-    expect(m?.hidesLabel).toBe(true);
+    expect(m?.hidesLabel).toBeFalsy();
   });
 
-  it("CheckList renderType picks ChecklistRenderer with hidesLabel", () => {
+  it("CheckList renderType picks ChecklistRenderer (Field emits external label, fieldset uses aria-labelledby)", () => {
     const node = fakeNode({
       definition: dataDef({ renderOptions: { type: DataRenderType.CheckList } }),
       field: { type: FieldType.String, field: "tags", collection: true },
@@ -152,7 +152,7 @@ describe("defaultRegistry — data dispatch", () => {
     expect((m?.component as { displayName?: string })?.displayName).toBe(
       "ChecklistRenderer",
     );
-    expect(m?.hidesLabel).toBe(true);
+    expect(m?.hidesLabel).toBeFalsy();
   });
 
   it("Checkbox renderType picks CheckboxRenderer with hidesLabel", () => {
@@ -161,8 +161,10 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.Bool, field: "active" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    // CheckboxRenderer is BoolRenderer re-exported, so its name persists.
     expect(m?.hidesLabel).toBe(true);
+    expect((m?.component as { displayName?: string })?.displayName).toBe(
+      "CheckboxRenderer",
+    );
   });
 
   it("Textfield + multiline picks MultilineRenderer", () => {

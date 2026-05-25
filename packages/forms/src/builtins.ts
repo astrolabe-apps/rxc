@@ -21,6 +21,7 @@ import {
   matchRenderType,
   matchSchemaType,
   type DataMatcher,
+  type DataRenderer,
   type FormRegistry,
 } from "@rxc/forms-react-core";
 
@@ -29,7 +30,6 @@ import { TextfieldRenderer } from "./renderers/data/Textfield";
 import { NumberRenderer } from "./renderers/data/Number";
 import { CompoundDelegate } from "./renderers/data/Compound";
 import { MultilineRenderer } from "./renderers/data/Multiline";
-import { BoolRenderer } from "./renderers/data/Bool";
 import { CheckboxRenderer } from "./renderers/data/Checkbox";
 import { DateRenderer, DateTimeRenderer, TimeRenderer } from "./renderers/data/Date";
 import { SelectRenderer } from "./renderers/data/Select";
@@ -71,8 +71,24 @@ import { OptionalAdornment } from "./adornments/Optional";
 import { SetFieldAdornment } from "./adornments/SetField";
 import { AccordionAdornment } from "./adornments/Accordion";
 
-/** Match a Bool field with no explicit renderType and no options → checkbox. */
-function matchBoolDefault(component: typeof BoolRenderer): DataMatcher {
+/**
+ * Match a Bool field with no explicit `renderOptions.type` and no
+ * options array — the "default for a boolean" slot. Exported so hosts
+ * can swap `CheckboxRenderer` for their own component without having
+ * to recreate the predicate:
+ *
+ * ```ts
+ * combineRegistries(
+ *   { data: [matchBoolField(MyToggleRenderer)] },
+ *   defaultRegistry(),
+ * );
+ * ```
+ *
+ * Always registers with `hidesLabel: true` — replacement renderers are
+ * expected to render their own inline label (typically via `<Label>`
+ * for adornment composition).
+ */
+export function matchBoolField(component: DataRenderer): DataMatcher {
   return (node: FormStateNode, rc: ReadContext) => {
     const state = node.getState(rc);
     if (state.field?.type !== FieldType.Bool) return null;
@@ -150,16 +166,14 @@ export function defaultRegistry(): FormRegistry {
       matchArrayElementChild(ArrayElementRenderer),
       matchCompoundField(CompoundDelegate),
       matchDisplayOnly(DisplayOnlyRenderer),
-      matchBoolDefault(BoolRenderer),
+      matchBoolField(CheckboxRenderer),
       // Explicit renderTypes win over the defaults below so that e.g. a
       // CheckList collection routes to ChecklistRenderer, not ArrayRenderer.
-      matchRenderType(DataRenderType.Radio, RadioRenderer, { hidesLabel: true }),
+      matchRenderType(DataRenderType.Radio, RadioRenderer),
       matchRenderType(DataRenderType.Checkbox, CheckboxRenderer, {
         hidesLabel: true,
       }),
-      matchRenderType(DataRenderType.CheckList, ChecklistRenderer, {
-        hidesLabel: true,
-      }),
+      matchRenderType(DataRenderType.CheckList, ChecklistRenderer),
       matchRenderType(DataRenderType.Dropdown, SelectRenderer),
       matchRenderType(DataRenderType.Autocomplete, AutocompleteRenderer),
       matchRenderType(DataRenderType.DisplayOnly, DisplayOnlyRenderer),

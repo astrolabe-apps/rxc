@@ -26,13 +26,13 @@ const DEFAULT_WRAPPER =
  * removes the value from the array.
  *
  * Registered with `hidesLabel: true` — the renderer absorbs the label
- * inline like {@link BoolRenderer}.
+ * inline like {@link CheckboxRenderer}.
  */
 export const ElementSelectedRenderer = controls<DataRendererProps>(
   "ElementSelectedRenderer",
   ({ node, id }, { rc, update }) => {
     const { data, disabled, readonly, definition } = node.getState(rc);
-    const boolTheme = useHtmlTheme().data?.bool ?? {};
+    const checkboxTheme = useHtmlTheme().data?.checkbox ?? {};
     const labelText = useLabelText(node, rc);
 
     const elementExpression = isDataControl(definition)
@@ -53,7 +53,7 @@ export const ElementSelectedRenderer = controls<DataRendererProps>(
     const checked = Array.isArray(arr) ? arr.includes(elementValue) : false;
     const wrapperClass = rendererClass(
       definition.styleClass,
-      boolTheme.className ?? DEFAULT_WRAPPER,
+      checkboxTheme.className ?? DEFAULT_WRAPPER,
     );
     return (
       <label className={wrapperClass}>
@@ -64,7 +64,7 @@ export const ElementSelectedRenderer = controls<DataRendererProps>(
           disabled={disabled || elementValue === undefined}
           readOnly={readonly}
           aria-describedby={`${id}-error`}
-          className={boolTheme.inputClass}
+          className={checkboxTheme.inputClass}
           onChange={(e) => {
             const next = e.target.checked;
             update((wc) => {
@@ -83,9 +83,7 @@ export const ElementSelectedRenderer = controls<DataRendererProps>(
           }}
           onBlur={() => update((wc) => wc.setTouched(data, true, true))}
         />
-        {labelText && (
-          <span className={boolTheme.labelClass}>{labelText}</span>
-        )}
+        {labelText && <span>{labelText}</span>}
       </label>
     );
   },
