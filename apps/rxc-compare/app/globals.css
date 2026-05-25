@@ -175,11 +175,11 @@ h3 {
 }
 
 input[type="radio"] {
-  @apply border-primary-600 appearance-none w-[20px] h-[20px] border-2 checked:border-[7px] rounded-3xl;
+  @apply border-primary-600 border-2 rounded-3xl w-[20px] h-[20px] checked:border-[7px];
 }
 
 input[type="checkbox"] {
-  @apply border-2 border-primary-500 rounded-[0.15em] grid place-content-center;
+  @apply border-primary-500 border-2 rounded-[0.15em]! grid place-content-center;
 }
 
 .large-title { @apply font-extrabold text-[34px] leading-[41px] tracking-[0.4px] text-text; }
