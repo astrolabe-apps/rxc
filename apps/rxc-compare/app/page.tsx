@@ -1,6 +1,6 @@
 "use client";
 
-import { JSX, useMemo, useRef } from "react";
+import { JSX, useRef, useState } from "react";
 import type { Control } from "@rxc/controls";
 import {
   ControlContextProvider,
@@ -17,20 +17,13 @@ import {
   type SchemaField,
 } from "@rxc/forms-core";
 import { Form, useFormStateNode } from "@rxc/forms";
-import FireJson from "./formDefs/Fire.json";
-import { FireRegistrationEditForm, SchemaMap } from "./schemas";
+import { SchemaMap } from "./schemas";
 import { createRegistry } from "./registry";
 import { HtmlLayout } from "./HtmlLayout";
 import { HtmlLabel } from "./HtmlLabel";
 import { HtmlError } from "./HtmlError";
 import { fireTheme } from "./theme";
-
-const Fire = {
-  name: "Fire",
-  schemaName: "FireRegistrationEdit",
-  controls: FireJson.controls,
-  formFields: FireJson.fields as SchemaField[],
-};
+import { FormDefinitions, type FormDefinitionEntry } from "./formDefs";
 
 const schemaMap = SchemaMap as Record<string, SchemaField[]>;
 
@@ -48,47 +41,76 @@ const registry = createRegistry();
 
 const controlContext = createControlContext();
 
-const PageInner = controls(function PageInner({}, { controlContext: cc }) {
-  const stateRef = useRef<{
-    rootControl: Control<Partial<FireRegistrationEditForm>>;
-    formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
-    dataRoot: ReturnType<typeof createDataNode>;
-  } | null>(null);
+interface FormHostProps {
+  def: FormDefinitionEntry;
+}
 
-  if (!stateRef.current) {
-    const rootControl = cc.newControl<Partial<FireRegistrationEditForm>>({});
-    const rootTree =
-      schemaResolver.getSchemaTree(Fire.schemaName) ??
-      createStaticSchemaTree(Fire.formFields, schemaResolver);
-    const formTree = createStaticFormTree(
-      [groupedControl(Fire.controls as any, Fire.name)],
-      emptyFormResolver,
+const FormHost = controls<FormHostProps>(
+  "FormHost",
+  ({ def }, { controlContext: cc }) => {
+    const stateRef = useRef<{
+      rootControl: Control<Record<string, unknown>>;
+      formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
+      dataRoot: ReturnType<typeof createDataNode>;
+    } | null>(null);
+
+    if (!stateRef.current) {
+      const rootControl = cc.newControl<Record<string, unknown>>({});
+      const rootTree =
+        schemaResolver.getSchemaTree(def.schemaName) ??
+        createStaticSchemaTree(def.formFields, schemaResolver);
+      const formTree = createStaticFormTree(
+        [groupedControl(def.controls as any, def.name)],
+        emptyFormResolver,
+      );
+      const dataRoot = createDataNode(rootTree.rootNode, rootControl);
+      stateRef.current = { rootControl, formRoot: formTree.rootNode, dataRoot };
+    }
+
+    const { formRoot, dataRoot } = stateRef.current;
+    const formNode = useFormStateNode(cc, formRoot, dataRoot, { registry });
+
+    return (
+      <Form
+        node={formNode}
+        registry={registry}
+        layout={HtmlLayout}
+        label={HtmlLabel}
+        error={HtmlError}
+        options={{ theme: fireTheme }}
+      />
     );
-    const dataRoot = createDataNode(rootTree.rootNode, rootControl);
-    stateRef.current = {
-      rootControl,
-      formRoot: formTree.rootNode,
-      dataRoot,
-    };
-  }
+  },
+);
 
-  const { formRoot, dataRoot } = stateRef.current;
-
-  const formNode = useFormStateNode(cc, formRoot, dataRoot, { registry });
+const PageInner = controls(function PageInner() {
+  const [formKey, setFormKey] = useState<string>("Fire");
+  const def = FormDefinitions[formKey];
 
   return (
     <div className="min-h-screen bg-zinc-50 p-6">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-4">{Fire.name}</h1>
+        <div className="flex items-baseline gap-4 mb-4">
+          <h1 className="text-2xl font-bold text-zinc-900">{def.name}</h1>
+          <label className="flex items-center gap-2 text-sm">
+            <span>Form:</span>
+            <select
+              className="rounded border border-zinc-300 bg-white px-2 py-1"
+              value={formKey}
+              onChange={(e) => setFormKey(e.target.value)}
+            >
+              {Object.entries(FormDefinitions).map(([k, d]) => (
+                <option key={k} value={k}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="rounded-lg bg-white p-6 shadow">
-          <Form
-            node={formNode}
-            registry={registry}
-            layout={HtmlLayout}
-            label={HtmlLabel}
-            error={HtmlError}
-            options={{ theme: fireTheme }}
-          />
+          {/* `key` forces remount when the form changes so the per-form
+              rootControl / formTree / dataRoot are rebuilt cleanly. */}
+          <FormHost key={formKey} def={def} />
         </div>
       </div>
     </div>

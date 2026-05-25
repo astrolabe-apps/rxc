@@ -32,10 +32,16 @@ export const HtmlDisplayRenderer = controls<DisplayRendererProps>(
     const html = isDisplayControl(def)
       ? (def.displayData as HtmlDisplay).html ?? ""
       : "";
-    const className = rendererClass(
-      def.styleClass,
+    // textClass goes on the rendered element to match legacy parity —
+    // the HtmlDisplay renderer's only element is the wrapper, so any
+    // text styling on the control belongs on it. styleClass layers on
+    // top for per-control wrapper styling.
+    const textClassName = rendererClass(
+      def.textClass,
       displayTheme.htmlClass ?? DEFAULT_CLASS,
     );
+    const className =
+      [def.styleClass, textClassName].filter(Boolean).join(" ") || undefined;
     return (
       <div
         className={className}

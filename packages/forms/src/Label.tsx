@@ -70,16 +70,22 @@ export const DefaultLabel = controls<LabelProps>(
     const def = node.getState(rc).definition;
     const required = isDataControl(def) && !!def.required;
     const theme = useHtmlTheme().label ?? {};
+    // Merge text-class onto the label tag itself (matches legacy
+    // `<label class="py-4 text-2xl title1">…` shape — one element, all
+    // classes). Earlier the textClass was wrapped on an inner `<span>`,
+    // which produced extra DOM and broke inheritance / specificity
+    // assumptions that hosts (e.g. Bootstrap label rules) rely on.
+    const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const labelClassName = rendererClass(
       def.labelClass,
       [
         theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
         isGroupLabel(def) ? theme.groupClassName : undefined,
+        textClassName,
       ]
         .filter(Boolean)
         .join(" "),
     );
-    const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const Tag = tag ?? "label";
     const tagProps = {
       ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
@@ -87,11 +93,7 @@ export const DefaultLabel = controls<LabelProps>(
     };
     const labelEl = (
       <Tag {...tagProps} className={labelClassName}>
-        {textClassName ? (
-          <span className={textClassName}>{children}</span>
-        ) : (
-          children
-        )}
+        {children}
         {required && (
           <span
             aria-hidden

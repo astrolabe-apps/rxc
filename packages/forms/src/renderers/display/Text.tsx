@@ -20,10 +20,15 @@ export const TextDisplayRenderer = controls<DisplayRendererProps>(
       ? (def.displayData as TextDisplay).text
       : undefined;
     if (!text) return null;
-    const className = rendererClass(
-      def.styleClass,
+    // textClass goes on the rendered element to match the legacy
+    // `<div class="body">` shape; styleClass is layered on top so per-
+    // control styling still wins.
+    const textClassName = rendererClass(
+      def.textClass,
       displayTheme.textClass ?? DEFAULT_CLASS,
     );
+    const className =
+      [def.styleClass, textClassName].filter(Boolean).join(" ") || undefined;
     return <span className={className}>{text}</span>;
   },
 );

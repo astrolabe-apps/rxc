@@ -46,16 +46,17 @@ export const HtmlLabel = controls<LabelProps>(
     const def = node.getState(rc).definition;
     const required = isDataControl(def) && !!def.required;
     const theme = useHtmlTheme().label ?? {};
+    const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const labelClassName = rendererClass(
       def.labelClass,
       [
         theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
         isGroupLabel(def) ? theme.groupClassName : undefined,
+        textClassName,
       ]
         .filter(Boolean)
         .join(" "),
     );
-    const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const parsed = htmlParseStrings(children);
     const Tag = tag ?? "label";
     const tagProps = {
@@ -64,7 +65,7 @@ export const HtmlLabel = controls<LabelProps>(
     };
     const labelEl = (
       <Tag {...tagProps} className={labelClassName}>
-        {textClassName ? <span className={textClassName}>{parsed}</span> : parsed}
+        {parsed}
         {required && (
           <span
             aria-hidden

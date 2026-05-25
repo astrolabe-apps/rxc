@@ -24,6 +24,10 @@ export const fireTheme: HtmlFormTheme = {
     radio: {
       className: "flex flex-wrap flex-col lg:flex-row gap-4",
       entryClass: "flex items-center gap-2",
+      // Legacy wraps each option in `<div class="w-fit">` so each card
+      // shrinks to content width; without it the per-option div fills
+      // the row.
+      entryWrapperClass: "w-fit",
       labelClass:
         "cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-80",
       inputClass: "peer disabled:opacity-80",
@@ -35,6 +39,11 @@ export const fireTheme: HtmlFormTheme = {
   },
   display: {
     htmlClass: "html",
+    // Legacy renders TextDisplay as `<div class="body">…` — just the
+    // form-definition's `textClass`, no opinionated zinc/text-sm
+    // fallback. Suppress the rxc default so per-control `textClass`
+    // (e.g. "body") is the only class on the element.
+    textClass: "",
   },
   group: {
     // Legacy groups have no border / padding / rounded chrome — children

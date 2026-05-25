@@ -92,6 +92,7 @@ export {
 
 // FormStateNode helper hook
 export { useFormStateNode } from "./useFormStateNode";
+export { useDeferredCleanup } from "./useDeferredCleanup";
 
 // Helpers
 export { useLabelText } from "./labelText";

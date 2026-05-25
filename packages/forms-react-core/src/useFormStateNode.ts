@@ -14,6 +14,7 @@ import {
 import { collectExtraRenderOptionFields } from "./plugins";
 import type { FormRegistry } from "./registry";
 import type { UseFormStateNodeOptions } from "./types";
+import { useDeferredCleanup } from "./useDeferredCleanup";
 
 function makeResolveChildren(registry: FormRegistry): ChildResolverFunc {
   return (node, rc) => {
@@ -130,17 +131,14 @@ export function useFormStateNode(
     };
   }
 
-  // Final cleanup on unmount — releases the live tree. Strict Mode runs
-  // this twice (mount → cleanup → re-mount); the re-mount path is
-  // handled by the `sameKey` check above, which sees a null slot and
-  // re-creates the node on the next render.
-  useEffect(() => {
-    return () => {
-      slotRef.current?.node.cleanup();
-      slotRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Final cleanup on unmount — releases the live tree. Deferred so the
+  // Strict Mode dev mount → unmount → re-mount cycle doesn't destroy
+  // in-flight async work (Jsonata evaluations etc.) kicked off by the
+  // first commit; see `useDeferredCleanup` for the rationale.
+  useDeferredCleanup(() => {
+    slotRef.current?.node.cleanup();
+    slotRef.current = null;
+  });
 
   return slotRef.current!.node;
 }
