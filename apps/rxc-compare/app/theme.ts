@@ -74,4 +74,13 @@ export const fireTheme: HtmlFormTheme = {
     // rxc's `text-blue-600 hover:underline disabled:opacity-40` default.
     linkClass: "@ body-bold underline !text-accent",
   },
+  adornment: {
+    // Match ServiceTas client-common/renderer.tsx accordion overrides.
+    // The default rxc accordion already ships FA `chevron-up`/`chevron-down`
+    // icons; only the toggler styling needs to come from the host.
+    accordion: {
+      titleClass: "cursor-pointer",
+      togglerClass: "text-accent !text-[20px]",
+    },
+  },
 };

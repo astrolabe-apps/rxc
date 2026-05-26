@@ -8,7 +8,7 @@ import {
   type IconReference,
 } from "@rxc/forms-core";
 import type { DisplayRendererProps } from "@rxc/forms-react-core";
-import { rendererClass } from "@rxc/forms-react-core";
+import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 export interface ResolvedIcon {
@@ -58,12 +58,14 @@ export const IconDisplayRenderer = controls<DisplayRendererProps>(
       ? (def.displayData as IconDisplay)
       : undefined;
     const resolved = resolveIcon(d?.iconClass, d?.icon);
-    // Layer per-control `styleClass` from the definition over the
-    // icon-library-derived class (FA / Material / CssClass) and the
-    // theme's iconClass. Same convention as the data renderers.
-    const finalClass = rendererClass(
-      def.styleClass,
-      rendererClass(resolved.className, displayTheme.iconClass),
+    // `resolved.className` carries the icon's identity (FA / Material /
+    // CssClass / FA6 family) and must always be on the element. Only
+    // `styleClass` and the theme's `iconClass` participate in the
+    // override convention — otherwise a `@ `-prefixed styleClass would
+    // drop the icon-library class along with the theme styling.
+    const finalClass = clsx(
+      resolved.className,
+      rendererClass(def.styleClass, displayTheme.iconClass),
     );
     if (!finalClass && !resolved.text) return null;
     return (

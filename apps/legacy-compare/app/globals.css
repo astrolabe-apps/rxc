@@ -121,6 +121,21 @@
   --color-lightGrey: #f5f5f5;
   --color-lightGreen: #e6f3ee;
   --color-border: #e7e7e8;
+
+  /* `danger` from ServiceTas client-common/tailwindColours.ts —
+   * tailwind v3 red scale with a custom DEFAULT (#A30000). */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+  --color-danger-950: #450a0a;
+  --color-danger: #a30000;
 }
 
 /* Utility / component classes ported from client-common/globals.css —

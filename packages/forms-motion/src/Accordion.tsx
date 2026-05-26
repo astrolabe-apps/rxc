@@ -1,50 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ControlAdornmentType,
+  IconLibrary,
   type AccordionAdornment as AccordionAdornmentDef,
+  type IconReference,
 } from "@rxc/forms-core";
 import type {
   AdornmentRegistration,
   AdornmentRenderProps,
 } from "@rxc/forms-react-core";
+import { clsx } from "@rxc/forms-react-core";
+import { resolveIcon, useHtmlTheme } from "@rxc/forms";
 
-const DEFAULT_WRAPPER = "rounded border border-zinc-200 dark:border-zinc-700";
-const DEFAULT_TITLE =
-  "cursor-pointer select-none text-sm font-semibold p-2 text-zinc-700 dark:text-zinc-300";
-const DEFAULT_CONTENT = "px-2 pb-2";
+const DEFAULT_BUTTON = "flex items-center gap-2 my-2 w-fit";
+const DEFAULT_TITLE = "cursor-pointer";
+const DEFAULT_ICON_OPEN: IconReference = {
+  library: IconLibrary.FontAwesome,
+  name: "chevron-up",
+};
+const DEFAULT_ICON_CLOSED: IconReference = {
+  library: IconLibrary.FontAwesome,
+  name: "chevron-down",
+};
 
 /**
- * Animated alternative to `@rxc/forms`'s native-`<details>` Accordion.
- * Drop into the registry to override the default.
+ * Animated alternative to `@rxc/forms`'s default Accordion. Same chrome
+ * (button + chevron + revealed content region, theme-driven), but the
+ * content reveal uses `<AnimatePresence>` for a height/opacity transition.
  */
 function MotionAccordionAdornmentRender({
   adornment,
   children,
 }: AdornmentRenderProps<AccordionAdornmentDef>) {
+  const accTheme = useHtmlTheme().adornment?.accordion ?? {};
   const [open, setOpen] = useState(adornment.defaultExpanded ?? false);
+  const panelId = useId();
+  const iconRef = open
+    ? accTheme.iconOpen ?? DEFAULT_ICON_OPEN
+    : accTheme.iconClosed ?? DEFAULT_ICON_CLOSED;
+  const resolved = resolveIcon(undefined, iconRef);
+  const iconClass = clsx(resolved.className, accTheme.togglerClass);
   return (
-    <div className={DEFAULT_WRAPPER}>
+    <div className={accTheme.wrapperClass}>
       <button
         type="button"
         aria-expanded={open}
+        aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className={DEFAULT_TITLE}
+        className={accTheme.className ?? DEFAULT_BUTTON}
       >
-        {adornment.title}
+        <span className={accTheme.titleClass ?? DEFAULT_TITLE}>
+          {adornment.title}
+        </span>
+        {iconClass || resolved.text ? (
+          <i className={iconClass} aria-hidden>
+            {resolved.text}
+          </i>
+        ) : null}
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
+            id={panelId}
+            role="region"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             style={{ overflow: "hidden" }}
           >
-            <div className={DEFAULT_CONTENT}>{children}</div>
+            <div className={accTheme.contentClass}>{children}</div>
           </motion.div>
         )}
       </AnimatePresence>

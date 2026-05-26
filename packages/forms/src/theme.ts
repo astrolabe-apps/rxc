@@ -306,9 +306,22 @@ export interface OptionalCustomRenderProps {
 }
 
 export interface HtmlAccordionAdornmentTheme {
+  /** Outer `<div>` wrapping the toggler + content region. The renderer
+   * emits a single root element so the adornment behaves as one item
+   * inside flex/grid groups; this slot styles that wrapper. */
+  wrapperClass?: string;
+  /** Toggler `<button>` class. */
   className?: string;
+  /** Class applied to the title text. */
   titleClass?: string;
+  /** Class applied to the chevron `<i>` element. */
   togglerClass?: string;
+  /** Icon shown when the accordion is open. Defaults to FA `chevron-up`. */
+  iconOpen?: IconReference;
+  /** Icon shown when the accordion is closed. Defaults to FA `chevron-down`. */
+  iconClosed?: IconReference;
+  /** Class wrapping the revealed content. */
+  contentClass?: string;
 }
 
 // ── HtmlFormOptions ──────────────────────────────────────────────────
