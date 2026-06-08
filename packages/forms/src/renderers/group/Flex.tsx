@@ -18,7 +18,7 @@ export const FlexRenderer = controls<GroupRendererProps>(
       ? (def.groupOptions as FlexRenderOptions | undefined)
       : undefined;
     const direction = (opts?.direction as "row" | "column" | undefined) ?? "row";
-    const gap = opts?.gap ?? groupTheme.defaultFlexGap ?? "0.75rem";
+    const gap = opts?.gap ?? groupTheme.defaultFlexGap;
     const className = rendererClass(def.styleClass, groupTheme.flexClass);
     return (
       <div
@@ -27,7 +27,6 @@ export const FlexRenderer = controls<GroupRendererProps>(
           display: "flex",
           flexDirection: direction,
           gap,
-          flexWrap: "wrap",
         }}
       >
         {children.map((c) => (

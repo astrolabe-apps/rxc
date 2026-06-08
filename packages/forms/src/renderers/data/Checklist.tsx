@@ -10,8 +10,6 @@ import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_FIELDSET = "flex flex-col gap-1";
-const DEFAULT_ENTRY = "inline-flex items-center gap-2";
 
 /**
  * Multi-select via checkboxes against a collection field. Stores an
@@ -46,7 +44,7 @@ export const ChecklistRenderer = controls<DataRendererProps>(
 
     const fieldsetClass = rendererClass(
       definition.styleClass,
-      checkTheme.className ?? DEFAULT_FIELDSET,
+      checkTheme.className,
     );
 
     const ro = (definition as { renderOptions?: CheckListRenderOptions })
@@ -84,7 +82,7 @@ export const ChecklistRenderer = controls<DataRendererProps>(
           const optChild = childByValue.get(o.value);
           return (
             <div key={optKey} className={clsx(entryWrapperClass, stateClass)}>
-              <div className={checkTheme.entryClass ?? DEFAULT_ENTRY}>
+              <div className={checkTheme.entryClass}>
                 <input
                   id={inputId}
                   type="checkbox"

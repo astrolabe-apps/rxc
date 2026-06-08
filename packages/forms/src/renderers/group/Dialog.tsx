@@ -11,10 +11,6 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_DIALOG =
-  "rounded-lg p-6 max-w-lg w-full bg-white dark:bg-zinc-900 dark:text-zinc-100 backdrop:bg-black/40";
-const DEFAULT_TITLE = "text-lg font-semibold mb-3";
-const DEFAULT_CONTAINER = "flex flex-col gap-3";
 
 /**
  * Trigger + modal pattern. Children whose `placement === "trigger"`
@@ -51,7 +47,7 @@ export const DialogRenderer = controls<GroupRendererProps>(
 
     const dialogClass = rendererClass(
       def.styleClass,
-      dialogTheme.className ?? DEFAULT_DIALOG,
+      dialogTheme.className,
     );
 
     return (
@@ -77,9 +73,9 @@ export const DialogRenderer = controls<GroupRendererProps>(
           className={dialogClass}
         >
           {title && (
-            <h2 className={dialogTheme.titleClass ?? DEFAULT_TITLE}>{title}</h2>
+            <h2 className={dialogTheme.titleClass}>{title}</h2>
           )}
-          <div className={dialogTheme.containerClass ?? DEFAULT_CONTAINER}>
+          <div className={dialogTheme.containerClass}>
             {content.map((c) => (
               <Field key={c.uniqueId} node={c} />
             ))}

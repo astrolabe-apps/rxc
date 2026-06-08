@@ -10,6 +10,7 @@
     "test": "echo \"no tests\""
   },
   "dependencies": {
+    "@astroapps/searchstate": "^2.0.0",
     "@radix-ui/react-popover": "^1.1.6",
     "@rxc/controls-core": "workspace:*",
     "@rxc/controls": "workspace:*",

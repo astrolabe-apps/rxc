@@ -1,0 +1,57 @@
+"use client";
+
+import { controls } from "@rxc/controls";
+import type { Control } from "@rxc/controls-core";
+import { findSortField, rotateSort } from "@astroapps/searchstate";
+import clsx from "clsx";
+
+export interface SortableHeaderProps {
+  /** The `sort` field of the bound `SearchOptions` control. */
+  sortControl: Control<string[] | null>;
+  /** The `offset` field — reset to 0 whenever the sort changes. */
+  offsetControl: Control<number>;
+  /** The sort key for this column (the column's field name by default). */
+  sortField: string;
+  /** Initial direction when rotating from unsorted (`"a"` / `"d"`). */
+  defaultSort?: string;
+}
+
+/**
+ * Sort toggle button for a DataGrid column header. Cycles
+ * unsorted → asc → desc → unsorted via `rotateSort`, and reads the
+ * current direction via `findSortField`. Ported from the legacy
+ * `@astroapps/schemas-datagrid` `SortableHeader`, re-expressed as a
+ * `controls()` component so it reacts to sort-state changes through its
+ * own `ReadContext`.
+ */
+export const SortableHeader = controls<SortableHeaderProps>(
+  "SortableHeader",
+  ({ sortControl, offsetControl, sortField, defaultSort }, { rc, update }) => {
+    const cd = findSortField(rc.getValue(sortControl), sortField);
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          update((wc) => {
+            wc.updateValue(sortControl, (cur) =>
+              rotateSort(sortField, defaultSort)(cur ?? undefined),
+            );
+            wc.setValue(offsetControl, 0);
+          })
+        }
+      >
+        <i
+          aria-hidden
+          className={clsx(
+            "ml-2 h-4 w-2",
+            !cd
+              ? "fa-light fa-sort"
+              : cd === "a"
+                ? "fa-solid fa-sort-up"
+                : "fa-solid fa-sort-down",
+          )}
+        />
+      </button>
+    );
+  },
+);

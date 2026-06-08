@@ -203,7 +203,16 @@ export class DefaultSchemaInterface implements SchemaInterface {
    * that dependency is not in scope for forms-core).
    */
   parseToMillis(_field: SchemaField, v: string): number {
-    const t = new Date(v).getTime();
+    // Match the legacy `@internationalized/date` behaviour
+    // (`parseDateTime(s).toDate("UTC")`): a naive date-time — one with a
+    // time component but no timezone designator — is interpreted as UTC,
+    // not local time. Without this, `toLocaleString()` shifts the rendered
+    // time by the local offset versus the legacy renderer.
+    let s = v;
+    const hasTime = s.includes("T");
+    const hasZone = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
+    if (hasTime && !hasZone) s = s + "Z";
+    const t = new Date(s).getTime();
     return Number.isNaN(t) ? Number.NaN : t;
   }
 

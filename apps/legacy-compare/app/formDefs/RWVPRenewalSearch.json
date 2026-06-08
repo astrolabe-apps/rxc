@@ -1,0 +1,165 @@
+{
+  "controls": [
+    {
+      "type": "Group",
+      "title": "Group",
+      "children": [
+        {
+          "type": "Data",
+          "title": "Request",
+          "field": "request",
+          "hideTitle": true,
+          "renderOptions": {
+            "type": "Group",
+            "groupOptions": {
+              "type": "Flex"
+            }
+          },
+          "children": [
+            {
+              "type": "Data",
+              "title": "From",
+              "labelClass": "mb-2",
+              "field": "from",
+              "renderOptions": {
+                "type": "Standard"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "To",
+              "labelClass": "mb-2",
+              "field": "to",
+              "renderOptions": {
+                "type": "Standard"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Search",
+              "field": "query",
+              "hideTitle": false,
+              "renderOptions": {
+                "type": "Standard"
+              }
+            }
+          ]
+        },
+        {
+          "type": "Data",
+          "field": "results/entries",
+          "renderOptions": {
+            "type": "DataGrid",
+            "noAdd": true,
+            "noRemove": true,
+            "noReorder": true,
+            "searchField": "request"
+          },
+          "title": "Results",
+          "hideTitle": true,
+          "children": [
+            {
+              "type": "Data",
+              "title": "First Name",
+              "field": "firstName",
+              "hideTitle": true,
+              "renderOptions": {
+                "type": "DisplayOnly"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Last Name",
+              "field": "lastName",
+              "hideTitle": true,
+              "renderOptions": {
+                "type": "DisplayOnly"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Application Number",
+              "field": "registrationNumber",
+              "hideTitle": true,
+              "renderOptions": {
+                "type": "DisplayOnly"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Card Expiry Date",
+              "field": "expiryDate",
+              "hideTitle": true,
+              "renderOptions": {
+                "type": "DisplayOnly"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Time of Submission",
+              "field": "submitAt",
+              "hideTitle": true,
+              "renderOptions": {
+                "type": "DisplayOnly"
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Status",
+              "field": "status",
+              "hideTitle": true,
+              "renderOptions": {
+                "type": "DisplayOnly"
+              },
+              "defaultValue": null,
+              "adornments": [
+                {
+                  "type": "ColumnOptions",
+                  "enabledFilter": true
+                }
+              ]
+            },
+            {
+              "type": "Group",
+              "title": "Actions",
+              "children": [
+                {
+                  "type": "Action",
+                  "title": "View",
+                  "actionId": "viewDetail",
+                  "dynamic": [
+                    {
+                      "type": "ActionData",
+                      "expr": {
+                        "type": "Data",
+                        "field": "id"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "groupOptions": {
+                "hideTitle": true,
+                "type": "Flex"
+              }
+            }
+          ]
+        },
+        {
+          "type": "Data",
+          "field": "request",
+          "hideTitle": true,
+          "renderOptions": {
+            "type": "Pager"
+          },
+          "title": "Pager"
+        }
+      ],
+      "groupOptions": {
+        "hideTitle": true
+      }
+    }
+  ],
+  "config": {},
+  "fields": []
+}

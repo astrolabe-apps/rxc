@@ -8,8 +8,6 @@ import {
 import { rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_CLASS = "text-sm text-zinc-700 dark:text-zinc-300";
-
 /**
  * Renders raw HTML. **Caller is responsible for sanitization** — Display
  * data flows through the renderer untouched. Use only with trusted
@@ -36,10 +34,7 @@ export const HtmlDisplayRenderer = controls<DisplayRendererProps>(
     // the HtmlDisplay renderer's only element is the wrapper, so any
     // text styling on the control belongs on it. styleClass layers on
     // top for per-control wrapper styling.
-    const textClassName = rendererClass(
-      def.textClass,
-      displayTheme.htmlClass ?? DEFAULT_CLASS,
-    );
+    const textClassName = rendererClass(def.textClass, displayTheme.htmlClass);
     const styleClassName = rendererClass(def.styleClass, undefined);
     const className =
       [styleClassName, textClassName].filter(Boolean).join(" ") || undefined;

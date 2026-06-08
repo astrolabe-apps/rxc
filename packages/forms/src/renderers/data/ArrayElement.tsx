@@ -11,14 +11,7 @@ import {
   type DataRendererProps,
 } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
-
-const DEFAULT_WRAPPER = "flex items-center gap-2 justify-between";
-const DEFAULT_SUMMARY = "flex-1 truncate text-sm";
-const DEFAULT_BTN =
-  "px-2 py-1 text-xs rounded border border-zinc-300 dark:border-zinc-600";
-const DEFAULT_DIALOG =
-  "rounded-lg p-6 max-w-lg w-full bg-white dark:bg-zinc-900 dark:text-zinc-100 backdrop:bg-black/40";
-const DEFAULT_INNER = "flex flex-col gap-3";
+import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**
  * Per-element renderer used inside an array. Shows a one-line summary
@@ -32,6 +25,7 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
   "ArrayElementRenderer",
   ({ node, id }, { rc }) => {
     const { data, definition } = node.getState(rc);
+    const aeTheme = useHtmlTheme().data?.arrayElement ?? {};
     const renderOptions = isDataControl(definition)
       ? (definition.renderOptions as ArrayElementRenderOptions | undefined)
       : undefined;
@@ -49,11 +43,11 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
       if (!open && el.open) el.close();
     }, [open, showInline]);
 
-    const className = rendererClass(definition.styleClass, DEFAULT_WRAPPER);
+    const className = rendererClass(definition.styleClass, aeTheme.className);
 
     if (showInline) {
       return (
-        <div id={id} className={DEFAULT_INNER}>
+        <div id={id} className={aeTheme.innerClass}>
           {children.map((c) => (
             <Field key={c.uniqueId} node={c} />
           ))}
@@ -65,10 +59,10 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
 
     return (
       <div id={id} className={className}>
-        <span className={DEFAULT_SUMMARY}>{summary || "(empty)"}</span>
+        <span className={aeTheme.summaryClass}>{summary || "(empty)"}</span>
         <button
           type="button"
-          className={DEFAULT_BTN}
+          className={aeTheme.buttonClass}
           onClick={() => setOpen(true)}
         >
           Edit
@@ -76,16 +70,16 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
         <dialog
           ref={dialogRef}
           onClose={() => setOpen(false)}
-          className={DEFAULT_DIALOG}
+          className={aeTheme.dialogClass}
         >
-          <div className={DEFAULT_INNER}>
+          <div className={aeTheme.innerClass}>
             {children.map((c) => (
               <Field key={c.uniqueId} node={c} />
             ))}
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className={DEFAULT_BTN}
+                className={aeTheme.buttonClass}
                 onClick={() => setOpen(false)}
               >
                 Done

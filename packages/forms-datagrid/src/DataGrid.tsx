@@ -9,6 +9,8 @@ import {
   type ChildResolverFunc,
   ControlDefinitionType,
   type DataControlDefinition,
+  dataRef,
+  type FieldOption,
   type FormStateNode,
   type GroupedControlsDefinition,
   GroupRenderType,
@@ -17,6 +19,7 @@ import {
   stringField,
 } from "@rxc/forms-core";
 import {
+  combineRegistries,
   dataPlugin,
   type DataRendererProps,
   type FormRegistry,
@@ -28,6 +31,7 @@ import {
   columnDefinitions,
   DataGrid,
 } from "@astroapps/datagrid";
+import type { SearchFilters, SearchOptions } from "@astroapps/searchstate";
 import {
   type ColumnOptions,
   type DataGridClasses,
@@ -35,6 +39,9 @@ import {
   getColumnHeaderFromOptions,
   isColumnAdornment,
 } from "./columnAdornment";
+import { FilterPopover } from "./FilterPopover";
+import { SortableHeader } from "./SortableHeader";
+import { pagerPlugin } from "./Pager";
 
 /** `renderOptions.type` discriminator for the DataGrid renderer. */
 export const DataGridRenderType = "DataGrid";
@@ -50,6 +57,14 @@ export interface DataGridOptions {
   noReorder?: boolean;
   displayOnly?: boolean;
   noEntriesText?: string;
+  /**
+   * Field reference (relative to the grid's parent data context) of a
+   * sibling `SearchOptions` control. When set, filterable/sortable columns
+   * drive its `filters`/`sort`/`offset` fields.
+   */
+  searchField?: string;
+  /** Suppress the "Clear" button in column filter popovers. */
+  disableClear?: boolean;
 }
 
 const DataGridFields = buildSchema<DataGridOptions>({
@@ -58,6 +73,8 @@ const DataGridFields = buildSchema<DataGridOptions>({
   noReorder: boolField("No reorder"),
   displayOnly: boolField("Display only"),
   noEntriesText: stringField("No entries text"),
+  searchField: stringField("Search field"),
+  disableClear: boolField("Disable clear filter"),
 });
 
 /**
@@ -122,6 +139,29 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const cellGrid = rows.map((r) => r.getChildren(rc));
     const rowCount = rows.length;
 
+    // Resolve the sibling SearchOptions control (filters/sort/offset) that
+    // filterable/sortable columns drive. Resolved relative to the grid's
+    // parent data context (legacy `dataContext.parentNode`).
+    const searchControl = renderOptions.searchField
+      ? (dataRef(node.parent.cursor(rc), renderOptions.searchField)
+          ?.control as Control<SearchOptions> | undefined)
+      : undefined;
+    const filtersControl = searchControl?.fields
+      .filters as Control<SearchFilters | null> | undefined;
+    const sortControl = searchControl?.fields.sort as
+      | Control<string[] | null>
+      | undefined;
+    const offsetControl = searchControl?.fields.offset as
+      | Control<number>
+      | undefined;
+
+    // Per-column filter/sort header config, keyed by the column id. Built
+    // alongside the column defs and consumed by `renderHeaderContent`.
+    const headerConfig: Record<
+      string,
+      { filterKey?: string; sortKey?: string; options: FieldOption[] }
+    > = {};
+
     const columns: ColumnDefInit<FormStateNode, unknown>[] = columnDefs.map(
       (cd, i) => {
         const colOptions = cd.adornments?.find(isColumnAdornment) as
@@ -132,9 +172,24 @@ function createDataGridRenderer(classes?: DataGridClasses) {
           cd,
           gridClasses,
         );
+        const id = "c" + i;
+        const colField = isDataControl(cd) ? cd.field : undefined;
+        const filterKey = colOptions?.enabledFilter
+          ? (colOptions.filterField ?? colField ?? undefined)
+          : undefined;
+        const sortKey = colOptions?.enabledSort
+          ? (colOptions.sortField ?? colField ?? undefined)
+          : undefined;
+        if (filterKey || sortKey) {
+          // Resolve the column's option values from a populated cell's
+          // already-resolved fieldOptions (reactive). Empty when no rows.
+          const cell = cellGrid.find((r) => r[i])?.[i];
+          const options = cell ? (cell.getState(rc).fieldOptions ?? []) : [];
+          headerConfig[id] = { filterKey, sortKey, options };
+        }
         return {
           ...headerOptions,
-          id: "c" + i,
+          id,
           title: headerOptions.title ?? cd.title ?? "Column " + i,
           render: (_row: FormStateNode, rowIndex: number) => {
             if (colOptions?.rowIndex) return rowIndex + 1;
@@ -165,9 +220,35 @@ function createDataGridRenderer(classes?: DataGridClasses) {
         cellClass=""
         headerCellClass=""
         bodyCellClass=""
-        renderHeaderContent={(col) => (
-          <div className={gridClasses.titleContainerClass}>{col.title}</div>
-        )}
+        renderHeaderContent={(col) => {
+          const cfg = headerConfig[col.id];
+          const filterEl =
+            cfg?.filterKey && filtersControl && offsetControl ? (
+              <FilterPopover
+                filtersControl={filtersControl}
+                offsetControl={offsetControl}
+                colKey={cfg.filterKey}
+                options={cfg.options}
+                popoverClass={gridClasses.popoverClass}
+                clearText={gridClasses.clearFilterText}
+                clearClass={gridClasses.clearFilterClass}
+                disableClear={renderOptions.disableClear}
+              />
+            ) : null;
+          const sortEl =
+            cfg?.sortKey && sortControl && offsetControl ? (
+              <SortableHeader
+                sortControl={sortControl}
+                offsetControl={offsetControl}
+                sortField={cfg.sortKey}
+              />
+            ) : null;
+          return (
+            <div className={gridClasses.titleContainerClass}>
+              {col.title} {filterEl} {sortEl}
+            </div>
+          );
+        }}
         renderExtraRows={() =>
           rowCount === 0 ? (
             <div
@@ -186,7 +267,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
 }
 
 /**
- * Registry fragment adding the display-only DataGrid renderer. Combine
+ * Registry fragment adding the DataGrid + Pager renderers. Combine
  * before `defaultRegistry()` so the `DataGrid` render type beats the
  * default collection (Array) matcher.
  *
@@ -197,10 +278,13 @@ function createDataGridRenderer(classes?: DataGridClasses) {
 export function dataGridRegistry(
   classes?: DataGridClasses,
 ): Partial<FormRegistry> {
-  return dataPlugin({
-    type: DataGridRenderType,
-    component: createDataGridRenderer(classes),
-    resolveChildren: dataGridResolveChildren,
-    schema: DataGridFields,
-  });
+  return combineRegistries(
+    dataPlugin({
+      type: DataGridRenderType,
+      component: createDataGridRenderer(classes),
+      resolveChildren: dataGridResolveChildren,
+      schema: DataGridFields,
+    }),
+    pagerPlugin(),
+  );
 }

@@ -85,6 +85,9 @@ export interface HtmlDataTheme {
   /** Class for the <DisplayOnlyRenderer> output. */
   displayOnlyClass?: string;
 
+  /** Class for the <ElementSelectedRenderer> wrapper. */
+  elementSelectedClass?: string;
+
   multiline?: HtmlMultilineTheme;
   checkbox?: HtmlCheckboxTheme;
   select?: HtmlSelectTheme;
@@ -92,6 +95,21 @@ export interface HtmlDataTheme {
   checkList?: HtmlOptionGroupTheme;
   autocomplete?: HtmlAutocompleteTheme;
   array?: HtmlArrayTheme;
+  arrayElement?: HtmlArrayElementTheme;
+  scrollList?: HtmlScrollListTheme;
+}
+
+export interface HtmlArrayElementTheme {
+  className?: string;
+  summaryClass?: string;
+  buttonClass?: string;
+  dialogClass?: string;
+  innerClass?: string;
+}
+
+export interface HtmlScrollListTheme {
+  className?: string;
+  spinnerClass?: string;
 }
 
 export interface HtmlMultilineTheme {
@@ -163,6 +181,19 @@ export interface HtmlGroupTheme {
   tabs?: HtmlTabsTheme;
   accordion?: HtmlAccordionGroupTheme;
   dialog?: HtmlDialogTheme;
+  wizard?: HtmlWizardTheme;
+}
+
+export interface HtmlWizardTheme {
+  className?: string;
+  stepListClass?: string;
+  stepClass?: string;
+  stepActiveClass?: string;
+  stepDoneClass?: string;
+  stepPendingClass?: string;
+  stepInvisibleClass?: string;
+  navClass?: string;
+  buttonClass?: string;
 }
 
 export interface HtmlGridTheme {
@@ -183,6 +214,7 @@ export interface HtmlTabsTheme {
 
 export interface HtmlAccordionGroupTheme {
   className?: string;
+  sectionClass?: string;
   titleClass?: string;
   contentClass?: string;
 }
@@ -256,6 +288,10 @@ export interface HtmlHelpTextTheme {
   contentClass?: string;
   contentTextClass?: string;
   iconClass?: string;
+  /** Wrapper for inline (label/control placement) help text. */
+  inlineClass?: string;
+  /** Wrapper for block (above/below) help text. */
+  blockClass?: string;
 }
 
 export interface HtmlOptionalAdornmentTheme {
@@ -263,6 +299,7 @@ export interface HtmlOptionalAdornmentTheme {
   checkClass?: string;
   childWrapperClass?: string;
   nullWrapperClass?: string;
+  labelWrapClass?: string;
   setNullText?: string;
   /** Replaces the default control-slot body. Receives the resolved
    * data + editing controls, current `isNull` / `isEditing` / disabled

@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@astroapps/datagrid": "^1.2.0",
+    "@astroapps/searchstate": "^2.0.0",
+    "@radix-ui/react-popover": "^1.1.6",
     "@rxc/controls": "workspace:*",
     "@rxc/controls-core": "workspace:*",
     "@rxc/forms": "workspace:*",

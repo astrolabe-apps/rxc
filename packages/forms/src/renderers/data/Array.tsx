@@ -11,13 +11,6 @@ import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_WRAPPER = "flex flex-col gap-3";
-const DEFAULT_CHILD =
-  "flex items-start gap-2 border-l-2 border-zinc-200 dark:border-zinc-700 pl-3";
-const DEFAULT_REMOVE =
-  "text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 disabled:opacity-40";
-const DEFAULT_ADD =
-  "self-start text-xs px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-40";
 
 interface ArrayLengthRange {
   min: number;
@@ -63,7 +56,7 @@ export const ArrayRenderer = controls<DataRendererProps>(
 
     const wrapperClass = rendererClass(
       definition.styleClass,
-      arrayTheme.className ?? DEFAULT_WRAPPER,
+      arrayTheme.className,
     );
 
     return (
@@ -71,7 +64,7 @@ export const ArrayRenderer = controls<DataRendererProps>(
         {children.map((child, i) => (
           <div
             key={child.uniqueId}
-            className={arrayTheme.childClass ?? DEFAULT_CHILD}
+            className={arrayTheme.childClass}
           >
             <div className="flex-1">
               <Field node={child} />
@@ -87,7 +80,7 @@ export const ArrayRenderer = controls<DataRendererProps>(
                   ),
                 );
               }}
-              className={arrayTheme.removeClass ?? DEFAULT_REMOVE}
+              className={arrayTheme.removeClass}
             >
               Remove
             </button>
@@ -101,7 +94,7 @@ export const ArrayRenderer = controls<DataRendererProps>(
               wc.addElement(data as Parameters<typeof wc.addElement>[0], null),
             )
           }
-          className={arrayTheme.addClass ?? DEFAULT_ADD}
+          className={arrayTheme.addClass}
         >
           Add
         </button>

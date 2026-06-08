@@ -1,7 +1,7 @@
 "use client";
 
 import { JSX, useMemo, useState } from "react";
-import { useControl } from "@react-typed-forms/core";
+import { useControl, useControlEffect } from "@react-typed-forms/core";
 import {
   createSchemaDataNode,
   createSchemaLookup,
@@ -10,9 +10,32 @@ import {
   RenderForm,
   SchemaField,
 } from "@react-typed-forms/schemas";
+import {
+  type ClientSideSearching,
+  getPageOfResults,
+  makeClientSortAndFilter,
+  type SearchOptions,
+} from "@astroapps/searchstate";
 import { FormDefinitions } from "./formDefs";
 import { useFormTypeRenderer } from "./renderer";
 import { SchemaMap } from "./schemas";
+
+// Field-based client search identical to the rxc compare app's
+// `fieldClientSearch` (@rxc/forms-datagrid) so both apps compute the same
+// filtered/sorted/paged rows from the same seed.
+const fieldClient: ClientSideSearching<Record<string, unknown>> = {
+  getSearchText: () => "",
+  getComparison: (field) => (a, b) => {
+    const av = a[field] as unknown;
+    const bv = b[field] as unknown;
+    if (av === bv) return 0;
+    if (av == null) return -1;
+    if (bv == null) return 1;
+    return av < bv ? -1 : 1;
+  },
+  getFilterValue: (field) => (row) => row[field],
+};
+const sortAndFilter = makeClientSortAndFilter(fieldClient);
 
 const schemaLookup = createSchemaLookup(
   SchemaMap as Record<string, SchemaField[]>,
@@ -31,6 +54,35 @@ function FormHost({ formKey }: { formKey: FormKey }): JSX.Element {
   const formNode = useMemo(
     () => legacyFormNode(groupedControl(def.controls, def.name)),
     [formKey],
+  );
+
+  // Client-side search: recompute the bound `results.{entries,total}` from
+  // `allRows` + the `request` SearchOptions on every filter/sort/page
+  // change. Mirrors the rxc compare app's effect so both stay in sync.
+  const allRows = (def as { clientSearch?: { allRows: Record<string, unknown>[] } })
+    .clientSearch?.allRows;
+  useControlEffect(
+    () => {
+      if (!allRows) return undefined;
+      const req = (rootControl.fields as any).request;
+      return [
+        req.fields.filters.value,
+        req.fields.sort.value,
+        req.fields.offset.value,
+        req.fields.length.value,
+      ] as const;
+    },
+    () => {
+      if (!allRows) return;
+      const req = (rootControl.fields as any).request.value as SearchOptions;
+      const filtered = sortAndFilter(req, allRows);
+      const length = req.length ?? filtered.length;
+      const entries = getPageOfResults(req.offset ?? 0, length, filtered);
+      const results = (rootControl.fields as any).results;
+      results.fields.total.value = filtered.length;
+      results.fields.entries.value = entries;
+    },
+    true,
   );
   return (
     <div className="rounded-lg bg-white p-6 shadow">

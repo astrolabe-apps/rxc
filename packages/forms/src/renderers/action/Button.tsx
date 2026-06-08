@@ -17,20 +17,6 @@ import {
 import { resolveIcon } from "../display/Icon";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-// Layout invariants — always applied so icon + text compose cleanly even
-// when a theme overrides buttonClass/linkClass (which otherwise only carry
-// chrome: padding, colors, rounding). Group is intentionally bare: that
-// style is meant for actions whose body is caller-supplied content, so we
-// don't impose layout on it.
-const BUTTON_LAYOUT = "inline-flex items-center justify-center gap-1.5";
-const LINK_LAYOUT = "inline-flex items-center gap-1";
-
-const DEFAULT_BUTTON = "px-3 py-1 rounded text-sm disabled:opacity-40";
-const DEFAULT_PRIMARY = "bg-blue-600 text-white";
-const DEFAULT_SECONDARY = "border border-zinc-300 dark:border-zinc-600";
-const DEFAULT_LINK = "text-blue-600 hover:underline disabled:opacity-40";
-const DEFAULT_GROUP = "";
-
 export const ButtonAction = controls<ActionRendererProps>(
   "ButtonAction",
   ({ node }, { rc }) => {
@@ -52,24 +38,21 @@ export const ButtonAction = controls<ActionRendererProps>(
     const isSecondary = style === ActionStyle.Secondary;
 
     const variantClass = isLink
-      ? actionTheme.linkClass ?? DEFAULT_LINK
+      ? actionTheme.linkClass
       : isGroup
-        ? actionTheme.groupClass ?? DEFAULT_GROUP
+        ? actionTheme.groupClass
         : isSecondary
-          ? actionTheme.secondaryClass ?? DEFAULT_SECONDARY
-          : actionTheme.primaryClass ?? DEFAULT_PRIMARY;
+          ? actionTheme.secondaryClass
+          : actionTheme.primaryClass;
     // Link/Group don't carry the base button padding/rounding.
-    const baseButton =
-      isLink || isGroup ? null : actionTheme.buttonClass ?? DEFAULT_BUTTON;
-    // Layout is a theme-overridable hook — hosts that want plain inline
-    // markup (legacy parity) set `*LayoutClass: ""` to suppress the
-    // default inline-flex wrap. `?? DEFAULT_*` so `undefined` keeps the
-    // default; `""` opts out.
+    const baseButton = isLink || isGroup ? null : actionTheme.buttonClass;
+    // Layout class (default `inline-flex …` so icon + text compose); hosts
+    // wanting plain inline markup (legacy parity) set `*LayoutClass: ""`.
     const layout = isLink
-      ? actionTheme.linkLayoutClass ?? LINK_LAYOUT
+      ? actionTheme.linkLayoutClass
       : isGroup
         ? null
-        : actionTheme.buttonLayoutClass ?? BUTTON_LAYOUT;
+        : actionTheme.buttonLayoutClass;
     const cls = rendererClass(
       definition.styleClass,
       rendererClass(layout, rendererClass(baseButton, variantClass)),

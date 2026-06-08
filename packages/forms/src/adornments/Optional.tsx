@@ -14,11 +14,6 @@ import type {
 } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../useHtmlTheme";
 
-const DEFAULT_WRAPPER = "flex items-center gap-2 w-full";
-const DEFAULT_CHILD_WRAPPER = "grow";
-const DEFAULT_NULL_WRAPPER = "inline-flex items-center gap-1 mr-2";
-const DEFAULT_CHECK = "m-2";
-const DEFAULT_LABEL_WRAP = "inline-flex items-center gap-1";
 
 const OptionalAdornmentRender = controls<
   AdornmentRenderProps<OptionalAdornmentDef>
@@ -55,7 +50,7 @@ const OptionalAdornmentRender = controls<
         onChange={(e) =>
           update((wc) => wc.setValue(editing, e.target.checked))
         }
-        className={optTheme.checkClass ?? DEFAULT_CHECK}
+        className={optTheme.checkClass}
         aria-label="Edit"
       />
     ) : null;
@@ -63,7 +58,7 @@ const OptionalAdornmentRender = controls<
     if (kind === "label") {
       if (!editCheckbox || !editAtLabel) return <>{children}</>;
       return (
-        <span className={DEFAULT_LABEL_WRAP}>
+        <span className={optTheme.labelWrapClass}>
           {placement === AdornmentPlacement.LabelStart ? editCheckbox : null}
           {children}
           {placement === AdornmentPlacement.LabelEnd ? editCheckbox : null}
@@ -94,7 +89,7 @@ const OptionalAdornmentRender = controls<
     // Polarity matches legacy `<Fcheckbox notValue>`: checked = null,
     // unchecked = has value.
     const nullToggle = allowNull ? (
-      <div className={optTheme.nullWrapperClass ?? DEFAULT_NULL_WRAPPER}>
+      <div className={optTheme.nullWrapperClass}>
         <input
           type="checkbox"
           checked={isNull}
@@ -103,7 +98,7 @@ const OptionalAdornmentRender = controls<
             const becomingNull = e.target.checked;
             update((wc) => wc.setValue(data, becomingNull ? null : ""));
           }}
-          className={optTheme.checkClass ?? DEFAULT_CHECK}
+          className={optTheme.checkClass}
           aria-label="Null"
         />
         <span>{optTheme.setNullText ?? "Null"}</span>
@@ -111,9 +106,9 @@ const OptionalAdornmentRender = controls<
     ) : null;
 
     const defaultBody = (
-      <div className={optTheme.className ?? DEFAULT_WRAPPER}>
+      <div className={optTheme.className}>
         {inlineEdit}
-        <div className={optTheme.childWrapperClass ?? DEFAULT_CHILD_WRAPPER}>
+        <div className={optTheme.childWrapperClass}>
           {nullToggle}
           {children}
         </div>

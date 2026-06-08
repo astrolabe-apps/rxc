@@ -14,9 +14,6 @@ import {
 } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_WRAPPER =
-  "inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300";
-
 /**
  * Renderer for `DataRenderType.ElementSelected`.
  *
@@ -32,7 +29,9 @@ export const ElementSelectedRenderer = controls<DataRendererProps>(
   "ElementSelectedRenderer",
   ({ node, id }, { rc, update }) => {
     const { data, disabled, readonly, definition } = node.getState(rc);
-    const checkboxTheme = useHtmlTheme().data?.checkbox ?? {};
+    const dataTheme = useHtmlTheme().data ?? {};
+    const elementSelectedClass = dataTheme.elementSelectedClass;
+    const checkboxTheme = dataTheme.checkbox ?? {};
     const labelText = useLabelText(node, rc);
 
     const elementExpression = isDataControl(definition)
@@ -53,7 +52,7 @@ export const ElementSelectedRenderer = controls<DataRendererProps>(
     const checked = Array.isArray(arr) ? arr.includes(elementValue) : false;
     const wrapperClass = rendererClass(
       definition.styleClass,
-      checkboxTheme.className ?? DEFAULT_WRAPPER,
+      elementSelectedClass,
     );
     return (
       <label className={wrapperClass}>

@@ -9,17 +9,6 @@ import {
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_WRAPPER = "flex flex-col gap-3";
-const DEFAULT_STEPLIST = "flex items-center gap-2 text-sm";
-const DEFAULT_STEP = "px-2 py-1 rounded";
-const DEFAULT_STEP_ACTIVE = "bg-blue-600 text-white";
-const DEFAULT_STEP_DONE = "bg-green-600 text-white";
-const DEFAULT_STEP_PENDING =
-  "border border-zinc-200 dark:border-zinc-700 text-zinc-500";
-const DEFAULT_STEP_INVISIBLE = "hidden";
-const DEFAULT_NAV = "flex items-center justify-between gap-2";
-const DEFAULT_BTN =
-  "px-3 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-sm disabled:opacity-40";
 
 /**
  * Renderer for `GroupRenderType.Wizard`. Shows one page child at a time
@@ -35,27 +24,29 @@ export const WizardRenderer = controls<GroupRendererProps>(
   ({ node }, { rc }) => {
     const { definition } = node.getState(rc);
     const wiz = useWizardController(rc, node);
-    const theme = useHtmlTheme().group?.tabs ?? {}; // reuse tabs palette by default
+    const groupTheme = useHtmlTheme().group ?? {};
+    const wizTheme = groupTheme.wizard ?? {};
+    const theme = groupTheme.tabs ?? {}; // reuse tabs palette for page content
 
-    const wrapperClass = rendererClass(definition.styleClass, DEFAULT_WRAPPER);
+    const wrapperClass = rendererClass(definition.styleClass, wizTheme.className);
     const activeNode = wiz.pageChildren[wiz.currentPage];
 
     return (
       <div className={wrapperClass}>
         {wiz.showSteps && (
-          <ol role="list" className={DEFAULT_STEPLIST}>
+          <ol role="list" className={wizTheme.stepListClass}>
             {wiz.steps.map((s) => (
               <li
                 key={s.node.uniqueId}
                 aria-current={s.active ? "step" : undefined}
-                className={`${DEFAULT_STEP} ${
+                className={`${wizTheme.stepClass} ${
                   !s.visible
-                    ? DEFAULT_STEP_INVISIBLE
+                    ? wizTheme.stepInvisibleClass
                     : s.active
-                      ? DEFAULT_STEP_ACTIVE
+                      ? wizTheme.stepActiveClass
                       : s.completed
-                        ? DEFAULT_STEP_DONE
-                        : DEFAULT_STEP_PENDING
+                        ? wizTheme.stepDoneClass
+                        : wizTheme.stepPendingClass
                 }`.trim()}
                 onClick={() =>
                   wiz.manualNavigation
@@ -77,7 +68,7 @@ export const WizardRenderer = controls<GroupRendererProps>(
         {(wiz.leftNav.length > 0 ||
           wiz.middleNav.length > 0 ||
           wiz.rightNav.length > 0) && (
-          <div className={DEFAULT_NAV}>
+          <div className={wizTheme.navClass}>
             <div className="flex gap-2">
               {wiz.leftNav.map((n) => (
                 <Field key={n.uniqueId} node={n} />
@@ -101,10 +92,10 @@ export const WizardRenderer = controls<GroupRendererProps>(
         </div>
 
         {!wiz.manualNavigation && (
-          <div className={DEFAULT_NAV}>
+          <div className={wizTheme.navClass}>
             <button
               type="button"
-              className={DEFAULT_BTN}
+              className={wizTheme.buttonClass}
               disabled={!wiz.hasPrev}
               onClick={() => wiz.prev()}
             >
@@ -117,7 +108,7 @@ export const WizardRenderer = controls<GroupRendererProps>(
             </span>
             <button
               type="button"
-              className={DEFAULT_BTN}
+              className={wizTheme.buttonClass}
               disabled={!wiz.hasNext}
               onClick={() => wiz.next(true)}
             >

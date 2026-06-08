@@ -6,9 +6,6 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_CLASS =
-  "flex flex-col gap-3 border border-zinc-200 dark:border-zinc-700 rounded p-3";
-
 export const StandardGroupRenderer = controls<GroupRendererProps>(
   "StandardGroupRenderer",
   ({ node }, { rc }) => {
@@ -17,7 +14,7 @@ export const StandardGroupRenderer = controls<GroupRendererProps>(
     const children = node.getChildren(rc);
     const className = rendererClass(
       definition.styleClass,
-      groupTheme.standardClass ?? groupTheme.className ?? DEFAULT_CLASS,
+      groupTheme.standardClass ?? groupTheme.className,
     );
     return (
       <div className={className}>

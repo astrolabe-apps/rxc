@@ -79,7 +79,7 @@ export const DefaultLabel = controls<LabelProps>(
     const labelClassName = rendererClass(
       def.labelClass,
       [
-        theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
+        theme.className,
         isGroupLabel(def) ? theme.groupClassName : undefined,
         textClassName,
       ]
@@ -97,7 +97,7 @@ export const DefaultLabel = controls<LabelProps>(
         {required && (
           <span
             aria-hidden
-            className={theme.requiredClass ?? "text-red-400 ml-0.5"}
+            className={theme.requiredClass}
           >
             {theme.requiredText ?? "*"}
           </span>

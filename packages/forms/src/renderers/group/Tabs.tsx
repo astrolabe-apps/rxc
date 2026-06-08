@@ -7,14 +7,6 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_WRAPPER = "flex flex-col gap-2";
-const DEFAULT_TABLIST =
-  "flex gap-1 border-b border-zinc-200 dark:border-zinc-700";
-const DEFAULT_TAB = "px-3 py-1 text-sm rounded-t";
-const DEFAULT_ACTIVE_TAB =
-  "bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 border-b-white dark:border-b-zinc-800 -mb-px";
-const DEFAULT_INACTIVE_TAB =
-  "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100";
 
 export const TabsRenderer = controls<GroupRendererProps>(
   "TabsRenderer",
@@ -30,21 +22,21 @@ export const TabsRenderer = controls<GroupRendererProps>(
 
     const wrapperClass = rendererClass(
       definition.styleClass,
-      tabsTheme.className ?? DEFAULT_WRAPPER,
+      tabsTheme.className,
     );
 
     return (
       <div className={wrapperClass}>
         <ul
           role="tablist"
-          className={tabsTheme.tabListClass ?? DEFAULT_TABLIST}
+          className={tabsTheme.tabListClass}
         >
           {visibleChildren.map((c, i) => {
             const isActive = i === safeIndex;
-            const tabBase = tabsTheme.tabClass ?? DEFAULT_TAB;
+            const tabBase = tabsTheme.tabClass;
             const tabState = isActive
-              ? tabsTheme.activeTabClass ?? DEFAULT_ACTIVE_TAB
-              : tabsTheme.inactiveTabClass ?? DEFAULT_INACTIVE_TAB;
+              ? tabsTheme.activeTabClass
+              : tabsTheme.inactiveTabClass;
             return (
               <li key={c.uniqueId}>
                 <button

@@ -5,8 +5,6 @@ import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_CLASS = "text-sm text-zinc-700 dark:text-zinc-300";
-
 /**
  * Display-only rendering. Formats the stored value through the
  * {@link SchemaInterface} (option `name` lookup + type-aware date/bool
@@ -38,10 +36,7 @@ export const DisplayOnlyRenderer = controls<DataRendererProps>(
     }
     const className = rendererClass(
       definition.textClass,
-      rendererClass(
-        definition.styleClass,
-        dataTheme.displayOnlyClass ?? DEFAULT_CLASS,
-      ),
+      rendererClass(definition.styleClass, dataTheme.displayOnlyClass),
     );
     // Block element by default; inline element inside an inline group, to
     // avoid invalid nesting (mirrors legacy `inline ? "span" : "div"`).

@@ -11,8 +11,6 @@ import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_FIELDSET = "flex flex-col gap-1";
-const DEFAULT_ENTRY = "inline-flex items-center gap-2";
 
 function valueToString(value: unknown): string {
   if (value == null) return "";
@@ -58,7 +56,7 @@ export const RadioRenderer = controls<DataRendererProps>(
     const groupName = id;
     const fieldsetClass = rendererClass(
       definition.styleClass,
-      radioTheme.className ?? DEFAULT_FIELDSET,
+      radioTheme.className,
     );
 
     // Per-option control classes from the form definition's renderOptions.
@@ -99,7 +97,7 @@ export const RadioRenderer = controls<DataRendererProps>(
           const optChild = childByValue.get(o.value);
           return (
             <div key={optValue} className={clsx(entryWrapperClass, stateClass)}>
-              <div className={radioTheme.entryClass ?? DEFAULT_ENTRY}>
+              <div className={radioTheme.entryClass}>
                 <input
                   id={inputId}
                   type="radio"

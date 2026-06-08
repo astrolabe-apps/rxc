@@ -133,3 +133,4 @@ export type {
   HtmlTabsTheme,
 } from "./theme";
 export { useHtmlTheme } from "./useHtmlTheme";
+export { defaultHtmlTheme, deepMergeTheme } from "./defaultTheme";

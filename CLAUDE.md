@@ -15,7 +15,7 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | `@rxc/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rxc/forms` only. |
 | `@rxc/forms-motion` | `packages/forms-motion` | Optional Framer Motion add-on. Ships `FadeVisibility`, `SlideVisibility`, and `MotionAccordionAdornment` to upgrade the no-op default Visibility / native `<details>` accordion. |
 | `@rxc/forms-dnd` | `packages/forms-dnd` | Optional dnd-kit add-on. Ships `SortableArrayRenderer` for reorderable arrays. |
-| `@rxc/forms-datagrid` | `packages/forms-datagrid` | Optional DataGrid add-on. Ships `dataGridRegistry()` — a `renderOptions.type === "DataGrid"` data renderer + `ColumnOptions` adornment, layered on the framework-agnostic published `@astroapps/datagrid` base grid. **Display-only scope** (columns + rows from the bound array); add/remove/edit actions and search/filter/sort wiring are not yet ported. |
+| `@rxc/forms-datagrid` | `packages/forms-datagrid` | Optional DataGrid add-on. Ships `dataGridRegistry()` — `DataGrid` + `Pager` data renderers + `ColumnOptions` adornment, layered on the published `@astroapps/datagrid` base grid. Columns + rows from the bound array, column **filter/sort** header controls (driven by a sibling `SearchOptions` control via `searchField`) and offset/length **paging**; plus `clientSearchPage`/`fieldClientSearch` helpers for client-side search. Array add/remove/edit actions and `groupByField` row-spanning not yet ported. |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
 | `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo. |
@@ -230,10 +230,11 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
 - **Config**: `vitest.config.ts` per package
 - Current counts:
   - `controls-core`: **54** (uniqueId determinism)
-  - `forms-core`: **110** (+3 acquireDisabler / disabler stack)
+  - `forms-core`: **113** (+3 acquireDisabler / disabler stack)
   - `forms-react-core`: **47** (+1 multi-kind adornment registration)
   - `forms`: **36** (+6 new renderers — Jsonata / ElementSelected / ScrollList / Wizard / ArrayElement levels)
-  - `forms-datagrid`: **3** (display-only resolver: rows×columns, empty, reactive add)
+  - `forms-datagrid`: **9** (3 display-only resolver + 6 clientSearch filter/sort/paging)
+  - Known flaky: `controls-core` `general > can set computation` is a fast-check property test that occasionally fails on an unlucky seed and passes on re-run (pre-existing, seed-dependent).
 
 ## Comparison-app workstream
 
@@ -246,6 +247,16 @@ The `apps/legacy-compare` + `apps/rxc-compare` pairing exists to validate that t
 
 ### Upstream changes already driven by this work
 
+- **`@rxc/forms`: centralized default theme (`defaultHtmlTheme`) + merge-once.** Ported the legacy `@react-typed-forms/schemas-html` model where all default classes live in one object (`defaultTailwindTheme`) deep-merged with the host theme, and renderers read a single resolved slot per concern. Previously rxc scattered `DEFAULT_*` class constants across ~30 renderer files and each did its own `theme.X ?? DEFAULT_X` — and some layered extra state classes (e.g. input `VALID_BORDER`) *on top of* a slot, which leaked over a host's `inputClass` (the bug that started this). Now:
+  - `src/defaultTheme.ts` exports `defaultHtmlTheme` (every default class string, one place) + `deepMergeTheme`.
+  - `useHtmlTheme()` returns `deepMergeTheme(defaultHtmlTheme, hostTheme)`, **cached by host-theme object identity** (WeakMap) — the merge runs once per distinct theme object (once total for a stable module-const theme), shared across every renderer/render, not per call. No host theme → `defaultHtmlTheme` as-is.
+  - Every renderer reads `theme.X` directly; no `DEFAULT_*` constants remain. Input valid/error/disabled/readonly are **state variants baked into the single `inputClass`** (`aria-invalid:` / `disabled:` / `read-only:`) rather than renderer-layered classes, so a host that sets `inputClass: "form-control"` fully owns the input chrome (no leak; matches legacy's single-class model). New theme slots added for renderers that lacked them (`data.arrayElement`/`scrollList`/`elementSelectedClass`, `group.wizard`, `group.accordion.sectionClass`, `helpText.inline/blockClass`, `optional.labelWrapClass`).
+  - SSR-verified output unchanged across Fire / RWVP / MrsDemerits in the compare app; the `themedInput` band-aid from the parity fixes below is gone (subsumed). Text-content fallbacks (`"*"`, `"—"`, `"No data"`, `"Loading…"`) are intentionally left in renderers — they're content, not chrome.
+- **RWVPRenewalSearch parity fixes (Phase B follow-up).** Driven by side-by-side comparison of the filter/sort/paging form:
+  - **Pager buttons** (`@rxc/forms-datagrid`) compose classes from the host's `theme.action` (buttonLayout + buttonClass + primaryClass, text in a `<span>`), matching `ButtonAction`'s primary button — instead of emitting bare `<button>`s. The legacy pager routes prev/next through the host action renderer; this reproduces that look without a full action node.
+  - **Input border** (`@rxc/forms` Text/Number/Date/Select/Multiline/Autocomplete): a host's `inputClass` (e.g. `form-control`) owns the input border; rxc no longer layers its default `border-zinc-300` over it. (Superseded by the centralized-theme port above — the input chrome, including state borders, is now the single `inputClass` slot with state variants.)
+  - **Flex group** (`@rxc/forms` `FlexRenderer`): dropped the hardcoded `flexWrap: "wrap"` so a Flex group defaults to nowrap like the legacy renderer.
+  - **DateTime timezone** (`@rxc/forms-core` `DefaultSchemaInterface.parseToMillis`): a naive date-time (time component, no zone designator) is now interpreted as **UTC** (append `Z`), matching legacy `@internationalized/date` `parseDateTime(s).toDate("UTC")`. Without it, `DateTime` `toLocaleString()` output was shifted by the local offset. Date-only and zoned values are unaffected.
 - **`@rxc/forms-core`: `SchemaInterface.textValue` + `@rxc/forms` DisplayOnly parity.** Added `textValue(field, value, options?)` to `SchemaInterface` / `DefaultSchemaInterface`, ported from legacy `defaultSchemaInterface.textValue` — option-`name` lookup then type-aware formatting (`Date → toLocaleDateString()`, `DateTime → toLocaleString()`, `Time → toLocaleTimeString()`, `Bool → Yes/No`). `DisplayOnlyRenderer` now formats through `node.schemaInterface.textValue` (so dates render `1/12/2024` not the raw ISO string), layers the definition's `textClass` over the theme class (so per-cell text styles like `!text-accent` apply), no longer stamps an unused `id` on the value element, and emits a `<div>` by default / `<span>` when inline (matching legacy `DefaultHtmlDivRenderer`'s `inline ? "span" : "div"`). To support that last point, `DataRendererProps` gained an `inline?: boolean` flag that `Field` threads into the data-renderer dispatch. The display-only flex wrapper class is host-applied (rxc has no renderer→layout-class hook): `apps/rxc-compare/HtmlLayout` re-applies the legacy `displayOnlyClass` (`flex flex-row items-center gap-2`) for display-only controls and the theme sets `data.displayOnlyClass: ""` so the value element carries only `textClass`.
 - **`@rxc/forms`: swappable `Label` / `Error`.** Added `LabelProvider` + `useLabel()` and `<Form label={MyLabel}>` so hosts can swap the label component without rebuilding Field. Same pattern for `Error`: `DefaultError` + `ErrorProvider` + `useError()` + `<Form error={MyError}>`. `FieldProps` and `FormProps` gained matching `label?` / `error?` slots for per-Field overrides. (No back-compat `Label`/`Error` aliases — per the Constraints "No deprecations" rule, the old names were just deleted.)
 - **`@rxc/forms`: `theme.label.groupClassName` + `isGroupLabel()` predicate.** `DefaultLabel` now layers `theme.label.groupClassName` on top of `theme.label.className` whenever the rendered control is group-shaped (`type: "Group"` definitions OR compound Data controls with `renderOptions.type === "Group"`). Mirrors the legacy `DefaultRendererOptions.label.groupLabelClass` slot. The `isGroupLabel(def)` predicate is exported so custom `<Label>` components can reuse it.
@@ -299,20 +310,28 @@ Port of the legacy `@astroapps/schemas-datagrid` `DataGridRenderer` (display-onl
 - `createDataGridRenderer` (controls()-wrapped) maps each column definition → `ColumnDefInit` (title + `getColumnHeaderFromOptions` classes from the `ColumnOptions` adornment, `columnTemplate`), precomputes the `cellGrid` (rows × column cells) for closure-safe cell rendering via `<Field>`, and renders the base `<DataGrid>`.
 - `ColumnOptions` adornment (`columnAdornment.ts`) ported verbatim (schema + `isColumnAdornment` + `getColumnHeaderFromOptions` + `defaultDataGridClasses`).
 - Registration order matters: `combineRegistries(dataGridRegistry(), defaultRegistry())` so the `DataGrid` render type beats the default collection (Array) matcher.
-- **Not ported (Phase B):** add/remove/edit array actions, `searchField` filter/sort (needs `@astroapps/searchstate` + `FilterPopover` + `SortableHeader`), `groupByField` row-spanning, per-column `visible`/`rowSpan` expressions. The trailing `auto`-width delete-check column **is** rendered (empty `removeColumnClass` div in display-only) so column templates + per-row markup match legacy; the edit/remove actions inside it are the Phase B work. Headers wrap their title in `titleContainerClass` via `renderHeaderContent`, matching legacy. 3 integration tests in `packages/forms-datagrid/test`.
+- The trailing `auto`-width delete-check column **is** rendered (empty `removeColumnClass` div in display-only) so column templates + per-row markup match legacy. Headers wrap their title in `titleContainerClass` via `renderHeaderContent`, matching legacy.
 - Wired into both compare apps (`MrsDemeritsSummary` form, port 3002 legacy reference via `@astroapps/schemas-datagrid` 8.2.0 / port 3003 rxc) with a shared `sampleData` seed so the grid shows rows. SSR-verified: identical column templates (`1fr 1fr 3fr`), headers, and cell values across both.
 
-#### DataGrid Phase B — pickup plan (not started)
+#### DataGrid Phase B — filter/sort/paging ✅
 
-Goal: make `RWVPRenewalSearch` (the third DataGrid form) work, which needs filter/sort + paging. Suggested order:
+`RWVPRenewalSearch` (the third DataGrid form) now works: column filter + offset/length paging. Shipped:
 
-1. **searchstate dep.** Add published `@astroapps/searchstate` (2.0.0, zero deps) to `@rxc/forms-datagrid`. Provides `SearchOptions`, `setFilterValue`, `rotateSort`, `findSortField`.
-2. **Missing forms-core helpers.** The legacy renderer's header/filter wiring uses `schemaDataForFieldRef`, `fieldPathForDefinition`, `schemaForFieldPath` — none exist in `@rxc/forms-core` yet. Either port them (small, schema-nav) or inline equivalents. `searchField` resolves a sibling `SearchOptions` control via `schemaDataForFieldRef(searchField, parentNode)`.
-3. **FilterPopover + SortableHeader.** Port from `astrolabe-common/astrolabe-schemas-datagrid/src/{FilterPopover,SortableHeader,Popover}.tsx` (Radix popover, ~110 lines total). Wire into the base grid's `renderHeaderContent`.
-4. **Array actions.** Port `createArrayActions` / `applyArrayLengthRestrictions` / `getLengthRestrictions` / `getExternalEditData` (currently MISSING in rxc) for add/remove/edit. The rxc `ArrayRenderer` has an inline `getLengthRange` to crib from.
-5. **groupByField row-spanning + per-column `visible`/`rowSpan` expressions** via `runExpression` (last, only `MrsSummary`/`MrsDemeritsSummary` use rowSpan and they leave it empty `{}`).
+- **`@astroapps/searchstate` (2.0.0, zero-dep) added** to `@rxc/forms-datagrid` (+ `@radix-ui/react-popover` for the filter popover). Provides `SearchOptions`, `setFilterValue`, `rotateSort`, `findSortField`, `makeClientSortAndFilter`, `getPageOfResults`.
+- **No new forms-core helpers needed.** The legacy `schemaDataForFieldRef`/`fieldPathForDefinition`/`schemaForFieldPath` are covered by existing rxc cursor utils — the `searchField` SearchOptions control resolves via `dataRef(node.parent.cursor(rc), searchField)` (`FormStateNode.parent` is the legacy `dataContext.parentNode`).
+- **`Popover` / `SortableHeader` / `FilterPopover`** ported (`src/{Popover,SortableHeader,FilterPopover}.tsx`). `SortableHeader`/`FilterPopover` are `controls()` components that read/write the SearchOptions `sort`/`filters`/`offset` fields through their own rc/wc (`updateValue` matches the `setFilterValue`/`rotateSort` updater shape). Filter options are resolved by the renderer (from a populated cell's `fieldOptions`) and passed in — no `getFilterOptions` added to `SchemaInterface`.
+- **`DataGrid` renderer** resolves `renderOptions.searchField` and wires `FilterPopover`/`SortableHeader` into `renderHeaderContent`, driven per-column by `ColumnOptions.enabledFilter`/`enabledSort` (filter/sort key defaults to the column's bound field). `DataGridOptions` gained `searchField` + `disableClear`; `DataGridClasses` gained `popoverClass`/`clearFilterClass`/`clearFilterText`.
+- **`Pager` renderer** (`src/Pager.tsx`, `pagerPlugin()`, render type `Pager`) — binds to the SearchOptions control, reads total from a sibling field (default `results/total`), renders "Showing page X of Y" + Previous/Next (plain `<button>`s; legacy routed these through the host action renderer). `dataGridRegistry()` now combines the DataGrid + Pager plugins.
+- **Client-side search helper** (`src/clientSearch.ts`): `fieldClientSearch()` (plain `row[field]` filter/compare) + `clientSearchPage(allRows, search, client)` → `{ entries, total }`, standing in for a server. Both compare apps wire it in their host (rxc via `effect` + `cc.update`; legacy via `useControlEffect`) so filter/sort/paging actually slice the rows; both set `results.total = filtered.length` so the pager reflects the filtered count. 6 unit tests in `packages/forms-datagrid/test/clientSearch.test.ts`.
+- **`RWVPRenewalSearch` wired into both compare apps** (12-row seed, page size 5 → 3 pages; `viewDetail` action stubbed via `<ActionScope>`). SSR-verified: identical 7-column + `cdeleteCheck` grid template, `fa-filter` on Status, pager chrome, first-page rows, and View buttons across both.
 
-Reference source: `astrolabe-common/astrolabe-schemas-datagrid/src/DataGridControlRenderer.tsx` (597 lines — the display-only subset is already ported; lines for filter/sort/actions are the remainder).
+#### DataGrid Phase B — still deferred
+
+- **Array add/remove/edit actions** — `createArrayActions` / `applyArrayLengthRestrictions` / `getLengthRestrictions` / `getExternalEditData` (not in rxc). `RWVPRenewalSearch` is `noAdd`/`noRemove`/`noReorder` so it doesn't need them; the rxc `ArrayRenderer` has an inline `getLengthRange` to crib from when porting.
+- **`groupByField` row-spanning + per-column `visible`/`rowSpan` expressions** via `runExpression` (only `MrsSummary`/`MrsDemeritsSummary` use rowSpan and leave it empty `{}`).
+- **Query (full-text) search box** — `fieldClientSearch.getSearchText` is a no-op; `RWVPRenewalSearch` has a `query` Standard field but no wiring consumes it yet.
+
+Reference source: `astrolabe-common/astrolabe-schemas-datagrid/src/DataGridControlRenderer.tsx` (597 lines — display-only + filter/sort/paging are now ported; array actions + rowspan are the remainder).
 
 #### ServiceTas form-portability survey (reference)
 
@@ -323,7 +342,7 @@ One-time scan of all ~70 ServiceTas forms (`astrolabe/ServiceTas/ServiceTasAPI/N
   - Payment widgets — `QuickstreamCC`/`QuickstreamPay` (TempPaymentForm, TUP, MrsLicenceRenewal, MrsRegistrationRenewal, ShortTermPermit). Third-party, not portable.
   - `Switch` (SecurityPreferences, NotificationPreferences, TuoPreferences, LinkMastWizard) — cheap win, likely a styled checkbox.
   - `AddressFinder` (Address, ShortTermPermit, PlatesPlusRegistrationWizard) — geocoding widget.
-  - `DataGrid`+`Pager`+`ColumnOptions` (MrsSummary, MrsDemeritsSummary ✅ done display-only, RWVPRenewalSearch needs Phase B).
+  - `DataGrid`+`Pager`+`ColumnOptions` (MrsSummary, MrsDemeritsSummary ✅ display-only, RWVPRenewalSearch ✅ filter+paging via Phase B).
   - `Chart` (MrsSummary, MrsDemeritsSummary), `Map`/`MapPoints` (FireInitial, MastMooringPermitSummary) — viz widgets.
   - Long tail: `CopyableData`, `Tooltip`, `Spotlight`, `HtmlRenderer`, `displayData.Custom` (RWVPVerificationWizard already stubs some).
 

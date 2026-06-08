@@ -8,7 +8,6 @@ import { rendererClass } from "@rxc/forms-react-core";
 import { useLabel } from "../../Label";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_WRAPPER = "inline-flex items-center gap-2";
 
 /**
  * Checkbox with the label rendered inline next to the input:
@@ -49,7 +48,7 @@ export const CheckboxRenderer = controls<DataRendererProps>(
     const hasError = touched && !!rc.getError(data);
     const wrapperClass = rendererClass(
       definition.styleClass,
-      checkboxTheme.className ?? DEFAULT_WRAPPER,
+      checkboxTheme.className,
     );
     return (
       <span className={wrapperClass}>

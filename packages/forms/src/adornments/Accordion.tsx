@@ -15,16 +15,6 @@ import { clsx } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../useHtmlTheme";
 import { resolveIcon } from "../renderers/display/Icon";
 
-const DEFAULT_BUTTON = "flex items-center gap-2 my-2 w-fit";
-const DEFAULT_TITLE = "cursor-pointer";
-const DEFAULT_ICON_OPEN: IconReference = {
-  library: IconLibrary.FontAwesome,
-  name: "chevron-up",
-};
-const DEFAULT_ICON_CLOSED: IconReference = {
-  library: IconLibrary.FontAwesome,
-  name: "chevron-down",
-};
 
 function AccordionAdornmentRender({
   adornment,
@@ -37,8 +27,8 @@ function AccordionAdornmentRender({
   const [open, setOpen] = useState(adornment.defaultExpanded ?? false);
   const panelId = useId();
   const iconRef = open
-    ? accTheme.iconOpen ?? DEFAULT_ICON_OPEN
-    : accTheme.iconClosed ?? DEFAULT_ICON_CLOSED;
+    ? accTheme.iconOpen
+    : accTheme.iconClosed;
   const resolved = resolveIcon(undefined, iconRef);
   const iconClass = clsx(resolved.className, accTheme.togglerClass);
   return (
@@ -48,9 +38,9 @@ function AccordionAdornmentRender({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className={accTheme.className ?? DEFAULT_BUTTON}
+        className={accTheme.className}
       >
-        <span className={accTheme.titleClass ?? DEFAULT_TITLE}>
+        <span className={accTheme.titleClass}>
           {adornment.title}
         </span>
         {iconClass || resolved.text ? (

@@ -1,12 +1,16 @@
 "use client";
 
-import { JSX, useRef, useState } from "react";
+import { JSX, useEffect, useRef, useState } from "react";
 import type { Control } from "@rxc/controls";
 import {
   ControlContextProvider,
   controls,
   createControlContext,
+  effect,
 } from "@rxc/controls";
+import { ActionScope } from "@rxc/forms";
+import { clientSearchPage, fieldClientSearch } from "@rxc/forms-datagrid";
+import type { SearchOptions } from "@astroapps/searchstate";
 import {
   createDataNode,
   createSchemaTreeResolver,
@@ -72,15 +76,52 @@ const FormHost = controls<FormHostProps>(
     const { formRoot, dataRoot } = stateRef.current;
     const formNode = useFormStateNode(cc, formRoot, dataRoot, { registry });
 
+    // Client-side search: stand in for a server by recomputing the bound
+    // `results.{entries,total}` from `allRows` + the `request` SearchOptions
+    // whenever a filter/sort/page changes. Wired post-commit so the initial
+    // SSR snapshot (seeded `results`) and first hydration agree.
+    useEffect(() => {
+      const cs = def.clientSearch;
+      if (!cs) return;
+      const root = stateRef.current!.rootControl;
+      const reqControl = root.fields.request as unknown as Control<SearchOptions>;
+      const resultsControl = root.fields.results as unknown as Control<{
+        total: number;
+        entries: unknown[];
+      }>;
+      const client = fieldClientSearch<Record<string, unknown>>();
+      const eff = effect(cc, (rc) => {
+        const req = rc.getValueRx(reqControl);
+        const { entries, total } = clientSearchPage(cs.allRows, req, client);
+        cc.update((wc) => {
+          wc.setValue(resultsControl.fields.total, total);
+          wc.setValue(resultsControl.fields.entries, entries);
+        });
+      });
+      return () => eff.cleanup();
+    }, [def]);
+
     return (
-      <Form
-        node={formNode}
-        registry={registry}
-        layout={HtmlLayout}
-        label={HtmlLabel}
-        error={HtmlError}
-        options={{ theme: fireTheme }}
-      />
+      <ActionScope
+        onAction={(actionId, actionData) => {
+          if (actionId === "viewDetail") {
+            // Host stub — a real portal would route to the detail page.
+            // eslint-disable-next-line no-console
+            console.log("viewDetail", actionData);
+            return true;
+          }
+          return undefined;
+        }}
+      >
+        <Form
+          node={formNode}
+          registry={registry}
+          layout={HtmlLayout}
+          label={HtmlLabel}
+          error={HtmlError}
+          options={{ theme: fireTheme }}
+        />
+      </ActionScope>
     );
   },
 );

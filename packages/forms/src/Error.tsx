@@ -43,7 +43,7 @@ export const DefaultError = controls<ErrorProps>(
         <ul
           role="alert"
           id={id}
-          className={theme.className ?? "text-xs text-red-500"}
+          className={theme.className}
         >
           {entries.map(([key, message]) => (
             <li key={key} className={theme.itemClass}>
@@ -60,7 +60,7 @@ export const DefaultError = controls<ErrorProps>(
       <span
         role="alert"
         id={id}
-        className={theme.className ?? "text-xs text-red-500"}
+        className={theme.className}
       >
         {message}
       </span>

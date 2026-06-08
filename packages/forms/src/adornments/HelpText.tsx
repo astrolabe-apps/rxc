@@ -11,10 +11,6 @@ import type {
 } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../useHtmlTheme";
 
-const DEFAULT_TEXT = "text-xs text-zinc-500 dark:text-zinc-400";
-const DEFAULT_INLINE = "inline-flex items-center gap-2";
-const DEFAULT_BLOCK = "flex flex-col gap-1";
-
 function HelpTextAdornmentRender({
   adornment,
   children,
@@ -23,11 +19,9 @@ function HelpTextAdornmentRender({
   const helpTheme = useHtmlTheme().adornment?.helpText ?? {};
   const placement = adornment.placement;
   const help = (
-    <span className={helpTheme.contentTextClass ?? DEFAULT_TEXT}>
-      {adornment.helpText}
-    </span>
+    <span className={helpTheme.contentTextClass}>{adornment.helpText}</span>
   );
-  const inlineClass = helpTheme.contentClass ?? DEFAULT_INLINE;
+  const inlineClass = helpTheme.inlineClass;
 
   if (kind === "label") {
     if (placement === AdornmentPlacement.LabelStart) {
@@ -75,11 +69,9 @@ function HelpTextAdornmentRender({
   }
   // No placement set → block layout below the control.
   return (
-    <div className={DEFAULT_BLOCK}>
+    <div className={helpTheme.blockClass}>
       {children}
-      <p className={helpTheme.contentTextClass ?? DEFAULT_TEXT}>
-        {adornment.helpText}
-      </p>
+      <p className={helpTheme.contentTextClass}>{adornment.helpText}</p>
     </div>
   );
 }

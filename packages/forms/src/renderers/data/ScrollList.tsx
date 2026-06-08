@@ -12,9 +12,8 @@ import {
   type DataRendererProps,
 } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
+import { useHtmlTheme } from "../../useHtmlTheme";
 
-const DEFAULT_WRAPPER = "flex flex-col gap-3";
-const DEFAULT_SPINNER = "flex justify-center my-4 text-sm text-zinc-500";
 const SENTINEL_HEIGHT = 1;
 
 /**
@@ -32,6 +31,7 @@ export const ScrollListRenderer = controls<DataRendererProps>(
   "ScrollListRenderer",
   ({ node }, { rc }) => {
     const { data, definition } = node.getState(rc);
+    const scrollTheme = useHtmlTheme().data?.scrollList ?? {};
     if (!data) return null;
     const renderOptions = isDataControl(definition)
       ? (definition.renderOptions as ScrollListRenderOptions | undefined)
@@ -48,7 +48,7 @@ export const ScrollListRenderer = controls<DataRendererProps>(
     const children = node.getChildren(rc);
     const wrapperClass = rendererClass(
       definition.styleClass,
-      DEFAULT_WRAPPER,
+      scrollTheme.className,
     );
 
     const fetchMore = () => {
@@ -61,7 +61,7 @@ export const ScrollListRenderer = controls<DataRendererProps>(
         {children.map((child) => (
           <Field key={child.uniqueId} node={child} />
         ))}
-        {loading && <div className={DEFAULT_SPINNER}>Loading…</div>}
+        {loading && <div className={scrollTheme.spinnerClass}>Loading…</div>}
         <ScrollSentinel
           enabled={hasMore && !loading && !!bottomActionId}
           onVisible={fetchMore}

@@ -52,6 +52,12 @@ export interface DataGridClasses {
   cellClass?: string;
   bodyCellClass?: string;
   rowClass?: string;
+  /** Radix popover panel class for the column filter popover. */
+  popoverClass?: string;
+  /** Class for the "Clear" button inside the filter popover. */
+  clearFilterClass?: string;
+  /** Label for the filter popover's clear button. */
+  clearFilterText?: string;
 }
 
 export const defaultDataGridClasses: DataGridClasses = {
@@ -62,6 +68,10 @@ export const defaultDataGridClasses: DataGridClasses = {
   headerCellClass: "font-bold",
   cellClass: "",
   bodyCellClass: "border-t py-1 flex items-center",
+  popoverClass:
+    "text-primary-950 animate-in data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 rounded-md border bg-white p-4 shadow-md outline-none",
+  clearFilterClass: "underline font-bold",
+  clearFilterText: "Clear",
 };
 
 /**
