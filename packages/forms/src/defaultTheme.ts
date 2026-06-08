@@ -98,6 +98,11 @@ export const defaultHtmlTheme: HtmlFormTheme = {
         "self-start text-xs px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-40",
       removeClass:
         "text-xs px-2 py-1 rounded border border-zinc-300 dark:border-zinc-600 disabled:opacity-40",
+      dialogClass:
+        "rounded-lg p-6 max-w-lg w-full bg-white dark:bg-zinc-900 dark:text-zinc-100 backdrop:bg-black/40",
+      dialogBodyClass: "flex flex-col gap-3",
+      cancelClass:
+        "text-xs px-3 py-1 rounded border border-zinc-300 dark:border-zinc-600",
     },
     arrayElement: {
       className: "flex items-center gap-2 justify-between",

@@ -16,6 +16,8 @@ import {
   createStaticSchemaTree,
   fontAwesomeIcon,
   groupedControl,
+  htmlDisplayControl,
+  iconDisplayControl,
   IconPlacement,
   inlineOptions,
   materialIcon,
@@ -55,9 +57,7 @@ function row(label: string, ...buttons: ActionControlDefinition[]) {
 // ── Pages ────────────────────────────────────────────────────────────
 
 function buttonsDef(): GroupedControlsDefinition {
-  // 1. ActionStyle variants — Button / Secondary / Link. Group is a
-  // "make-arbitrary-children-act-as-a-button" style and not exercised
-  // here since ActionRendererProps doesn't yet expose caller children.
+  // 1. ActionStyle variants — Button / Secondary / Link / Group.
   const variants = groupedControl(
     [
       row(
@@ -220,7 +220,54 @@ function buttonsDef(): GroupedControlsDefinition {
     "Font Awesome icons (same Kit as legacy)",
   );
 
-  // 6. Disabled action.
+  // 6. Custom child content — `ActionControlDefinition.children` are
+  // rendered into `ActionRendererProps.children`. `ButtonAction` uses
+  // them as the button body instead of the auto-composed icon+text.
+  // Lets you put any nested form-defined content inside the clickable
+  // element (multi-line label, mixed icon+text custom layouts, an
+  // HTML display chunk, etc.). `actionText` is still passed for
+  // accessibility (tooltip via `title=` when icon-only), so the host's
+  // a11y assertions stay valid.
+  const childContent = groupedControl(
+    [
+      row(
+        "TextDisplay child:",
+        actionControl("Submit report", "noop", {
+          children: [textDisplayControl("Submit report")],
+        }),
+      ),
+      row(
+        "Multi-line label:",
+        actionControl("Save and continue", "noop", {
+          children: [
+            htmlDisplayControl(
+              `<span class="block text-xs uppercase tracking-wide opacity-70">Action</span><span class="block">Save and continue</span>`,
+            ),
+          ],
+        }),
+      ),
+      row(
+        "Icon + label custom layout:",
+        actionControl("Notify team", "noop", {
+          children: [
+            groupedControl(
+              [
+                iconDisplayControl(fontAwesomeIcon("bell"), {
+                  styleClass: "text-yellow-300",
+                }),
+                textDisplayControl("Notify team"),
+              ],
+              undefined,
+              inlineOptions(),
+            ),
+          ],
+        }),
+      ),
+    ],
+    "Custom button content (children)",
+  );
+
+  // 7. Disabled action.
   const disabled = groupedControl(
     [
       row(
@@ -245,6 +292,7 @@ function buttonsDef(): GroupedControlsDefinition {
       busy,
       faIcons,
       styling,
+      childContent,
       disabled,
     ],
     "ButtonAction renderer demo",

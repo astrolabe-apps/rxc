@@ -4,7 +4,7 @@ import {
   type FieldOption,
   type SchemaField,
 } from "./json";
-import type { Control, ReadContext } from "@rxc/controls-core";
+import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
 import type { SchemaInterface } from "./schemaInterface";
 
 export interface CleanupScope {
@@ -98,6 +98,19 @@ export interface FormStateNode {
    * across the lifetime of this state node.
    */
   parent: DataNode;
+  /**
+   * The {@link ControlContext} that owns this node's `base` Control and
+   * every descendant control allocated through this state tree. Exposed so
+   * sibling code (e.g. an external-edit staging hook) can spawn a related
+   * FormStateNode subtree on the same context.
+   */
+  ctx: ControlContext;
+  /**
+   * Tree-wide globals (resolver, runAsync, clearHidden, ...) this node was
+   * constructed with. Exposed so spawned subtrees (drafts, sub-forms) can
+   * reuse the same configuration without re-collecting it from a registry.
+   */
+  globals: FormGlobalOptions;
   /**
    * Schema-aware operations shared with children. Always populated — either
    * the instance supplied via {@link FormGlobalOptions.schemaInterface} or

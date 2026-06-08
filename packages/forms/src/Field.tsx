@@ -9,7 +9,6 @@ import {
 import {
   DesignModeProvider,
   indexAdornments,
-  pickActionRenderer,
   pickDataRenderer,
   pickDisplayRenderer,
   pickGroupRenderer,
@@ -17,6 +16,7 @@ import {
   useRegistry,
   wrapAdornments,
 } from "@rxc/forms-react-core";
+import { FieldAction } from "./FieldAction";
 import { useLayout } from "./Layout";
 import { useVisibility } from "./Visibility";
 import { useLabel } from "./Label";
@@ -85,10 +85,12 @@ export const Field = controls<FieldProps>(
         break;
       }
       case ControlDefinitionType.Action: {
-        const match = pickActionRenderer(registry.action, node, rc);
-        if (match) {
-          inner = <match.component node={node} />;
-        }
+        // Delegated to `FieldAction` because the dispatch hooks
+        // (`useActionHandler` / `useAsyncAction`) would otherwise live
+        // inside this `switch` case — fine in practice (def.type is
+        // stable per FormStateNode) but technically a rules-of-hooks
+        // landmine if a node ever changed type between renders.
+        inner = <FieldAction node={node} />;
         break;
       }
       case ControlDefinitionType.Display: {

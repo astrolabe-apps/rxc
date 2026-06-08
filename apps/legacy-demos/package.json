@@ -1,5 +1,5 @@
 {
-  "name": "rxc-legacy-buttons-demo",
+  "name": "rxc-legacy-demos",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -8,9 +8,10 @@
     "start": "next start -p 3001"
   },
   "dependencies": {
+    "@astroapps/aria-base": "^1.6.1",
     "@react-typed-forms/core": "^4.5.3",
     "@react-typed-forms/schemas": "^18.0.0",
-    "@react-typed-forms/schemas-html": "^5.2.0",
+    "@react-typed-forms/schemas-html": "^5.2.1",
     "clsx": "^2.1.1",
     "next": "15.5.12",
     "react": "~19.1.0",

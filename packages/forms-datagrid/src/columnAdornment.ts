@@ -58,11 +58,16 @@ export interface DataGridClasses {
   clearFilterClass?: string;
   /** Label for the filter popover's clear button. */
   clearFilterText?: string;
-  /**
-   * Class for the per-row add/remove/edit buttons. When unset, the buttons
-   * compose `theme.action`'s primary-button classes (matching `Pager`).
-   */
-  actionButtonClass?: string;
+  /** Class for the `<dialog>` element hosting the external-edit draft. */
+  dialogClass?: string;
+  /** Class for the dialog's inner wrapper (padding + child layout). */
+  dialogBodyClass?: string;
+  /** Class for the Apply/Cancel button row inside the dialog. */
+  dialogActionsClass?: string;
+  /** Label for the Apply button. Defaults to `"Apply"`. */
+  applyText?: string;
+  /** Label for the Cancel button. Defaults to `"Cancel"`. */
+  cancelText?: string;
 }
 
 export const defaultDataGridClasses: DataGridClasses = {
@@ -77,6 +82,12 @@ export const defaultDataGridClasses: DataGridClasses = {
     "text-primary-950 animate-in data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 rounded-md border bg-white p-4 shadow-md outline-none",
   clearFilterClass: "underline font-bold",
   clearFilterText: "Clear",
+  dialogClass:
+    "rounded border bg-white p-0 shadow-lg backdrop:bg-black/40",
+  dialogBodyClass: "flex flex-col gap-3 p-4 min-w-[20rem]",
+  dialogActionsClass: "flex justify-end gap-2 pt-2 border-t",
+  applyText: "Apply",
+  cancelText: "Cancel",
 };
 
 /**

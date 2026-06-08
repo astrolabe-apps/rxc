@@ -166,6 +166,16 @@ export interface HtmlArrayTheme {
   removableChildClass?: string;
   addClass?: string;
   removeClass?: string;
+  /** Class for the per-row Edit button (editExternal mode). Falls back
+   *  to `removeClass` when unset so hosts that haven't themed it get a
+   *  matching secondary-button look. */
+  editClass?: string;
+  /** `<dialog>` chrome for the external-edit add modal. */
+  dialogClass?: string;
+  /** Inner wrapper inside the add modal (padding + child layout). */
+  dialogBodyClass?: string;
+  /** Class for the Cancel button in the add modal. */
+  cancelClass?: string;
 }
 
 // ── Group renderers ──────────────────────────────────────────────────

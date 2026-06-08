@@ -12,6 +12,7 @@ export * from "@rxc/forms-react-core";
 
 export { Form } from "./Form";
 export { Field } from "./Field";
+export { FieldAction } from "./FieldAction";
 export {
   DefaultLabel,
   LabelProvider,
@@ -58,6 +59,7 @@ export { JsonataRenderer } from "./renderers/data/Jsonata";
 export { ElementSelectedRenderer } from "./renderers/data/ElementSelected";
 export { ScrollListRenderer } from "./renderers/data/ScrollList";
 export { ArrayElementRenderer } from "./renderers/data/ArrayElement";
+export { ArrayElementModalHostRenderer } from "./renderers/data/ArrayElementModalHost";
 
 // ── HTML group renderers ─────────────────────────────────────────────
 

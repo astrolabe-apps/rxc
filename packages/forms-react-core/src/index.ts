@@ -68,6 +68,7 @@ export {
   type ActionHandlerResult,
 } from "./ActionScope";
 export { useAsyncAction, runAsyncAction } from "./useAsyncAction";
+export { Action } from "./Action";
 
 // Plugin bundle helpers
 export {
@@ -97,6 +98,11 @@ export { useDeferredCleanup } from "./useDeferredCleanup";
 // Helpers
 export { useLabelText } from "./labelText";
 export { useExpression, ensureExpressionResult } from "./useExpression";
+export { useExternalEdit } from "./useExternalEdit";
+export type {
+  ExternalEditController,
+  ExternalEditSession,
+} from "./useExternalEdit";
 export { useFormErrors } from "./useFormErrors";
 export type { FormError } from "./useFormErrors";
 export {

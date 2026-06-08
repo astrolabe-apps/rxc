@@ -1,0 +1,279 @@
+import {
+  noopReadContext,
+  type Control,
+  type ReadContext,
+} from "@rxc/controls-core";
+import {
+  createDataNode,
+  createFormStateNode,
+  type ControlDefinition,
+  type DataNode,
+  type FormNode,
+  type FormStateNode,
+} from "@rxc/forms-core";
+
+/**
+ * Optional overrides for how the draft FormStateNode is built. Both
+ * default to "auto-detect from the array's form" — sufficient for
+ * conventional array renderers (single-child element template).
+ *
+ * DataGrid-style renderers, where the array's children are columns rather
+ * than a per-element template, can supply both: pass the array's own
+ * `FormNode` so children resolve to the columns, plus a `Contents` group
+ * `elementDefinition` so the draft renders the columns inline rather than
+ * recursively as another grid.
+ */
+export interface ExternalEditOptions {
+  /** Override the FormNode used as the draft's root. */
+  elementForm?: FormNode;
+  /** Override the draft root's definition (shadows the form node's own). */
+  elementDefinition?: ControlDefinition;
+}
+
+/**
+ * Staged-edit session for one array. The {@link draftForm} is a standalone
+ * {@link FormStateNode} subtree rooted on the array's element schema/form
+ * and bound to a fresh {@link draft} control — modifications never touch
+ * the source array until {@link ExternalEditController.apply | apply()}
+ * commits.
+ */
+export interface ExternalEditSession {
+  /** `"add"` stages a new element; `"edit"` stages a snapshot of `arr[index]`. */
+  mode: "add" | "edit";
+  /** Target element index for `edit`; for `add`, the length at begin time
+   *  (informational only — Apply pushes to the live end of the array). */
+  index: number;
+  /** The transient draft value Control. */
+  draft: Control<unknown>;
+  /** The standalone draft FormStateNode for rendering. */
+  draftForm: FormStateNode;
+}
+
+export interface ExternalEditController {
+  /**
+   * Reactive read of the current session. Returns `null` when no edit is
+   * in progress. Must be called from a `ReadContext` to subscribe to
+   * begin/apply/cancel transitions.
+   */
+  session(rc: ReadContext): ExternalEditSession | null;
+  /**
+   * Begin staging a new array element. `initialValue` defaults to `null`,
+   * matching the legacy `wc.addElement(arr, null)` pattern that lets
+   * defaultValue scripts populate the draft.
+   */
+  beginAdd(initialValue?: unknown): void;
+  /**
+   * Begin staging an edit of `arr[index]`. Snapshots the live value
+   * (structural clone) so subsequent draft writes don't affect the live
+   * element until Apply.
+   */
+  beginEdit(index: number): void;
+  /**
+   * Commit the draft.
+   *
+   * - `add`: appends the draft value via `wc.addElement(arr, value)`.
+   * - `edit`: writes the draft value over the live element at the
+   *   originally-targeted index (no-op if the index is now out of range
+   *   — defensive against the array being mutated mid-session).
+   *
+   * Validates the draft form first unless `dontValidate` is set; on
+   * validation failure marks every draft node touched (so error messages
+   * surface) and returns `false`. Returns `true` on success.
+   */
+  apply(options?: { dontValidate?: boolean }): boolean;
+  /** Discard the draft and clear the session. */
+  cancel(): void;
+}
+
+const META_KEY = "$externalEdit";
+
+/**
+ * Per-array staged-edit controller. Returns the same controller instance
+ * for any `FormStateNode` bound to the same underlying array `Control`
+ * — keyed by `arrayControl.meta[META_KEY]` so a `renderType: Array`
+ * control and its sibling `renderType: ArrayElement` modal host (each
+ * a separate FormStateNode) share **one** controller and **one**
+ * staged-edit session. Without this, `beginAdd` on the Array node would
+ * write to a session the sibling host never reads.
+ *
+ * `arrayNode` must be the {@link FormStateNode} for an array (its
+ * `state.field?.collection === true`). Calling on a non-array node
+ * silently no-ops at begin time (the array Control resolution returns
+ * `undefined`).
+ *
+ * Typical use from a `controls()`-wrapped renderer:
+ *
+ * ```ts
+ * const edit = useExternalEdit(arrayNode);
+ * const session = edit.session(rc);
+ * // ...
+ * <button onClick={() => edit.beginAdd()}>Add</button>
+ * {session ? <DraftDialog draftForm={session.draftForm}
+ *   onApply={() => edit.apply()} onCancel={() => edit.cancel()} /> : null}
+ * ```
+ */
+export function useExternalEdit(
+  arrayNode: FormStateNode,
+  options: ExternalEditOptions = {},
+): ExternalEditController {
+  // Different override shapes need different controller instances — cache
+  // per (arrayControl, elementForm, elementDefinition) triple via a
+  // composite meta key on the SHARED array Control. Two FormStateNodes
+  // bound to the same field will resolve to the same `arrayControl` here
+  // and so see the same cached controller.
+  const overrideKey =
+    options.elementForm || options.elementDefinition
+      ? `${META_KEY}/${options.elementForm?.id ?? "_"}/${
+          options.elementDefinition ? "def" : "_"
+        }`
+      : META_KEY;
+
+  // Resolve the underlying array Control — the shared key between
+  // sibling renderers. Two FormStateNodes bound to the same array field
+  // resolve to the same `Control` here, so the controller cached on the
+  // Control's `meta` is shared between them.
+  const dn = arrayNode.getState(noopReadContext).dataNode;
+  const arrayControl = dn?.cursor(noopReadContext).control as
+    | Control<unknown>
+    | undefined;
+  const metaHost = (arrayControl?.meta ?? {}) as Record<string, unknown>;
+
+  const cached = metaHost[overrideKey] as ExternalEditController | undefined;
+  if (cached) return cached;
+
+  return ((): ExternalEditController => {
+    const ctx = arrayNode.ctx;
+    const sessionControl = ctx.newControl<ExternalEditSession | null>(null);
+
+    function getArrayControl(): Control<unknown[]> | undefined {
+      const dn = arrayNode.getState(noopReadContext).dataNode;
+      if (!dn) return undefined;
+      return dn.cursor(noopReadContext).control as Control<unknown[]>;
+    }
+
+    function getElementSchemaNode() {
+      // The array's own SchemaNode is reused for elements — see
+      // `dataNode.ts::childElement` which calls
+      // `createDataNode(schemaNode, elemControl, node, index)`.
+      const dn = arrayNode.getState(noopReadContext).dataNode;
+      if (!dn) return undefined;
+      return dn.cursor(noopReadContext).schema.node;
+    }
+
+    function getElementFormNode() {
+      if (options.elementForm) return options.elementForm;
+      // Mirrors `resolveArrayChildren`: when the array has a single child
+      // template, that's the element's FormNode; otherwise the array's
+      // form is reused (the renderer will synthesize a default data
+      // control via `defaultResolveChildren`).
+      const arrayForm = arrayNode.form;
+      if (!arrayForm) return undefined;
+      const children = arrayForm.cursor(noopReadContext).children;
+      return children.length === 1 ? children[0].node : arrayForm;
+    }
+
+    function disposeCurrent(current: ExternalEditSession | null) {
+      if (current) current.draftForm.cleanup();
+    }
+
+    function beginSession(mode: "add" | "edit", index: number, value: unknown) {
+      const elementSchema = getElementSchemaNode();
+      const elementForm = getElementFormNode();
+      if (!elementSchema || !elementForm) return;
+
+      const draft = ctx.newControl<unknown>(value);
+      const draftDataNode: DataNode = createDataNode(
+        elementSchema,
+        draft,
+        undefined,
+        // `elementIndex` must be a number (not undefined) so the default
+        // child resolver treats this as an element body, not an array
+        // container that needs expanding. The numeric value is otherwise
+        // not consulted for standalone drafts.
+        0,
+      );
+      const draftForm = createFormStateNode(
+        ctx,
+        elementForm,
+        draftDataNode,
+        arrayNode.globals,
+        undefined,
+        options.elementDefinition ?? null,
+      );
+
+      const next: ExternalEditSession = { mode, index, draft, draftForm };
+      ctx.update((wc) => {
+        const prev = sessionControl.valueNow;
+        disposeCurrent(prev);
+        wc.setValue(sessionControl, next);
+      });
+    }
+
+    function commit(value: unknown, session: ExternalEditSession): boolean {
+      const arr = getArrayControl();
+      if (!arr) return false;
+      ctx.update((wc) => {
+        if (session.mode === "add") {
+          wc.addElement(arr, value);
+        } else {
+          const elems = arr.elementsNow;
+          if (session.index >= 0 && session.index < elems.length) {
+            wc.setValue(elems[session.index] as Control<unknown>, value);
+          }
+        }
+        disposeCurrent(session);
+        wc.setValue(sessionControl, null);
+      });
+      return true;
+    }
+
+    const controller: ExternalEditController = {
+      session(rc) {
+        return rc.getValue(sessionControl);
+      },
+      beginAdd(initialValue = null) {
+        const arr = getArrayControl();
+        const len = arr ? arr.elementsNow.length : 0;
+        beginSession("add", len, initialValue);
+      },
+      beginEdit(index) {
+        const arr = getArrayControl();
+        if (!arr) return;
+        const elems = arr.elementsNow;
+        if (index < 0 || index >= elems.length) return;
+        const live = (elems[index] as Control<unknown>).valueNow;
+        // Structural clone so draft mutations on compound values don't
+        // alias back into the live element.
+        const snapshot =
+          live == null || typeof live !== "object" ? live : structuredClone(live);
+        beginSession("edit", index, snapshot);
+      },
+      apply(options) {
+        const session = sessionControl.valueNow;
+        if (!session) return false;
+        const dontValidate = options?.dontValidate === true;
+        if (!dontValidate) {
+          const ok = session.draftForm.validate();
+          if (!ok) {
+            session.draftForm.setTouched(true);
+            return false;
+          }
+        }
+        const value = session.draft.valueNow;
+        return commit(value, session);
+      },
+      cancel() {
+        ctx.update((wc) => {
+          const prev = sessionControl.valueNow;
+          disposeCurrent(prev);
+          wc.setValue(sessionControl, null);
+        });
+      },
+    };
+
+    if (arrayControl) {
+      metaHost[overrideKey] = controller;
+    }
+    return controller;
+  })();
+}

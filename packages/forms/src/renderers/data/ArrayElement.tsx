@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { controls } from "@rxc/controls";
 import {
-  isDataControl,
   type ArrayElementRenderOptions,
+  type ArrayRenderOptions,
+  isDataControl,
 } from "@rxc/forms-core";
 import {
   rendererClass,
+  useExternalEdit,
   type DataRendererProps,
 } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
@@ -15,11 +17,24 @@ import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**
  * Per-element renderer used inside an array. Shows a one-line summary
- * + an "Edit" button; clicking the button opens a `<dialog>` that
- * renders the element's full form.
+ * + an "Edit" button.
  *
- * `showInline: true` (from `ArrayElementRenderOptions`) skips the
- * dialog and renders the element's children inline.
+ * Behavior depends on whether the parent array opts into editExternal:
+ *
+ * - **`editExternal: true` on parent array** — Edit dispatches
+ *   `beginEdit(elementIndex)` on the array's shared `useExternalEdit`
+ *   controller. The modal that displays the draft is rendered by a
+ *   sibling `renderType: ArrayElement` data control bound to the same
+ *   array field (`ArrayElementModalHostRenderer`), not by this
+ *   component. Without the sibling, clicking Edit stages a draft that
+ *   has no UI host.
+ *
+ * - **`editExternal` unset / false** — Edit opens a local `<dialog>`
+ *   that renders the live element's children (legacy compact-view UX).
+ *   Mutations to the children commit immediately.
+ *
+ * `showInline: true` on this renderer's own `renderOptions` skips both
+ * paths and renders the live children inline.
  */
 export const ArrayElementRenderer = controls<DataRendererProps>(
   "ArrayElementRenderer",
@@ -31,7 +46,26 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
       : undefined;
     const showInline = !!renderOptions?.showInline;
 
-    const children = node.getChildren(rc);
+    // Parent array context — present whenever this renderer fires (the
+    // matcher requires `elementIndex` to be set). When `editExternal` is
+    // on the array, this renderer dispatches through the parent's
+    // staged-edit controller rather than mutating the live element. The
+    // modal display lives on a sibling control bound to the same array.
+    const parentArray = node.parentNode;
+    const parentDef = parentArray?.getState(rc).definition;
+    const parentRenderOpts =
+      parentDef && isDataControl(parentDef)
+        ? (parentDef.renderOptions as ArrayRenderOptions | undefined)
+        : undefined;
+    const editExternal = !!parentRenderOpts?.editExternal;
+    const elementIndex = node.parent.cursor(rc).elementIndex;
+
+    // Controller is cheap (memoized on node.meta). Not a React hook;
+    // safe to call conditionally.
+    const editController =
+      editExternal && parentArray ? useExternalEdit(parentArray) : null;
+
+    const liveChildren = node.getChildren(rc);
     const [open, setOpen] = useState(false);
     const dialogRef = useRef<HTMLDialogElement | null>(null);
 
@@ -48,7 +82,7 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
     if (showInline) {
       return (
         <div id={id} className={aeTheme.innerClass}>
-          {children.map((c) => (
+          {liveChildren.map((c) => (
             <Field key={c.uniqueId} node={c} />
           ))}
         </div>
@@ -57,36 +91,49 @@ export const ArrayElementRenderer = controls<DataRendererProps>(
 
     const summary = data ? formatSummary(rc.getValue(data)) : "";
 
+    const handleEditClick = () => {
+      if (editExternal && editController && elementIndex !== undefined) {
+        editController.beginEdit(elementIndex);
+        return;
+      }
+      setOpen(true);
+    };
+
     return (
       <div id={id} className={className}>
         <span className={aeTheme.summaryClass}>{summary || "(empty)"}</span>
         <button
           type="button"
           className={aeTheme.buttonClass}
-          onClick={() => setOpen(true)}
+          onClick={handleEditClick}
         >
           Edit
         </button>
-        <dialog
-          ref={dialogRef}
-          onClose={() => setOpen(false)}
-          className={aeTheme.dialogClass}
-        >
-          <div className={aeTheme.innerClass}>
-            {children.map((c) => (
-              <Field key={c.uniqueId} node={c} />
-            ))}
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className={aeTheme.buttonClass}
-                onClick={() => setOpen(false)}
-              >
-                Done
-              </button>
+        {/* Local dialog ONLY for the non-editExternal path. With
+         *  editExternal, the sibling `ArrayElementModalHostRenderer`
+         *  displays the staged draft on the array's shared session. */}
+        {!editExternal ? (
+          <dialog
+            ref={dialogRef}
+            onClose={() => setOpen(false)}
+            className={aeTheme.dialogClass}
+          >
+            <div className={aeTheme.innerClass}>
+              {liveChildren.map((c) => (
+                <Field key={c.uniqueId} node={c} />
+              ))}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  className={aeTheme.buttonClass}
+                  onClick={() => setOpen(false)}
+                >
+                  Done
+                </button>
+              </div>
             </div>
-          </div>
-        </dialog>
+          </dialog>
+        ) : null}
       </div>
     );
   },

@@ -71,6 +71,14 @@ export function createFormStateNode(
   parent: DataNode,
   options: FormGlobalOptions,
   nodeOptions: FormNodeOptions = {},
+  /**
+   * Optional override for the root node's definition. When set, this shadows
+   * `formNode.cursor(rc).definition` for the *root only* — children still
+   * resolve from `formNode`'s cursor. Useful when you need to render a
+   * subtree (e.g. the columns of a DataGrid wrapped in a Contents group as
+   * an external-edit draft) without grafting a synthetic FormNode.
+   */
+  staticDef: ControlDefinition | null = null,
 ): FormStateNode {
   const resolved: FormGlobalOptions = {
     ...options,
@@ -80,7 +88,7 @@ export function createFormStateNode(
     ctx,
     "ROOT",
     {},
-    null,
+    staticDef,
     formNode,
     nodeOptions,
     resolved,

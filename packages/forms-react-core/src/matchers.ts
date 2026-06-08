@@ -216,12 +216,7 @@ export function matchActionId(
   actionId: string,
   component: ActionRenderer,
 ): ActionMatcher {
-  return (node, rc) => {
-    const def = node.getState(rc).definition;
-    if (!isActionControl(def)) return null;
-    if (def.actionId !== actionId) return null;
-    return { component };
-  };
+  return (props) => (props.actionId === actionId ? { component } : null);
 }
 
 export function matchActionAlways(component: ActionRenderer): ActionMatcher {

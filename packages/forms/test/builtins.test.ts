@@ -294,7 +294,7 @@ describe("defaultRegistry — data dispatch", () => {
     );
   });
 
-  it("ArrayElement renderType — array level routes to ArrayRenderer", () => {
+  it("ArrayElement renderType — array level routes to ArrayElementModalHostRenderer (editExternal sibling)", () => {
     const node = fakeNode({
       definition: dataDef({
         renderOptions: { type: DataRenderType.ArrayElement },
@@ -303,7 +303,7 @@ describe("defaultRegistry — data dispatch", () => {
     });
     const m = pickDataRenderer(reg.data, node, rc);
     expect((m?.component as { displayName?: string })?.displayName).toBe(
-      "ArrayRenderer",
+      "ArrayElementModalHostRenderer",
     );
   });
 

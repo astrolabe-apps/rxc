@@ -7,6 +7,7 @@ import type {
 import type { AdornmentRegistration } from "./Adornment";
 import type {
   ActionMatch,
+  ActionRendererProps,
   DataMatch,
   DisplayMatch,
   GroupMatch,
@@ -33,8 +34,7 @@ export type GroupMatcher = (
 ) => GroupMatch | null;
 
 export type ActionMatcher = (
-  node: FormStateNode,
-  rc: ReadContext,
+  props: ActionRendererProps,
 ) => ActionMatch | null;
 
 export type DisplayMatcher = (data: DisplayData) => DisplayMatch | null;
@@ -123,11 +123,10 @@ export function pickGroupRenderer(
 
 export function pickActionRenderer(
   matchers: ActionMatcher[],
-  node: FormStateNode,
-  rc: ReadContext,
+  props: ActionRendererProps,
 ): ActionMatch | null {
   for (const m of matchers) {
-    const hit = m(node, rc);
+    const hit = m(props);
     if (hit) return hit;
   }
   return null;

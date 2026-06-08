@@ -17,6 +17,26 @@
  * so they're emitted into the generated stylesheet. */
 @source "../node_modules/@react-typed-forms/schemas-html/lib/**/*.js";
 
+/* @astroapps/aria-base ships the Modal / Dialog primitives that the
+ * legacy editExternal flow uses. Its default classes (`fixed z-[100]
+ * inset-0 bg-black bg-opacity-50 ...` for the overlay, plus the dialog
+ * container) MUST be emitted into the bundle — without these the
+ * overlay drops to in-flow positioning and the modal renders inline
+ * instead of overlaying the page. */
+@source "../node_modules/@astroapps/aria-base/lib/**/*.js";
+
+/* Tailwind v3 → v4 compat shim: `bg-opacity-*` utilities were removed
+ * in v4 (use the slash syntax `bg-black/50` instead). `aria-base@1.6.1`'s
+ * Modal is compiled against v3 and emits `bg-black bg-opacity-50` as the
+ * underlay class, so under v4 the overlay renders fully opaque. Restore
+ * the v3 behavior with a targeted rule that only fires when paired with
+ * `bg-black`. Remove once aria-base is updated to v4-compatible classes. */
+@layer utilities {
+  .bg-black.bg-opacity-50 {
+    background-color: rgb(0 0 0 / 0.5);
+  }
+}
+
 /* RTOeForms production palette — gives the stock `defaultTailwindTheme`
  * meaningful colors for `bg-primary-500` / `bg-secondary-500` etc. */
 @theme {

@@ -21,6 +21,7 @@ import {
   createSchemaTree,
   fontAwesomeIcon,
   groupedControl,
+  htmlDisplayControl,
   legacyFormNode,
   textDisplayControl,
 } from "@react-typed-forms/schemas";
@@ -234,7 +235,46 @@ function buttonsDef(): GroupedControlsDefinition {
     "Font Awesome icons (same Kit as new demo)",
   );
 
-  // 6. Disabled action.
+  // 6. Custom child content. Legacy `createButtonActionRenderer` gates
+  // the children-as-body flow on `actionStyle === Group`:
+  //   `actionContent = actionStyle === Group ? renderChildren() : undefined`
+  // (`schemas/lib/index.cjs` around the `isActionControl` branch). For
+  // other styles the children are dropped on the floor. Pair this row
+  // with the rxc demo's "Custom button content (children)" section —
+  // rxc accepts `children` for *any* style, so the same form JSON
+  // looks busier on the rxc side than here.
+  const childContent = groupedControl(
+    [
+      row(
+        "Group style + text child:",
+        actionControl("Submit report", "noop", {
+          actionStyle: ActionStyle.Group,
+          children: [textDisplayControl("Submit report")],
+        }),
+      ),
+      row(
+        "Group style + multi-line HTML child:",
+        actionControl("Save and continue", "noop", {
+          actionStyle: ActionStyle.Group,
+          children: [
+            htmlDisplayControl(
+              `<span class="block text-xs uppercase tracking-wide opacity-70">Action</span><span class="block">Save and continue</span>`,
+            ),
+          ],
+        }),
+      ),
+      row(
+        "Non-Group style ignores children:",
+        actionControl("Plain primary", "noop", {
+          actionStyle: ActionStyle.Button,
+          children: [textDisplayControl("This child is ignored")],
+        }),
+      ),
+    ],
+    "Custom button content (children)",
+  );
+
+  // 7. Disabled action.
   const disabled = groupedControl(
     [
       row(
@@ -259,6 +299,7 @@ function buttonsDef(): GroupedControlsDefinition {
       busy,
       faIcons,
       styling,
+      childContent,
       disabled,
     ],
     "ButtonAction renderer demo (legacy)",

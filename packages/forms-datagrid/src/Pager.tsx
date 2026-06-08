@@ -4,20 +4,13 @@ import { controls } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import { dataRef } from "@rxc/forms-core";
 import {
+  Action,
   dataPlugin,
   type DataRendererProps,
   type FormRegistry,
   rendererClass,
 } from "@rxc/forms-react-core";
-import { useHtmlTheme } from "@rxc/forms";
 import type { SearchOptions } from "@astroapps/searchstate";
-
-// Mirror `ButtonAction`'s primary-button class composition so the pager's
-// prev/next match the host's themed buttons (the legacy pager routed these
-// through the host action renderer). Defaults match `ButtonAction`'s.
-const BUTTON_LAYOUT = "inline-flex items-center justify-center gap-1.5";
-const DEFAULT_BUTTON = "px-3 py-1 rounded text-sm disabled:opacity-40";
-const DEFAULT_PRIMARY = "bg-blue-600 text-white";
 
 /** `renderOptions.type` discriminator for the Pager renderer. */
 export const PagerRenderType = "Pager";
@@ -27,7 +20,15 @@ export interface PagerClasses {
   numberClass?: string;
   currentClass?: string;
   buttonGroupClass?: string;
-  buttonClass?: string;
+  /** Action id dispatched for the Previous button. Hosts can register a
+   *  custom renderer via `matchActionId(prevActionId, MyRenderer)`. */
+  prevActionId?: string;
+  /** Action id dispatched for the Next button. */
+  nextActionId?: string;
+  /** Button label for Previous. */
+  prevText?: string;
+  /** Button label for Next. */
+  nextText?: string;
 }
 
 export const defaultPagerClasses: PagerClasses = {
@@ -35,6 +36,10 @@ export const defaultPagerClasses: PagerClasses = {
   currentClass: "text-surface-700 dark:text-surface-400 text-sm",
   buttonGroupClass: "xs:mt-0 mt-2 inline-flex gap-2",
   numberClass: "text-surface-900 font-semibold dark:text-white",
+  prevActionId: "pagerPrev",
+  nextActionId: "pagerNext",
+  prevText: "Previous",
+  nextText: "Next",
 };
 
 export interface PagerOptions {
@@ -58,8 +63,9 @@ const defaultPagerOptions: Required<PagerOptions> = {
  * and the total count from a sibling field (default `results/total`),
  * renders "Showing page X of Y" with Previous/Next buttons that update
  * `offset`. Ported from the legacy `@astroapps/schemas-datagrid`
- * `PagerRenderer`; the prev/next buttons are plain `<button>`s (the legacy
- * routed them through the host action renderer) styled via `PagerClasses`.
+ * `PagerRenderer`. The prev/next buttons are dispatched through the
+ * action registry via `<Action>` so hosts can swap the renderer per id
+ * (`matchActionId("pagerPrev", MyPrev)`).
  */
 function createPagerRenderer(
   classes?: PagerClasses,
@@ -67,29 +73,17 @@ function createPagerRenderer(
 ) {
   const pagerClasses: PagerClasses = { ...defaultPagerClasses, ...classes };
   const { totalField, initialPerPage } = { ...defaultPagerOptions, ...options };
+  const prevActionId = pagerClasses.prevActionId ?? "pagerPrev";
+  const nextActionId = pagerClasses.nextActionId ?? "pagerNext";
+  const prevText = pagerClasses.prevText ?? "Previous";
+  const nextText = pagerClasses.nextText ?? "Next";
 
   return controls<DataRendererProps>(
     "PagerRenderer",
     ({ node }, { rc, update }) => {
       const state = node.getState(rc);
-      const actionTheme = useHtmlTheme().action ?? {};
       const search = state.data as Control<SearchOptions> | undefined;
       if (!search) return null;
-
-      // Primary-button class composition, matching ButtonAction.
-      const btnClass =
-        pagerClasses.buttonClass ??
-        rendererClass(
-          actionTheme.buttonLayoutClass ?? BUTTON_LAYOUT,
-          rendererClass(
-            actionTheme.buttonClass ?? DEFAULT_BUTTON,
-            actionTheme.primaryClass ?? DEFAULT_PRIMARY,
-          ),
-        );
-      const btnTextClass = rendererClass(
-        actionTheme.textClass,
-        actionTheme.primaryTextClass,
-      );
 
       const offsetControl = search.fields.offset as Control<number>;
       const lengthControl = search.fields.length as Control<number>;
@@ -119,22 +113,18 @@ function createPagerRenderer(
             Showing page {numText(currentPage + 1)} of {numText(totalPages)}
           </span>
           <div className={pagerClasses.buttonGroupClass}>
-            <button
-              type="button"
-              className={btnClass}
+            <Action
+              actionId={prevActionId}
+              actionText={prevText}
               disabled={currentPage <= 0}
               onClick={() => changePage(-1)}
-            >
-              <span className={btnTextClass}>Previous</span>
-            </button>
-            <button
-              type="button"
-              className={btnClass}
+            />
+            <Action
+              actionId={nextActionId}
+              actionText={nextText}
               disabled={currentPage >= totalPages - 1}
               onClick={() => changePage(1)}
-            >
-              <span className={btnTextClass}>Next</span>
-            </button>
+            />
           </div>
         </div>
       );

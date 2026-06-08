@@ -132,11 +132,13 @@ describe("groupPlugin", () => {
 describe("actionPlugin", () => {
   it("emits an action matcher keyed on actionId", () => {
     const partial = actionPlugin({ actionId: "submit", component: Marker });
-    const node = fakeNode({
-      type: ControlDefinitionType.Action,
-      actionId: "submit",
-    } as ControlDefinition);
-    expect(partial.action![0](node, rc)?.component).toBe(Marker);
+    // ActionMatcher takes plain ActionRendererProps now (matches the
+    // legacy `RendererRegistration` for actions).
+    const props = { actionId: "submit", onClick: () => {} };
+    expect(partial.action![0](props)?.component).toBe(Marker);
+
+    const nonMatch = { actionId: "cancel", onClick: () => {} };
+    expect(partial.action![0](nonMatch)).toBeNull();
   });
 });
 

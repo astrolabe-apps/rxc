@@ -74,8 +74,20 @@ importers:
         specifier: ~5.8.0
         version: 5.8.3
 
-  ../../apps/legacy-buttons:
+  ../../apps/legacy-compare:
     dependencies:
+      '@astroapps/datagrid':
+        specifier: ^1.2.0
+        version: 1.2.0(react@19.1.7)
+      '@astroapps/schemas-datagrid':
+        specifier: ^8.2.0
+        version: 8.2.0(@astroapps/datagrid@1.2.0(react@19.1.7))(@astroapps/searchstate@2.0.0)(@radix-ui/react-popover@1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7))(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(react@19.1.7)
+      '@astroapps/searchstate':
+        specifier: ^2.0.0
+        version: 2.0.0
+      '@radix-ui/react-popover':
+        specifier: ^1.1.6
+        version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
       '@react-typed-forms/core':
         specifier: ^4.5.3
         version: 4.5.3(react@19.1.7)
@@ -83,11 +95,14 @@ importers:
         specifier: ^18.0.0
         version: 18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7)
       '@react-typed-forms/schemas-html':
-        specifier: ^5.2.0
-        version: 5.2.0(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
+        specifier: ^5.2.1
+        version: 5.2.1(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      html-react-parser:
+        specifier: ^5.2.2
+        version: 5.2.17(@types/react@19.1.17)(react@19.1.7)
       next:
         specifier: 15.5.12
         version: 15.5.12(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
@@ -123,20 +138,11 @@ importers:
         specifier: ~5.8.0
         version: 5.8.3
 
-  ../../apps/legacy-compare:
+  ../../apps/legacy-demos:
     dependencies:
-      '@astroapps/datagrid':
-        specifier: ^1.2.0
-        version: 1.2.0(react@19.1.7)
-      '@astroapps/schemas-datagrid':
-        specifier: ^8.2.0
-        version: 8.2.0(@astroapps/datagrid@1.2.0(react@19.1.7))(@astroapps/searchstate@2.0.0)(@radix-ui/react-popover@1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7))(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(react@19.1.7)
-      '@astroapps/searchstate':
-        specifier: ^2.0.0
-        version: 2.0.0
-      '@radix-ui/react-popover':
-        specifier: ^1.1.6
-        version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
+      '@astroapps/aria-base':
+        specifier: ^1.6.1
+        version: 1.6.1(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
       '@react-typed-forms/core':
         specifier: ^4.5.3
         version: 4.5.3(react@19.1.7)
@@ -144,14 +150,11 @@ importers:
         specifier: ^18.0.0
         version: 18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7)
       '@react-typed-forms/schemas-html':
-        specifier: ^5.2.0
-        version: 5.2.0(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
+        specifier: ^5.2.1
+        version: 5.2.1(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      html-react-parser:
-        specifier: ^5.2.2
-        version: 5.2.17(@types/react@19.1.17)(react@19.1.7)
       next:
         specifier: 15.5.12
         version: 15.5.12(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
@@ -1334,8 +1337,8 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@react-typed-forms/schemas-html@5.2.0':
-    resolution: {integrity: sha512-logJoPVcijw2KLErLTWHKKNolq0KkSnvFQwJO6MMceYFXHK7z0k7Y8gAETCNk7n6OST2S/EAWxvwOW2R1x4/UQ==}
+  '@react-typed-forms/schemas-html@5.2.1':
+    resolution: {integrity: sha512-r7foZHL9OUGJq9xcF+XRU/hSO+7e4Mk638qQ5bu9U1WSnwwWk6+cgq72qmBavSg5RKw4/l0p4fiUP8PqxQ7/AA==}
     peerDependencies:
       '@react-typed-forms/core': ^4.4.0
       '@react-typed-forms/schemas': ^18.0.0
@@ -3038,7 +3041,7 @@ snapshots:
       '@astroapps/controls': 1.4.2
       react: 19.1.7
 
-  '@react-typed-forms/schemas-html@5.2.0(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)':
+  '@react-typed-forms/schemas-html@5.2.1(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)':
     dependencies:
       '@astroapps/aria-base': 1.6.1(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
       '@mui/base': 5.0.0-beta.70(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)

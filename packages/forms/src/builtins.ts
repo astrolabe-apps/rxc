@@ -42,6 +42,7 @@ import { JsonataRenderer } from "./renderers/data/Jsonata";
 import { ElementSelectedRenderer } from "./renderers/data/ElementSelected";
 import { ScrollListRenderer } from "./renderers/data/ScrollList";
 import { ArrayElementRenderer } from "./renderers/data/ArrayElement";
+import { ArrayElementModalHostRenderer } from "./renderers/data/ArrayElementModalHost";
 
 // Group renderers
 import { StandardGroupRenderer } from "./renderers/group/Standard";
@@ -114,8 +115,9 @@ function matchMultiline(component: typeof MultilineRenderer): DataMatcher {
 
 /**
  * Match an *element* of a collection that has `renderType: ArrayElement`
- * — the element-level renderer that pops a dialog. The collection
- * itself routes to `ArrayRenderer` via the array matcher above.
+ * — the element-level renderer that renders a summary + Edit button.
+ * The corresponding modal host is a separate sibling data control bound
+ * to the same array field (matched by {@link matchArrayElementModalHost}).
  */
 function matchArrayElementChild(component: typeof ArrayElementRenderer): DataMatcher {
   return (node, rc) => {
@@ -129,6 +131,34 @@ function matchArrayElementChild(component: typeof ArrayElementRenderer): DataMat
     const cursor = dn.cursor(rc);
     if (cursor.elementIndex === undefined) return null;
     return { component };
+  };
+}
+
+/**
+ * Match a sibling `renderType: ArrayElement` data control bound to the
+ * array itself (not an element) — i.e. `field.collection === true` and
+ * `cursor.elementIndex === undefined`. This is the modal host for the
+ * legacy editExternal pattern: a separate data control bound to the
+ * same array field as a `renderType: Array, editExternal: true` control.
+ * Both controls resolve to the same array `Control`, so the host sees
+ * the staged-edit session the Array's Add/Edit buttons stage.
+ */
+function matchArrayElementModalHost(
+  component: typeof ArrayElementModalHostRenderer,
+): DataMatcher {
+  return (node, rc) => {
+    const state = node.getState(rc);
+    if (!isDataControl(state.definition)) return null;
+    if (state.definition.renderOptions?.type !== DataRenderType.ArrayElement) {
+      return null;
+    }
+    const field = state.field;
+    if (!field?.collection) return null;
+    const dn = state.dataNode;
+    if (!dn) return null;
+    const cursor = dn.cursor(rc);
+    if (cursor.elementIndex !== undefined) return null;
+    return { component, hidesLabel: true };
   };
 }
 
@@ -159,10 +189,10 @@ export function defaultRegistry(): FormRegistry {
         matchCollection(ScrollListRenderer),
         matchRenderType(DataRenderType.ScrollList, ScrollListRenderer),
       ),
-      matchAll(
-        matchCollection(ArrayRenderer),
-        matchRenderType(DataRenderType.ArrayElement, ArrayRenderer),
-      ),
+      // `renderType: ArrayElement` on the array itself = sibling modal
+      // host for the editExternal flow. Must precede `matchArrayElementChild`
+      // so the array-level case is caught before the element-level one.
+      matchArrayElementModalHost(ArrayElementModalHostRenderer),
       matchArrayElementChild(ArrayElementRenderer),
       matchCompoundField(CompoundDelegate),
       matchDisplayOnly(DisplayOnlyRenderer),

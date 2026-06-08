@@ -9,8 +9,8 @@
 // filter/sort header controls (driven by a sibling `SearchOptions` control),
 // offset/length paging, per-column `visible`/`rowSpan` expressions,
 // adjacent-key `groupByField` row-spanning, and add/remove/edit array
-// actions (the legacy `editExternal` modal flow is not ported — hosts that
-// need an edit modal should drive it themselves via `<ActionScope>`).
+// actions. Setting `renderOptions.editExternal: true` stages Add/Edit in a
+// modal via `useExternalEdit` (commits on Apply, discards on Cancel).
 
 export {
   DataGridRenderType,

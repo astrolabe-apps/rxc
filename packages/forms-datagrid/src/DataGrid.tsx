@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { controls } from "@rxc/controls";
 import type { Control, ReadContext } from "@rxc/controls-core";
 import {
+  ActionStyle,
   boolField,
   buildSchema,
   type ChildNodeSpec,
@@ -22,6 +24,7 @@ import {
   ValidatorType,
 } from "@rxc/forms-core";
 import {
+  Action,
   combineRegistries,
   dataPlugin,
   type DataRendererProps,
@@ -29,9 +32,9 @@ import {
   type FormRegistry,
   rendererClass,
   useActionHandler,
+  useExternalEdit,
 } from "@rxc/forms-react-core";
 import { useControlContext } from "@rxc/controls";
-import { useHtmlTheme } from "@rxc/forms";
 import { Field } from "@rxc/forms";
 import {
   type ColumnDefInit,
@@ -110,9 +113,10 @@ export function computeGroupRowSpans(keys: readonly unknown[]): number[] {
 
 /**
  * DataGrid-specific render options. Mirrors the legacy
- * `@astroapps/schemas-datagrid` options; the external-edit dialog flow
- * (`editExternal`/`getExternalEditData`) is not ported — hosts that need
- * an edit modal should drive it themselves via `<ActionScope>`.
+ * `@astroapps/schemas-datagrid` options. When `editExternal` is set, the
+ * Add/Edit buttons stage a draft via {@link useExternalEdit} and commit on
+ * Apply (matching the legacy modal flow); otherwise they dispatch through
+ * `<ActionScope>` and fall back to direct array mutation.
  */
 export interface DataGridOptions {
   noAdd?: boolean;
@@ -132,10 +136,17 @@ export interface DataGridOptions {
   removeActionId?: string;
   /**
    * When set, each row gets an "Edit" button that fires through
-   * `<ActionScope>` (legacy `editExternal`'s built-in modal is not ported).
-   * Defaults to `"edit"`; an explicit value sets the dispatched id.
+   * `<ActionScope>` (or stages a draft via {@link useExternalEdit} when
+   * `editExternal` is true). Defaults to `"edit"`.
    */
   editActionId?: string;
+  /**
+   * When true, the Add and Edit buttons stage a draft row in transient
+   * state and only commit on Apply (modal flow). Cancel discards the
+   * draft without touching the live array. Matches the legacy
+   * `ArrayRenderOptions.editExternal` semantics.
+   */
+  editExternal?: boolean;
   /**
    * Field reference (relative to the grid's parent data context) of a
    * sibling `SearchOptions` control. When set, filterable/sortable columns
@@ -165,6 +176,7 @@ const DataGridFields = buildSchema<DataGridOptions>({
   addActionId: stringField("Add action id"),
   removeActionId: stringField("Remove action id"),
   editActionId: stringField("Edit action id"),
+  editExternal: boolField("Edit in modal"),
   searchField: stringField("Search field"),
   disableClear: boolField("Disable clear filter"),
   groupByField: stringField("Group by field"),
@@ -223,13 +235,39 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     ({ node }, { rc, update }) => {
     const ctx = useControlContext();
     const actionHandler = useActionHandler();
-    const actionTheme = useHtmlTheme().action ?? {};
     const state = node.getState(rc);
     const def = state.definition;
     if (!isDataControl(def)) return null;
 
     const renderOptions = (def.renderOptions ?? {}) as DataGridOptions &
       RenderOptions;
+
+    // External-edit session: shared between Add and per-row Edit when
+    // `editExternal` is set. The same controller persists across renders
+    // (memoized on `node.meta`), so reads/writes here address one session
+    // at a time.
+    //
+    // The draft form reuses the DataGrid's own FormNode so children
+    // resolve to the column defs, but shadows the array data control's
+    // definition with a Contents group — otherwise the draft would render
+    // as another nested DataGrid bound to a single element.
+    const editController = useExternalEdit(node, {
+      elementForm: node.form ?? undefined,
+      elementDefinition: {
+        type: ControlDefinitionType.Group,
+        groupOptions: { type: GroupRenderType.Contents },
+      } as GroupedControlsDefinition,
+    });
+    const editSession = renderOptions.editExternal
+      ? editController.session(rc)
+      : null;
+    const dialogRef = useRef<HTMLDialogElement | null>(null);
+    useEffect(() => {
+      const el = dialogRef.current;
+      if (!el) return;
+      if (editSession && !el.open) el.showModal();
+      if (!editSession && el.open) el.close();
+    }, [editSession]);
     const columnDefs = (def.children ?? []) as DataControlDefinition[];
     const groupByField = renderOptions.groupByField;
 
@@ -246,7 +284,9 @@ function createDataGridRenderer(classes?: DataGridClasses) {
       !displayOnly && !isReadonly && !renderOptions.noAdd && rowCount < max && !!arrayControl;
     const showRemove =
       !displayOnly && !isReadonly && !renderOptions.noRemove && !!arrayControl;
-    const showEdit = !displayOnly && renderOptions.editActionId !== undefined;
+    const showEdit =
+      !displayOnly &&
+      (renderOptions.editActionId !== undefined || !!renderOptions.editExternal);
 
     const addText = renderOptions.addText ?? "Add";
     const removeText = renderOptions.removeText ?? "Remove";
@@ -255,15 +295,11 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const removeActionId = renderOptions.removeActionId ?? "remove";
     const editActionId = renderOptions.editActionId ?? "edit";
 
-    const btnClass =
-      gridClasses.actionButtonClass ??
-      rendererClass(
-        actionTheme.buttonLayoutClass ?? "inline-flex items-center justify-center gap-1.5",
-        rendererClass(
-          actionTheme.buttonClass ?? "px-3 py-1 rounded text-sm disabled:opacity-40",
-          actionTheme.primaryClass ?? "bg-blue-600 text-white",
-        ),
-      );
+    // Action ids for the dialog's Apply / Cancel buttons. Distinct from
+    // the row-level add/edit/remove ids so hosts can register a custom
+    // renderer per id (e.g. matchActionId("gridApply", FancyApply)).
+    const applyActionId = "gridApply";
+    const cancelActionId = "gridCancel";
 
     const dispatchOrRun = async (
       actionId: string,
@@ -418,23 +454,25 @@ function createDataGridRenderer(classes?: DataGridClasses) {
         return (
           <div className={gridClasses.removeColumnClass}>
             {showEdit ? (
-              <button
-                type="button"
-                className={btnClass}
+              <Action
+                actionId={editActionId}
+                actionText={editText}
                 onClick={() => {
+                  if (renderOptions.editExternal) {
+                    editController.beginEdit(rowIndex);
+                    return;
+                  }
                   void dispatchOrRun(editActionId, {
                     index: rowIndex,
                     value: rowValue,
                   });
                 }}
-              >
-                {editText}
-              </button>
+              />
             ) : null}
             {showRemove ? (
-              <button
-                type="button"
-                className={btnClass}
+              <Action
+                actionId={removeActionId}
+                actionText={removeText}
                 disabled={rowCount <= min}
                 onClick={() => {
                   void dispatchOrRun(
@@ -447,9 +485,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
                     },
                   );
                 }}
-              >
-                {removeText}
-              </button>
+              />
             ) : null}
           </div>
         );
@@ -511,20 +547,48 @@ function createDataGridRenderer(classes?: DataGridClasses) {
         />
         {showAdd ? (
           <div className={gridClasses.addContainerClass}>
-            <button
-              type="button"
-              className={btnClass}
+            <Action
+              actionId={addActionId}
+              actionText={addText}
               onClick={() => {
+                if (renderOptions.editExternal) {
+                  editController.beginAdd();
+                  return;
+                }
                 void dispatchOrRun(addActionId, undefined, () => {
                   if (arrayControl) {
                     update((wc) => wc.addElement(arrayControl, null));
                   }
                 });
               }}
-            >
-              {addText}
-            </button>
+            />
           </div>
+        ) : null}
+        {renderOptions.editExternal ? (
+          <dialog
+            ref={dialogRef}
+            onClose={() => editController.cancel()}
+            className={gridClasses.dialogClass}
+          >
+            {editSession ? (
+              <div className={gridClasses.dialogBodyClass}>
+                <Field node={editSession.draftForm} />
+                <div className={gridClasses.dialogActionsClass}>
+                  <Action
+                    actionId={cancelActionId}
+                    actionText={gridClasses.cancelText ?? "Cancel"}
+                    actionStyle={ActionStyle.Secondary}
+                    onClick={() => editController.cancel()}
+                  />
+                  <Action
+                    actionId={applyActionId}
+                    actionText={gridClasses.applyText ?? "Apply"}
+                    onClick={() => editController.apply()}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </dialog>
         ) : null}
       </>
     );
