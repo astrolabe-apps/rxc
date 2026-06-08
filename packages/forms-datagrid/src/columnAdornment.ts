@@ -58,6 +58,11 @@ export interface DataGridClasses {
   clearFilterClass?: string;
   /** Label for the filter popover's clear button. */
   clearFilterText?: string;
+  /**
+   * Class for the per-row add/remove/edit buttons. When unset, the buttons
+   * compose `theme.action`'s primary-button classes (matching `Pager`).
+   */
+  actionButtonClass?: string;
 }
 
 export const defaultDataGridClasses: DataGridClasses = {

@@ -92,6 +92,41 @@ describe("clientSearchPage", () => {
     expect(page3.entries.map((r) => r.id)).toEqual(["5"]);
   });
 
+  it("filters by query when searchableFields is provided", () => {
+    const c = fieldClientSearch<Row>({ searchableFields: ["name", "status"] });
+    const { entries, total } = clientSearchPage(
+      rows,
+      search({ query: "ava" }),
+      c,
+    );
+    expect(total).toBe(1);
+    expect(entries.map((r) => r.id)).toEqual(["1"]);
+  });
+
+  it("query search is case-insensitive and matches across fields", () => {
+    const c = fieldClientSearch<Row>({ searchableFields: ["name", "status"] });
+    const { entries, total } = clientSearchPage(
+      rows,
+      search({ query: "DRAFT" }),
+      c,
+    );
+    expect(total).toBe(2);
+    expect(entries.map((r) => r.id)).toEqual(["2", "5"]);
+  });
+
+  it("custom getSearchText overrides searchableFields", () => {
+    const c = fieldClientSearch<Row>({
+      getSearchText: (r) => `row-${r.id}`,
+    });
+    const { entries, total } = clientSearchPage(
+      rows,
+      search({ query: "row-3" }),
+      c,
+    );
+    expect(total).toBe(1);
+    expect(entries.map((r) => r.id)).toEqual(["3"]);
+  });
+
   it("combines filter + sort + paging", () => {
     const { entries, total } = clientSearchPage(
       rows,

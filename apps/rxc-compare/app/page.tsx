@@ -89,7 +89,9 @@ const FormHost = controls<FormHostProps>(
         total: number;
         entries: unknown[];
       }>;
-      const client = fieldClientSearch<Record<string, unknown>>();
+      const client = fieldClientSearch<Record<string, unknown>>({
+        searchableFields: cs.searchableFields,
+      });
       const eff = effect(cc, (rc) => {
         // Track the whole request Value (not getValueRx): the `filters`
         // object has dynamic keys read via Object.keys(), which bypasses

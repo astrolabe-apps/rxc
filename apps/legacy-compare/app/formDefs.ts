@@ -98,7 +98,16 @@ export const RWVPRenewalSearch = {
       entries: rwvpRenewalRows.slice(0, rwvpPageSize),
     },
   },
-  clientSearch: { allRows: rwvpRenewalRows },
+  clientSearch: {
+    allRows: rwvpRenewalRows,
+    searchableFields: [
+      "firstName",
+      "lastName",
+      "registrationNumber",
+      "licenceNumber",
+      "status",
+    ],
+  },
 };
 
 export const FormDefinitions = {

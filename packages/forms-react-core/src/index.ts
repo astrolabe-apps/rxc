@@ -96,7 +96,7 @@ export { useDeferredCleanup } from "./useDeferredCleanup";
 
 // Helpers
 export { useLabelText } from "./labelText";
-export { useExpression } from "./useExpression";
+export { useExpression, ensureExpressionResult } from "./useExpression";
 export { useFormErrors } from "./useFormErrors";
 export type { FormError } from "./useFormErrors";
 export {

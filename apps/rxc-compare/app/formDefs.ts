@@ -21,8 +21,13 @@ export interface FormDefinitionEntry {
    * When present, the page wires a client-side search effect: the bound
    * `results.{entries,total}` are recomputed from `allRows` + the form's
    * `request` SearchOptions (filter/sort/page), standing in for a server.
+   * `searchableFields` enables the full-text `query` box — values from
+   * those row fields are concatenated and matched case-insensitively.
    */
-  clientSearch?: { allRows: Record<string, unknown>[] };
+  clientSearch?: {
+    allRows: Record<string, unknown>[];
+    searchableFields?: string[];
+  };
 }
 
 export const Fire: FormDefinitionEntry = {
@@ -100,7 +105,16 @@ export const RWVPRenewalSearch: FormDefinitionEntry = {
       entries: rwvpRenewalRows.slice(0, rwvpPageSize),
     },
   },
-  clientSearch: { allRows: rwvpRenewalRows },
+  clientSearch: {
+    allRows: rwvpRenewalRows,
+    searchableFields: [
+      "firstName",
+      "lastName",
+      "registrationNumber",
+      "licenceNumber",
+      "status",
+    ],
+  },
 };
 
 export const FormDefinitions: Record<string, FormDefinitionEntry> = {

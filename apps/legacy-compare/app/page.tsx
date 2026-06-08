@@ -23,19 +23,34 @@ import { SchemaMap } from "./schemas";
 // Field-based client search identical to the rxc compare app's
 // `fieldClientSearch` (@rxc/forms-datagrid) so both apps compute the same
 // filtered/sorted/paged rows from the same seed.
-const fieldClient: ClientSideSearching<Record<string, unknown>> = {
-  getSearchText: () => "",
-  getComparison: (field) => (a, b) => {
-    const av = a[field] as unknown;
-    const bv = b[field] as unknown;
-    if (av === bv) return 0;
-    if (av == null) return -1;
-    if (bv == null) return 1;
-    return av < bv ? -1 : 1;
-  },
-  getFilterValue: (field) => (row) => row[field],
-};
-const sortAndFilter = makeClientSortAndFilter(fieldClient);
+function makeFieldClient(
+  searchableFields: string[] | undefined,
+): ClientSideSearching<Record<string, unknown>> {
+  const fields = searchableFields ?? [];
+  const getSearchText =
+    fields.length === 0
+      ? () => ""
+      : (row: Record<string, unknown>) =>
+          fields
+            .map((f) => {
+              const v = row[f];
+              return v == null ? "" : String(v);
+            })
+            .join(" ")
+            .toLowerCase();
+  return {
+    getSearchText,
+    getComparison: (field) => (a, b) => {
+      const av = a[field] as unknown;
+      const bv = b[field] as unknown;
+      if (av === bv) return 0;
+      if (av == null) return -1;
+      if (bv == null) return 1;
+      return av < bv ? -1 : 1;
+    },
+    getFilterValue: (field) => (row) => row[field],
+  };
+}
 
 const schemaLookup = createSchemaLookup(
   SchemaMap as Record<string, SchemaField[]>,
@@ -57,10 +72,19 @@ function FormHost({ formKey }: { formKey: FormKey }): JSX.Element {
   );
 
   // Client-side search: recompute the bound `results.{entries,total}` from
-  // `allRows` + the `request` SearchOptions on every filter/sort/page
+  // `allRows` + the `request` SearchOptions on every filter/sort/page/query
   // change. Mirrors the rxc compare app's effect so both stay in sync.
-  const allRows = (def as { clientSearch?: { allRows: Record<string, unknown>[] } })
-    .clientSearch?.allRows;
+  const clientSearch = (def as {
+    clientSearch?: {
+      allRows: Record<string, unknown>[];
+      searchableFields?: string[];
+    };
+  }).clientSearch;
+  const allRows = clientSearch?.allRows;
+  const sortAndFilter = useMemo(
+    () => makeClientSortAndFilter(makeFieldClient(clientSearch?.searchableFields)),
+    [clientSearch?.searchableFields],
+  );
   useControlEffect(
     () => {
       if (!allRows) return undefined;
@@ -70,6 +94,7 @@ function FormHost({ formKey }: { formKey: FormKey }): JSX.Element {
         req.fields.sort.value,
         req.fields.offset.value,
         req.fields.length.value,
+        req.fields.query.value,
       ] as const;
     },
     () => {

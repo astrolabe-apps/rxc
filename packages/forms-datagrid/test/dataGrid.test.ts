@@ -19,7 +19,13 @@ import {
   type FormGlobalOptions,
   type SchemaField,
 } from "@rxc/forms-core";
-import { dataGridResolveChildren, DataGridRenderType } from "../src/DataGrid";
+import {
+  computeGroupRowSpans,
+  dataGridResolveChildren,
+  DataGridRenderType,
+  getDataGridLengthRange,
+} from "../src/DataGrid";
+import { ValidatorType } from "@rxc/forms-core";
 import { ColumnOptionsType } from "../src/columnAdornment";
 
 const rd = noopReadContext;
@@ -126,6 +132,63 @@ describe("DataGrid display-only resolver", () => {
   it("renders no rows for an empty array", () => {
     const { grid } = makeGrid([]);
     expect(grid.getChildren(rd).length).toBe(0);
+  });
+
+  it("computeGroupRowSpans collapses adjacent same-key runs", () => {
+    // Three groups in sorted order: A(3), B(2), C(1).
+    expect(computeGroupRowSpans(["A", "A", "A", "B", "B", "C"])).toEqual([
+      3, 0, 0, 2, 0, 1,
+    ]);
+  });
+
+  it("computeGroupRowSpans leaves out-of-order rows un-grouped", () => {
+    // A, B, A re-appearing later isn't merged — only adjacent runs collapse.
+    expect(computeGroupRowSpans(["A", "B", "A", "A"])).toEqual([1, 1, 2, 0]);
+  });
+
+  it("getDataGridLengthRange reads Length validator min/max", () => {
+    expect(
+      getDataGridLengthRange({
+        type: ControlDefinitionType.Data,
+        field: "x",
+        validators: [{ type: ValidatorType.Length, min: 2, max: 7 }],
+      } as DataControlDefinition),
+    ).toEqual({ min: 2, max: 7 });
+  });
+
+  it("getDataGridLengthRange defaults to 0/Infinity with no validators", () => {
+    expect(
+      getDataGridLengthRange({
+        type: ControlDefinitionType.Data,
+        field: "x",
+      } as DataControlDefinition),
+    ).toEqual({ min: 0, max: Infinity });
+  });
+
+  it("getDataGridLengthRange treats required as min=1 when no Length min set", () => {
+    expect(
+      getDataGridLengthRange({
+        type: ControlDefinitionType.Data,
+        field: "x",
+        required: true,
+      } as DataControlDefinition),
+    ).toEqual({ min: 1, max: Infinity });
+
+    // Explicit Length min wins over required's default.
+    expect(
+      getDataGridLengthRange({
+        type: ControlDefinitionType.Data,
+        field: "x",
+        required: true,
+        validators: [{ type: ValidatorType.Length, min: 3 }],
+      } as DataControlDefinition),
+    ).toEqual({ min: 3, max: Infinity });
+  });
+
+  it("computeGroupRowSpans handles edge cases", () => {
+    expect(computeGroupRowSpans([])).toEqual([]);
+    expect(computeGroupRowSpans(["x"])).toEqual([1]);
+    expect(computeGroupRowSpans([null, null, undefined])).toEqual([2, 0, 1]);
   });
 
   it("reacts to elements being added", () => {

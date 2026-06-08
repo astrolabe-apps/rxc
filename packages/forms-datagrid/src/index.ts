@@ -6,15 +6,18 @@
 // pulled in by `@rxc/forms`.
 //
 // Scope: renders columns + rows from the bound array, with column
-// filter/sort header controls (driven by a sibling `SearchOptions` control)
-// and offset/length paging. Add / remove / edit array actions,
-// `groupByField` row-spanning, and per-column visibility expressions are
-// not yet ported.
+// filter/sort header controls (driven by a sibling `SearchOptions` control),
+// offset/length paging, per-column `visible`/`rowSpan` expressions,
+// adjacent-key `groupByField` row-spanning, and add/remove/edit array
+// actions (the legacy `editExternal` modal flow is not ported — hosts that
+// need an edit modal should drive it themselves via `<ActionScope>`).
 
 export {
   DataGridRenderType,
+  computeGroupRowSpans,
   dataGridRegistry,
   dataGridResolveChildren,
+  getDataGridLengthRange,
   type DataGridOptions,
 } from "./DataGrid";
 export {

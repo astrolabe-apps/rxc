@@ -5,18 +5,50 @@ import {
   makeClientSortAndFilter,
 } from "@astroapps/searchstate";
 
+export interface FieldClientSearchOptions<T> {
+  /**
+   * Top-level row field names whose values should be concatenated (space-
+   * separated, lowercased) to form the full-text search corpus for each row.
+   * When omitted, `getSearchText` returns an empty string and the query box
+   * is effectively inert. Hosts that need nested-field or formatted text
+   * should supply {@link getSearchText} directly instead.
+   */
+  searchableFields?: (keyof T & string)[];
+  /**
+   * Custom row-to-text function, when {@link searchableFields} isn't a good
+   * fit. The returned string is matched case-insensitively against the
+   * search query — return lowercased text for consistency.
+   */
+  getSearchText?: (row: T) => string;
+}
+
 /**
  * Default {@link ClientSideSearching} for plain object rows keyed by field
- * name: filter values and sort comparisons read `row[field]` directly, and
- * query search is a no-op. Suitable when a DataGrid's columns bind to
- * top-level scalar fields of each row. Hosts with nested fields, custom
- * comparisons, or full-text query search should supply their own.
+ * name: filter values and sort comparisons read `row[field]` directly.
+ * `getSearchText` is opt-in via {@link FieldClientSearchOptions.searchableFields}
+ * (a list of row fields to include) or {@link FieldClientSearchOptions.getSearchText}
+ * (a fully custom builder); with neither, full-text query search is a no-op.
+ * Hosts with nested fields or custom comparisons should supply their own
+ * {@link ClientSideSearching} instead.
  */
-export function fieldClientSearch<
-  T extends Record<string, unknown>,
->(): ClientSideSearching<T> {
+export function fieldClientSearch<T extends Record<string, unknown>>(
+  options: FieldClientSearchOptions<T> = {},
+): ClientSideSearching<T> {
+  const { searchableFields, getSearchText: customGetSearchText } = options;
+  const getSearchText =
+    customGetSearchText ??
+    (searchableFields && searchableFields.length > 0
+      ? (row: T) =>
+          searchableFields
+            .map((f) => {
+              const v = row[f];
+              return v == null ? "" : String(v);
+            })
+            .join(" ")
+            .toLowerCase()
+      : () => "");
   return {
-    getSearchText: () => "",
+    getSearchText,
     getComparison: (field) => (a, b) => {
       const av = a[field] as unknown;
       const bv = b[field] as unknown;
