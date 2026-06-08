@@ -23,6 +23,11 @@ export const fireTheme: HtmlFormTheme = {
   },
   data: {
     inputClass: "form-control",
+    // Legacy renders the display-only value element with just the
+    // form-definition's `textClass` (e.g. "body !text-accent"); the flex
+    // wrapper lives on the layout (see HtmlLayout). Suppress the rxc
+    // zinc/text-sm fallback so `textClass` is the only class on the value.
+    displayOnlyClass: "",
     select: { className: "form-control" },
     radio: {
       className: "flex flex-wrap flex-col lg:flex-row gap-4",

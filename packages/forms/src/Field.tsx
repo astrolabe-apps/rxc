@@ -72,7 +72,7 @@ export const Field = controls<FieldProps>(
         const match = pickDataRenderer(registry.data, node, rc);
         if (match) {
           hidesLabel = !!match.hidesLabel;
-          inner = <match.component node={node} id={id} />;
+          inner = <match.component node={node} id={id} inline={inline} />;
         }
         break;
       }

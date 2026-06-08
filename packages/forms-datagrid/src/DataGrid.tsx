@@ -145,16 +145,29 @@ function createDataGridRenderer(classes?: DataGridClasses) {
       },
     );
 
+    // Trailing `auto`-width column mirroring the legacy DataGrid's
+    // edit/remove-action column. Display-only here, so the cell is the
+    // empty `removeColumnClass` div (no actions) — kept so column
+    // templates and per-row markup match the legacy output.
+    const allColumns = columnDefinitions<FormStateNode, unknown>(...columns, {
+      id: "deleteCheck",
+      columnTemplate: "auto",
+      render: () => <div className={gridClasses.removeColumnClass} />,
+    });
+
     return (
       <DataGrid
         className={rendererClass(def.styleClass, gridClasses.className)}
-        columns={columnDefinitions<FormStateNode, unknown>(...columns)}
+        columns={allColumns}
         bodyRows={rowCount}
         getBodyRow={(i) => rows[i]}
         defaultColumnTemplate="1fr"
         cellClass=""
         headerCellClass=""
         bodyCellClass=""
+        renderHeaderContent={(col) => (
+          <div className={gridClasses.titleContainerClass}>{col.title}</div>
+        )}
         renderExtraRows={() =>
           rowCount === 0 ? (
             <div

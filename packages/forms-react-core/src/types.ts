@@ -22,6 +22,14 @@ export interface DataRendererProps {
    * `useId()` — stable across SSR/hydration on the web.
    */
   id: string;
+  /**
+   * True when the Field is rendering in inline mode (e.g. inside an
+   * `InlineGroupRenderer`), where the surrounding element is inline-level.
+   * Renderers that emit a block element by default (e.g. DisplayOnly's
+   * `<div>`) should switch to an inline element (`<span>`) to avoid
+   * invalid nesting — mirroring the legacy `inline ? "span" : "div"` split.
+   */
+  inline?: boolean;
 }
 
 export interface GroupRendererProps {

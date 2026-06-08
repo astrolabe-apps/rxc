@@ -1,8 +1,16 @@
 "use client";
 
 import { controls } from "@rxc/controls";
+import { DataRenderType, isDataControl } from "@rxc/forms-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import type { LayoutProps } from "@rxc/forms";
+
+// Legacy `defaultTailwindTheme.displayOnlyClass`. The legacy data renderer
+// pushed this onto the control's layout wrapper (`ControlLayoutProps`) for
+// display-only fields; rxc has no renderer→layout class hook, so the host
+// Layout re-applies it here (the documented translation for renderers that
+// mutated ControlLayoutProps).
+const DISPLAY_ONLY_WRAPPER = "flex flex-row items-center gap-2";
 
 // Wraps `label` + its label-kind adornments in a flex container, matching
 // the legacy `label.labelContainer` slot from `DefaultRenderOptions`. HTML
@@ -13,13 +21,16 @@ export const HtmlLayout = controls<LayoutProps>(
   "HtmlLayout",
   ({ node, label, error, inline, className, style, children }, { rc }) => {
     const def = node.getState(rc).definition;
+    const isDisplayOnly =
+      isDataControl(def) &&
+      def.renderOptions?.type === DataRenderType.DisplayOnly;
     const labelContainer =
       label == null ? null : (
         <div className="flex gap-4 items-baseline flex-wrap">{label}</div>
       );
     const merged = rendererClass(
       def.layoutClass,
-      inline ? undefined : "flex flex-col",
+      inline ? undefined : isDisplayOnly ? DISPLAY_ONLY_WRAPPER : "flex flex-col",
     );
     const finalClass =
       [merged, className].filter(Boolean).join(" ") || undefined;

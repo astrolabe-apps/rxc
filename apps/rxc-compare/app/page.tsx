@@ -91,7 +91,7 @@ const PageInner = controls(function PageInner() {
 
   return (
     <div className="min-h-screen bg-zinc-50 p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-[1280px] mx-auto">
         <div className="flex items-baseline gap-4 mb-4">
           <h1 className="text-2xl font-bold text-zinc-900">{def.name}</h1>
           <label className="flex items-center gap-2 text-sm">

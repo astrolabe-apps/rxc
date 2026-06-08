@@ -82,6 +82,18 @@ export interface SchemaInterface {
    * the value cannot be parsed.
    */
   parseToMillis(field: SchemaField, v: string): number;
+
+  /**
+   * Human-readable display text for a scalar value under this field's type.
+   * Resolves the matching option `name` first, then applies type-aware
+   * formatting (locale date/time strings, `Yes`/`No` for booleans). Used by
+   * the display-only renderer. Returns `undefined` for empty values.
+   */
+  textValue(
+    field: SchemaField,
+    value: unknown,
+    options?: FieldOption[] | null,
+  ): string | undefined;
 }
 
 /**
@@ -193,6 +205,36 @@ export class DefaultSchemaInterface implements SchemaInterface {
   parseToMillis(_field: SchemaField, v: string): number {
     const t = new Date(v).getTime();
     return Number.isNaN(t) ? Number.NaN : t;
+  }
+
+  textValue(
+    field: SchemaField,
+    value: unknown,
+    options?: FieldOption[] | null,
+  ): string | undefined {
+    const actualOptions = options ?? this.getOptions(field);
+    const option = actualOptions?.find((x) => x.value === value);
+    if (option) return option.name;
+    switch (field.type) {
+      case FieldType.Date:
+        return value
+          ? new Date(value as string).toLocaleDateString()
+          : undefined;
+      case FieldType.DateTime:
+        return value
+          ? new Date(this.parseToMillis(field, value as string)).toLocaleString()
+          : undefined;
+      case FieldType.Time:
+        return value
+          ? new Date("1970-01-01T" + value).toLocaleTimeString()
+          : undefined;
+      case FieldType.Bool:
+        return value != null
+          ? this.booleanOptions[value ? 0 : 1].name
+          : undefined;
+      default:
+        return value != null ? String(value) : undefined;
+    }
   }
 }
 
