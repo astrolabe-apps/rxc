@@ -1,0 +1,348 @@
+{
+  "controls": [
+    {
+      "type": "Group",
+      "title": "Demerits",
+      "labelClass": "",
+      "children": [
+        {
+          "type": "Group",
+          "title": "Demerits Graph Container",
+          "styleClass": "@ flex flex-col px-[20px] pb-[40px] native:px-[16px] native:py-[24px] border border-[#E7E7E8] shadow-sm bg-white gap-[16px] items-center justify-center lg:w-[320px] w-full",
+          "children": [
+            {
+              "type": "Data",
+              "title": "Doughnut Chart",
+              "renderOptions": {
+                "type": "Chart",
+                "chartType": "Doughnut",
+                "ringColor": "#267151",
+                "ringBackgroundColor": "#d2d3d4",
+                "displayText": true
+              },
+              "field": "demerits",
+              "hideTitle": true,
+              "styleClass": "@ flex flex-col items-center justify-center w-[220px] h-[220px] native:w-[175px] native:h-[175px] ",
+              "textClass": "large-title !leading-[50px]",
+              "layoutClass": "p-[30px] native:p-0"
+            },
+            {
+              "type": "Group",
+              "title": "Demerits Message",
+              "styleClass": "",
+              "textClass": "text-center",
+              "children": [
+                {
+                  "type": "Display",
+                  "title": "You have ",
+                  "displayData": {
+                    "type": "Text",
+                    "text": "You currently have "
+                  },
+                  "textClass": "body"
+                },
+                {
+                  "type": "Data",
+                  "title": "Active Demerits Points",
+                  "textClass": "body-bold",
+                  "field": "demerits/activePoints",
+                  "hideTitle": true,
+                  "renderOptions": {
+                    "type": "DisplayOnly",
+                    "sampleText": "0"
+                  }
+                },
+                {
+                  "type": "Display",
+                  "title": " demerit points out of a maximum of ",
+                  "displayData": {
+                    "type": "Text",
+                    "text": " demerit points out of a maximum of "
+                  },
+                  "textClass": "body"
+                },
+                {
+                  "type": "Data",
+                  "title": "Total Demerits Points",
+                  "styleClass": "",
+                  "textClass": "body-bold",
+                  "field": "demerits/totalPoints",
+                  "hideTitle": true,
+                  "renderOptions": {
+                    "type": "DisplayOnly",
+                    "sampleText": "12"
+                  }
+                }
+              ],
+              "groupOptions": {
+                "type": "Inline",
+                "hideTitle": true
+              },
+              "noSelection": false
+            }
+          ],
+          "groupOptions": {
+            "type": "Standard",
+            "hideTitle": true
+          }
+        },
+        {
+          "type": "Group",
+          "title": "Demerits Details Container",
+          "styleClass": "@ flex flex-col p-6 border border-[#E7E7E8] shadow-sm bg-white gap-4",
+          "layoutClass": "flex-1 min-w-0",
+          "children": [
+            {
+              "type": "Display",
+              "title": "Demerit Table Title",
+              "textClass": "title3",
+              "displayData": {
+                "type": "Text",
+                "text": "Demerit points"
+              }
+            },
+            {
+              "type": "Display",
+              "title": "Demerits Table Message",
+              "textClass": "body",
+              "displayData": {
+                "type": "Text",
+                "text": "These points are added when you commit an offence. Only current and convicted demerit points are listed here."
+              }
+            },
+            {
+              "type": "Data",
+              "title": "Demerits Table",
+              "renderOptions": {
+                "type": "DataGrid",
+                "noAdd": true,
+                "noRemove": true,
+                "noReorder": true,
+                "displayOnly": true
+              },
+              "field": "demerits/details",
+              "children": [
+                {
+                  "type": "Data",
+                  "title": "Points",
+                  "adornments": [
+                    {
+                      "type": "ColumnOptions",
+                      "columnTemplate": "1fr",
+                      "headerCellClass": "bg-[#f5f5f5] py-[15px] flex items-center justify-center",
+                      "bodyCellClass": "justify-center py-2",
+                      "renderOptions": {
+                        "type": "Standard"
+                      },
+                      "visible": {},
+                      "rowSpan": {}
+                    }
+                  ],
+                  "styleClass": "",
+                  "textClass": "body !text-accent",
+                  "field": "points",
+                  "hideTitle": true,
+                  "renderOptions": {
+                    "type": "DisplayOnly"
+                  },
+                  "labelTextClass": ""
+                },
+                {
+                  "type": "Data",
+                  "title": "Offence Date",
+                  "adornments": [
+                    {
+                      "type": "ColumnOptions",
+                      "title": "Offence Date",
+                      "columnTemplate": "1fr",
+                      "headerCellClass": "bg-[#f5f5f5] py-[15px] flex items-center justify-center",
+                      "bodyCellClass": "justify-center py-2",
+                      "renderOptions": {
+                        "type": "Standard"
+                      },
+                      "visible": {},
+                      "rowSpan": {}
+                    }
+                  ],
+                  "field": "offenceDate",
+                  "hideTitle": true,
+                  "renderOptions": {
+                    "type": "DisplayOnly"
+                  },
+                  "textClass": "body"
+                },
+                {
+                  "type": "Data",
+                  "title": "Offence",
+                  "adornments": [
+                    {
+                      "type": "ColumnOptions",
+                      "title": "Offence",
+                      "columnTemplate": "3fr",
+                      "headerCellClass": "bg-[#f5f5f5] py-[15px] flex items-center justify-start",
+                      "bodyCellClass": "py-2",
+                      "renderOptions": {
+                        "type": "Standard"
+                      },
+                      "visible": {},
+                      "rowSpan": {}
+                    }
+                  ],
+                  "styleClass": "",
+                  "textClass": "body",
+                  "field": "description",
+                  "hideTitle": true,
+                  "renderOptions": {
+                    "type": "DisplayOnly"
+                  }
+                }
+              ],
+              "styleClass": "",
+              "hideTitle": true
+            },
+            {
+              "type": "Group",
+              "title": "For More Information",
+              "styleClass": "",
+              "children": [
+                {
+                  "type": "Display",
+                  "title": "For more information on demerit points please visit ",
+                  "displayData": {
+                    "type": "Text",
+                    "text": "For more information on demerit points please visit "
+                  },
+                  "textClass": "body"
+                },
+                {
+                  "type": "Action",
+                  "title": "Transport Services",
+                  "styleClass": "@ p-0",
+                  "textClass": "@ !text-accent underline body",
+                  "icon": {},
+                  "actionStyle": "Link",
+                  "actionId": "visitTransportServices"
+                },
+                {
+                  "type": "Display",
+                  "title": ".",
+                  "displayData": {
+                    "type": "Text",
+                    "text": "."
+                  },
+                  "textClass": "body"
+                }
+              ],
+              "groupOptions": {
+                "type": "Inline",
+                "hideTitle": true
+              }
+            },
+            {
+              "type": "Action",
+              "title": "Request my driving history",
+              "styleClass": "",
+              "textClass": "headline",
+              "actionId": "openDialog",
+              "icon": {},
+              "actionData": "",
+              "actionStyle": "Secondary"
+            },
+            {
+              "type": "Group",
+              "title": "Messages",
+              "styleClass": "@ flex flex-col gap-4",
+              "children": [
+                {
+                  "type": "Group",
+                  "title": "Driving History Requested Message",
+                  "dynamic": [
+                    {
+                      "type": "Visible",
+                      "expr": {
+                        "type": "NotEmpty",
+                        "field": "demerits/drivingHistoryRequestedMessage",
+                        "empty": false
+                      }
+                    }
+                  ],
+                  "styleClass": "@ flex flex-row gap-2 items-center",
+                  "children": [
+                    {
+                      "type": "Display",
+                      "title": "icon",
+                      "styleClass": "text-[32px] !text-accent",
+                      "textClass": "",
+                      "displayData": {
+                        "type": "Icon",
+                        "icon": {
+                          "library": "fa-regular",
+                          "name": "circle-info"
+                        },
+                        "iconClass": ""
+                      }
+                    },
+                    {
+                      "type": "Data",
+                      "title": "Driving History Requested Message",
+                      "field": "demerits/drivingHistoryRequestedMessage",
+                      "hideTitle": true,
+                      "renderOptions": {
+                        "type": "DisplayOnly",
+                        "sampleText": "Driving history requested. Please check your Service Tasmania inbox for the document. Processing may take several minutes.",
+                        "emptyText": ""
+                      },
+                      "textClass": "body"
+                    }
+                  ],
+                  "groupOptions": {
+                    "type": "Standard",
+                    "hideTitle": true
+                  }
+                },
+                {
+                  "type": "Data",
+                  "title": "Request History Error Message",
+                  "dynamic": [
+                    {
+                      "type": "Visible",
+                      "expr": {
+                        "type": "NotEmpty",
+                        "field": "demerits/requestHistoryErrorMessage",
+                        "empty": false
+                      }
+                    }
+                  ],
+                  "styleClass": "@ w-full bg-danger/10 p-[15px]",
+                  "textClass": "body !text-danger",
+                  "field": "demerits/requestHistoryErrorMessage",
+                  "hideTitle": true,
+                  "renderOptions": {
+                    "type": "DisplayOnly",
+                    "sampleText": "Driving history requested failed. Please try again later."
+                  },
+                  "defaultValue": null
+                }
+              ],
+              "groupOptions": {
+                "type": "Standard",
+                "hideTitle": true
+              }
+            }
+          ],
+          "groupOptions": {
+            "type": "Standard",
+            "hideTitle": true
+          }
+        }
+      ],
+      "groupOptions": {
+        "type": "Standard",
+        "hideTitle": true
+      },
+      "styleClass": "@ flex lg:flex-row native:lg:flex-col flex-col gap-[16px]"
+    }
+  ],
+  "config": {},
+  "fields": []
+}

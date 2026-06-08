@@ -125,6 +125,15 @@ importers:
 
   ../../apps/legacy-compare:
     dependencies:
+      '@astroapps/datagrid':
+        specifier: ^1.2.0
+        version: 1.2.0(react@19.1.7)
+      '@astroapps/schemas-datagrid':
+        specifier: ^8.2.0
+        version: 8.2.0(@astroapps/datagrid@1.2.0(react@19.1.7))(@astroapps/searchstate@2.0.0)(@radix-ui/react-popover@1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7))(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(react@19.1.7)
+      '@astroapps/searchstate':
+        specifier: ^2.0.0
+        version: 2.0.0
       '@radix-ui/react-popover':
         specifier: ^1.1.6
         version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
@@ -195,6 +204,9 @@ importers:
       '@rxc/forms-core':
         specifier: workspace:*
         version: link:../../packages/forms-core
+      '@rxc/forms-datagrid':
+        specifier: workspace:*
+        version: link:../../packages/forms-datagrid
       '@rxc/forms-react-core':
         specifier: workspace:*
         version: link:../../packages/forms-react-core
@@ -373,6 +385,43 @@ importers:
         specifier: ~3.1.0
         version: 3.1.4(@types/node@22.15.35)(jiti@2.7.0)(lightningcss@1.30.2)
 
+  ../../packages/forms-datagrid:
+    dependencies:
+      '@astroapps/datagrid':
+        specifier: ^1.2.0
+        version: 1.2.0(react@19.1.7)
+      '@rxc/controls':
+        specifier: workspace:*
+        version: link:../controls
+      '@rxc/controls-core':
+        specifier: workspace:*
+        version: link:../controls-core
+      '@rxc/forms':
+        specifier: workspace:*
+        version: link:../forms
+      '@rxc/forms-core':
+        specifier: workspace:*
+        version: link:../forms-core
+      '@rxc/forms-react-core':
+        specifier: workspace:*
+        version: link:../forms-react-core
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+    devDependencies:
+      '@types/react':
+        specifier: ~19.1.0
+        version: 19.1.17
+      react:
+        specifier: ~19.1.0
+        version: 19.1.7
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(jiti@2.7.0)(lightningcss@1.30.2)
+
   ../../packages/forms-dnd:
     dependencies:
       '@rxc/controls':
@@ -491,10 +540,28 @@ packages:
   '@astroapps/controls@1.4.2':
     resolution: {integrity: sha512-umBLegUwv24HST4elLIzQ+Iug2/SSsXTf2uBhogFkNm2ZQrB4hHUXI4tC+KDhD+EuUZbVvQFgZ8j72j/osRrWQ==}
 
+  '@astroapps/datagrid@1.2.0':
+    resolution: {integrity: sha512-uMwWkZB4B96dzKUa3dSIvjX4bkke2gCAd8CWziw/aJcvJply/9AfHVQ6Ot/E7anVyJr0zL3AsQ8TbJN6XgV1WA==}
+    peerDependencies:
+      react: ^18.2.0 || ^19
+
   '@astroapps/forms-core@2.2.0':
     resolution: {integrity: sha512-+s7XQpDs4c3f6qROwsTCNEMXrQ9PhNpcJy2WMwhl2J1t7RwjWpKL7G+0Qb56nU9peq05S/uHlJo1T/nHDoNUXA==}
     peerDependencies:
       '@astroapps/controls': ^1.4.0
+
+  '@astroapps/schemas-datagrid@8.2.0':
+    resolution: {integrity: sha512-6mfYboVKWybMVldd291Cygv+FvkST2XTDSP/j4vcXDZBO4pDr4CKAfTZYgL4YaTt3rB2nQKa+yB4+jDV8+h8cQ==}
+    peerDependencies:
+      '@astroapps/datagrid': ^1.2.0
+      '@astroapps/searchstate': ^2.0.0
+      '@radix-ui/react-popover': ^1.0.7
+      '@react-typed-forms/core': ^4.0.0
+      '@react-typed-forms/schemas': ^18.0.0
+      react: ^18.2.0 || ^19
+
+  '@astroapps/searchstate@2.0.0':
+    resolution: {integrity: sha512-NpsPtdy1VrpyjucfbLYOSRhTD53QiErYlFYBjmmLMAiiFrd8vTUyMs0WKOrGhLKyQkjIpL2qOzudf6VNJ7SE+g==}
 
   '@astroapps/swc-controls-plugin@1.2.0-next15-2':
     resolution: {integrity: sha512-zYHKIA5K/SRQhpnYKLgyBpMWTNCpfmVvwh2zk8dkKtA/8eU14DAD37Us8LS+D0zWBl4MC311Ba3GbG/MrcFelQ==}
@@ -2368,6 +2435,11 @@ snapshots:
 
   '@astroapps/controls@1.4.2': {}
 
+  '@astroapps/datagrid@1.2.0(react@19.1.7)':
+    dependencies:
+      clsx: 2.1.1
+      react: 19.1.7
+
   '@astroapps/forms-core@2.2.0(@astroapps/controls@1.4.2)':
     dependencies:
       '@astroapps/controls': 1.4.2
@@ -2375,6 +2447,18 @@ snapshots:
       clsx: 2.1.1
       jsonata: 2.1.0
       uuid: 10.0.0
+
+  '@astroapps/schemas-datagrid@8.2.0(@astroapps/datagrid@1.2.0(react@19.1.7))(@astroapps/searchstate@2.0.0)(@radix-ui/react-popover@1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7))(@react-typed-forms/core@4.5.3(react@19.1.7))(@react-typed-forms/schemas@18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7))(react@19.1.7)':
+    dependencies:
+      '@astroapps/datagrid': 1.2.0(react@19.1.7)
+      '@astroapps/searchstate': 2.0.0
+      '@radix-ui/react-popover': 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
+      '@react-typed-forms/core': 4.5.3(react@19.1.7)
+      '@react-typed-forms/schemas': 18.0.0(@astroapps/controls@1.4.2)(@react-typed-forms/core@4.5.3(react@19.1.7))(react@19.1.7)
+      clsx: 2.1.1
+      react: 19.1.7
+
+  '@astroapps/searchstate@2.0.0': {}
 
   '@astroapps/swc-controls-plugin@1.2.0-next15-2': {}
 

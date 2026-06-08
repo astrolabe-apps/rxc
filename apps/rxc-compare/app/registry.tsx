@@ -9,6 +9,7 @@ import {
   type GroupRendererProps,
 } from "@rxc/forms-react-core";
 import { defaultRegistry, Field, useHtmlTheme } from "@rxc/forms";
+import { dataGridRegistry } from "@rxc/forms-datagrid";
 import { AllErrors } from "./components/AllErrors";
 import { TopLevelGroupValue } from "./formExtensions";
 import { PopoverHelpTextAdornment } from "./adornments/PopoverHelpText";
@@ -38,6 +39,7 @@ export function createRegistry(): FormRegistry {
     {
       adornments: [PopoverHelpTextAdornment as unknown as AnyAdornmentRegistration],
     },
+    dataGridRegistry(),
     defaultRegistry(),
   );
 }

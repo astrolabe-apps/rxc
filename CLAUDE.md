@@ -15,6 +15,7 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | `@rxc/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rxc/forms` only. |
 | `@rxc/forms-motion` | `packages/forms-motion` | Optional Framer Motion add-on. Ships `FadeVisibility`, `SlideVisibility`, and `MotionAccordionAdornment` to upgrade the no-op default Visibility / native `<details>` accordion. |
 | `@rxc/forms-dnd` | `packages/forms-dnd` | Optional dnd-kit add-on. Ships `SortableArrayRenderer` for reorderable arrays. |
+| `@rxc/forms-datagrid` | `packages/forms-datagrid` | Optional DataGrid add-on. Ships `dataGridRegistry()` — a `renderOptions.type === "DataGrid"` data renderer + `ColumnOptions` adornment, layered on the framework-agnostic published `@astroapps/datagrid` base grid. **Display-only scope** (columns + rows from the bound array); add/remove/edit actions and search/filter/sort wiring are not yet ported. |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
 | `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo. |
@@ -232,6 +233,7 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
   - `forms-core`: **110** (+3 acquireDisabler / disabler stack)
   - `forms-react-core`: **47** (+1 multi-kind adornment registration)
   - `forms`: **36** (+6 new renderers — Jsonata / ElementSelected / ScrollList / Wizard / ArrayElement levels)
+  - `forms-datagrid`: **3** (display-only resolver: rows×columns, empty, reactive add)
 
 ## Comparison-app workstream
 
@@ -286,6 +288,43 @@ All shipped. Notes on the moving pieces:
 - **`ArrayElementRenderer`** — `DataRenderType.ArrayElement`. Two-level dispatch: array level routes to `ArrayRenderer`; per-element level (matched via `DataCursor.elementIndex`) routes to `ArrayElementRenderer`, which renders a one-line summary + Edit button popping a native `<dialog>`. `showInline: true` skips the dialog and renders children inline.
 - **`@rxc/forms-motion`** — separate package. `FadeVisibility` / `SlideVisibility` (cross-fade / slide-down via `<AnimatePresence>` + `motion.div`); `MotionAccordionAdornment` replaces the native-`<details>` Accordion with a height-animated panel.
 - **`@rxc/forms-dnd`** — separate package. `SortableArrayRenderer` mirrors `ArrayRenderer` and reorders via `wc.updateElements(arr, (elems) => arrayMove(elems, …))` driven by `@dnd-kit/sortable`. `dnd-kit` is a peer dep so apps that don't import this package don't pay for it.
+
+### `@rxc/forms-datagrid` — display-only DataGrid port ✅
+
+Port of the legacy `@astroapps/schemas-datagrid` `DataGridRenderer` (display-only subset), driven by the comparison-app workstream (ServiceTas `MrsDemeritsSummary` form).
+
+- Depends on the **published** `@astroapps/datagrid` (1.2.0) base grid directly — it has zero Control/forms deps (only `react` + `clsx`), so no fork was needed.
+- `dataGridResolveChildren` (registered via `dataPlugin`'s `resolveChildren` on render type `DataGrid`) expands the bound array into one `Contents`-group row per element; each row's `node: form` sources the grid's declared column controls, so `row.getChildren(rc)` yields the per-column cells bound to that element. This skips the legacy two-level (synthesized-headers-group + data-array) resolver — column header metadata is read directly from `definition.children` in the renderer. Mirrors the `resolveOptionChildren` pattern in `forms-core/src/nodes/resolveChildren.ts`.
+- `createDataGridRenderer` (controls()-wrapped) maps each column definition → `ColumnDefInit` (title + `getColumnHeaderFromOptions` classes from the `ColumnOptions` adornment, `columnTemplate`), precomputes the `cellGrid` (rows × column cells) for closure-safe cell rendering via `<Field>`, and renders the base `<DataGrid>`.
+- `ColumnOptions` adornment (`columnAdornment.ts`) ported verbatim (schema + `isColumnAdornment` + `getColumnHeaderFromOptions` + `defaultDataGridClasses`).
+- Registration order matters: `combineRegistries(dataGridRegistry(), defaultRegistry())` so the `DataGrid` render type beats the default collection (Array) matcher.
+- **Not ported (Phase B):** add/remove/edit array actions, `searchField` filter/sort (needs `@astroapps/searchstate` + `FilterPopover` + `SortableHeader`), `groupByField` row-spanning, per-column `visible`/`rowSpan` expressions, and the trailing delete-check column (legacy renders an empty `auto` column even in display-only; this port omits it). 3 integration tests in `packages/forms-datagrid/test`.
+- Wired into both compare apps (`MrsDemeritsSummary` form, port 3002 legacy reference via `@astroapps/schemas-datagrid` 8.2.0 / port 3003 rxc) with a shared `sampleData` seed so the grid shows rows. SSR-verified: identical column templates (`1fr 1fr 3fr`), headers, and cell values across both.
+
+#### DataGrid Phase B — pickup plan (not started)
+
+Goal: make `RWVPRenewalSearch` (the third DataGrid form) work, which needs filter/sort + paging. Suggested order:
+
+1. **searchstate dep.** Add published `@astroapps/searchstate` (2.0.0, zero deps) to `@rxc/forms-datagrid`. Provides `SearchOptions`, `setFilterValue`, `rotateSort`, `findSortField`.
+2. **Missing forms-core helpers.** The legacy renderer's header/filter wiring uses `schemaDataForFieldRef`, `fieldPathForDefinition`, `schemaForFieldPath` — none exist in `@rxc/forms-core` yet. Either port them (small, schema-nav) or inline equivalents. `searchField` resolves a sibling `SearchOptions` control via `schemaDataForFieldRef(searchField, parentNode)`.
+3. **FilterPopover + SortableHeader.** Port from `astrolabe-common/astrolabe-schemas-datagrid/src/{FilterPopover,SortableHeader,Popover}.tsx` (Radix popover, ~110 lines total). Wire into the base grid's `renderHeaderContent`.
+4. **Array actions.** Port `createArrayActions` / `applyArrayLengthRestrictions` / `getLengthRestrictions` / `getExternalEditData` (currently MISSING in rxc) for add/remove/edit. The rxc `ArrayRenderer` has an inline `getLengthRange` to crib from.
+5. **groupByField row-spanning + per-column `visible`/`rowSpan` expressions** via `runExpression` (last, only `MrsSummary`/`MrsDemeritsSummary` use rowSpan and they leave it empty `{}`).
+
+Reference source: `astrolabe-common/astrolabe-schemas-datagrid/src/DataGridControlRenderer.tsx` (597 lines — the display-only subset is already ported; lines for filter/sort/actions are the remainder).
+
+#### ServiceTas form-portability survey (reference)
+
+One-time scan of all ~70 ServiceTas forms (`astrolabe/ServiceTas/ServiceTasAPI/NewClientApp/client-common/formDefs`) against the rxc default renderer set. **All expression types, dynamic property types, and validators are fully supported** — gaps are purely custom data renderers the host must provide. Unknown render types fall through to the Textfield catch-all (degrade, don't crash).
+
+- **Clean (only rxc-supported features), good next ports:** `Burn` (65k, sibling of Fire), `MrsLicenceDetails`, `MrsRegistrationDetails`, `MrsRegistrationsSummary`, plus ~40 smaller forms.
+- **Need custom renderers, grouped by missing capability:**
+  - Payment widgets — `QuickstreamCC`/`QuickstreamPay` (TempPaymentForm, TUP, MrsLicenceRenewal, MrsRegistrationRenewal, ShortTermPermit). Third-party, not portable.
+  - `Switch` (SecurityPreferences, NotificationPreferences, TuoPreferences, LinkMastWizard) — cheap win, likely a styled checkbox.
+  - `AddressFinder` (Address, ShortTermPermit, PlatesPlusRegistrationWizard) — geocoding widget.
+  - `DataGrid`+`Pager`+`ColumnOptions` (MrsSummary, MrsDemeritsSummary ✅ done display-only, RWVPRenewalSearch needs Phase B).
+  - `Chart` (MrsSummary, MrsDemeritsSummary), `Map`/`MapPoints` (FireInitial, MastMooringPermitSummary) — viz widgets.
+  - Long tail: `CopyableData`, `Tooltip`, `Spotlight`, `HtmlRenderer`, `displayData.Custom` (RWVPVerificationWizard already stubs some).
 
 ### `@rxc/forms-editor` (visual designer, separate project)
 

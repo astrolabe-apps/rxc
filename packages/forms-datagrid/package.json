@@ -1,0 +1,39 @@
+{
+  "name": "@rxc/forms-datagrid",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@astroapps/datagrid": "^1.2.0",
+    "@rxc/controls": "workspace:*",
+    "@rxc/controls-core": "workspace:*",
+    "@rxc/forms": "workspace:*",
+    "@rxc/forms-core": "workspace:*",
+    "@rxc/forms-react-core": "workspace:*",
+    "clsx": "^2.1.1"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "react": "~19.1.0",
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

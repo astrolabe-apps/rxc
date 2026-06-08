@@ -42,6 +42,11 @@
       "shouldPublish": true
     },
     {
+      "packageName": "@rxc/forms-datagrid",
+      "projectFolder": "packages/forms-datagrid",
+      "shouldPublish": true
+    },
+    {
       "packageName": "@rxc/compat-controls",
       "projectFolder": "packages/compat-controls",
       "shouldPublish": true

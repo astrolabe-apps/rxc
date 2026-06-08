@@ -13,6 +13,7 @@
  * @rxc/forms's renderer source need to be registered explicitly so they
  * are emitted into the generated stylesheet. */
 @source "../../../packages/forms/src/**/*.{ts,tsx}";
+@source "../../../packages/forms-datagrid/src/**/*.{ts,tsx}";
 
 /* ServiceTas "portal" site palette + font-size / spacing scale —
  * mirrored from apps/legacy-compare/app/globals.css. See that file for

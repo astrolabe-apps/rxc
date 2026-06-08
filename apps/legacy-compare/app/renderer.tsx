@@ -44,6 +44,7 @@ import {
   DefaultRendererOptions,
   defaultTailwindTheme,
 } from "@react-typed-forms/schemas-html";
+import { DataGridRenderer } from "@astroapps/schemas-datagrid";
 import {
   ExtendedHelpText,
   HtmlDataRendererOptions,
@@ -240,6 +241,7 @@ export function createStdRenderer(
   return createFormRenderer(
     [
       ...others,
+      DataGridRenderer,
       HtmlLabelRenderer,
       createHelpTextRenderer(options.container),
       createHtmlDataRenderer(),

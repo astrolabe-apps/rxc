@@ -55,7 +55,9 @@ const FormHost = controls<FormHostProps>(
     } | null>(null);
 
     if (!stateRef.current) {
-      const rootControl = cc.newControl<Record<string, unknown>>({});
+      const rootControl = cc.newControl<Record<string, unknown>>(
+        def.sampleData ?? {},
+      );
       const rootTree =
         schemaResolver.getSchemaTree(def.schemaName) ??
         createStaticSchemaTree(def.formFields, schemaResolver);

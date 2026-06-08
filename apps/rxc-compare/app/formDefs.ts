@@ -1,6 +1,7 @@
 import type { SchemaField } from "@rxc/forms-core";
 import FireJson from "./formDefs/Fire.json";
 import RWVPJson from "./formDefs/RWVPVerificationWizard.json";
+import MrsDemeritsJson from "./formDefs/MrsDemeritsSummary.json";
 
 export interface FormDefinitionEntry {
   /** Stable key + dropdown value. */
@@ -13,6 +14,8 @@ export interface FormDefinitionEntry {
   controls: unknown[];
   /** Per-form-bundled schema fields (matches the same name in `SchemaMap`). */
   formFields: SchemaField[];
+  /** Optional initial form data so display-only forms have something to show. */
+  sampleData?: Record<string, unknown>;
 }
 
 export const Fire: FormDefinitionEntry = {
@@ -31,7 +34,27 @@ export const RWVPVerificationWizard: FormDefinitionEntry = {
   formFields: RWVPJson.fields as SchemaField[],
 };
 
+export const MrsDemeritsSummary: FormDefinitionEntry = {
+  key: "MrsDemeritsSummary",
+  name: "MRS Demerits",
+  schemaName: "MrsSummaryForm",
+  controls: MrsDemeritsJson.controls,
+  formFields: MrsDemeritsJson.fields as SchemaField[],
+  sampleData: {
+    demerits: {
+      totalPoints: 7,
+      activePoints: 4,
+      details: [
+        { points: 3, offenceDate: "2024-01-12", description: "Exceed speed limit by less than 15 km/h" },
+        { points: 3, offenceDate: "2024-03-02", description: "Use mobile phone while driving" },
+        { points: 1, offenceDate: "2024-05-21", description: "Fail to display P plates" },
+      ],
+    },
+  },
+};
+
 export const FormDefinitions: Record<string, FormDefinitionEntry> = {
   Fire,
   RWVPVerificationWizard,
+  MrsDemeritsSummary,
 };

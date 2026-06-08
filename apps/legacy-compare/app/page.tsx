@@ -23,7 +23,9 @@ type FormKey = keyof typeof FormDefinitions;
 function FormHost({ formKey }: { formKey: FormKey }): JSX.Element {
   const def = FormDefinitions[formKey];
   const renderer = useFormTypeRenderer(formKey);
-  const rootControl = useControl<Record<string, unknown>>({});
+  const rootControl = useControl<Record<string, unknown>>(
+    (def as { sampleData?: Record<string, unknown> }).sampleData ?? {},
+  );
   const schemaTree = schemaLookup.getSchemaTree(def.schemaName, def.formFields);
   const dataNode = createSchemaDataNode(schemaTree.rootNode, rootControl);
   const formNode = useMemo(

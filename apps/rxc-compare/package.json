@@ -16,6 +16,7 @@
     "@rxc/forms-core": "workspace:*",
     "@rxc/forms-react-core": "workspace:*",
     "@rxc/forms": "workspace:*",
+    "@rxc/forms-datagrid": "workspace:*",
     "clsx": "^2.1.1",
     "html-react-parser": "^5.2.2",
     "next": "~16.1.0",
