@@ -91,7 +91,11 @@ const FormHost = controls<FormHostProps>(
       }>;
       const client = fieldClientSearch<Record<string, unknown>>();
       const eff = effect(cc, (rc) => {
-        const req = rc.getValueRx(reqControl);
+        // Track the whole request Value (not getValueRx): the `filters`
+        // object has dynamic keys read via Object.keys(), which bypasses
+        // getValueRx's per-field proxy tracking, so a filter toggle (a Value
+        // change, not Structure) would otherwise not re-run this effect.
+        const req = rc.getValue(reqControl);
         const { entries, total } = clientSearchPage(cs.allRows, req, client);
         cc.update((wc) => {
           wc.setValue(resultsControl.fields.total, total);
