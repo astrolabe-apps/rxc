@@ -43,6 +43,20 @@ const emptyFormResolver: FormTreeResolver = {
 
 const registry = createRegistry();
 
+// Per-form registry cache: a form can request a DataGrid `rowClass` (the one
+// class slot set at renderer-construction time, not via form JSON), so the
+// scratch form gets a striped registry without disturbing the others.
+const registryCache = new Map<string, ReturnType<typeof createRegistry>>();
+function registryFor(rowClass?: string) {
+  if (!rowClass) return registry;
+  let reg = registryCache.get(rowClass);
+  if (!reg) {
+    reg = createRegistry({ rowClass });
+    registryCache.set(rowClass, reg);
+  }
+  return reg;
+}
+
 const controlContext = createControlContext();
 
 interface FormHostProps {
@@ -74,7 +88,10 @@ const FormHost = controls<FormHostProps>(
     }
 
     const { formRoot, dataRoot } = stateRef.current;
-    const formNode = useFormStateNode(cc, formRoot, dataRoot, { registry });
+    const formRegistry = registryFor(def.gridRowClass);
+    const formNode = useFormStateNode(cc, formRoot, dataRoot, {
+      registry: formRegistry,
+    });
 
     // Client-side search: stand in for a server by recomputing the bound
     // `results.{entries,total}` from `allRows` + the `request` SearchOptions
@@ -121,7 +138,7 @@ const FormHost = controls<FormHostProps>(
       >
         <Form
           node={formNode}
-          registry={registry}
+          registry={formRegistry}
           layout={HtmlLayout}
           label={HtmlLabel}
           error={HtmlError}

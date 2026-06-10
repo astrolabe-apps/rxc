@@ -2,13 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { controls } from "@rxc/controls";
-import type { Control, ReadContext } from "@rxc/controls-core";
+import { type Control, effect, type ReadContext } from "@rxc/controls-core";
 import {
   ActionStyle,
   boolField,
   buildSchema,
   type ChildNodeSpec,
   type ChildResolverFunc,
+  type ControlAdornment,
   ControlDefinitionType,
   type DataControlDefinition,
   dataRef,
@@ -66,6 +67,28 @@ function isExpr(expr: EntityExpression | undefined): expr is EntityExpression {
 }
 
 /**
+ * Synthesize the column control definition for a grid-level `ColumnOptions`
+ * adornment (one placed on the DataGrid itself rather than on a child
+ * control). The column binds to `.` (the row element), carries the
+ * adornment's render + layout options, and keeps the adornment so the
+ * renderer's per-column logic (title/classes/visible/rowSpan/rowIndex) picks
+ * it up uniformly. Mirrors the legacy `extraColumns` synthesis in
+ * `DataGridControlRenderer.resolveColumns`.
+ */
+function adornmentColumnDef(
+  adornment: ColumnOptions & ControlAdornment,
+): DataControlDefinition {
+  return {
+    type: ControlDefinitionType.Data,
+    field: ".",
+    hideTitle: true,
+    renderOptions: adornment.renderOptions,
+    layoutClass: adornment.layoutClass,
+    adornments: [adornment],
+  } as DataControlDefinition;
+}
+
+/**
  * Minimum/maximum allowed array length read from a data control's
  * validators. Mirrors the legacy `getLengthRestrictions` — only the
  * built-in `Length` validator is honoured here; custom validators are
@@ -109,6 +132,31 @@ export function computeGroupRowSpans(keys: readonly unknown[]): number[] {
     i = j;
   }
   return spans;
+}
+
+/**
+ * Stably cluster `items` so equal keys are adjacent, preserving the order in
+ * which each distinct key first appears and the original order within each
+ * group. Ported from the legacy `groupRowsBy` used by `useGroupedRows`.
+ * Exported for unit testing.
+ */
+export function stableGroupByKey<T>(
+  items: readonly T[],
+  keyOf: (item: T) => unknown,
+): T[] {
+  const order: unknown[] = [];
+  const buckets = new Map<unknown, T[]>();
+  for (const item of items) {
+    const k = keyOf(item);
+    let bucket = buckets.get(k);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(k, bucket);
+      order.push(k);
+    }
+    bucket.push(item);
+  }
+  return order.flatMap((k) => buckets.get(k)!);
 }
 
 /**
@@ -159,9 +207,19 @@ export interface DataGridOptions {
    * Per-row group key field on each row element. When set, adjacent rows
    * sharing the same value collapse via row-spanning in the bound (data)
    * column and any column flagged `groupedColumn`. Rows must already be in
-   * group order — the renderer does not reorder the underlying array.
+   * group order — the renderer does not reorder the underlying array unless
+   * {@link reorderGroups} is also set.
    */
   groupByField?: string;
+  /**
+   * Opt in to clustering rows by {@link groupByField}: when set, the renderer
+   * runs a post-commit effect that reorders the bound array so same-key rows
+   * are adjacent (stable — first-appearance key order preserved), matching the
+   * legacy `useGroupedRows` behavior. Off by default because it **mutates the
+   * bound data**; with it unset, `groupByField` only collapses already-adjacent
+   * runs (rxc's no-mutation default).
+   */
+  reorderGroups?: boolean;
 }
 
 const DataGridFields = buildSchema<DataGridOptions>({
@@ -180,18 +238,23 @@ const DataGridFields = buildSchema<DataGridOptions>({
   searchField: stringField("Search field"),
   disableClear: boolField("Disable clear filter"),
   groupByField: stringField("Group by field"),
+  reorderGroups: boolField("Reorder rows into groups"),
 });
 
 /**
  * Child resolver for a DataGrid data control. Expands the bound array into
  * one row child per element; each row is a `Contents` group bound to the
- * element's DataNode whose own children resolve to the grid's declared
- * column controls (via `node: form`). The renderer then reads each row's
- * children as the per-column cells.
+ * element's DataNode. Each row resolves its own children explicitly:
+ * grid-level `ColumnOptions` adornment columns first (bound to the element
+ * via `.`), then the grid's declared column controls (reusing each column's
+ * `FormNode`). The renderer reads each row's children as the per-column
+ * cells in that same order.
  *
- * This mirrors the legacy two-level (headers group + data array) resolver,
- * but skips the synthesized headers group — column header metadata is read
- * directly from the definition's `children` in the renderer.
+ * Mirrors the legacy `resolveColumns` (extra adornment columns ++ standard
+ * columns). The standard-column branch is identical to
+ * `defaultResolveChildren`'s default branch (same `childKey: node.id`,
+ * `{ node, parent }`), so a grid with no grid-level adornments resolves
+ * exactly as before.
  */
 export const dataGridResolveChildren: ChildResolverFunc = (
   node: FormStateNode,
@@ -199,8 +262,16 @@ export const dataGridResolveChildren: ChildResolverFunc = (
 ): ChildNodeSpec[] => {
   const { form } = node;
   if (!form) return [];
-  const dataNode = node.getState(rc).dataNode;
+  const state = node.getState(rc);
+  const dataNode = state.dataNode;
   if (!dataNode) return [];
+
+  // Grid-level adornment columns are plain definition data — safe to capture
+  // for each row's resolver. Column FormNodes are re-resolved per row inside
+  // the row resolver (with that resolver's own `rc`).
+  const gridAdornments = (state.definition.adornments ?? []).filter(
+    isColumnAdornment,
+  ) as (ColumnOptions & ControlAdornment)[];
 
   const cursor = dataNode.cursor(rc);
   const arrayControl = cursor.control as Control<unknown[]>;
@@ -221,6 +292,26 @@ export const dataGridResolveChildren: ChildResolverFunc = (
         } as GroupedControlsDefinition,
         parent: elementDataNode,
         node: form,
+        resolveChildren: (_rowNode, rrc): ChildNodeSpec[] => {
+          const columnCursors = form.cursor(rrc).children;
+          const adornmentCols: ChildNodeSpec[] = gridAdornments.map(
+            (adornment, ci) => ({
+              childKey: "cc" + ci,
+              create: () => ({
+                definition: adornmentColumnDef(adornment),
+                parent: elementDataNode,
+              }),
+            }),
+          );
+          const stdCols: ChildNodeSpec[] = columnCursors.map((col) => ({
+            childKey: col.node.id,
+            create: () => ({
+              node: col.node,
+              parent: elementDataNode,
+            }),
+          }));
+          return [...adornmentCols, ...stdCols];
+        },
       }),
     });
   }
@@ -261,6 +352,11 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const editSession = renderOptions.editExternal
       ? editController.session(rc)
       : null;
+    // While an external-edit draft is open, disable the array buttons (Add /
+    // Edit / Remove) so they grey out — matching the legacy
+    // `disableActionIfEdit`. The modal already blocks interaction, but the
+    // disabled state keeps the chrome consistent.
+    const editing = !!editSession;
     const dialogRef = useRef<HTMLDialogElement | null>(null);
     useEffect(() => {
       const el = dialogRef.current;
@@ -268,7 +364,17 @@ function createDataGridRenderer(classes?: DataGridClasses) {
       if (editSession && !el.open) el.showModal();
       if (!editSession && el.open) el.close();
     }, [editSession]);
-    const columnDefs = (def.children ?? []) as DataControlDefinition[];
+    // Unified column list: grid-level adornment columns first, then the
+    // declared column controls — matching the order `dataGridResolveChildren`
+    // produces each row's cells, so `cellGrid[row][i]` lines up by index.
+    const gridAdornmentDefs = (
+      (def.adornments ?? []).filter(isColumnAdornment) as (ColumnOptions &
+        ControlAdornment)[]
+    ).map(adornmentColumnDef);
+    const columnDefs = [
+      ...gridAdornmentDefs,
+      ...((def.children ?? []) as DataControlDefinition[]),
+    ];
     const groupByField = renderOptions.groupByField;
 
     // One Contents group per row; each row's children are the column cells.
@@ -277,6 +383,32 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const rowCount = rows.length;
     const arrayControl = state.data as Control<unknown[]> | undefined;
     const isReadonly = state.readonly || state.disabled;
+
+    // Opt-in `reorderGroups`: cluster same-key rows adjacently by mutating the
+    // bound array (legacy `useGroupedRows`). Runs as a post-commit reactive
+    // effect — re-clusters when rows or their group keys change, and is a
+    // no-op once already grouped (so it converges and never loops).
+    const reorderGroups = renderOptions.reorderGroups;
+    useEffect(() => {
+      if (!reorderGroups || !groupByField || !arrayControl) return;
+      const eff = effect(ctx, (erc) => {
+        const elems = erc.getElements(arrayControl);
+        const keyOf = (el: Control<unknown>) => {
+          const fc = (el as Control<Record<string, unknown>>).fields[
+            groupByField
+          ];
+          return fc ? erc.getValue(fc) : undefined;
+        };
+        const reordered = stableGroupByKey(elems, keyOf);
+        if (
+          reordered.length === elems.length &&
+          reordered.every((c, i) => c === elems[i])
+        )
+          return;
+        ctx.update((wc) => wc.updateElements(arrayControl, () => reordered));
+      });
+      return () => eff.cleanup();
+    }, [ctx, arrayControl, groupByField, reorderGroups]);
     const { min, max } = getDataGridLengthRange(def as DataControlDefinition);
 
     const displayOnly = !!renderOptions.displayOnly;
@@ -457,6 +589,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
               <Action
                 actionId={editActionId}
                 actionText={editText}
+                disabled={editing}
                 onClick={() => {
                   if (renderOptions.editExternal) {
                     editController.beginEdit(rowIndex);
@@ -473,7 +606,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
               <Action
                 actionId={removeActionId}
                 actionText={removeText}
-                disabled={rowCount <= min}
+                disabled={editing || rowCount <= min}
                 onClick={() => {
                   void dispatchOrRun(
                     removeActionId,
@@ -503,6 +636,15 @@ function createDataGridRenderer(classes?: DataGridClasses) {
           cellClass=""
           headerCellClass=""
           bodyCellClass=""
+          wrapBodyRow={
+            gridClasses.rowClass
+              ? (i, render) => (
+                  <div key={rows[i].uniqueId} className={gridClasses.rowClass}>
+                    {render(rows[i], rows[i].uniqueId)}
+                  </div>
+                )
+              : undefined
+          }
           renderHeaderContent={(col) => {
             const cfg = headerConfig[col.id];
             const filterEl =
@@ -550,6 +692,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
             <Action
               actionId={addActionId}
               actionText={addText}
+              disabled={editing}
               onClick={() => {
                 if (renderOptions.editExternal) {
                   editController.beginAdd();

@@ -9,6 +9,7 @@ import {
   type DataRendererProps,
   type FormRegistry,
   rendererClass,
+  useDesignMode,
 } from "@rxc/forms-react-core";
 import type { SearchOptions } from "@astroapps/searchstate";
 
@@ -81,6 +82,7 @@ function createPagerRenderer(
   return controls<DataRendererProps>(
     "PagerRenderer",
     ({ node }, { rc, update }) => {
+      const designMode = useDesignMode();
       const state = node.getState(rc);
       const search = state.data as Control<SearchOptions> | undefined;
       if (!search) return null;
@@ -98,10 +100,14 @@ function createPagerRenderer(
 
       const totalPages = Math.floor((currentTotal - 1) / perPage) + 1;
       const currentPage = Math.floor(offset / perPage);
-      const changePage = (dir: number) =>
+      const changePage = (dir: number) => {
+        // No-op in design mode so paging doesn't mutate state while the form
+        // is being edited (matches legacy PagerRenderer).
+        if (designMode) return;
         update((wc) =>
           wc.setValue(offsetControl, (currentPage + dir) * perPage),
         );
+      };
 
       const numText = (value: number) => (
         <span className={pagerClasses.numberClass}>{value}</span>

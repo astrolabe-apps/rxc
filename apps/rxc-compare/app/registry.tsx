@@ -9,7 +9,7 @@ import {
   type GroupRendererProps,
 } from "@rxc/forms-react-core";
 import { defaultRegistry, Field, useHtmlTheme } from "@rxc/forms";
-import { dataGridRegistry } from "@rxc/forms-datagrid";
+import { dataGridRegistry, type DataGridClasses } from "@rxc/forms-datagrid";
 import { AllErrors } from "./components/AllErrors";
 import { TopLevelGroupValue } from "./formExtensions";
 import { PopoverHelpTextAdornment } from "./adornments/PopoverHelpText";
@@ -30,7 +30,7 @@ const TopLevelGroup = controls<GroupRendererProps>(
   },
 );
 
-export function createRegistry(): FormRegistry {
+export function createRegistry(gridClasses?: DataGridClasses): FormRegistry {
   return combineRegistries(
     groupPlugin({
       type: TopLevelGroupValue,
@@ -39,7 +39,7 @@ export function createRegistry(): FormRegistry {
     {
       adornments: [PopoverHelpTextAdornment as unknown as AnyAdornmentRegistration],
     },
-    dataGridRegistry(),
+    dataGridRegistry(gridClasses),
     defaultRegistry(),
   );
 }

@@ -1,4 +1,4 @@
-import type { SchemaField } from "@rxc/forms-core";
+import { FieldType, type SchemaField } from "@rxc/forms-core";
 import FireJson from "./formDefs/Fire.json";
 import RWVPJson from "./formDefs/RWVPVerificationWizard.json";
 import MrsDemeritsJson from "./formDefs/MrsDemeritsSummary.json";
@@ -28,6 +28,13 @@ export interface FormDefinitionEntry {
     allRows: Record<string, unknown>[];
     searchableFields?: string[];
   };
+  /**
+   * When set, the page builds this form's registry with the given DataGrid
+   * `rowClass` — the only DataGrid class slot that's renderer-construction
+   * time rather than per-form JSON. Used by the scratch form to exercise the
+   * `wrapBodyRow` row-class path.
+   */
+  gridRowClass?: string;
 }
 
 export const Fire: FormDefinitionEntry = {
@@ -117,9 +124,163 @@ export const RWVPRenewalSearch: FormDefinitionEntry = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// DataGrid scratch form — exercises the Phase D parity fixes for a visual pass:
+//   • grid-level `#` row-index adornment column (synthetic leading column)
+//   • `editExternal` modal Add/Edit + Add/Edit/Remove disabled while open
+//   • zebra `rowClass` via the grid registry's `wrapBodyRow`
+//   • `groupByField` + `reorderGroups` clustering (read-only second grid)
+// ---------------------------------------------------------------------------
+
+const incidentChildren: SchemaField[] = [
+  { type: FieldType.String, field: "category" },
+  { type: FieldType.Date, field: "date" },
+  { type: FieldType.Int, field: "severity" },
+  { type: FieldType.String, field: "description" },
+];
+
+const scratchFields: SchemaField[] = [
+  {
+    type: FieldType.Compound,
+    field: "incidents",
+    collection: true,
+    children: incidentChildren,
+  } as SchemaField,
+  {
+    type: FieldType.Compound,
+    field: "grouped",
+    collection: true,
+    children: incidentChildren,
+  } as SchemaField,
+];
+
+const headerCellClass =
+  "bg-zinc-100 py-2 px-3 font-semibold flex items-center text-sm text-zinc-700";
+const bodyCellClass = "py-1.5 px-3 flex items-center";
+
+const dgCol = (
+  field: string,
+  title: string,
+  columnTemplate: string,
+  renderType: "DisplayOnly" | "Standard",
+  extra: Record<string, unknown> = {},
+) => ({
+  type: "Data",
+  title,
+  field,
+  hideTitle: true,
+  renderOptions: { type: renderType },
+  adornments: [
+    {
+      type: "ColumnOptions",
+      title,
+      columnTemplate,
+      headerCellClass,
+      bodyCellClass,
+      ...extra,
+    },
+  ],
+});
+
+// A `ColumnOptions` adornment placed on the grid control itself (not a child
+// control) — synthesizes the standalone leading "#" row-index column.
+const rowIndexAdornment = {
+  type: "ColumnOptions",
+  title: "#",
+  rowIndex: true,
+  columnTemplate: "auto",
+  headerCellClass: headerCellClass + " justify-center",
+  bodyCellClass: bodyCellClass + " justify-center text-zinc-400 tabular-nums",
+};
+
+const display = (text: string) => ({
+  type: "Display",
+  title: text,
+  displayData: { type: "Text", text },
+  textClass: "text-sm font-semibold text-zinc-600 mt-4 mb-1",
+});
+
+export const DataGridScratch: FormDefinitionEntry = {
+  key: "DataGridScratch",
+  name: "DataGrid Scratch (Phase D)",
+  schemaName: "DataGridScratchForm",
+  formFields: scratchFields,
+  // `contents` keeps the row wrapper from consuming a grid cell (its cells
+  // re-promote to grid items). `dg-row` is a plain CSS rule in globals.css
+  // that stripes the row's cells — a `display:contents` box paints no
+  // background of its own, so the zebra must target the cells.
+  gridRowClass: "contents dg-row",
+  controls: [
+    display(
+      "Editable grid — grid-level # column, modal Add/Edit (buttons disable while the dialog is open), zebra rows",
+    ),
+    {
+      type: "Data",
+      title: "Incidents",
+      field: "incidents",
+      hideTitle: true,
+      adornments: [rowIndexAdornment],
+      renderOptions: {
+        type: "DataGrid",
+        editExternal: true,
+        addText: "Add incident",
+        editText: "Edit",
+        removeText: "Remove",
+      },
+      children: [
+        dgCol("category", "Category", "1fr", "Standard"),
+        dgCol("date", "Date", "1fr", "Standard"),
+        dgCol("severity", "Severity", "auto", "Standard"),
+        dgCol("description", "Description", "2fr", "Standard"),
+      ],
+    },
+    display(
+      "Read-only grouped grid — groupByField:category + reorderGroups clusters rows on mount; Category row-spans per group",
+    ),
+    {
+      type: "Data",
+      title: "Grouped events",
+      field: "grouped",
+      hideTitle: true,
+      adornments: [rowIndexAdornment],
+      renderOptions: {
+        type: "DataGrid",
+        displayOnly: true,
+        groupByField: "category",
+        reorderGroups: true,
+      },
+      children: [
+        dgCol("category", "Category", "1fr", "DisplayOnly", {
+          groupedColumn: true,
+        }),
+        dgCol("date", "Date", "1fr", "DisplayOnly"),
+        dgCol("severity", "Severity", "auto", "DisplayOnly"),
+        dgCol("description", "Description", "2fr", "DisplayOnly"),
+      ],
+    },
+  ],
+  sampleData: {
+    incidents: [
+      { category: "Fire", date: "2024-01-10", severity: 3, description: "Kitchen fire" },
+      { category: "Flood", date: "2024-02-02", severity: 2, description: "Burst pipe" },
+      { category: "Storm", date: "2024-04-01", severity: 1, description: "Fallen branch" },
+    ],
+    // Deliberately out of category order so reorderGroups visibly clusters.
+    grouped: [
+      { category: "Fire", date: "2024-01-10", severity: 3, description: "Kitchen fire" },
+      { category: "Flood", date: "2024-02-02", severity: 2, description: "Burst pipe" },
+      { category: "Fire", date: "2024-03-15", severity: 5, description: "Electrical fire" },
+      { category: "Storm", date: "2024-04-01", severity: 1, description: "Fallen branch" },
+      { category: "Flood", date: "2024-05-20", severity: 4, description: "River overflow" },
+      { category: "Fire", date: "2024-06-30", severity: 2, description: "Bin fire" },
+    ],
+  },
+};
+
 export const FormDefinitions: Record<string, FormDefinitionEntry> = {
   Fire,
   RWVPVerificationWizard,
   MrsDemeritsSummary,
   RWVPRenewalSearch,
+  DataGridScratch,
 };

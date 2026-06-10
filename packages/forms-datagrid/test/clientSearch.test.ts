@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { clientSearchPage, fieldClientSearch } from "../src/clientSearch";
+import {
+  clientSearchPage,
+  fieldClientSearch,
+  schemaClientSearch,
+} from "../src/clientSearch";
 import type { SearchOptions } from "@astroapps/searchstate";
+import {
+  defaultSchemaInterface,
+  FieldType,
+  type SchemaField,
+} from "@rxc/forms-core";
 
 type Row = { id: string; status: string; name: string };
 
@@ -142,5 +151,70 @@ describe("clientSearchPage", () => {
     // offset 1, length 2 → Emma, Liam
     expect(total).toBe(4);
     expect(entries.map((r) => r.name)).toEqual(["Emma", "Liam"]);
+  });
+});
+
+describe("schemaClientSearch", () => {
+  type SRow = { points: number; status: string; owner: { name: string } };
+
+  const sfields: SchemaField[] = [
+    { type: FieldType.Int, field: "points" },
+    {
+      type: FieldType.String,
+      field: "status",
+      options: [
+        { name: "Submitted", value: "S" },
+        { name: "Draft", value: "D" },
+      ],
+    },
+    {
+      type: FieldType.Compound,
+      field: "owner",
+      children: [{ type: FieldType.String, field: "name" }],
+    } as SchemaField,
+  ];
+
+  const sclient = schemaClientSearch<SRow>(sfields, defaultSchemaInterface);
+
+  const srows: SRow[] = [
+    { points: 10, status: "S", owner: { name: "Ava" } },
+    { points: 2, status: "D", owner: { name: "Liam" } },
+    { points: 9, status: "S", owner: { name: "Mia" } },
+  ];
+
+  it("sorts numerically via SchemaInterface.compareValue (not lexically)", () => {
+    const { entries } = clientSearchPage(
+      srows,
+      search({ sort: ["apoints"] }),
+      sclient,
+    );
+    // Numeric: 2, 9, 10. Lexical string sort would give 10, 2, 9.
+    expect(entries.map((r) => r.points)).toEqual([2, 9, 10]);
+  });
+
+  it("filters by a nested field path", () => {
+    const { entries, total } = clientSearchPage(
+      srows,
+      search({ filters: { "owner/name": ["Mia"] } }),
+      sclient,
+    );
+    expect(total).toBe(1);
+    expect(entries.map((r) => r.points)).toEqual([9]);
+  });
+
+  it("builds search text from option names + scalar fields, skipping compounds", () => {
+    // status "S" resolves to option name "Submitted"; owner (compound) is
+    // excluded; everything lowercased.
+    expect(sclient.getSearchText(srows[0])).toBe("10 submitted");
+  });
+
+  it("query search matches the resolved option-name text", () => {
+    const { entries, total } = clientSearchPage(
+      srows,
+      search({ query: "draft" }),
+      sclient,
+    );
+    expect(total).toBe(1);
+    expect(entries.map((r) => r.owner.name)).toEqual(["Liam"]);
   });
 });

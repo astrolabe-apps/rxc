@@ -46,7 +46,9 @@ import {
 } from "@react-typed-forms/schemas-html";
 import {
   DataGridRenderer,
+  createDataGridRenderer,
   createPagerRenderer,
+  defaultDataGridClasses,
 } from "@astroapps/schemas-datagrid";
 import {
   ExtendedHelpText,
@@ -234,6 +236,8 @@ export const DefaultRenderOptions = deepMerge(
 
 export interface StdRenderOptions {
   container: HTMLElement | null;
+  /** Per-form DataGrid `rowClass` (the scratch form's zebra demo). */
+  gridRowClass?: string;
 }
 
 export function createStdRenderer(
@@ -241,10 +245,19 @@ export function createStdRenderer(
   options: StdRenderOptions,
   ...others: RendererRegistration[]
 ) {
+  // Scope `rowClass` to the form that asks for it (mirrors how the rxc
+  // compare app builds a per-form registry), so the other forms keep their
+  // existing un-striped baseline.
+  const gridRenderer = options.gridRowClass
+    ? createDataGridRenderer(undefined, {
+        ...defaultDataGridClasses,
+        rowClass: options.gridRowClass,
+      })
+    : DataGridRenderer;
   return createFormRenderer(
     [
       ...others,
-      DataGridRenderer,
+      gridRenderer,
       createPagerRenderer(),
       HtmlLabelRenderer,
       createHelpTextRenderer(options.container),
@@ -303,13 +316,16 @@ export function useFormTypeRenderer(
   ...renderers: RendererRegistration[]
 ) {
   const container = useContext(DialogContext);
+  const gridRowClass = (
+    FormDefinitions[formType] as { gridRowClass?: string }
+  ).gridRowClass;
   return useMemo(
     () =>
       createStdRenderer(
         DefaultRenderOptions,
-        { container, ...options },
+        { container, gridRowClass, ...options },
         ...renderers,
       ),
-    [container, ...renderers],
+    [container, gridRowClass, ...renderers],
   );
 }

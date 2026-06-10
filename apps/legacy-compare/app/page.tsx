@@ -52,9 +52,18 @@ function makeFieldClient(
   };
 }
 
-const schemaLookup = createSchemaLookup(
-  SchemaMap as Record<string, SchemaField[]>,
+// Register each form's bundled `formFields` under its `schemaName` so forms
+// without a generated `SchemaMap` entry (e.g. the DataGrid scratch form)
+// still resolve. Generated `SchemaMap` entries win on name collision.
+const formFieldSchemas = Object.fromEntries(
+  Object.values(FormDefinitions)
+    .filter((d) => (d as { formFields?: SchemaField[] }).formFields)
+    .map((d) => [d.schemaName, (d as { formFields: SchemaField[] }).formFields]),
 );
+const schemaLookup = createSchemaLookup({
+  ...formFieldSchemas,
+  ...(SchemaMap as Record<string, SchemaField[]>),
+});
 
 type FormKey = keyof typeof FormDefinitions;
 

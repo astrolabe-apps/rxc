@@ -334,3 +334,9 @@ input[type="checkbox"] {
  * custom @apply rules above on source order at equal specificity.
  * This replaces the legacy `important: "#app"` specificity trick. */
 @tailwind utilities;
+
+/* DataGrid scratch zebra. The grid `rowClass` wrapper is `display:contents`
+ * (so it doesn't consume a grid cell) and therefore paints no box of its
+ * own — stripe the row's cells instead, gated on the wrapper's nth-child
+ * parity. A plain rule rather than a Tailwind `[&>*]:` arbitrary variant. */
+.dg-row:nth-child(even) > * { background-color: #fafafa; }

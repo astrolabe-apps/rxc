@@ -230,3 +230,10 @@ input[type="checkbox"] {
 .caption2-italic { @apply italic font-semibold text-[11px] leading-[13px] tracking-[0.06px] text-text; }
 
 @tailwind utilities;
+
+/* DataGrid scratch zebra. The grid `rowClass` wrapper is `display:contents`
+ * (so it doesn't consume a grid cell) and therefore paints no box of its
+ * own — stripe the row's cells instead, gated on the wrapper's nth-child
+ * parity. A plain rule rather than a Tailwind `[&>*]:` arbitrary variant,
+ * which this app's explicit `@source` setup doesn't emit. */
+.dg-row:nth-child(even) > * { background-color: #fafafa; }

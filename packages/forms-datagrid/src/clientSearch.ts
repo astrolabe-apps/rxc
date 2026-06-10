@@ -4,6 +4,11 @@ import {
   getPageOfResults,
   makeClientSortAndFilter,
 } from "@astroapps/searchstate";
+import {
+  isCompoundField,
+  type SchemaField,
+  type SchemaInterface,
+} from "@rxc/forms-core";
 
 export interface FieldClientSearchOptions<T> {
   /**
@@ -58,6 +63,75 @@ export function fieldClientSearch<T extends Record<string, unknown>>(
       return av < bv ? -1 : 1;
     },
     getFilterValue: (field) => (row) => row[field],
+  };
+}
+
+/**
+ * Resolve a `/`-separated field reference against a list of row
+ * {@link SchemaField}s, walking into compound children for each segment.
+ * Returns the leaf field (for type-aware comparison) and a reader that
+ * walks the raw row object along the same path. The leaf field is
+ * `undefined` when the path doesn't resolve — callers fall back to
+ * "no comparison/filter for this field".
+ */
+function resolveFieldPath(
+  fields: SchemaField[],
+  path: string[],
+): { field: SchemaField | undefined; read: (row: unknown) => unknown } {
+  let currentFields: SchemaField[] | undefined = fields;
+  let field: SchemaField | undefined;
+  for (const seg of path) {
+    field = currentFields?.find((f) => f.field === seg);
+    currentFields =
+      field && isCompoundField(field) ? field.children : undefined;
+  }
+  const read = (row: unknown) => {
+    let v: unknown = row;
+    for (const seg of path) {
+      if (v == null || typeof v !== "object") return undefined;
+      v = (v as Record<string, unknown>)[seg];
+    }
+    return v;
+  };
+  return { field, read };
+}
+
+/**
+ * Schema-aware {@link ClientSideSearching} for object rows described by a
+ * list of {@link SchemaField}s. Unlike {@link fieldClientSearch}, this:
+ *
+ *  - resolves nested `field/path` references by walking compound children;
+ *  - compares values through {@link SchemaInterface.compareValue}, so dates,
+ *    numbers, and other typed fields sort correctly (not lexicographically);
+ *  - builds full-text search corpus from {@link SchemaInterface.textValue}
+ *    over the scalar top-level fields (option `name`s, formatted dates, etc.).
+ *
+ * Ported from the legacy `schemaNodeClientSideSearch`
+ * (`@astroapps/schemas-datagrid`); `textValue` stands in for the legacy
+ * `searchText` (rxc's `SchemaInterface` exposes the former). Pass the row
+ * element's fields — typically `dataGrid` element schema children — and the
+ * active `SchemaInterface`.
+ */
+export function schemaClientSearch<T extends Record<string, unknown>>(
+  fields: SchemaField[],
+  schemaInterface: SchemaInterface,
+): ClientSideSearching<T> {
+  return {
+    getSearchText: (row) =>
+      fields
+        .filter((f) => !f.collection && !isCompoundField(f))
+        .map((f) => schemaInterface.textValue(f, row[f.field]) ?? "")
+        .join(" ")
+        .toLowerCase(),
+    getComparison: (field) => {
+      const { field: leaf, read } = resolveFieldPath(fields, field.split("/"));
+      if (!leaf) return undefined;
+      return (a, b) => schemaInterface.compareValue(leaf, read(a), read(b));
+    },
+    getFilterValue: (field) => {
+      const { read } = resolveFieldPath(fields, field.split("/"));
+      return (row) => read(row);
+    },
   };
 }
 

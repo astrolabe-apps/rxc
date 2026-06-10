@@ -39,4 +39,8 @@ export {
 export { FilterPopover, type FilterPopoverProps } from "./FilterPopover";
 export { SortableHeader, type SortableHeaderProps } from "./SortableHeader";
 export { Popover, type PopoverProps } from "./Popover";
-export { fieldClientSearch, clientSearchPage } from "./clientSearch";
+export {
+  fieldClientSearch,
+  schemaClientSearch,
+  clientSearchPage,
+} from "./clientSearch";

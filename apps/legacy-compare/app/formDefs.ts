@@ -110,11 +110,144 @@ export const RWVPRenewalSearch = {
   },
 };
 
+// Mirror of the rxc compare app's DataGrid scratch form (apps/rxc-compare/
+// app/formDefs.ts) so the Phase D parity fixes can be compared side-by-side
+// against the published legacy `@astroapps/schemas-datagrid` renderer:
+//   • grid-level `#` row-index adornment column
+//   • `editExternal` modal Add/Edit (+ buttons disabled while open)
+//   • zebra `rowClass` (per-form via the renderer's `gridRowClass`)
+//   • `groupByField: "category"` row clustering — legacy auto-reorders here,
+//     which is exactly what the rxc `reorderGroups` flag reproduces.
+const incidentChildren = [
+  { type: "String", field: "category" },
+  { type: "Date", field: "date" },
+  { type: "Int", field: "severity" },
+  { type: "String", field: "description" },
+];
+
+const scratchFields = [
+  { type: "Compound", field: "incidents", collection: true, children: incidentChildren },
+  { type: "Compound", field: "grouped", collection: true, children: incidentChildren },
+] as unknown as SchemaField[];
+
+const lcHeaderCellClass =
+  "bg-zinc-100 py-2 px-3 font-semibold flex items-center text-sm text-zinc-700";
+const lcBodyCellClass = "py-1.5 px-3 flex items-center";
+
+const lcCol = (
+  field: string,
+  title: string,
+  columnTemplate: string,
+  renderType: "DisplayOnly" | "Standard",
+  extra: Record<string, unknown> = {},
+) => ({
+  type: "Data",
+  title,
+  field,
+  hideTitle: true,
+  renderOptions: { type: renderType },
+  adornments: [
+    { type: "ColumnOptions", title, columnTemplate, headerCellClass: lcHeaderCellClass, bodyCellClass: lcBodyCellClass, ...extra },
+  ],
+});
+
+const lcRowIndexAdornment = {
+  type: "ColumnOptions",
+  title: "#",
+  rowIndex: true,
+  columnTemplate: "auto",
+  headerCellClass: lcHeaderCellClass + " justify-center",
+  bodyCellClass: lcBodyCellClass + " justify-center text-zinc-400 tabular-nums",
+};
+
+const lcDisplay = (text: string) => ({
+  type: "Display",
+  title: text,
+  displayData: { type: "Text", text },
+  textClass: "text-sm font-semibold text-zinc-600 mt-4 mb-1",
+});
+
+export const DataGridScratch = {
+  value: "DataGridScratch",
+  name: "DataGrid Scratch (Phase D)",
+  schema: undefined as never,
+  schemaName: "DataGridScratchForm",
+  defaultConfig: null,
+  // `contents` keeps the row wrapper from consuming a grid cell. `dg-row` is
+  // a plain CSS rule in globals.css that stripes the row's cells — a
+  // `display:contents` box paints no background of its own.
+  gridRowClass: "contents dg-row",
+  controls: [
+    lcDisplay(
+      "Editable grid — grid-level # column, modal Add/Edit (buttons disable while the dialog is open), zebra rows",
+    ),
+    {
+      type: "Data",
+      title: "Incidents",
+      field: "incidents",
+      hideTitle: true,
+      adornments: [lcRowIndexAdornment],
+      renderOptions: {
+        type: "DataGrid",
+        editExternal: true,
+        addText: "Add incident",
+        editText: "Edit",
+        removeText: "Remove",
+      },
+      children: [
+        lcCol("category", "Category", "1fr", "Standard"),
+        lcCol("date", "Date", "1fr", "Standard"),
+        lcCol("severity", "Severity", "auto", "Standard"),
+        lcCol("description", "Description", "2fr", "Standard"),
+      ],
+    },
+    lcDisplay(
+      "Read-only grouped grid — groupByField:category clusters rows; Category row-spans per group",
+    ),
+    {
+      type: "Data",
+      title: "Grouped events",
+      field: "grouped",
+      hideTitle: true,
+      adornments: [lcRowIndexAdornment],
+      renderOptions: {
+        type: "DataGrid",
+        displayOnly: true,
+        groupByField: "category",
+      },
+      children: [
+        lcCol("category", "Category", "1fr", "DisplayOnly", { groupedColumn: true }),
+        lcCol("date", "Date", "1fr", "DisplayOnly"),
+        lcCol("severity", "Severity", "auto", "DisplayOnly"),
+        lcCol("description", "Description", "2fr", "DisplayOnly"),
+      ],
+    },
+  ] as unknown as ControlDefinition[],
+  config: undefined,
+  formFields: scratchFields,
+  sampleData: {
+    incidents: [
+      { category: "Fire", date: "2024-01-10", severity: 3, description: "Kitchen fire" },
+      { category: "Flood", date: "2024-02-02", severity: 2, description: "Burst pipe" },
+      { category: "Storm", date: "2024-04-01", severity: 1, description: "Fallen branch" },
+    ],
+    grouped: [
+      { category: "Fire", date: "2024-01-10", severity: 3, description: "Kitchen fire" },
+      { category: "Flood", date: "2024-02-02", severity: 2, description: "Burst pipe" },
+      { category: "Fire", date: "2024-03-15", severity: 5, description: "Electrical fire" },
+      { category: "Storm", date: "2024-04-01", severity: 1, description: "Fallen branch" },
+      { category: "Flood", date: "2024-05-20", severity: 4, description: "River overflow" },
+      { category: "Fire", date: "2024-06-30", severity: 2, description: "Bin fire" },
+    ],
+  },
+};
+
 export const FormDefinitions = {
   Fire,
   RWVPVerificationWizard,
   MrsDemeritsSummary,
   RWVPRenewalSearch,
+  DataGridScratch,
 } as const;
 
 export type FormDefinitionEntry = (typeof FormDefinitions)[keyof typeof FormDefinitions];
