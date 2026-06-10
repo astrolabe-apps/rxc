@@ -234,6 +234,22 @@ export const DataGridScratch: FormDefinitionEntry = {
         dgCol("description", "Description", "2fr", "Standard"),
       ],
     },
+    // Sibling modal host for the editable grid's editExternal flow. Bound to
+    // the same `incidents` array; `renderType: ArrayElement` routes to the
+    // ArrayElementModalHostRenderer, which shares the grid's staged-edit
+    // session and pops the dialog (the DataGrid no longer self-hosts it).
+    {
+      type: "Data",
+      field: "incidents",
+      hideTitle: true,
+      renderOptions: { type: "ArrayElement" },
+      children: [
+        dgCol("category", "Category", "1fr", "Standard"),
+        dgCol("date", "Date", "1fr", "Standard"),
+        dgCol("severity", "Severity", "auto", "Standard"),
+        dgCol("description", "Description", "2fr", "Standard"),
+      ],
+    },
     display(
       "Read-only grouped grid — groupByField:category + reorderGroups clusters rows on mount; Category row-spans per group",
     ),

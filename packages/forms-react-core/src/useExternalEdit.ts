@@ -4,8 +4,10 @@ import {
   type ReadContext,
 } from "@rxc/controls-core";
 import {
+  ControlDefinitionType,
   createDataNode,
   createFormStateNode,
+  GroupRenderType,
   type ControlDefinition,
   type DataNode,
   type FormNode,
@@ -160,16 +162,39 @@ export function useExternalEdit(
       return dn.cursor(noopReadContext).schema.node;
     }
 
-    function getElementFormNode() {
-      if (options.elementForm) return options.elementForm;
-      // Mirrors `resolveArrayChildren`: when the array has a single child
-      // template, that's the element's FormNode; otherwise the array's
-      // form is reused (the renderer will synthesize a default data
-      // control via `defaultResolveChildren`).
+    // Resolve the draft's root FormNode and the definition to root it with.
+    //
+    // - Explicit `options.elementForm` wins (back-compat for callers that
+    //   pass a custom root, e.g. older DataGrid wiring / unit tests).
+    // - Single-child array: the lone child is the element template — root on
+    //   it directly (its own def renders the template).
+    // - Multi-child array (e.g. DataGrid columns): rooting on the array's own
+    //   form would make the draft re-dispatch to the array's own collection
+    //   renderer (a nested Array/DataGrid bound to one element). Default the
+    //   root definition to a `Contents` group so the children (columns) render
+    //   inline. Children still resolve from `arrayForm`.
+    function getElementRoot():
+      | { form: FormNode; def: ControlDefinition | null }
+      | undefined {
+      const explicitDef = options.elementDefinition ?? null;
+      if (options.elementForm) {
+        return { form: options.elementForm, def: explicitDef };
+      }
       const arrayForm = arrayNode.form;
       if (!arrayForm) return undefined;
       const children = arrayForm.cursor(noopReadContext).children;
-      return children.length === 1 ? children[0].node : arrayForm;
+      if (children.length === 1) {
+        return { form: children[0].node, def: explicitDef };
+      }
+      return {
+        form: arrayForm,
+        def:
+          explicitDef ??
+          ({
+            type: ControlDefinitionType.Group,
+            groupOptions: { type: GroupRenderType.Contents },
+          } as ControlDefinition),
+      };
     }
 
     function disposeCurrent(current: ExternalEditSession | null) {
@@ -178,8 +203,8 @@ export function useExternalEdit(
 
     function beginSession(mode: "add" | "edit", index: number, value: unknown) {
       const elementSchema = getElementSchemaNode();
-      const elementForm = getElementFormNode();
-      if (!elementSchema || !elementForm) return;
+      const root = getElementRoot();
+      if (!elementSchema || !root) return;
 
       const draft = ctx.newControl<unknown>(value);
       const draftDataNode: DataNode = createDataNode(
@@ -194,11 +219,11 @@ export function useExternalEdit(
       );
       const draftForm = createFormStateNode(
         ctx,
-        elementForm,
+        root.form,
         draftDataNode,
         arrayNode.globals,
         undefined,
-        options.elementDefinition ?? null,
+        root.def,
       );
 
       const next: ExternalEditSession = { mode, index, draft, draftForm };

@@ -76,6 +76,9 @@ importers:
 
   ../../apps/legacy-compare:
     dependencies:
+      '@astroapps/aria-base':
+        specifier: ^1.6.1
+        version: 1.6.1(react-dom@19.1.7(react@19.1.7))(react@19.1.7)(tailwindcss@4.1.18)
       '@astroapps/datagrid':
         specifier: ^1.2.0
         version: 1.2.0(react@19.1.7)

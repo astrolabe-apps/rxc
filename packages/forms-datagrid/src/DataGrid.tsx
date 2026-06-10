@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { controls } from "@rxc/controls";
 import { type Control, effect, type ReadContext } from "@rxc/controls-core";
 import {
-  ActionStyle,
   boolField,
   buildSchema,
   type ChildNodeSpec,
@@ -333,37 +332,21 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const renderOptions = (def.renderOptions ?? {}) as DataGridOptions &
       RenderOptions;
 
-    // External-edit session: shared between Add and per-row Edit when
-    // `editExternal` is set. The same controller persists across renders
-    // (memoized on `node.meta`), so reads/writes here address one session
-    // at a time.
-    //
-    // The draft form reuses the DataGrid's own FormNode so children
-    // resolve to the column defs, but shadows the array data control's
-    // definition with a Contents group — otherwise the draft would render
-    // as another nested DataGrid bound to a single element.
-    const editController = useExternalEdit(node, {
-      elementForm: node.form ?? undefined,
-      elementDefinition: {
-        type: ControlDefinitionType.Group,
-        groupOptions: { type: GroupRenderType.Contents },
-      } as GroupedControlsDefinition,
-    });
+    // External-edit session: the Add / per-row Edit buttons stage a draft
+    // through the shared `useExternalEdit` controller (cached on the array
+    // Control under the default `$externalEdit` key). The MODAL that displays
+    // the draft is NOT hosted here — a sibling `renderType: ArrayElement`
+    // control bound to the same array hosts it (ArrayElementModalHostRenderer),
+    // exactly like the Array renderer. Because both call `useExternalEdit(node)`
+    // with no options, they share one controller + session; the no-options
+    // auto-detect roots the multi-column draft in a `Contents` group.
+    const editController = useExternalEdit(node);
     const editSession = renderOptions.editExternal
       ? editController.session(rc)
       : null;
-    // While an external-edit draft is open, disable the array buttons (Add /
-    // Edit / Remove) so they grey out — matching the legacy
-    // `disableActionIfEdit`. The modal already blocks interaction, but the
-    // disabled state keeps the chrome consistent.
+    // While a draft is open, disable Add/Edit/Remove so they grey out —
+    // matching the legacy `disableActionIfEdit`.
     const editing = !!editSession;
-    const dialogRef = useRef<HTMLDialogElement | null>(null);
-    useEffect(() => {
-      const el = dialogRef.current;
-      if (!el) return;
-      if (editSession && !el.open) el.showModal();
-      if (!editSession && el.open) el.close();
-    }, [editSession]);
     // Unified column list: grid-level adornment columns first, then the
     // declared column controls — matching the order `dataGridResolveChildren`
     // produces each row's cells, so `cellGrid[row][i]` lines up by index.
@@ -426,12 +409,6 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const addActionId = renderOptions.addActionId ?? "add";
     const removeActionId = renderOptions.removeActionId ?? "remove";
     const editActionId = renderOptions.editActionId ?? "edit";
-
-    // Action ids for the dialog's Apply / Cancel buttons. Distinct from
-    // the row-level add/edit/remove ids so hosts can register a custom
-    // renderer per id (e.g. matchActionId("gridApply", FancyApply)).
-    const applyActionId = "gridApply";
-    const cancelActionId = "gridCancel";
 
     const dispatchOrRun = async (
       actionId: string,
@@ -706,32 +683,6 @@ function createDataGridRenderer(classes?: DataGridClasses) {
               }}
             />
           </div>
-        ) : null}
-        {renderOptions.editExternal ? (
-          <dialog
-            ref={dialogRef}
-            onClose={() => editController.cancel()}
-            className={gridClasses.dialogClass}
-          >
-            {editSession ? (
-              <div className={gridClasses.dialogBodyClass}>
-                <Field node={editSession.draftForm} />
-                <div className={gridClasses.dialogActionsClass}>
-                  <Action
-                    actionId={cancelActionId}
-                    actionText={gridClasses.cancelText ?? "Cancel"}
-                    actionStyle={ActionStyle.Secondary}
-                    onClick={() => editController.cancel()}
-                  />
-                  <Action
-                    actionId={applyActionId}
-                    actionText={gridClasses.applyText ?? "Apply"}
-                    onClick={() => editController.apply()}
-                  />
-                </div>
-              </div>
-            ) : null}
-          </dialog>
         ) : null}
       </>
     );

@@ -201,6 +201,22 @@ export const DataGridScratch = {
         lcCol("description", "Description", "2fr", "Standard"),
       ],
     },
+    // Sibling modal host (same shape as the rxc app). Bound to the same
+    // `incidents` array; `renderType: ArrayElement` routes to the legacy
+    // schemas-html ArrayElementRenderer (wired via createDefaultDataRenderer),
+    // which reads the grid's staged-edit data and pops the dialog.
+    {
+      type: "Data",
+      field: "incidents",
+      hideTitle: true,
+      renderOptions: { type: "ArrayElement" },
+      children: [
+        lcCol("category", "Category", "1fr", "Standard"),
+        lcCol("date", "Date", "1fr", "Standard"),
+        lcCol("severity", "Severity", "auto", "Standard"),
+        lcCol("description", "Description", "2fr", "Standard"),
+      ],
+    },
     lcDisplay(
       "Read-only grouped grid — groupByField:category clusters rows; Category row-spans per group",
     ),

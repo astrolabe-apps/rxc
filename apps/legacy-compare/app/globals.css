@@ -48,6 +48,8 @@
  * authored as class strings inside the form-definition JSON, so the JSON
  * has to be scanned too. */
 @source "./formDefs/**/*.json";
+@source "../node_modules/@astroapps/aria-base/lib/**/*.js";
+
 
 /* ServiceTas "portal" site palette + font-size / spacing scale —
  * sourced from `client-common/tailwind.ts` and `tailwindColours.ts`.

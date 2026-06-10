@@ -132,6 +132,34 @@ describe("DataGrid editExternal — controller wiring", () => {
     expect(nameCell?.getState(rd).data).toBeDefined();
   });
 
+  it("no-options useExternalEdit yields the same per-column draft", () => {
+    // The DataGrid renderer now calls `useExternalEdit(node)` with NO options
+    // (so it shares the `$externalEdit` controller with the sibling
+    // ArrayElement modal host). The multi-child auto-detect must root the
+    // draft in a Contents group → one child per column, not a nested grid.
+    const { arrayNode } = makeGridEnv([]);
+    const edit = useExternalEdit(arrayNode);
+
+    edit.beginAdd();
+    const session = edit.session(rd)!;
+    expect(session).not.toBeNull();
+    expect(
+      session.draftForm.getChildren(rd).map((c) => c.getState(rd).field?.field),
+    ).toEqual(["name", "qty"]);
+  });
+
+  it("the same controller is shared across nodes bound to the array (no-options)", () => {
+    // Two FormStateNodes bound to the same array field resolve to one
+    // controller — the linchpin of the sibling-host pattern (grid stages,
+    // sibling renders the modal against the same session).
+    const { arrayNode } = makeGridEnv([{ name: "alpha", qty: 1 }]);
+    const a = useExternalEdit(arrayNode);
+    const b = useExternalEdit(arrayNode);
+    expect(a).toBe(b);
+    a.beginEdit(0);
+    expect(b.session(rd)).not.toBeNull();
+  });
+
   it("apply pushes the staged draft onto the live array", () => {
     const { ctx, arrayNode, dataControl } = makeGridEnv([
       { name: "alpha", qty: 1 },

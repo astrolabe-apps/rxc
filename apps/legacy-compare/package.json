@@ -8,6 +8,7 @@
     "start": "next start -p 3002"
   },
   "dependencies": {
+    "@astroapps/aria-base": "^1.6.1",
     "@astroapps/datagrid": "^1.2.0",
     "@astroapps/schemas-datagrid": "^8.2.0",
     "@astroapps/searchstate": "^2.0.0",
