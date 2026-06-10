@@ -41,7 +41,6 @@ import { ArrayRenderer } from "./renderers/data/Array";
 import { JsonataRenderer } from "./renderers/data/Jsonata";
 import { ElementSelectedRenderer } from "./renderers/data/ElementSelected";
 import { ScrollListRenderer } from "./renderers/data/ScrollList";
-import { ArrayElementRenderer } from "./renderers/data/ArrayElement";
 import { ArrayElementModalHostRenderer } from "./renderers/data/ArrayElementModalHost";
 
 // Group renderers
@@ -114,34 +113,18 @@ function matchMultiline(component: typeof MultilineRenderer): DataMatcher {
 }
 
 /**
- * Match an *element* of a collection that has `renderType: ArrayElement`
- * — the element-level renderer that renders a summary + Edit button.
- * The corresponding modal host is a separate sibling data control bound
- * to the same array field (matched by {@link matchArrayElementModalHost}).
- */
-function matchArrayElementChild(component: typeof ArrayElementRenderer): DataMatcher {
-  return (node, rc) => {
-    const state = node.getState(rc);
-    if (!isDataControl(state.definition)) return null;
-    if (state.definition.renderOptions?.type !== DataRenderType.ArrayElement) {
-      return null;
-    }
-    const dn = state.dataNode;
-    if (!dn) return null;
-    const cursor = dn.cursor(rc);
-    if (cursor.elementIndex === undefined) return null;
-    return { component };
-  };
-}
-
-/**
- * Match a sibling `renderType: ArrayElement` data control bound to the
- * array itself (not an element) — i.e. `field.collection === true` and
- * `cursor.elementIndex === undefined`. This is the modal host for the
- * legacy editExternal pattern: a separate data control bound to the
- * same array field as a `renderType: Array, editExternal: true` control.
- * Both controls resolve to the same array `Control`, so the host sees
- * the staged-edit session the Array's Add/Edit buttons stage.
+ * Match a `renderType: ArrayElement` data control bound to a collection
+ * field (`field.collection === true`, `cursor.elementIndex === undefined`)
+ * — the `editExternal` modal/inline draft host. This is the ONLY meaning
+ * `DataRenderType.ArrayElement` carries (legacy parity — see CLAUDE.md
+ * "Legacy semantics only"). It's a sibling data control bound to the
+ * same array field as a `renderType: Array, editExternal: true` (or
+ * DataGrid) control; both resolve to the same array `Control`, so the
+ * host sees the staged-edit session the Array's Add/Edit buttons stage.
+ *
+ * An element-level `renderType: ArrayElement` (`elementIndex !== undefined`)
+ * is NOT special — it falls through to the catch-all like any unknown
+ * element render type.
  */
 function matchArrayElementModalHost(
   component: typeof ArrayElementModalHostRenderer,
@@ -190,10 +173,9 @@ export function defaultRegistry(): FormRegistry {
         matchRenderType(DataRenderType.ScrollList, ScrollListRenderer),
       ),
       // `renderType: ArrayElement` on the array itself = sibling modal
-      // host for the editExternal flow. Must precede `matchArrayElementChild`
-      // so the array-level case is caught before the element-level one.
+      // host for the editExternal flow (legacy parity — this is the only
+      // meaning the render type carries).
       matchArrayElementModalHost(ArrayElementModalHostRenderer),
-      matchArrayElementChild(ArrayElementRenderer),
       matchCompoundField(CompoundDelegate),
       matchDisplayOnly(DisplayOnlyRenderer),
       matchBoolField(CheckboxRenderer),

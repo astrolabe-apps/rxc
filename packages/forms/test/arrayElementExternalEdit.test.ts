@@ -1,13 +1,14 @@
 /**
- * Verifies the controller-wiring path that `ArrayElementRenderer` relies
- * on when the parent array has `renderOptions.editExternal`. The test
- * builds a real FormStateNode tree (not JSX) and walks the same node
- * hops the renderer does:
+ * Verifies the `getExternalEdit` controller-wiring path the `ArrayRenderer`
+ * per-row Edit button + the sibling `ArrayElementModalHostRenderer` rely
+ * on when the array has `renderOptions.editExternal`. The test builds a
+ * real FormStateNode tree (not JSX) and walks the same node hops the
+ * renderers do:
  *
  * 1. `node.parentNode` → the array's FormStateNode
  * 2. parent's `renderOptions.editExternal`
  * 3. `node.parent.cursor(rc).elementIndex`
- * 4. `useExternalEdit(parentArray).beginEdit(elementIndex)` → committed
+ * 4. `getExternalEdit(parentArray).beginEdit(elementIndex)` → committed
  *    value lands on the targeted element.
  */
 import { describe, expect, it } from "vitest";
@@ -34,7 +35,7 @@ import {
   type ArrayRenderOptions,
   type SchemaField,
 } from "@rxc/forms-core";
-import { useExternalEdit } from "@rxc/forms-react-core";
+import { getExternalEdit } from "@rxc/forms-react-core";
 
 const rd = noopReadContext;
 
@@ -50,10 +51,10 @@ const itemsSchema: SchemaField[] = [
   } as SchemaField,
 ];
 
-// Array def with single-child element template. The template is itself a
-// data control on `.` (the element) with `renderOptions.type === ArrayElement`
-// — what triggers `matchArrayElementChild → ArrayElementRenderer` for
-// each element in the production matcher chain.
+// Array def with single-child element template (a data control on `.`,
+// the element). The array opts into `editExternal`; the per-row Edit
+// button and the sibling modal host both drive the shared
+// `getExternalEdit` controller exercised below.
 const arrayDef: DataControlDefinition = {
   type: ControlDefinitionType.Data,
   field: "items",
@@ -115,7 +116,7 @@ function findChildByField(
   return undefined;
 }
 
-describe("ArrayElementRenderer — editExternal wiring shape", () => {
+describe("editExternal wiring shape (per-row Edit + modal host)", () => {
   it("element's parentNode is the array, and its parent DataCursor exposes elementIndex", () => {
     const { arrayNode, elementNodes } = makeEnv([
       { name: "alice", qty: 1 },
@@ -149,7 +150,7 @@ describe("ArrayElementRenderer — editExternal wiring shape", () => {
     const [, el1] = elementNodes;
     const elementIndex = el1.parent.cursor(rd).elementIndex!;
 
-    const edit = useExternalEdit(arrayNode);
+    const edit = getExternalEdit(arrayNode);
     edit.beginEdit(elementIndex);
     const session = edit.session(rd)!;
 
@@ -174,7 +175,7 @@ describe("ArrayElementRenderer — editExternal wiring shape", () => {
     const [el0] = elementNodes;
     const idx = el0.parent.cursor(rd).elementIndex!;
 
-    const edit = useExternalEdit(arrayNode);
+    const edit = getExternalEdit(arrayNode);
     edit.beginEdit(idx);
     const nameCell = findChildByField(edit.session(rd)!.draftForm, "name")!;
     ctx.update((wc) => wc.setValue(nameCell.getState(rd).data!, "GHOST"));
@@ -188,7 +189,7 @@ describe("ArrayElementRenderer — editExternal wiring shape", () => {
 describe("ArrayRenderer — editExternal add path", () => {
   it("beginAdd builds a draft whose children mirror the element template", () => {
     const { arrayNode } = makeEnv([]);
-    const edit = useExternalEdit(arrayNode);
+    const edit = getExternalEdit(arrayNode);
 
     edit.beginAdd();
     const session = edit.session(rd)!;
@@ -196,7 +197,7 @@ describe("ArrayRenderer — editExternal add path", () => {
 
     // The draft form's children should be the element-template's own
     // children (the `name` + `qty` data controls), since the array's
-    // singleChild is the ArrayElement template and `useExternalEdit`'s
+    // singleChild is the ArrayElement template and `getExternalEdit`'s
     // auto-detect picks that as the draft root.
     const fields = session.draftForm
       .getChildren(rd)
@@ -208,7 +209,7 @@ describe("ArrayRenderer — editExternal add path", () => {
     const { ctx, arrayNode, dataControl } = makeEnv([
       { name: "alice", qty: 1 },
     ]);
-    const edit = useExternalEdit(arrayNode);
+    const edit = getExternalEdit(arrayNode);
 
     edit.beginAdd();
     const session = edit.session(rd)!;
@@ -233,7 +234,7 @@ describe("ArrayRenderer — editExternal add path", () => {
     const { ctx, arrayNode, dataControl } = makeEnv([
       { name: "alice", qty: 1 },
     ]);
-    const edit = useExternalEdit(arrayNode);
+    const edit = getExternalEdit(arrayNode);
 
     edit.beginAdd();
     const nameCtl = findChildByField(edit.session(rd)!.draftForm, "name")!
@@ -252,8 +253,8 @@ describe("ArrayRenderer — editExternal add path", () => {
     const { arrayNode, elementNodes } = makeEnv([
       { name: "alice", qty: 1 },
     ]);
-    const editFromArray = useExternalEdit(arrayNode);
-    const editFromElement = useExternalEdit(elementNodes[0].parentNode!);
+    const editFromArray = getExternalEdit(arrayNode);
+    const editFromElement = getExternalEdit(elementNodes[0].parentNode!);
     expect(editFromElement).toBe(editFromArray);
   });
 });

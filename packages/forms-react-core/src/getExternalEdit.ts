@@ -8,11 +8,13 @@ import {
   createDataNode,
   createFormStateNode,
   GroupRenderType,
+  isDataControl,
   type ControlDefinition,
   type DataNode,
   type FormNode,
   type FormStateNode,
 } from "@rxc/forms-core";
+import type { ActionRendererProps } from "./types";
 
 /**
  * Optional overrides for how the draft FormStateNode is built. Both
@@ -33,11 +35,27 @@ export interface ExternalEditOptions {
 }
 
 /**
+ * One staged-edit action (Cancel / confirm), produced by the controller
+ * and carried on the {@link ExternalEditSession}. Mirrors legacy's
+ * `ExternalEditAction` stored in `getExternalEditData(control).fields.actions`
+ * — the modal host renders these rather than hardcoding its own buttons,
+ * applying validation to the confirm action per {@link dontValidate}
+ * (legacy `applyValidation`).
+ */
+export interface ExternalEditAction {
+  /** When set, the host renders {@link action} as-is (no draft validation
+   *  before its `onClick`). Cancel sets this; the confirm action does not. */
+  dontValidate?: boolean;
+  /** The props passed to `<Action>` — `onClick` performs the raw
+   *  commit/cancel; the host wraps it with validation when `!dontValidate`. */
+  action: ActionRendererProps;
+}
+
+/**
  * Staged-edit session for one array. The {@link draftForm} is a standalone
  * {@link FormStateNode} subtree rooted on the array's element schema/form
  * and bound to a fresh {@link draft} control — modifications never touch
- * the source array until {@link ExternalEditController.apply | apply()}
- * commits.
+ * the source array until the confirm {@link actions | action} commits.
  */
 export interface ExternalEditSession {
   /** `"add"` stages a new element; `"edit"` stages a snapshot of `arr[index]`. */
@@ -49,6 +67,9 @@ export interface ExternalEditSession {
   draft: Control<unknown>;
   /** The standalone draft FormStateNode for rendering. */
   draftForm: FormStateNode;
+  /** Cancel + confirm actions for the modal host to render (legacy
+   *  `extData.fields.actions`). Cancel first, then confirm. */
+  actions: ExternalEditAction[];
 }
 
 export interface ExternalEditController {
@@ -98,6 +119,11 @@ const META_KEY = "$externalEdit";
  * staged-edit session. Without this, `beginAdd` on the Array node would
  * write to a session the sibling host never reads.
  *
+ * Despite being called from renderer bodies, this is **not** a React
+ * hook — it calls no hooks and is just a memoized get-or-create on the
+ * array Control's meta. It's safe to call conditionally; do not rename
+ * it to `use*`.
+ *
  * `arrayNode` must be the {@link FormStateNode} for an array (its
  * `state.field?.collection === true`). Calling on a non-array node
  * silently no-ops at begin time (the array Control resolution returns
@@ -106,7 +132,7 @@ const META_KEY = "$externalEdit";
  * Typical use from a `controls()`-wrapped renderer:
  *
  * ```ts
- * const edit = useExternalEdit(arrayNode);
+ * const edit = getExternalEdit(arrayNode);
  * const session = edit.session(rc);
  * // ...
  * <button onClick={() => edit.beginAdd()}>Add</button>
@@ -114,7 +140,7 @@ const META_KEY = "$externalEdit";
  *   onApply={() => edit.apply()} onCancel={() => edit.cancel()} /> : null}
  * ```
  */
-export function useExternalEdit(
+export function getExternalEdit(
   arrayNode: FormStateNode,
   options: ExternalEditOptions = {},
 ): ExternalEditController {
@@ -201,6 +227,42 @@ export function useExternalEdit(
       if (current) current.draftForm.cleanup();
     }
 
+    // Cancel + confirm actions staged onto the session, mirroring legacy's
+    // `getExternalEditData(control).fields.actions`. `onClick` performs the
+    // RAW commit/cancel; the modal host applies draft validation to the
+    // confirm action (the one without `dontValidate`) via `applyValidation`.
+    // The confirm action's id/text follow legacy: an `add` session uses the
+    // array's `addActionId`/`addText` ("add"/"Add"); an `edit` session uses
+    // "apply"/"Apply".
+    function buildActions(mode: "add" | "edit"): ExternalEditAction[] {
+      const arrayDef = arrayNode.getState(noopReadContext).definition;
+      const arrayRenderOpts = isDataControl(arrayDef)
+        ? (arrayDef.renderOptions as
+            | { addActionId?: string | null; addText?: string | null }
+            | undefined)
+        : undefined;
+      const isAdd = mode === "add";
+      return [
+        {
+          dontValidate: true,
+          action: {
+            actionId: "cancel",
+            actionText: "Cancel",
+            onClick: () => doCancel(),
+          },
+        },
+        {
+          action: {
+            actionId: isAdd ? arrayRenderOpts?.addActionId || "add" : "apply",
+            actionText: isAdd ? arrayRenderOpts?.addText || "Add" : "Apply",
+            onClick: () => {
+              doApply({ dontValidate: true });
+            },
+          },
+        },
+      ];
+    }
+
     function beginSession(mode: "add" | "edit", index: number, value: unknown) {
       const elementSchema = getElementSchemaNode();
       const root = getElementRoot();
@@ -226,11 +288,38 @@ export function useExternalEdit(
         root.def,
       );
 
-      const next: ExternalEditSession = { mode, index, draft, draftForm };
+      const next: ExternalEditSession = {
+        mode,
+        index,
+        draft,
+        draftForm,
+        actions: buildActions(mode),
+      };
       ctx.update((wc) => {
         const prev = sessionControl.valueNow;
         disposeCurrent(prev);
         wc.setValue(sessionControl, next);
+      });
+    }
+
+    function doApply(options?: { dontValidate?: boolean }): boolean {
+      const session = sessionControl.valueNow;
+      if (!session) return false;
+      const dontValidate = options?.dontValidate === true;
+      if (!dontValidate) {
+        if (!session.draftForm.validate()) {
+          session.draftForm.setTouched(true);
+          return false;
+        }
+      }
+      return commit(session.draft.valueNow, session);
+    }
+
+    function doCancel() {
+      ctx.update((wc) => {
+        const prev = sessionControl.valueNow;
+        disposeCurrent(prev);
+        wc.setValue(sessionControl, null);
       });
     }
 
@@ -273,27 +362,8 @@ export function useExternalEdit(
           live == null || typeof live !== "object" ? live : structuredClone(live);
         beginSession("edit", index, snapshot);
       },
-      apply(options) {
-        const session = sessionControl.valueNow;
-        if (!session) return false;
-        const dontValidate = options?.dontValidate === true;
-        if (!dontValidate) {
-          const ok = session.draftForm.validate();
-          if (!ok) {
-            session.draftForm.setTouched(true);
-            return false;
-          }
-        }
-        const value = session.draft.valueNow;
-        return commit(value, session);
-      },
-      cancel() {
-        ctx.update((wc) => {
-          const prev = sessionControl.valueNow;
-          disposeCurrent(prev);
-          wc.setValue(sessionControl, null);
-        });
-      },
+      apply: doApply,
+      cancel: doCancel,
     };
 
     if (arrayControl) {

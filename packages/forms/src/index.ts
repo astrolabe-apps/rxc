@@ -58,7 +58,6 @@ export { CompoundDelegate } from "./renderers/data/Compound";
 export { JsonataRenderer } from "./renderers/data/Jsonata";
 export { ElementSelectedRenderer } from "./renderers/data/ElementSelected";
 export { ScrollListRenderer } from "./renderers/data/ScrollList";
-export { ArrayElementRenderer } from "./renderers/data/ArrayElement";
 export { ArrayElementModalHostRenderer } from "./renderers/data/ArrayElementModalHost";
 
 // ── HTML group renderers ─────────────────────────────────────────────

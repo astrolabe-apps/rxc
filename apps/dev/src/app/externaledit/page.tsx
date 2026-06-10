@@ -70,13 +70,13 @@ const elementTemplate: ControlDefinition[] = [
 //  1. `renderType: Array` + `editExternal: true` — the list. Renders
 //     each element inline (via `elementTemplate`) plus Add / per-row
 //     Remove buttons. Clicking Add stages a draft via
-//     `useExternalEdit` instead of pushing to the array.
+//     `getExternalEdit` instead of pushing to the array.
 //  2. `renderType: ArrayElement` — the modal host. Renders nothing
 //     until a draft is staged; when one is, pops a `<dialog>` with
 //     the draft form + Cancel / Apply. Apply validates and commits.
 //
 // Both controls resolve to the SAME underlying array `Control`, so
-// `useExternalEdit(arrayNode)` returns the same controller — the list's
+// `getExternalEdit(arrayNode)` returns the same controller — the list's
 // Add button and the modal host's display are wired through the same
 // staged-edit session.
 function pageFormDef(): GroupedControlsDefinition {

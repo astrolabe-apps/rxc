@@ -20,7 +20,7 @@ import {
 } from "@rxc/forms-core";
 import { createFormTreeResolver } from "@rxc/forms-core";
 import { createSchemaTreeResolver } from "@rxc/forms-core";
-import { useExternalEdit } from "../src/useExternalEdit";
+import { getExternalEdit } from "../src/getExternalEdit";
 
 const rd = noopReadContext;
 
@@ -123,12 +123,12 @@ function setDraftField(
   ctx.update((wc) => wc.setValue(dataCtl, value));
 }
 
-describe("useExternalEdit", () => {
+describe("getExternalEdit", () => {
   it("addCommit: apply pushes the draft value onto the array", () => {
     const { ctx, itemsNode, dataControl } = makeArrayEnv([
       { name: "alice", color: "red" },
     ]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginAdd();
     const session = edit.session(rd);
@@ -150,7 +150,7 @@ describe("useExternalEdit", () => {
     const { ctx, itemsNode, dataControl } = makeArrayEnv([
       { name: "alice", color: "red" },
     ]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginAdd();
     setDraftField(ctx, edit.session(rd)!.draftForm, "name", "ghost");
@@ -168,7 +168,7 @@ describe("useExternalEdit", () => {
       { name: "bob", color: "blue" },
       { name: "carol", color: "green" },
     ]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginEdit(1);
     const session = edit.session(rd)!;
@@ -192,7 +192,7 @@ describe("useExternalEdit", () => {
       { name: "alice", color: "red" },
       { name: "bob", color: "blue" },
     ]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginEdit(0);
     setDraftField(ctx, edit.session(rd)!.draftForm, "name", "ZZZ");
@@ -208,7 +208,7 @@ describe("useExternalEdit", () => {
     const { ctx, itemsNode, dataControl } = makeArrayEnv([
       { name: "alice", color: "red" },
     ]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginEdit(0);
     setDraftField(ctx, edit.session(rd)!.draftForm, "name", "BEFORE-APPLY");
@@ -221,7 +221,7 @@ describe("useExternalEdit", () => {
 
   it("validationBlocks: apply rejects when the draft has a required-error", () => {
     const { itemsNode, dataControl } = makeArrayEnv([]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginAdd();
     // Leave `name` empty — should fail the required validator.
@@ -234,12 +234,67 @@ describe("useExternalEdit", () => {
 
   it("dontValidateBypasses: apply commits even when invalid if dontValidate is set", () => {
     const { itemsNode, dataControl } = makeArrayEnv([]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginAdd();
     expect(edit.apply({ dontValidate: true })).toBe(true);
     expect(edit.session(rd)).toBeNull();
     expect(dataControl.valueNow.items.length).toBe(1);
+  });
+
+  it("add session stages [cancel, add] actions on the session", () => {
+    // The actions live on the session (legacy `extData.fields.actions`),
+    // not in the renderer. Cancel first (dontValidate), then the confirm
+    // action — for `add` it uses the array's add id/text (default add/Add).
+    const { itemsNode } = makeArrayEnv([]);
+    const edit = getExternalEdit(itemsNode);
+
+    edit.beginAdd();
+    const { actions } = edit.session(rd)!;
+    expect(actions.map((a) => a.action.actionId)).toEqual(["cancel", "add"]);
+    expect(actions.map((a) => a.action.actionText)).toEqual(["Cancel", "Add"]);
+    expect(actions.map((a) => a.dontValidate ?? false)).toEqual([true, false]);
+  });
+
+  it("edit session stages [cancel, apply] actions on the session", () => {
+    const { itemsNode } = makeArrayEnv([{ name: "alice", color: "red" }]);
+    const edit = getExternalEdit(itemsNode);
+
+    edit.beginEdit(0);
+    const { actions } = edit.session(rd)!;
+    expect(actions.map((a) => a.action.actionId)).toEqual(["cancel", "apply"]);
+    expect(actions.map((a) => a.action.actionText)).toEqual(["Cancel", "Apply"]);
+  });
+
+  it("confirm action's onClick commits the draft (raw — host applies validation)", () => {
+    const { ctx, itemsNode, dataControl } = makeArrayEnv([]);
+    const edit = getExternalEdit(itemsNode);
+
+    edit.beginAdd();
+    const session = edit.session(rd)!;
+    setDraftField(ctx, session.draftForm, "name", "bob");
+    setDraftField(ctx, session.draftForm, "color", "blue");
+
+    // The staged confirm action commits directly (the modal host is the
+    // one that wraps this with validation).
+    session.actions[1].action.onClick();
+
+    expect(edit.session(rd)).toBeNull();
+    expect(dataControl.valueNow.items).toEqual([{ name: "bob", color: "blue" }]);
+  });
+
+  it("cancel action's onClick discards the session", () => {
+    const { ctx, itemsNode, dataControl } = makeArrayEnv([
+      { name: "alice", color: "red" },
+    ]);
+    const edit = getExternalEdit(itemsNode);
+
+    edit.beginAdd();
+    setDraftField(ctx, edit.session(rd)!.draftForm, "name", "ghost");
+    edit.session(rd)!.actions[0].action.onClick();
+
+    expect(edit.session(rd)).toBeNull();
+    expect(dataControl.valueNow.items).toEqual([{ name: "alice", color: "red" }]);
   });
 
   it("concurrentBeginReplaces: second begin disposes the first session", () => {
@@ -248,7 +303,7 @@ describe("useExternalEdit", () => {
       { name: "bob", color: "blue" },
       { name: "carol", color: "green" },
     ]);
-    const edit = useExternalEdit(itemsNode);
+    const edit = getExternalEdit(itemsNode);
 
     edit.beginEdit(0);
     const first = edit.session(rd)!;
@@ -262,8 +317,8 @@ describe("useExternalEdit", () => {
 
   it("returns the same controller instance for repeat calls on the same node", () => {
     const { itemsNode } = makeArrayEnv([]);
-    const a = useExternalEdit(itemsNode);
-    const b = useExternalEdit(itemsNode);
+    const a = getExternalEdit(itemsNode);
+    const b = getExternalEdit(itemsNode);
     expect(a).toBe(b);
   });
 
@@ -271,7 +326,7 @@ describe("useExternalEdit", () => {
     // Two sibling `dataControl`s bound to `items` — mirrors the legacy
     // `renderType: Array` + sibling `renderType: ArrayElement` modal-host
     // shape. Both FormStateNodes resolve to the same array `Control`, so
-    // `useExternalEdit` returns the same controller for either node.
+    // `getExternalEdit` returns the same controller for either node.
     const fields = [
       {
         type: FieldType.Compound,
@@ -311,8 +366,8 @@ describe("useExternalEdit", () => {
     const root = createFormStateNode(ctx, formTree.rootNode, dataNode, globals);
     const [first, second] = root.getChildren(rd);
 
-    const aEdit = useExternalEdit(first);
-    const bEdit = useExternalEdit(second);
+    const aEdit = getExternalEdit(first);
+    const bEdit = getExternalEdit(second);
     expect(aEdit).toBe(bEdit);
 
     // Starting a session from one sibling is visible to the other.

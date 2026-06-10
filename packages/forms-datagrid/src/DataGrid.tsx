@@ -32,7 +32,7 @@ import {
   type FormRegistry,
   rendererClass,
   useActionHandler,
-  useExternalEdit,
+  getExternalEdit,
 } from "@rxc/forms-react-core";
 import { useControlContext } from "@rxc/controls";
 import { Field } from "@rxc/forms";
@@ -161,7 +161,7 @@ export function stableGroupByKey<T>(
 /**
  * DataGrid-specific render options. Mirrors the legacy
  * `@astroapps/schemas-datagrid` options. When `editExternal` is set, the
- * Add/Edit buttons stage a draft via {@link useExternalEdit} and commit on
+ * Add/Edit buttons stage a draft via {@link getExternalEdit} and commit on
  * Apply (matching the legacy modal flow); otherwise they dispatch through
  * `<ActionScope>` and fall back to direct array mutation.
  */
@@ -183,7 +183,7 @@ export interface DataGridOptions {
   removeActionId?: string;
   /**
    * When set, each row gets an "Edit" button that fires through
-   * `<ActionScope>` (or stages a draft via {@link useExternalEdit} when
+   * `<ActionScope>` (or stages a draft via {@link getExternalEdit} when
    * `editExternal` is true). Defaults to `"edit"`.
    */
   editActionId?: string;
@@ -333,14 +333,14 @@ function createDataGridRenderer(classes?: DataGridClasses) {
       RenderOptions;
 
     // External-edit session: the Add / per-row Edit buttons stage a draft
-    // through the shared `useExternalEdit` controller (cached on the array
+    // through the shared `getExternalEdit` controller (cached on the array
     // Control under the default `$externalEdit` key). The MODAL that displays
     // the draft is NOT hosted here — a sibling `renderType: ArrayElement`
     // control bound to the same array hosts it (ArrayElementModalHostRenderer),
-    // exactly like the Array renderer. Because both call `useExternalEdit(node)`
+    // exactly like the Array renderer. Because both call `getExternalEdit(node)`
     // with no options, they share one controller + session; the no-options
     // auto-detect roots the multi-column draft in a `Contents` group.
-    const editController = useExternalEdit(node);
+    const editController = getExternalEdit(node);
     const editSession = renderOptions.editExternal
       ? editController.session(rc)
       : null;

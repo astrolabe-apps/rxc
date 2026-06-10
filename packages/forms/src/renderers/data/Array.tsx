@@ -16,7 +16,7 @@ import {
   Action,
   rendererClass,
   useActionHandler,
-  useExternalEdit,
+  getExternalEdit,
 } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
@@ -65,7 +65,7 @@ function getLengthRange(
  * actionId through `useActionHandler` (so hosts can intercept via
  * `<ActionScope>`); when no scope claims, falls back to the default —
  * `wc.addElement` / `wc.removeElement` for the non-editExternal flow,
- * or `beginAdd` / `beginEdit` against the shared `useExternalEdit`
+ * or `beginAdd` / `beginEdit` against the shared `getExternalEdit`
  * controller for the editExternal flow.
  *
  * **editExternal**: the per-row Edit button only renders when
@@ -107,7 +107,7 @@ export const ArrayRenderer = controls<DataRendererProps>(
     const removeText = arrayRenderOpts?.removeText ?? "Remove";
 
     // Controller is shared across sibling renderers via `arrayControl.meta`.
-    const editController = useExternalEdit(node);
+    const editController = getExternalEdit(node);
 
     // Build click handlers: dispatch via the action scope chain first so
     // hosts can intercept; if no scope claims (handler returns falsy),

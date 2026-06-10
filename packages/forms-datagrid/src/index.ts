@@ -10,7 +10,7 @@
 // offset/length paging, per-column `visible`/`rowSpan` expressions,
 // adjacent-key `groupByField` row-spanning, and add/remove/edit array
 // actions. Setting `renderOptions.editExternal: true` stages Add/Edit in a
-// modal via `useExternalEdit` (commits on Apply, discards on Cancel).
+// modal via `getExternalEdit` (commits on Apply, discards on Cancel).
 
 export {
   DataGridRenderType,

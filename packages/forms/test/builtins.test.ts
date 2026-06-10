@@ -307,7 +307,11 @@ describe("defaultRegistry — data dispatch", () => {
     );
   });
 
-  it("ArrayElement renderType — element level routes to ArrayElementRenderer", () => {
+  it("ArrayElement renderType — element level is not special, falls through to the catch-all", () => {
+    // `DataRenderType.ArrayElement` only means "editExternal draft host"
+    // (legacy parity). On an individual element it has no dedicated
+    // renderer, so it degrades to the Textfield catch-all like any
+    // unknown element render type.
     const node = fakeNode({
       definition: dataDef({
         renderOptions: { type: DataRenderType.ArrayElement },
@@ -317,7 +321,7 @@ describe("defaultRegistry — data dispatch", () => {
     });
     const m = pickDataRenderer(reg.data, node, rc);
     expect((m?.component as { displayName?: string })?.displayName).toBe(
-      "ArrayElementRenderer",
+      "TextfieldRenderer",
     );
   });
 

@@ -98,11 +98,12 @@ export { useDeferredCleanup } from "./useDeferredCleanup";
 // Helpers
 export { useLabelText } from "./labelText";
 export { useExpression, ensureExpressionResult } from "./useExpression";
-export { useExternalEdit } from "./useExternalEdit";
+export { getExternalEdit } from "./getExternalEdit";
 export type {
+  ExternalEditAction,
   ExternalEditController,
   ExternalEditSession,
-} from "./useExternalEdit";
+} from "./getExternalEdit";
 export { useFormErrors } from "./useFormErrors";
 export type { FormError } from "./useFormErrors";
 export {

@@ -22,7 +22,7 @@ import {
   GroupRenderType,
   type SchemaField,
 } from "@rxc/forms-core";
-import { useExternalEdit } from "@rxc/forms-react-core";
+import { getExternalEdit } from "@rxc/forms-react-core";
 import { dataGridResolveChildren, DataGridRenderType } from "../src/DataGrid";
 
 const rd = noopReadContext;
@@ -91,7 +91,7 @@ function makeGridEnv(initial: Array<{ name: string; qty: number }>) {
   return { ctx, root, arrayNode, dataControl };
 }
 
-// The overrides the DataGrid renderer passes to useExternalEdit — keep
+// The overrides the DataGrid renderer passes to getExternalEdit — keep
 // this in sync with the call in `DataGrid.tsx`.
 function gridEditOverrides(arrayNode: FormStateNode) {
   return {
@@ -116,7 +116,7 @@ function findDraftCellByField(
 describe("DataGrid editExternal — controller wiring", () => {
   it("draft form exposes one child per column, bound to the draft data", () => {
     const { arrayNode } = makeGridEnv([]);
-    const edit = useExternalEdit(arrayNode, gridEditOverrides(arrayNode));
+    const edit = getExternalEdit(arrayNode, gridEditOverrides(arrayNode));
 
     edit.beginAdd();
     const session = edit.session(rd)!;
@@ -132,13 +132,13 @@ describe("DataGrid editExternal — controller wiring", () => {
     expect(nameCell?.getState(rd).data).toBeDefined();
   });
 
-  it("no-options useExternalEdit yields the same per-column draft", () => {
-    // The DataGrid renderer now calls `useExternalEdit(node)` with NO options
+  it("no-options getExternalEdit yields the same per-column draft", () => {
+    // The DataGrid renderer now calls `getExternalEdit(node)` with NO options
     // (so it shares the `$externalEdit` controller with the sibling
     // ArrayElement modal host). The multi-child auto-detect must root the
     // draft in a Contents group → one child per column, not a nested grid.
     const { arrayNode } = makeGridEnv([]);
-    const edit = useExternalEdit(arrayNode);
+    const edit = getExternalEdit(arrayNode);
 
     edit.beginAdd();
     const session = edit.session(rd)!;
@@ -153,8 +153,8 @@ describe("DataGrid editExternal — controller wiring", () => {
     // controller — the linchpin of the sibling-host pattern (grid stages,
     // sibling renders the modal against the same session).
     const { arrayNode } = makeGridEnv([{ name: "alpha", qty: 1 }]);
-    const a = useExternalEdit(arrayNode);
-    const b = useExternalEdit(arrayNode);
+    const a = getExternalEdit(arrayNode);
+    const b = getExternalEdit(arrayNode);
     expect(a).toBe(b);
     a.beginEdit(0);
     expect(b.session(rd)).not.toBeNull();
@@ -164,7 +164,7 @@ describe("DataGrid editExternal — controller wiring", () => {
     const { ctx, arrayNode, dataControl } = makeGridEnv([
       { name: "alpha", qty: 1 },
     ]);
-    const edit = useExternalEdit(arrayNode, gridEditOverrides(arrayNode));
+    const edit = getExternalEdit(arrayNode, gridEditOverrides(arrayNode));
 
     edit.beginAdd();
     const session = edit.session(rd)!;
@@ -190,7 +190,7 @@ describe("DataGrid editExternal — controller wiring", () => {
       { name: "alpha", qty: 1 },
       { name: "beta", qty: 2 },
     ]);
-    const edit = useExternalEdit(arrayNode, gridEditOverrides(arrayNode));
+    const edit = getExternalEdit(arrayNode, gridEditOverrides(arrayNode));
 
     edit.beginEdit(1);
     const session = edit.session(rd)!;
@@ -214,7 +214,7 @@ describe("DataGrid editExternal — controller wiring", () => {
     const { ctx, arrayNode, dataControl } = makeGridEnv([
       { name: "alpha", qty: 1 },
     ]);
-    const edit = useExternalEdit(arrayNode, gridEditOverrides(arrayNode));
+    const edit = getExternalEdit(arrayNode, gridEditOverrides(arrayNode));
 
     edit.beginEdit(0);
     const nameCtl = findDraftCellByField(edit.session(rd)!.draftForm, "name")!
