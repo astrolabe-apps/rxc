@@ -16,7 +16,7 @@ export const DisplayOnlyRenderer = controls<DataRendererProps>(
   "DisplayOnlyRenderer",
   ({ node, inline }, { rc }) => {
     const { data, field, fieldOptions, definition } = node.getState(rc);
-    const dataTheme = useHtmlTheme().data ?? {};
+    const dataTheme = useHtmlTheme().data;
     if (!data) return null;
     const value = rc.getValue(data);
     const schemaInterface = node.schemaInterface;

@@ -29,9 +29,9 @@ export const ElementSelectedRenderer = controls<DataRendererProps>(
   "ElementSelectedRenderer",
   ({ node, id }, { rc, update }) => {
     const { data, disabled, readonly, definition } = node.getState(rc);
-    const dataTheme = useHtmlTheme().data ?? {};
+    const dataTheme = useHtmlTheme().data;
     const elementSelectedClass = dataTheme.elementSelectedClass;
-    const checkboxTheme = dataTheme.checkbox ?? {};
+    const checkboxTheme = dataTheme.checkbox;
     const labelText = useLabelText(node, rc);
 
     const elementExpression = isDataControl(definition)

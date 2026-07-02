@@ -49,7 +49,7 @@ export const RadioRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
     const { data, field, fieldOptions, disabled, readonly, definition } =
       node.getState(rc);
-    const radioTheme = useHtmlTheme().data?.radio ?? {};
+    const radioTheme = useHtmlTheme().data.radio;
     if (!data) return null;
     const value = rc.getValue(data);
     const stored = valueToString(value);

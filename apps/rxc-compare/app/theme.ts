@@ -1,4 +1,4 @@
-import type { HtmlFormTheme } from "@rxc/forms";
+import type { PartialHtmlFormTheme } from "@rxc/forms";
 
 // Initial pass at translating legacy `DefaultRenderOptions` (from
 // apps/legacy-compare/app/renderer.tsx) to an @rxc/forms HtmlFormTheme.
@@ -8,7 +8,7 @@ import type { HtmlFormTheme } from "@rxc/forms";
 // `label.groupLabelClass`) have no 1:1 in the new theme and need either
 // a custom Layout / Label or per-control class overrides on the form
 // definition.
-export const fireTheme: HtmlFormTheme = {
+export const fireTheme: PartialHtmlFormTheme = {
   label: {
     // Mirror the ServiceTas portal: `formStyles.defaults` blanks
     // `className` and `groupLabelClass`, so the only label class in

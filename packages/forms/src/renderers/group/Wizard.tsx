@@ -24,9 +24,9 @@ export const WizardRenderer = controls<GroupRendererProps>(
   ({ node }, { rc }) => {
     const { definition } = node.getState(rc);
     const wiz = useWizardController(rc, node);
-    const groupTheme = useHtmlTheme().group ?? {};
-    const wizTheme = groupTheme.wizard ?? {};
-    const theme = groupTheme.tabs ?? {}; // reuse tabs palette for page content
+    const groupTheme = useHtmlTheme().group;
+    const wizTheme = groupTheme.wizard;
+    const theme = groupTheme.tabs; // reuse tabs palette for page content
 
     const wrapperClass = rendererClass(definition.styleClass, wizTheme.className);
     const activeNode = wiz.pageChildren[wiz.currentPage];

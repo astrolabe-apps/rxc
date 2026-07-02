@@ -39,7 +39,7 @@ export const CheckboxRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
     const { data, disabled, readonly, touched, definition } =
       node.getState(rc);
-    const checkboxTheme = useHtmlTheme().data?.checkbox ?? {};
+    const checkboxTheme = useHtmlTheme().data.checkbox;
     const labelText = useLabelText(node, rc);
     const Label = useLabel();
     if (!data) return null;

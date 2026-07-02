@@ -52,7 +52,7 @@ export function resolveIcon(
 export const IconDisplayRenderer = controls<DisplayRendererProps>(
   "IconDisplayRenderer",
   ({ node }, { rc }) => {
-    const displayTheme = useHtmlTheme().display ?? {};
+    const displayTheme = useHtmlTheme().display;
     const def = node.getState(rc).definition;
     const d = isDisplayControl(def)
       ? (def.displayData as IconDisplay)

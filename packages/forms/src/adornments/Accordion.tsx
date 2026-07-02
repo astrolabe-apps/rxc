@@ -20,7 +20,7 @@ function AccordionAdornmentRender({
   adornment,
   children,
 }: AdornmentRenderProps<AccordionAdornmentDef>) {
-  const accTheme = useHtmlTheme().adornment?.accordion ?? {};
+  const accTheme = useHtmlTheme().adornment.accordion;
   // Initial expansion comes from the schema; once toggled we track local
   // state. Phase 3 keeps this purely component-local — persisting across
   // unmount/remount via `data.meta` is a Phase 4b polish.

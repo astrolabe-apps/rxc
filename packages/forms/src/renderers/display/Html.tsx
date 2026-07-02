@@ -25,7 +25,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
 export const HtmlDisplayRenderer = controls<DisplayRendererProps>(
   "HtmlDisplayRenderer",
   ({ node }, { rc }) => {
-    const displayTheme = useHtmlTheme().display ?? {};
+    const displayTheme = useHtmlTheme().display;
     const def = node.getState(rc).definition;
     const html = isDisplayControl(def)
       ? (def.displayData as HtmlDisplay).html ?? ""

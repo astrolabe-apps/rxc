@@ -30,22 +30,19 @@ export const SelectRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
     const { data, field, fieldOptions, disabled, readonly, touched, definition } =
       node.getState(rc);
-    const dataTheme = useHtmlTheme().data ?? {};
-    const selectTheme = dataTheme.select ?? {};
+    const dataTheme = useHtmlTheme().data;
+    const selectTheme = dataTheme.select;
     if (!data) return null;
     const value = rc.getValue(data);
     const hasError = touched && !!rc.getError(data);
     const options = fieldOptions ?? [];
     const required = !!field?.required;
     const stored = valueToString(value);
-    const className = rendererClass(
-      definition.styleClass,
-      selectTheme.className ?? dataTheme.inputClass,
-    );
+    const className = rendererClass(definition.styleClass, selectTheme.className);
     const placeholder =
       stored === "" && required
-        ? selectTheme.requiredText ?? "—"
-        : selectTheme.emptyText ?? "—";
+        ? selectTheme.requiredText
+        : selectTheme.emptyText;
 
     // Group options by their `group` if any have one
     const groups = new Map<string | null, typeof options>();

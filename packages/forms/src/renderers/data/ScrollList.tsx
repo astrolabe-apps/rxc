@@ -31,7 +31,7 @@ export const ScrollListRenderer = controls<DataRendererProps>(
   "ScrollListRenderer",
   ({ node }, { rc }) => {
     const { data, definition } = node.getState(rc);
-    const scrollTheme = useHtmlTheme().data?.scrollList ?? {};
+    const scrollTheme = useHtmlTheme().data.scrollList;
     if (!data) return null;
     const renderOptions = isDataControl(definition)
       ? (definition.renderOptions as ScrollListRenderOptions | undefined)

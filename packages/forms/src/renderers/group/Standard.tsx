@@ -10,11 +10,11 @@ export const StandardGroupRenderer = controls<GroupRendererProps>(
   "StandardGroupRenderer",
   ({ node }, { rc }) => {
     const { definition } = node.getState(rc);
-    const groupTheme = useHtmlTheme().group ?? {};
+    const groupTheme = useHtmlTheme().group;
     const children = node.getChildren(rc);
     const className = rendererClass(
       definition.styleClass,
-      groupTheme.standardClass ?? groupTheme.className,
+      groupTheme.standardClass,
     );
     return (
       <div className={className}>

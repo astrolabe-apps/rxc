@@ -75,7 +75,7 @@ export const ArrayElementModalHostRenderer = controls<DataRendererProps>(
   "ArrayElementModalHostRenderer",
   ({ node, id }, { rc }) => {
     const { definition } = node.getState(rc);
-    const arrayTheme = useHtmlTheme().data?.array ?? {};
+    const arrayTheme = useHtmlTheme().data.array;
     const designMode = useDesignMode();
 
     const renderOptions = isDataControl(definition)
@@ -108,7 +108,7 @@ export const ArrayElementModalHostRenderer = controls<DataRendererProps>(
     const content = session ? (
       <div className={arrayTheme.dialogBodyClass}>
         <Field node={session.draftForm} />
-        <div className={className ?? "flex justify-end gap-2"}>
+        <div className={className ?? arrayTheme.actionsClass}>
           {session.actions.map((a, i) => {
             const props = applyValidation(a, session.draftForm);
             return <Action key={props.actionId || i} {...props} />;

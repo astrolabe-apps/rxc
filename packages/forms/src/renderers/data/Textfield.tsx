@@ -9,7 +9,7 @@ export const TextfieldRenderer = controls<DataRendererProps>(
   "TextfieldRenderer",
   ({ node, id }, { rc, update }) => {
     const { data, disabled, readonly, touched, definition } = node.getState(rc);
-    const theme = useHtmlTheme().data ?? {};
+    const theme = useHtmlTheme().data;
     if (!data) return null;
     const raw = rc.getValue(data);
     const value = raw == null ? "" : String(raw);

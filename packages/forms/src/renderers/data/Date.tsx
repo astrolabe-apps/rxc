@@ -15,7 +15,7 @@ function makeDateRenderer(
     ({ node, id }, { rc, update }) => {
       const { data, disabled, readonly, touched, definition } =
         node.getState(rc);
-      const dataTheme = useHtmlTheme().data ?? {};
+      const dataTheme = useHtmlTheme().data;
       const [buffer, setBuffer] = useState<string | null>(null);
       if (!data) return null;
       const stored = rc.getValue(data);

@@ -18,7 +18,7 @@ export const NumberRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
     const { data, field, disabled, readonly, touched, definition } =
       node.getState(rc);
-    const theme = useHtmlTheme().data ?? {};
+    const theme = useHtmlTheme().data;
     const [buffer, setBuffer] = useState<string | null>(null);
     if (!data) return null;
     const stored = rc.getValue(data);

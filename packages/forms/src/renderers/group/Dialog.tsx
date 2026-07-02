@@ -22,7 +22,7 @@ export const DialogRenderer = controls<GroupRendererProps>(
   ({ node }, { rc }) => {
     const children = node.getChildren(rc);
     const def = node.getState(rc).definition;
-    const dialogTheme = useHtmlTheme().group?.dialog ?? {};
+    const dialogTheme = useHtmlTheme().group.dialog;
     const opts = isGroupControl(def)
       ? (def.groupOptions as DialogRenderOptions | undefined)
       : undefined;

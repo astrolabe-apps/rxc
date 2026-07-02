@@ -18,7 +18,7 @@ export const InlineGroupRenderer = controls<GroupRendererProps>(
   "InlineGroupRenderer",
   ({ node }, { rc }) => {
     const { definition } = node.getState(rc);
-    const groupTheme = useHtmlTheme().group ?? {};
+    const groupTheme = useHtmlTheme().group;
     const children = node.getChildren(rc);
     const className = rendererClass(
       definition.styleClass,

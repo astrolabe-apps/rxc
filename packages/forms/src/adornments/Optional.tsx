@@ -21,7 +21,7 @@ const OptionalAdornmentRender = controls<
   "OptionalAdornment",
   ({ adornment, node, children, kind }, { rc, update, controlContext }) => {
     const { data } = node.getState(rc);
-    const optTheme = useHtmlTheme().adornment?.optional ?? {};
+    const optTheme = useHtmlTheme().adornment.optional;
 
     const allowNull = adornment.allowNull !== false;
     const editSelectable = !!adornment.editSelectable;
@@ -101,7 +101,7 @@ const OptionalAdornmentRender = controls<
           className={optTheme.checkClass}
           aria-label="Null"
         />
-        <span>{optTheme.setNullText ?? "Null"}</span>
+        <span>{optTheme.setNullText}</span>
       </div>
     ) : null;
 

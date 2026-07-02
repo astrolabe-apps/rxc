@@ -16,7 +16,7 @@ export const AccordionGroupRenderer = controls<GroupRendererProps>(
   "AccordionGroupRenderer",
   ({ node }, { rc }) => {
     const { definition } = node.getState(rc);
-    const accTheme = useHtmlTheme().group?.accordion ?? {};
+    const accTheme = useHtmlTheme().group.accordion;
     const children = node.getChildren(rc);
     const wrapperClass = rendererClass(definition.styleClass, accTheme.className);
     return (
@@ -33,7 +33,7 @@ const AccordionSection = controls<{
   node: import("@rxc/forms-core").FormStateNode;
 }>("AccordionSection", ({ node }, { rc }) => {
   const def = node.getState(rc).definition;
-  const accTheme = useHtmlTheme().group?.accordion ?? {};
+  const accTheme = useHtmlTheme().group.accordion;
   const [open, setOpen] = useState(false);
   return (
     <details

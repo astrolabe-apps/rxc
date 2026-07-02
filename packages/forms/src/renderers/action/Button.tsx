@@ -37,7 +37,7 @@ export function ButtonAction({
   textClass,
   children,
 }: ActionRendererProps) {
-  const actionTheme = useHtmlTheme().action ?? {};
+  const actionTheme = useHtmlTheme().action;
 
   const style = actionStyle ?? undefined;
   const isLink = style === ActionStyle.Link;
@@ -79,9 +79,7 @@ export function ButtonAction({
   const restingPlacement = iconPlacement ?? IconPlacement.BeforeText;
   const placement =
     busy && actionTheme.busyIcon
-      ? iconPlacement ??
-        actionTheme.busyIconPlacement ??
-        IconPlacement.ReplaceText
+      ? iconPlacement ?? actionTheme.busyIconPlacement
       : restingPlacement;
 
   const resolved = activeIcon ? resolveIcon(undefined, activeIcon) : null;

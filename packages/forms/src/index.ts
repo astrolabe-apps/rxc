@@ -108,6 +108,8 @@ export type {
 // ── Theme + class-merge utilities ────────────────────────────────────
 
 export type {
+  DeepPartial,
+  PartialHtmlFormTheme,
   HtmlAccordionAdornmentTheme,
   HtmlAccordionGroupTheme,
   HtmlActionTheme,

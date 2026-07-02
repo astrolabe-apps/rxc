@@ -69,7 +69,7 @@ export const DefaultLabel = controls<LabelProps>(
   ({ node, htmlFor, as: tag, id, children }, { rc }) => {
     const def = node.getState(rc).definition;
     const required = isDataControl(def) && !!def.required;
-    const theme = useHtmlTheme().label ?? {};
+    const theme = useHtmlTheme().label;
     // Merge text-class onto the label tag itself (matches legacy
     // `<label class="py-4 text-2xl title1">…` shape — one element, all
     // classes). Earlier the textClass was wrapped on an inner `<span>`,
@@ -99,7 +99,7 @@ export const DefaultLabel = controls<LabelProps>(
             aria-hidden
             className={theme.requiredClass}
           >
-            {theme.requiredText ?? "*"}
+            {theme.requiredText}
           </span>
         )}
       </Tag>

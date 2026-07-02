@@ -13,11 +13,11 @@ export const GridRenderer = controls<GroupRendererProps>(
   ({ node }, { rc }) => {
     const children = node.getChildren(rc);
     const def = node.getState(rc).definition;
-    const gridTheme = useHtmlTheme().group?.grid ?? {};
+    const gridTheme = useHtmlTheme().group.grid;
     const opts = isGroupControl(def)
       ? (def.groupOptions as GridRendererOptions | undefined)
       : undefined;
-    const columns = opts?.columns ?? gridTheme.defaultColumns ?? 2;
+    const columns = opts?.columns ?? gridTheme.defaultColumns;
     const className = rendererClass(def.styleClass, gridTheme.className);
     return (
       <div

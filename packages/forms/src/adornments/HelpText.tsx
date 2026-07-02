@@ -16,7 +16,7 @@ function HelpTextAdornmentRender({
   children,
   kind,
 }: AdornmentRenderProps<HelpTextAdornmentDef>) {
-  const helpTheme = useHtmlTheme().adornment?.helpText ?? {};
+  const helpTheme = useHtmlTheme().adornment.helpText;
   const placement = adornment.placement;
   const help = (
     <span className={helpTheme.contentTextClass}>{adornment.helpText}</span>

@@ -13,7 +13,7 @@ export const FlexRenderer = controls<GroupRendererProps>(
   ({ node }, { rc }) => {
     const children = node.getChildren(rc);
     const def = node.getState(rc).definition;
-    const groupTheme = useHtmlTheme().group ?? {};
+    const groupTheme = useHtmlTheme().group;
     const opts = isGroupControl(def)
       ? (def.groupOptions as FlexRenderOptions | undefined)
       : undefined;

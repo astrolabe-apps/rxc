@@ -79,7 +79,7 @@ export const ArrayRenderer = controls<DataRendererProps>(
   "ArrayRenderer",
   ({ node }, { rc, update }) => {
     const { data, definition } = node.getState(rc);
-    const arrayTheme = useHtmlTheme().data?.array ?? {};
+    const arrayTheme = useHtmlTheme().data.array;
     const dispatch = useActionHandler();
     if (!data) return null;
 

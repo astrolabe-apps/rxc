@@ -30,7 +30,7 @@ export const DefaultError = controls<ErrorProps>(
   "DefaultError",
   ({ node, id, all }, { rc }) => {
     const { data, touched } = node.getState(rc);
-    const theme = useHtmlTheme().error ?? {};
+    const theme = useHtmlTheme().error;
     const opts = useFormOptions() as HtmlFormOptions;
     const showAll = all ?? !!opts.showAllErrors;
     if (!data || !touched) return null;

@@ -17,7 +17,7 @@ export const AutocompleteRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
     const { data, fieldOptions, disabled, readonly, touched, definition } =
       node.getState(rc);
-    const acTheme = useHtmlTheme().data?.autocomplete ?? {};
+    const acTheme = useHtmlTheme().data.autocomplete;
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);

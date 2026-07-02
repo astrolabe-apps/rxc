@@ -12,7 +12,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
 export const TextDisplayRenderer = controls<DisplayRendererProps>(
   "TextDisplayRenderer",
   ({ node }, { rc }) => {
-    const displayTheme = useHtmlTheme().display ?? {};
+    const displayTheme = useHtmlTheme().display;
     const def = node.getState(rc).definition;
     const text = isDisplayControl(def)
       ? (def.displayData as TextDisplay).text

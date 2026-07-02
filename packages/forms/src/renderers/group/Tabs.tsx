@@ -12,7 +12,7 @@ export const TabsRenderer = controls<GroupRendererProps>(
   "TabsRenderer",
   ({ node }, { rc }) => {
     const { definition } = node.getState(rc);
-    const tabsTheme = useHtmlTheme().group?.tabs ?? {};
+    const tabsTheme = useHtmlTheme().group.tabs;
     const allChildren = node.getChildren(rc);
     const visibleChildren = allChildren.filter(
       (c) => c.getState(rc).visible !== false,

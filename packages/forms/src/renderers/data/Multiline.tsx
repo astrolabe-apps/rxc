@@ -10,7 +10,7 @@ export const MultilineRenderer = controls<DataRendererProps>(
   "MultilineRenderer",
   ({ node, id }, { rc, update }) => {
     const { data, disabled, readonly, touched, definition } = node.getState(rc);
-    const dataTheme = useHtmlTheme().data ?? {};
+    const dataTheme = useHtmlTheme().data;
     if (!data) return null;
     const raw = rc.getValue(data);
     const value = raw == null ? "" : String(raw);
@@ -20,7 +20,7 @@ export const MultilineRenderer = controls<DataRendererProps>(
         ?.placeholder ?? undefined) || undefined;
     const className = rendererClass(
       definition.styleClass,
-      dataTheme.multiline?.className ?? dataTheme.inputClass,
+      dataTheme.multiline.className,
     );
     return (
       <textarea

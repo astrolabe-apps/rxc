@@ -28,7 +28,7 @@ export const ChecklistRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
     const { data, fieldOptions, disabled, readonly, definition } =
       node.getState(rc);
-    const checkTheme = useHtmlTheme().data?.checkList ?? {};
+    const checkTheme = useHtmlTheme().data.checkList;
     if (!data) return null;
     const value = rc.getValue(data);
     const selected = Array.isArray(value) ? (value as unknown[]) : [];
