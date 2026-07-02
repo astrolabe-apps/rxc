@@ -390,6 +390,23 @@ One-time scan of all ~70 ServiceTas forms (`astrolabe/ServiceTas/ServiceTasAPI/N
   - `Chart` (MrsSummary, MrsDemeritsSummary), `Map`/`MapPoints` (FireInitial, MastMooringPermitSummary) — viz widgets.
   - Long tail: `CopyableData`, `Tooltip`, `Spotlight`, `HtmlRenderer`, `displayData.Custom` (RWVPVerificationWizard already stubs some).
 
+### TODO — platform-agnostic renderer hooks (React Native readiness)
+
+Goal: keep **all platform-agnostic renderer logic in `@rxc/forms-react-core` as hooks**, so the eventual `@rxc/forms-native` (RN views/text/`TextInput`) reuses the exact same behaviour and only swaps the emitted elements + styling. The HTML renderers in `@rxc/forms` should trend toward being **thin views** over these hooks. `useWizardController` is the model: state + logic live in the hook, the renderer just draws. `forms-react-core` must stay **DOM-free** (no HTML element types, no class strings — chrome/theme stays in the platform package).
+
+Existing hooks to build on: `useFormStateNode`, `useLabelText`, `useExpression`, `useAsyncAction`, `useFormErrors`, `useWizardController`, `useDeferredCleanup`.
+
+- [ ] **Audit each `@rxc/forms` data renderer** and extract its platform-agnostic controller into a `forms-react-core` hook, leaving only DOM + theme in `@rxc/forms`. Candidates (current inline logic → proposed hook):
+  - `Select` / `Radio` — value↔string mapping, `fieldOptions` resolution, placeholder/required-empty logic → `useSelectController` / `useOptionsController`.
+  - `Checkbox` / `Checklist` / `ElementSelected` — value↔checked, array-membership toggle → `useCheckController` / `useArrayMembership`.
+  - `Textfield` / `Multiline` / `Number` — value string coercion, placeholder, number parse-on-blur → `useTextInputController` / `useNumberController`.
+  - `Date` / `Time` / `DateTime` — parse/format through `SchemaInterface` → `useDateController`.
+  - `Autocomplete` — query/filter/active-option/highlight state (currently hand-rolled, no Downshift) → `useAutocompleteController`.
+  - `Array` (+ DataGrid add/remove) — length restrictions + add/remove/edit wiring (partly in `getExternalEdit` already) → `useArrayActions`.
+- [ ] **Group open/active state** — `Tabs` (active index), `AccordionGroup` / `AccordionAdornment` (expanded set), `Dialog` (open + ActionScope open/close) all keep this state inline. Extract → `useTabsController` / `useDisclosure` so RN reuses the state machine.
+- [ ] **Contract:** hooks take `(node, rc, …)` and return values + handlers only — never `ReactNode`, never class strings. Anything DOM-shaped (input `type`, element choice, `className`) stays in the platform renderer.
+- [ ] Once a few are extracted, **spike `@rxc/forms-native`** with one data renderer (e.g. Textfield → RN `TextInput`) end-to-end to validate the hook boundary before porting the rest.
+
 ### `@rxc/forms-editor` (visual designer, separate project)
 
 The renderer engine already provides every hook the editor needs (no further `@rxc/forms` work required to start the port):

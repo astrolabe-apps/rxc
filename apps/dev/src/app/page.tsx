@@ -21,7 +21,7 @@ const TextInput = controls<{
   const value = rc.getValue(control);
   const touched = rc.isTouched(control);
   const error = rc.getError(control);
-
+  
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -143,12 +143,37 @@ const controlContext = createControlContext();
 
 const NAV_LINKS: { href: string; label: string; description: string }[] = [
   { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
-  { href: "/showcase", label: "/showcase", description: "kitchen-sink default renderers" },
-  { href: "/interactive", label: "/interactive", description: "tabs, dialog, accordion, async actions" },
-  { href: "/designer", label: "/designer", description: "plugin + design-mode demo" },
-  { href: "/phase4b", label: "/phase4b", description: "Phase 4b additions + motion / dnd add-ons" },
-  { href: "/buttons", label: "/buttons", description: "ButtonAction renderer — variants, icons, busy spinner, theming" },
-  { href: "/externaledit", label: "/externaledit", description: "editExternal staged-edit modal — Add + per-row Edit" },
+  {
+    href: "/showcase",
+    label: "/showcase",
+    description: "kitchen-sink default renderers",
+  },
+  {
+    href: "/interactive",
+    label: "/interactive",
+    description: "tabs, dialog, accordion, async actions",
+  },
+  {
+    href: "/designer",
+    label: "/designer",
+    description: "plugin + design-mode demo",
+  },
+  {
+    href: "/phase4b",
+    label: "/phase4b",
+    description: "Phase 4b additions + motion / dnd add-ons",
+  },
+  {
+    href: "/buttons",
+    label: "/buttons",
+    description:
+      "ButtonAction renderer — variants, icons, busy spinner, theming",
+  },
+  {
+    href: "/externaledit",
+    label: "/externaledit",
+    description: "editExternal staged-edit modal — Add + per-row Edit",
+  },
 ];
 
 const Home = controls(function Home({}, { controlContext }) {
