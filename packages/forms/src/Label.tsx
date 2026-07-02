@@ -9,11 +9,14 @@ import {
 } from "react";
 import { controls } from "@rxc/controls";
 import {
+  DataRenderType,
   isDataControl,
   isGroupControl,
+  type ControlDefinition,
   type FormStateNode,
 } from "@rxc/forms-core";
 import {
+  clsx,
   indexAdornments,
   rendererClass,
   useRegistry,
@@ -49,19 +52,9 @@ export type LabelComponent = ComponentType<LabelProps>;
  * of the regular label class for group titles, replacing the legacy
  * `LabelType.Group` distinction.
  */
-export function isGroupLabel(def: {
-  type: string;
-  renderOptions?: { type?: string } | null;
-}): boolean {
-  if (isGroupControl(def as any)) return true;
-  if (
-    isDataControl(def as any) &&
-    (def.renderOptions as { type?: string } | null | undefined)?.type ===
-      "Group"
-  ) {
-    return true;
-  }
-  return false;
+export function isGroupLabel(def: ControlDefinition): boolean {
+  if (isGroupControl(def)) return true;
+  return isDataControl(def) && def.renderOptions?.type === DataRenderType.Group;
 }
 
 export const DefaultLabel = controls<LabelProps>(
@@ -78,13 +71,11 @@ export const DefaultLabel = controls<LabelProps>(
     const textClassName = rendererClass(def.labelTextClass, theme.textClass);
     const labelClassName = rendererClass(
       def.labelClass,
-      [
+      clsx(
         theme.className,
         isGroupLabel(def) ? theme.groupClassName : undefined,
         textClassName,
-      ]
-        .filter(Boolean)
-        .join(" "),
+      ),
     );
     const Tag = tag ?? "label";
     const tagProps = {

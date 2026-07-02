@@ -17,10 +17,12 @@ import {
   createStaticFormTree,
   createStaticSchemaTree,
   groupedControl,
+  type DataNode,
+  type FormNode,
   type FormTreeResolver,
   type SchemaField,
 } from "@rxc/forms-core";
-import { Form, useFormStateNode } from "@rxc/forms";
+import { Form, useFormStateNode, type FormRegistry } from "@rxc/forms";
 import { SchemaMap } from "./schemas";
 import { createRegistry } from "./registry";
 import { HtmlLayout } from "./HtmlLayout";
@@ -46,7 +48,7 @@ const registry = createRegistry();
 // Per-form registry cache: a form can request a DataGrid `rowClass` (the one
 // class slot set at renderer-construction time, not via form JSON), so the
 // scratch form gets a striped registry without disturbing the others.
-const registryCache = new Map<string, ReturnType<typeof createRegistry>>();
+const registryCache = new Map<string, FormRegistry>();
 function registryFor(rowClass?: string) {
   if (!rowClass) return registry;
   let reg = registryCache.get(rowClass);
@@ -68,8 +70,8 @@ const FormHost = controls<FormHostProps>(
   ({ def }, { controlContext: cc }) => {
     const stateRef = useRef<{
       rootControl: Control<Record<string, unknown>>;
-      formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
-      dataRoot: ReturnType<typeof createDataNode>;
+      formRoot: FormNode;
+      dataRoot: DataNode;
     } | null>(null);
 
     if (!stateRef.current) {

@@ -4,6 +4,7 @@ import {
   DesignModeProvider,
   OptionsProvider,
   RegistryProvider,
+  type FormRegistry,
 } from "@rxc/forms-react-core";
 import { Field } from "./Field";
 import { LayoutProvider, DefaultLayout } from "./Layout";
@@ -22,7 +23,7 @@ import type { HtmlFormOptions } from "./theme";
 // each render. The default registry is stateless config, so one shared
 // instance is safe.
 const EMPTY_OPTIONS: HtmlFormOptions = {};
-let sharedDefaultRegistry: ReturnType<typeof defaultRegistry> | undefined;
+let sharedDefaultRegistry: FormRegistry | undefined;
 
 /**
  * Root form renderer. Provides the registry, layout, visibility, label,

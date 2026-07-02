@@ -276,7 +276,7 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
   const jExpr = expr.expression;
   const fullExpr = pathString ? `${pathString}.(${jExpr})` : jExpr;
 
-  let parsed: ReturnType<typeof jsonata>;
+  let parsed: jsonata.Expression;
   try {
     parsed = jsonata(fullExpr || "null");
   } catch (e) {
