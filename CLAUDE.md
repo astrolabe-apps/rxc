@@ -231,6 +231,9 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
 #### Tailwind v4 in dev app
 `apps/dev/src/app/globals.css` registers `@source "../../../../packages/forms/src/**/*.{ts,tsx}"` so renderer utility classes from `@rxc/forms` are emitted into the generated stylesheet.
 
+#### Rendering performance — `Field` is `React.memo`-wrapped
+`Field` (`packages/forms/src/Field.tsx`) is `memo(FieldRender)`. Because `FormStateNode` is a stable handle, the `node` prop is referentially stable, so a parent group re-rendering (child-list / visibility / disabled change) does **not** cascade into every descendant Field — each re-renders only when its own reactive subscription fires or its props change. Benchmarked in `packages/forms/test/memoBenchmark.test.tsx` (500-field form): a single field value toggle re-renders 1 field with or without memo (the reactive layer already isolates it), while an ancestor re-render drops from 500 renders → 0. This makes `Form`-provided context stability **load-bearing** (memo is a bailout boundary that context value changes punch through) — hence the stable `defaultRegistry()` / `options` fallbacks in `Form.tsx`. Don't memo `Layout`/`Label` (they take `ReactNode` children → shallow-compare always misses). The benchmark added `happy-dom` + `react-dom` devDeps to `@rxc/forms` and widened its vitest glob to `.test.{ts,tsx}`.
+
 ## Testing
 
 - **Framework**: Vitest + fast-check (property-based testing)
@@ -240,7 +243,7 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
   - `controls-core`: **54** (uniqueId determinism)
   - `forms-core`: **113** (+3 acquireDisabler / disabler stack)
   - `forms-react-core`: **61** (+14 getExternalEdit suite including sibling-FormStateNode controller sharing + session-staged Cancel/confirm actions)
-  - `forms`: **44** (+8 arrayElementExternalEdit suite covering element-side dispatch + Add path + controller-identity)
+  - `forms`: **45** (+1 `React.memo(Field)` render benchmark — mounts a 500-field form via `react-dom/client` + happy-dom and asserts value-toggle re-renders 1 field while an ancestor re-render bails out to 0)
   - `forms-datagrid`: **22** (+4 editExternal integration tests: draft form mirrors columns, add commit, edit commit-snapshot, edit cancel)
   - Known flaky: `controls-core` `general > can set computation` is a fast-check property test that occasionally fails on an unlucky seed and passes on re-run (pre-existing, seed-dependent).
 

@@ -33,7 +33,6 @@ export interface FieldProps {
   visibility?: VisibilityComponent;
   label?: LabelComponent;
   error?: ErrorComponent;
-  designMode?: boolean;
   /** Render the child's renderer output **without** Field's Layout
    * wrapper, label slot, error slot, or `field`/`label`/`control`-kind
    * adornments. Visibility still applies (hidden subtrees render as

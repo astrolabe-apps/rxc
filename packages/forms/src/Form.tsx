@@ -12,6 +12,17 @@ import { LabelProvider, DefaultLabel } from "./Label";
 import { ErrorProvider, DefaultError } from "./Error";
 import { defaultRegistry } from "./builtins";
 import type { FormProps } from "./types";
+import type { HtmlFormOptions } from "./theme";
+
+// Stable fallbacks for a `<Form>` rendered without `registry` / `options`.
+// This isn't about context re-renders — the subtree re-renders top-down
+// whenever Form does, regardless. It avoids (a) rebuilding the whole matcher
+// registry on every render, and (b) handing downstream `useMemo`s keyed on
+// registry identity (e.g. `collectExtraRenderOptionFields`) a fresh object
+// each render. The default registry is stateless config, so one shared
+// instance is safe.
+const EMPTY_OPTIONS: HtmlFormOptions = {};
+let sharedDefaultRegistry: ReturnType<typeof defaultRegistry> | undefined;
 
 /**
  * Root form renderer. Provides the registry, layout, visibility, label,
@@ -32,10 +43,10 @@ export function Form({
   options,
   designMode,
 }: FormProps) {
-  const reg = registry ?? defaultRegistry();
+  const reg = registry ?? (sharedDefaultRegistry ??= defaultRegistry());
   const tree = (
     <RegistryProvider value={reg}>
-      <OptionsProvider value={options ?? {}}>
+      <OptionsProvider value={options ?? EMPTY_OPTIONS}>
         <LayoutProvider value={layout ?? DefaultLayout}>
           <VisibilityProvider value={visibility ?? DefaultVisibility}>
             <LabelProvider value={label ?? DefaultLabel}>

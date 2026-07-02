@@ -1,13 +1,12 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { memo, useId, useMemo } from "react";
 import { controls } from "@rxc/controls";
 import {
   ControlDefinitionType,
   isDisplayControl,
 } from "@rxc/forms-core";
 import {
-  DesignModeProvider,
   indexAdornments,
   pickDataRenderer,
   pickDisplayRenderer,
@@ -35,7 +34,7 @@ import type { FieldProps } from "./types";
  * Layout → control-kind adornments → renderer. Label-kind adornments
  * wrap the label inside Layout.
  */
-export const Field = controls<FieldProps>(
+const FieldRender = controls<FieldProps>(
   "Field",
   (
     {
@@ -44,7 +43,6 @@ export const Field = controls<FieldProps>(
       visibility: visibilityProp,
       label: labelProp,
       error: errorProp,
-      designMode,
       inline,
     },
     { rc },
@@ -162,19 +160,23 @@ export const Field = controls<FieldProps>(
       </Layout>
     );
 
-    const tree = (
+    return (
       <Visibility visible={state.visible}>
         {wrapAdornments(adornmentList, adornmentMap, "field", layoutEl, node)}
       </Visibility>
     );
-
-    // If a per-Field designMode override is set, install it as a context
-    // for the subtree so nested adornments and renderers see the correct
-    // value. Otherwise inherit ambient design mode from upstream.
-    return designMode === undefined ? (
-      tree
-    ) : (
-      <DesignModeProvider value={designMode}>{tree}</DesignModeProvider>
-    );
   },
 );
+
+/**
+ * Memoized so an ancestor re-render (a parent group re-rendering because
+ * its child-list / visibility / disabled state changed) does **not**
+ * cascade into every descendant Field. `FormStateNode` is a stable handle,
+ * so the `node` prop is referentially stable across renders — a Field only
+ * re-renders when its own reactive subscription fires or its props actually
+ * change. (See `test/memoBenchmark.test.tsx`: this turns a 500-field
+ * ancestor cascade from 500 renders into 0. Relies on the `Form`-provided
+ * contexts being referentially stable, since memo makes Field a bailout
+ * boundary that context updates punch through.)
+ */
+export const Field = memo(FieldRender);
