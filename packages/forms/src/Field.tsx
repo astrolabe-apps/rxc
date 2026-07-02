@@ -36,26 +36,12 @@ import type { FieldProps } from "./types";
  */
 const FieldRender = controls<FieldProps>(
   "Field",
-  (
-    {
-      node,
-      layout: layoutProp,
-      visibility: visibilityProp,
-      label: labelProp,
-      error: errorProp,
-      inline,
-    },
-    { rc },
-  ) => {
+  ({ node, inline }, { rc }) => {
     const state = node.getState(rc);
-    const ctxLayout = useLayout();
-    const ctxVisibility = useVisibility();
-    const ctxLabel = useLabel();
-    const ctxError = useError();
-    const Layout = layoutProp ?? ctxLayout;
-    const Visibility = visibilityProp ?? ctxVisibility;
-    const Label = labelProp ?? ctxLabel;
-    const Error = errorProp ?? ctxError;
+    const Layout = useLayout();
+    const Visibility = useVisibility();
+    const Label = useLabel();
+    const Error = useError();
     const registry = useRegistry();
     const id = useId();
     const errorId = `${id}-error`;
