@@ -5,7 +5,7 @@ import {
   isDisplayControl,
   type HtmlDisplay,
 } from "@rxc/forms-core";
-import { rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
+import { clsx, rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**
@@ -36,8 +36,7 @@ export const HtmlDisplayRenderer = controls<DisplayRendererProps>(
     // top for per-control wrapper styling.
     const textClassName = rendererClass(def.textClass, displayTheme.htmlClass);
     const styleClassName = rendererClass(def.styleClass, undefined);
-    const className =
-      [styleClassName, textClassName].filter(Boolean).join(" ") || undefined;
+    const className = clsx(styleClassName, textClassName);
     return (
       <div
         className={className}

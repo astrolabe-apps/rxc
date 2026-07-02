@@ -2,7 +2,7 @@
 
 import { controls } from "@rxc/controls";
 import { isDisplayControl, type TextDisplay } from "@rxc/forms-core";
-import { rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
+import { clsx, rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 // See `HtmlDisplayRenderer` for the rationale on reading through `node`
@@ -25,8 +25,7 @@ export const TextDisplayRenderer = controls<DisplayRendererProps>(
     // in the DOM as a literal class.
     const textClassName = rendererClass(def.textClass, displayTheme.textClass);
     const styleClassName = rendererClass(def.styleClass, undefined);
-    const className =
-      [styleClassName, textClassName].filter(Boolean).join(" ") || undefined;
+    const className = clsx(styleClassName, textClassName);
     return <span className={className}>{text}</span>;
   },
 );

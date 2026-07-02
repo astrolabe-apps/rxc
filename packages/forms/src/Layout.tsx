@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { controls } from "@rxc/controls";
-import { rendererClass } from "@rxc/forms-react-core";
+import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "./useHtmlTheme";
 import type { LayoutComponent, LayoutProps } from "./types";
 
@@ -18,7 +18,7 @@ export const DefaultLayout = controls<LayoutProps>(
       def.layoutClass,
       theme.className ?? (inline ? undefined : "flex flex-col gap-1"),
     );
-    const finalClass = [merged, className].filter(Boolean).join(" ") || undefined;
+    const finalClass = clsx(merged, className);
     if (inline) {
       return (
         <span className={finalClass} style={style}>

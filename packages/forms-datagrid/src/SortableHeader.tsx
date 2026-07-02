@@ -2,8 +2,8 @@
 
 import { controls } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
+import { clsx } from "@rxc/forms-react-core";
 import { findSortField, rotateSort } from "@astroapps/searchstate";
-import clsx from "clsx";
 
 export interface SortableHeaderProps {
   /** The `sort` field of the bound `SearchOptions` control. */

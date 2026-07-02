@@ -23,8 +23,7 @@
     "@rxc/controls-core": "workspace:*",
     "@rxc/forms": "workspace:*",
     "@rxc/forms-core": "workspace:*",
-    "@rxc/forms-react-core": "workspace:*",
-    "clsx": "^2.1.1"
+    "@rxc/forms-react-core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18 || ^19"

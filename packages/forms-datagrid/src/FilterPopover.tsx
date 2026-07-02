@@ -4,8 +4,8 @@ import { useId } from "react";
 import { controls } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import type { FieldOption } from "@rxc/forms-core";
+import { clsx } from "@rxc/forms-react-core";
 import { setFilterValue, type SearchFilters } from "@astroapps/searchstate";
-import clsx from "clsx";
 import { Popover } from "./Popover";
 
 export interface FilterPopoverProps {
