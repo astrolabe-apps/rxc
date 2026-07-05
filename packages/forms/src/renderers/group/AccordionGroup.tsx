@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { controls } from "@rxc/controls";
-import { rendererClass } from "@rxc/forms-react-core";
+import { rendererClass, useAccordionSection } from "@rxc/forms-react-core";
+import type { FormStateNode } from "@rxc/forms-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**
  * Accordion group: each child becomes a `<details>` section. Uses native
- * `<details>`/`<summary>` for v1 — semantic, accessible, no JS state
- * needed. Animated variant deferred to Phase 4b.
+ * `<details>`/`<summary>` — semantic, accessible. Per-section open state
+ * lives in {@link useAccordionSection}; the animated variant is provided by
+ * `@rxc/forms-motion`.
  */
 export const AccordionGroupRenderer = controls<GroupRendererProps>(
   "AccordionGroupRenderer",
@@ -29,24 +30,22 @@ export const AccordionGroupRenderer = controls<GroupRendererProps>(
   },
 );
 
-const AccordionSection = controls<{
-  node: import("@rxc/forms-core").FormStateNode;
-}>("AccordionSection", ({ node }, { rc }) => {
-  const def = node.getState(rc).definition;
-  const accTheme = useHtmlTheme().group.accordion;
-  const [open, setOpen] = useState(false);
-  return (
-    <details
-      open={open}
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
-      className={accTheme.sectionClass}
-    >
-      <summary className={accTheme.titleClass}>
-        {def.title ?? "Section"}
-      </summary>
-      <div className={accTheme.contentClass}>
-        <Field node={node} />
-      </div>
-    </details>
-  );
-});
+const AccordionSection = controls<{ node: FormStateNode }>(
+  "AccordionSection",
+  ({ node }, { rc }) => {
+    const c = useAccordionSection(rc, node);
+    const accTheme = useHtmlTheme().group.accordion;
+    return (
+      <details
+        open={c.open}
+        onToggle={(e) => c.setOpen((e.currentTarget as HTMLDetailsElement).open)}
+        className={accTheme.sectionClass}
+      >
+        <summary className={accTheme.titleClass}>{c.title}</summary>
+        <div className={accTheme.contentClass}>
+          <Field node={node} />
+        </div>
+      </details>
+    );
+  },
+);

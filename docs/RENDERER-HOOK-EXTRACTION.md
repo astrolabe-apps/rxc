@@ -77,11 +77,23 @@ in `optionCoerce.ts`; option grouping and array-membership toggle live inside th
 controllers (`useSelectController` / `useChecklistController`) rather than as separate shared hooks —
 no cross-widget sharing justified the extra indirection.
 
-**Phase 2 — stateful groups + collections**: `useTabsController`, `useDisclosure`,
-`useAccordionSection`, `useArrayActions`, `useScrollListController`, `useAutocompleteController`.
+**Phase 2 — stateful groups + collections** ✅ **DONE.** Shipped in `@rxc/forms-react-core`:
+`useAutocompleteController.ts` (open/query state machine, option filter, select/blur handlers — the
+click-outside listener + container ref stay in the HTML renderer), `useCollectionControllers.ts`
+(`useArrayActions` — length range + add/edit/remove `ActionRendererProps` with dispatch-then-fallback
++ editExternal via `getExternalEdit`; `useScrollListController` — `$scrollList` meta reads + paging
+trigger, the `IntersectionObserver` sentinel stays DOM), `useGroupControllers.ts`
+(`useTabsController` — active index + tab info; `useDisclosure` — Dialog open state + trigger/content
+split + the `openDialog`/`closeDialog` ActionScope handler, native `<dialog>.showModal()` stays in the
+renderer; `useAccordionSection` — per-section open + title). All six renderers rewritten to thin
+views. Full build green; forms-react-core (61) + forms (45) + datagrid (31) tests pass.
+
+Layout-only renderers (Flex / Grid / Inline / Standard / Contents) and the `AccordionGroup` wrapper
+were left as-is — no state to extract.
 
 **Phase 3 — spike `@rxc/forms-native`** with one renderer (Textfield → RN `TextInput`) end-to-end to
-validate the boundary before porting the rest. Optional: `useSelectChildIndex`.
+validate the boundary before porting the rest. Optional: `useSelectChildIndex`. All the platform-
+agnostic controllers now exist, so a native platform package can be built purely as a new view layer.
 
 Each extraction: create hook in `packages/forms-react-core/src/`, export from `index.ts`, rewrite the
 `@rxc/forms` renderer to call it (DOM + theme only), keep tests green. No behaviour change — pure move.

@@ -3,12 +3,8 @@
 import { useEffect, useRef } from "react";
 import { controls } from "@rxc/controls";
 import {
-  isDataControl,
-  type ScrollListRenderOptions,
-} from "@rxc/forms-core";
-import {
   rendererClass,
-  useActionHandler,
+  useScrollListController,
   type DataRendererProps,
 } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
@@ -20,51 +16,30 @@ const SENTINEL_HEIGHT = 1;
  * Collection-data renderer that pages elements in via an
  * `IntersectionObserver` sentinel at the bottom of the list.
  *
- * The renderer reads `loading` and `hasMore` flags from the bound data
- * control's `meta` (`$scrollList.loading`, `$scrollList.hasMore`) — the
- * host is responsible for keeping these in sync with its data source.
- * When the sentinel becomes visible and `hasMore && !loading`, the
- * renderer dispatches `bottomActionId` via `useActionHandler` so the
- * host can fetch the next page.
+ * The controller reads `loading` / `hasMore` from the bound control's
+ * `meta` (`$scrollList.loading` / `$scrollList.hasMore`) — the host keeps
+ * these in sync with its data source — and exposes the paging trigger. When
+ * the sentinel becomes visible (and the controller says it's enabled) the
+ * renderer fires `onSentinelVisible`, which dispatches the configured
+ * `bottomActionId` so the host can fetch the next page.
  */
 export const ScrollListRenderer = controls<DataRendererProps>(
   "ScrollListRenderer",
   ({ node }, { rc }) => {
-    const { data, definition } = node.getState(rc);
+    const c = useScrollListController(rc, node);
     const scrollTheme = useHtmlTheme().data.scrollList;
-    if (!data) return null;
-    const renderOptions = isDataControl(definition)
-      ? (definition.renderOptions as ScrollListRenderOptions | undefined)
-      : undefined;
-    const bottomActionId = renderOptions?.bottomActionId;
-    const dispatch = useActionHandler();
-
-    const meta = (data.meta ?? {}) as {
-      $scrollList?: { loading?: boolean; hasMore?: boolean };
-    };
-    const loading = !!meta.$scrollList?.loading;
-    const hasMore = !!meta.$scrollList?.hasMore;
-
-    const children = node.getChildren(rc);
-    const wrapperClass = rendererClass(
-      definition.styleClass,
-      scrollTheme.className,
-    );
-
-    const fetchMore = () => {
-      if (!bottomActionId || !dispatch) return;
-      void Promise.resolve(dispatch(bottomActionId, undefined));
-    };
+    if (!c.data) return null;
+    const wrapperClass = rendererClass(c.styleClass, scrollTheme.className);
 
     return (
       <div className={wrapperClass}>
-        {children.map((child) => (
+        {c.children.map((child) => (
           <Field key={child.uniqueId} node={child} />
         ))}
-        {loading && <div className={scrollTheme.spinnerClass}>Loading…</div>}
+        {c.loading && <div className={scrollTheme.spinnerClass}>Loading…</div>}
         <ScrollSentinel
-          enabled={hasMore && !loading && !!bottomActionId}
-          onVisible={fetchMore}
+          enabled={c.sentinelEnabled}
+          onVisible={c.onSentinelVisible}
         />
       </div>
     );

@@ -140,6 +140,26 @@ export {
   type CheckboxController,
   type ElementSelectedController,
 } from "./useOptionControllers";
+export {
+  useAutocompleteController,
+  type AutocompleteController,
+} from "./useAutocompleteController";
+export {
+  useArrayActions,
+  useScrollListController,
+  type ArrayActionsController,
+  type ArrayRowActions,
+  type ScrollListController,
+} from "./useCollectionControllers";
+export {
+  useTabsController,
+  useDisclosure,
+  useAccordionSection,
+  type TabsController,
+  type TabInfo,
+  type DisclosureController,
+  type AccordionSectionController,
+} from "./useGroupControllers";
 export { clsx, getOverrideClass, rendererClass } from "./className";
 
 // Types
