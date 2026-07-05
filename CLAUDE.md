@@ -396,13 +396,9 @@ Goal: keep **all platform-agnostic renderer logic in `@rxc/forms-react-core` as 
 
 Existing hooks to build on: `useFormStateNode`, `useLabelText`, `useExpression`, `useAsyncAction`, `useFormErrors`, `useWizardController`, `useDeferredCleanup`.
 
-- [ ] **Audit each `@rxc/forms` data renderer** and extract its platform-agnostic controller into a `forms-react-core` hook, leaving only DOM + theme in `@rxc/forms`. Candidates (current inline logic → proposed hook):
-  - `Select` / `Radio` — value↔string mapping, `fieldOptions` resolution, placeholder/required-empty logic → `useSelectController` / `useOptionsController`.
-  - `Checkbox` / `Checklist` / `ElementSelected` — value↔checked, array-membership toggle → `useCheckController` / `useArrayMembership`.
-  - `Textfield` / `Multiline` / `Number` — value string coercion, placeholder, number parse-on-blur → `useTextInputController` / `useNumberController`.
-  - `Date` / `Time` / `DateTime` — parse/format through `SchemaInterface` → `useDateController`.
-  - `Autocomplete` — query/filter/active-option/highlight state (currently hand-rolled, no Downshift) → `useAutocompleteController`.
-  - `Array` (+ DataGrid add/remove) — length restrictions + add/remove/edit wiring (partly in `getExternalEdit` already) → `useArrayActions`.
+- [x] **Audit each `@rxc/forms` data renderer** — full audit + phased plan in `docs/RENDERER-HOOK-EXTRACTION.md`.
+- [x] **Phase 1 extracted** (text/number/date + options widgets). Shipped in `@rxc/forms-react-core`: `optionCoerce.ts` (`valueToString`/`stringToValue`/`mapChildrenByOptionValue`), `useInputControllers.ts` (`useTextInputController` for Textfield+Multiline, `useNumberController`, `useDateController`), `useOptionControllers.ts` (`useSelectController`/`useRadioController`/`useChecklistController`/`useCheckboxController`/`useElementSelectedController`). All eight HTML renderers rewritten to thin views. Contract: `(rc, node)`, writes via `useControlContext().update`; controller surfaces `data` (null-bail) + `styleClass` (theme composition stays in renderer). Tests green.
+- [ ] **Phase 2 — stateful groups + collections**: `useAutocompleteController` (query/filter/open state machine; click-outside listener stays DOM), `useArrayActions` (length range + add/remove/edit + editExternal via `getExternalEdit`), `useScrollListController`, `useTabsController`, `useDisclosure` (Dialog), `useAccordionSection`.
 - [ ] **Group open/active state** — `Tabs` (active index), `AccordionGroup` / `AccordionAdornment` (expanded set), `Dialog` (open + ActionScope open/close) all keep this state inline. Extract → `useTabsController` / `useDisclosure` so RN reuses the state machine.
 - [ ] **Contract:** hooks take `(node, rc, …)` and return values + handlers only — never `ReactNode`, never class strings. Anything DOM-shaped (input `type`, element choice, `className`) stays in the platform renderer.
 - [ ] Once a few are extracted, **spike `@rxc/forms-native`** with one data renderer (e.g. Textfield → RN `TextInput`) end-to-end to validate the hook boundary before porting the rest.

@@ -111,6 +111,35 @@ export {
   type WizardController,
   type WizardStepInfo,
 } from "./useWizardController";
+
+// Platform-agnostic renderer controllers (React Native readiness)
+export {
+  valueToString,
+  stringToValue,
+  mapChildrenByOptionValue,
+} from "./optionCoerce";
+export {
+  useTextInputController,
+  useNumberController,
+  useDateController,
+  type TextInputController,
+  type NumberInputController,
+  type DateInputController,
+} from "./useInputControllers";
+export {
+  useSelectController,
+  useRadioController,
+  useChecklistController,
+  useCheckboxController,
+  useElementSelectedController,
+  type SelectController,
+  type RadioController,
+  type RadioOptionEntry,
+  type ChecklistController,
+  type ChecklistOptionEntry,
+  type CheckboxController,
+  type ElementSelectedController,
+} from "./useOptionControllers";
 export { clsx, getOverrideClass, rendererClass } from "./className";
 
 // Types

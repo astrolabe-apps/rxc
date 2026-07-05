@@ -1,79 +1,43 @@
 "use client";
 
 import { controls } from "@rxc/controls";
-import { FieldType } from "@rxc/forms-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
-import { rendererClass } from "@rxc/forms-react-core";
+import {
+  rendererClass,
+  useSelectController,
+  valueToString,
+} from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
-
-/** Convert a stored value to/from the string select uses on the wire. */
-function valueToString(value: unknown): string {
-  if (value == null) return "";
-  return String(value);
-}
-
-function stringToValue(raw: string, fieldType: string | undefined): unknown {
-  if (raw === "") return null;
-  if (fieldType === FieldType.Int || fieldType === FieldType.Double) {
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : raw;
-  }
-  if (fieldType === FieldType.Bool) {
-    if (raw === "true") return true;
-    if (raw === "false") return false;
-  }
-  return raw;
-}
 
 export const SelectRenderer = controls<DataRendererProps>(
   "SelectRenderer",
-  ({ node, id }, { rc, update }) => {
-    const { data, field, fieldOptions, disabled, readonly, touched, definition } =
-      node.getState(rc);
-    const dataTheme = useHtmlTheme().data;
-    const selectTheme = dataTheme.select;
-    if (!data) return null;
-    const value = rc.getValue(data);
-    const hasError = touched && !!rc.getError(data);
-    const options = fieldOptions ?? [];
-    const required = !!field?.required;
-    const stored = valueToString(value);
-    const className = rendererClass(definition.styleClass, selectTheme.className);
+  ({ node, id }, { rc }) => {
+    const c = useSelectController(rc, node);
+    const selectTheme = useHtmlTheme().data.select;
+    if (!c.data) return null;
+    const className = rendererClass(c.styleClass, selectTheme.className);
     const placeholder =
-      stored === "" && required
-        ? selectTheme.requiredText
-        : selectTheme.emptyText;
-
-    // Group options by their `group` if any have one
-    const groups = new Map<string | null, typeof options>();
-    for (const opt of options) {
-      const g = (opt as { group?: string | null }).group ?? null;
-      if (!groups.has(g)) groups.set(g, []);
-      groups.get(g)!.push(opt);
-    }
-    const groupKeys = Array.from(groups.keys());
-    const usesGroups = groupKeys.some((k) => k != null);
+      c.isEmpty && c.required ? selectTheme.requiredText : selectTheme.emptyText;
+    const groupKeys = Array.from(c.groups.keys());
 
     return (
       <select
         id={id}
-        value={stored}
-        disabled={disabled || readonly}
+        value={c.value}
+        disabled={c.disabled || c.readonly}
         aria-describedby={`${id}-error`}
-        aria-invalid={hasError || undefined}
+        aria-invalid={c.hasError || undefined}
         className={className}
-        onChange={(e) =>
-          update((wc) =>
-            wc.setValue(data, stringToValue(e.target.value, field?.type)),
-          )
-        }
-        onBlur={() => update((wc) => wc.setTouched(data, true, true))}
+        onChange={(e) => c.onChangeValue(e.target.value)}
+        onBlur={c.onBlur}
       >
-        {(!required || stored === "") && <option value="">{placeholder}</option>}
-        {usesGroups
+        {(!c.required || c.isEmpty) && (
+          <option value="">{placeholder}</option>
+        )}
+        {c.usesGroups
           ? groupKeys.map((g) =>
               g == null ? (
-                groups
+                c.groups
                   .get(g)!
                   .map((o) => (
                     <option key={String(o.value)} value={valueToString(o.value)}>
@@ -82,7 +46,7 @@ export const SelectRenderer = controls<DataRendererProps>(
                   ))
               ) : (
                 <optgroup key={g} label={g}>
-                  {groups.get(g)!.map((o) => (
+                  {c.groups.get(g)!.map((o) => (
                     <option key={String(o.value)} value={valueToString(o.value)}>
                       {o.name}
                     </option>
@@ -90,7 +54,7 @@ export const SelectRenderer = controls<DataRendererProps>(
                 </optgroup>
               ),
             )
-          : options.map((o) => (
+          : c.options.map((o) => (
               <option key={String(o.value)} value={valueToString(o.value)}>
                 {o.name}
               </option>

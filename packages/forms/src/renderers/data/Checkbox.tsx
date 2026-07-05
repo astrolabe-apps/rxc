@@ -1,13 +1,14 @@
 "use client";
 
 import { controls } from "@rxc/controls";
-import { isDataControl } from "@rxc/forms-core";
-import { useLabelText } from "@rxc/forms-react-core";
+import {
+  rendererClass,
+  useCheckboxController,
+  useLabelText,
+} from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
-import { rendererClass } from "@rxc/forms-react-core";
 import { useLabel } from "../../Label";
 import { useHtmlTheme } from "../../useHtmlTheme";
-
 
 /**
  * Checkbox with the label rendered inline next to the input:
@@ -36,36 +37,27 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  */
 export const CheckboxRenderer = controls<DataRendererProps>(
   "CheckboxRenderer",
-  ({ node, id }, { rc, update }) => {
-    const { data, disabled, readonly, touched, definition } =
-      node.getState(rc);
+  ({ node, id }, { rc }) => {
+    const c = useCheckboxController(rc, node);
     const checkboxTheme = useHtmlTheme().data.checkbox;
     const labelText = useLabelText(node, rc);
     const Label = useLabel();
-    if (!data) return null;
-    const required = isDataControl(definition) && !!definition.required;
-    const checked = !!rc.getValue(data);
-    const hasError = touched && !!rc.getError(data);
-    const wrapperClass = rendererClass(
-      definition.styleClass,
-      checkboxTheme.className,
-    );
+    if (!c.data) return null;
+    const wrapperClass = rendererClass(c.styleClass, checkboxTheme.className);
     return (
       <span className={wrapperClass}>
         <input
           id={id}
           type="checkbox"
-          checked={checked}
-          disabled={disabled || readonly}
-          required={required}
-          aria-required={required || undefined}
-          aria-invalid={hasError || undefined}
+          checked={c.checked}
+          disabled={c.disabled || c.readonly}
+          required={c.required}
+          aria-required={c.required || undefined}
+          aria-invalid={c.hasError || undefined}
           aria-describedby={`${id}-error`}
           className={checkboxTheme.inputClass}
-          onChange={(e) =>
-            update((wc) => wc.setValue(data, e.target.checked))
-          }
-          onBlur={() => update((wc) => wc.setTouched(data, true, true))}
+          onChange={(e) => c.onChange(e.target.checked)}
+          onBlur={c.onBlur}
         />
         {labelText && (
           <Label node={node} htmlFor={id} id={`${id}-label`}>

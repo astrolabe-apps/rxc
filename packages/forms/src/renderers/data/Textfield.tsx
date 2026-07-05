@@ -2,33 +2,30 @@
 
 import { controls } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
-import { rendererClass } from "@rxc/forms-react-core";
+import { rendererClass, useTextInputController } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 export const TextfieldRenderer = controls<DataRendererProps>(
   "TextfieldRenderer",
-  ({ node, id }, { rc, update }) => {
-    const { data, disabled, readonly, touched, definition } = node.getState(rc);
+  ({ node, id }, { rc }) => {
+    const c = useTextInputController(rc, node);
     const theme = useHtmlTheme().data;
-    if (!data) return null;
-    const raw = rc.getValue(data);
-    const value = raw == null ? "" : String(raw);
-    const hasError = touched && !!rc.getError(data);
+    if (!c.data) return null;
     // Single resolved class — valid/error/disabled/readonly are state
     // variants baked into `inputClass`, driven by the attributes below.
-    const className = rendererClass(definition.styleClass, theme.inputClass);
+    const className = rendererClass(c.styleClass, theme.inputClass);
     return (
       <input
         id={id}
         type="text"
-        value={value}
-        disabled={disabled}
-        readOnly={readonly}
+        value={c.value}
+        disabled={c.disabled}
+        readOnly={c.readonly}
         aria-describedby={`${id}-error`}
-        aria-invalid={hasError || undefined}
+        aria-invalid={c.hasError || undefined}
         className={className}
-        onChange={(e) => update((wc) => wc.setValue(data, e.target.value))}
-        onBlur={() => update((wc) => wc.setTouched(data, true, true))}
+        onChange={(e) => c.onChangeText(e.target.value)}
+        onBlur={c.onBlur}
       />
     );
   },
