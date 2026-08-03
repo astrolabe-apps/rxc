@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControlContext, useControls, type Rendered } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import { dataRef } from "@rxc/forms-core";
 import {
@@ -79,63 +79,63 @@ function createPagerRenderer(
   const prevText = pagerClasses.prevText ?? "Previous";
   const nextText = pagerClasses.nextText ?? "Next";
 
-  return controls<DataRendererProps>(
-    "PagerRenderer",
-    ({ node }, { rc, update }) => {
-      const designMode = useDesignMode();
-      const state = node.getState(rc);
-      const search = state.data as Control<SearchOptions> | undefined;
-      if (!search) return null;
+  function PagerRenderer({ node }: DataRendererProps): Rendered {
+    const { rc, rendered } = useControls();
+    const { update } = useControlContext();
+    const designMode = useDesignMode();
+    const state = node.getState(rc);
+    const search = state.data as Control<SearchOptions> | undefined;
+    if (!search) return rendered(null);
 
-      const offsetControl = search.fields.offset as Control<number>;
-      const lengthControl = search.fields.length as Control<number>;
-      const offset = rc.getValue(offsetControl) ?? 0;
-      const perPage = rc.getValue(lengthControl) ?? initialPerPage;
+    const offsetControl = search.fields.offset as Control<number>;
+    const lengthControl = search.fields.length as Control<number>;
+    const offset = rc.getValue(offsetControl) ?? 0;
+    const perPage = rc.getValue(lengthControl) ?? initialPerPage;
 
-      const totalControl = dataRef(node.parent.cursor(rc), totalField)
-        ?.control as Control<number> | undefined;
-      const currentTotal =
-        (totalControl ? rc.getValue(totalControl) : 0) ?? 0;
-      if (!currentTotal) return null;
+    const totalControl = dataRef(node.parent.cursor(rc), totalField)
+      ?.control as Control<number> | undefined;
+    const currentTotal =
+      (totalControl ? rc.getValue(totalControl) : 0) ?? 0;
+    if (!currentTotal) return rendered(null);
 
-      const totalPages = Math.floor((currentTotal - 1) / perPage) + 1;
-      const currentPage = Math.floor(offset / perPage);
-      const changePage = (dir: number) => {
-        // No-op in design mode so paging doesn't mutate state while the form
-        // is being edited (matches legacy PagerRenderer).
-        if (designMode) return;
-        update((wc) =>
-          wc.setValue(offsetControl, (currentPage + dir) * perPage),
-        );
-      };
-
-      const numText = (value: number) => (
-        <span className={pagerClasses.numberClass}>{value}</span>
+    const totalPages = Math.floor((currentTotal - 1) / perPage) + 1;
+    const currentPage = Math.floor(offset / perPage);
+    const changePage = (dir: number) => {
+      // No-op in design mode so paging doesn't mutate state while the form
+      // is being edited (matches legacy PagerRenderer).
+      if (designMode) return;
+      update((wc) =>
+        wc.setValue(offsetControl, (currentPage + dir) * perPage),
       );
+    };
 
-      return (
-        <div className={rendererClass(state.definition.styleClass, pagerClasses.className)}>
-          <span className={pagerClasses.currentClass}>
-            Showing page {numText(currentPage + 1)} of {numText(totalPages)}
-          </span>
-          <div className={pagerClasses.buttonGroupClass}>
-            <Action
-              actionId={prevActionId}
-              actionText={prevText}
-              disabled={currentPage <= 0}
-              onClick={() => changePage(-1)}
-            />
-            <Action
-              actionId={nextActionId}
-              actionText={nextText}
-              disabled={currentPage >= totalPages - 1}
-              onClick={() => changePage(1)}
-            />
-          </div>
+    const numText = (value: number) => (
+      <span className={pagerClasses.numberClass}>{value}</span>
+    );
+
+    return rendered(
+      <div className={rendererClass(state.definition.styleClass, pagerClasses.className)}>
+        <span className={pagerClasses.currentClass}>
+          Showing page {numText(currentPage + 1)} of {numText(totalPages)}
+        </span>
+        <div className={pagerClasses.buttonGroupClass}>
+          <Action
+            actionId={prevActionId}
+            actionText={prevText}
+            disabled={currentPage <= 0}
+            onClick={() => changePage(-1)}
+          />
+          <Action
+            actionId={nextActionId}
+            actionText={nextText}
+            disabled={currentPage >= totalPages - 1}
+            onClick={() => changePage(1)}
+          />
         </div>
-      );
-    },
-  );
+      </div>
+    );
+  }
+  return PagerRenderer;
 }
 
 /**

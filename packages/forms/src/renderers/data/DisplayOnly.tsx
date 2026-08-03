@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
@@ -12,39 +12,37 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * definition's `textClass` over the theme class so per-column text styles
  * (e.g. accent colours on DataGrid cells) are honoured.
  */
-export const DisplayOnlyRenderer = controls<DataRendererProps>(
-  "DisplayOnlyRenderer",
-  ({ node, inline }, { rc }) => {
-    const { data, field, fieldOptions, definition } = node.getState(rc);
-    const dataTheme = useHtmlTheme().data;
-    if (!data) return null;
-    const value = rc.getValue(data);
-    const schemaInterface = node.schemaInterface;
-    let text: string;
-    if (Array.isArray(value)) {
-      text = value
-        .map(
-          (v) =>
-            (field && schemaInterface.textValue(field, v, fieldOptions)) ??
-            String(v),
-        )
-        .join(", ");
-    } else {
-      text =
-        (field && schemaInterface.textValue(field, value, fieldOptions)) ??
-        (value == null ? "" : String(value));
-    }
-    const className = rendererClass(
-      definition.textClass,
-      rendererClass(definition.styleClass, dataTheme.displayOnlyClass),
-    );
-    // Block element by default; inline element inside an inline group, to
-    // avoid invalid nesting (mirrors legacy `inline ? "span" : "div"`).
-    const Tag = inline ? "span" : "div";
-    return (
-      <Tag className={className}>
-        {text || <span className="text-zinc-400 italic">(empty)</span>}
-      </Tag>
-    );
-  },
-);
+export function DisplayOnlyRenderer({ node, inline }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { data, field, fieldOptions, definition } = node.getState(rc);
+  const dataTheme = useHtmlTheme().data;
+  if (!data) return rendered(null);
+  const value = rc.getValue(data);
+  const schemaInterface = node.schemaInterface;
+  let text: string;
+  if (Array.isArray(value)) {
+    text = value
+      .map(
+        (v) =>
+          (field && schemaInterface.textValue(field, v, fieldOptions)) ??
+          String(v),
+      )
+      .join(", ");
+  } else {
+    text =
+      (field && schemaInterface.textValue(field, value, fieldOptions)) ??
+      (value == null ? "" : String(value));
+  }
+  const className = rendererClass(
+    definition.textClass,
+    rendererClass(definition.styleClass, dataTheme.displayOnlyClass),
+  );
+  // Block element by default; inline element inside an inline group, to
+  // avoid invalid nesting (mirrors legacy `inline ? "span" : "div"`).
+  const Tag = inline ? "span" : "div";
+  return rendered(
+    <Tag className={className}>
+      {text || <span className="text-zinc-400 italic">(empty)</span>}
+    </Tag>
+  );
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered, useControlContext } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import { clsx } from "@rxc/forms-react-core";
 import { findSortField, rotateSort } from "@astroapps/searchstate";
@@ -21,37 +21,36 @@ export interface SortableHeaderProps {
  * unsorted → asc → desc → unsorted via `rotateSort`, and reads the
  * current direction via `findSortField`. Ported from the legacy
  * `@astroapps/schemas-datagrid` `SortableHeader`, re-expressed as a
- * `controls()` component so it reacts to sort-state changes through its
+ * `useControls()` component so it reacts to sort-state changes through its
  * own `ReadContext`.
  */
-export const SortableHeader = controls<SortableHeaderProps>(
-  "SortableHeader",
-  ({ sortControl, offsetControl, sortField, defaultSort }, { rc, update }) => {
-    const cd = findSortField(rc.getValue(sortControl), sortField);
-    return (
-      <button
-        type="button"
-        onClick={() =>
-          update((wc) => {
-            wc.updateValue(sortControl, (cur) =>
-              rotateSort(sortField, defaultSort)(cur ?? undefined),
-            );
-            wc.setValue(offsetControl, 0);
-          })
-        }
-      >
-        <i
-          aria-hidden
-          className={clsx(
-            "ml-2 h-4 w-2",
-            !cd
-              ? "fa-light fa-sort"
-              : cd === "a"
-                ? "fa-solid fa-sort-up"
-                : "fa-solid fa-sort-down",
-          )}
-        />
-      </button>
-    );
-  },
-);
+export function SortableHeader({ sortControl, offsetControl, sortField, defaultSort }: SortableHeaderProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
+  const cd = findSortField(rc.getValue(sortControl), sortField);
+  return rendered(
+    <button
+      type="button"
+      onClick={() =>
+        update((wc) => {
+          wc.updateValue(sortControl, (cur) =>
+            rotateSort(sortField, defaultSort)(cur ?? undefined),
+          );
+          wc.setValue(offsetControl, 0);
+        })
+      }
+    >
+      <i
+        aria-hidden
+        className={clsx(
+          "ml-2 h-4 w-2",
+          !cd
+            ? "fa-light fa-sort"
+            : cd === "a"
+              ? "fa-solid fa-sort-up"
+              : "fa-solid fa-sort-down",
+        )}
+      />
+    </button>
+  );
+}

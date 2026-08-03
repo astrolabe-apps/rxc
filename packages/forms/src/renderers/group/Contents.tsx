@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { Field } from "../../Field";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
 
@@ -9,16 +9,14 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
  * Useful for option-expansion groups (CheckList/Radio per-option) and
  * for embedding child fields in a parent's flex/grid flow.
  */
-export const ContentsRenderer = controls<GroupRendererProps>(
-  "ContentsRenderer",
-  ({ node }, { rc }) => {
-    const children = node.getChildren(rc);
-    return (
-      <>
-        {children.map((c) => (
-          <Field key={c.uniqueId} node={c} />
-        ))}
-      </>
-    );
-  },
-);
+export function ContentsRenderer({ node }: GroupRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const children = node.getChildren(rc);
+  return rendered(
+    <>
+      {children.map((c) => (
+        <Field key={c.uniqueId} node={c} />
+      ))}
+    </>
+  );
+}

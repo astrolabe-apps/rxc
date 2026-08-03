@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import parse from "html-react-parser";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { isDataControl } from "@rxc/forms-core";
 import {
   indexAdornments,
@@ -40,51 +40,49 @@ function htmlParseStrings(n: ReactNode): ReactNode {
 // Same as `<DefaultLabel>` but HTML-parses any string leaves in `children`.
 // Group-shaped labels still pick up `theme.label.groupClassName` because
 // the predicate is shared with the default.
-export const HtmlLabel = controls<LabelProps>(
-  "HtmlLabel",
-  ({ node, htmlFor, as: tag, id, children }, { rc }) => {
-    const def = node.getState(rc).definition;
-    const required = isDataControl(def) && !!def.required;
-    const theme = useHtmlTheme().label ?? {};
-    const textClassName = rendererClass(def.labelTextClass, theme.textClass);
-    const labelClassName = rendererClass(
-      def.labelClass,
-      [
-        theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
-        isGroupLabel(def) ? theme.groupClassName : undefined,
-        textClassName,
-      ]
-        .filter(Boolean)
-        .join(" "),
-    );
-    const parsed = htmlParseStrings(children);
-    const Tag = tag ?? "label";
-    const tagProps = {
-      ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
-      ...(id ? { id } : {}),
-    };
-    const labelEl = (
-      <Tag {...tagProps} className={labelClassName}>
-        {parsed}
-        {required && (
-          <span
-            aria-hidden
-            className={theme.requiredClass ?? "text-red-400 ml-0.5"}
-          >
-            {theme.requiredText ?? "*"}
-          </span>
-        )}
-      </Tag>
-    );
-    // Label-kind adornments are now composed inside the Label
-    // component, mirroring the DefaultLabel contract — Field no
-    // longer wraps adornments around the label slot.
-    const adornments = def.adornments ?? [];
-    const registry = useRegistry();
-    const adornmentMap = useMemo(
-      () => indexAdornments(registry.adornments),
-      [registry.adornments],
-    );
-    return wrapAdornments(adornments, adornmentMap, "label", labelEl, node);
-  },
-);
+export function HtmlLabel({ node, htmlFor, as: tag, id, children }: LabelProps): Rendered {
+  const { rc, rendered } = useControls();
+  const def = node.getState(rc).definition;
+  const required = isDataControl(def) && !!def.required;
+  const theme = useHtmlTheme().label ?? {};
+  const textClassName = rendererClass(def.labelTextClass, theme.textClass);
+  const labelClassName = rendererClass(
+    def.labelClass,
+    [
+      theme.className ?? "text-xs font-medium text-zinc-600 dark:text-zinc-400",
+      isGroupLabel(def) ? theme.groupClassName : undefined,
+      textClassName,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const parsed = htmlParseStrings(children);
+  const Tag = tag ?? "label";
+  const tagProps = {
+    ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
+    ...(id ? { id } : {}),
+  };
+  const labelEl = (
+    <Tag {...tagProps} className={labelClassName}>
+      {parsed}
+      {required && (
+        <span
+          aria-hidden
+          className={theme.requiredClass ?? "text-red-400 ml-0.5"}
+        >
+          {theme.requiredText ?? "*"}
+        </span>
+      )}
+    </Tag>
+  );
+  // Label-kind adornments are now composed inside the Label
+  // component, mirroring the DefaultLabel contract — Field no
+  // longer wraps adornments around the label slot.
+  const adornments = def.adornments ?? [];
+  const registry = useRegistry();
+  const adornmentMap = useMemo(
+    () => indexAdornments(registry.adornments),
+    [registry.adornments],
+  );
+  return rendered(wrapAdornments(adornments, adornmentMap, "label", labelEl, node));
+}

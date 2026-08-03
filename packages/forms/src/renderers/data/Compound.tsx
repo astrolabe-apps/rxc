@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { pickGroupRenderer } from "@rxc/forms-react-core";
 import { useRegistry } from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
@@ -10,12 +10,10 @@ import type { DataRendererProps } from "@rxc/forms-react-core";
  * dispatch. Compound data is a group at heart — the design doc replaces
  * the legacy data ↔ group ping-pong with this one-way delegation.
  */
-export const CompoundDelegate = controls<DataRendererProps>(
-  "CompoundDelegate",
-  ({ node }, { rc }) => {
-    const registry = useRegistry();
-    const match = pickGroupRenderer(registry.group, node, rc);
-    if (!match) return null;
-    return <match.component node={node} />;
-  },
-);
+export function CompoundDelegate({ node }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const registry = useRegistry();
+  const match = pickGroupRenderer(registry.group, node, rc);
+  if (!match) return rendered(null);
+  return rendered(<match.component node={node} />);
+}

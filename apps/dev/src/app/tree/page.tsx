@@ -2,11 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { Control } from "@rxc/controls";
-import {
-  ControlContextProvider,
-  controls,
-  createControlContext,
-} from "@rxc/controls";
+import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import type {
   ControlDefinition,
   FormStateNode,
@@ -83,10 +79,8 @@ function ValueDisplay({ value }: { value: unknown }) {
 
 // ── Raw control tree inspector ──────────────────────────────────────
 
-const ControlLeafNode = controls(function ControlLeafNode(
-  { control, name }: { control: Control<any>; name: string },
-  { rc },
-) {
+function ControlLeafNode({ control, name }: { control: Control<any>; name: string }): Rendered {
+  const { rc, rendered } = useControls();
   const value = rc.getValue(control);
   const dirty = rc.isDirty(control);
   const touched = rc.isTouched(control);
@@ -94,7 +88,7 @@ const ControlLeafNode = controls(function ControlLeafNode(
   const valid = rc.isValid(control);
   const error = rc.getError(control);
 
-  return (
+  return rendered(
     <div className="flex items-center gap-1.5 py-0.5 px-1 font-mono text-xs">
       <span className="w-3" />
       <span className="text-zinc-900 dark:text-zinc-100">{name}</span>
@@ -127,16 +121,14 @@ const ControlLeafNode = controls(function ControlLeafNode(
       </span>
     </div>
   );
-});
+}
 
-const ControlBranchNode = controls(function ControlBranchNode(
-  {
+function ControlBranchNode({
     control,
     name,
     defaultExpanded,
-  }: { control: Control<any>; name: string; defaultExpanded?: boolean },
-  { rc },
-) {
+  }: { control: Control<any>; name: string; defaultExpanded?: boolean }): Rendered {
+  const { rc, rendered } = useControls();
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
 
   const value = rc.getValue(control);
@@ -149,7 +141,7 @@ const ControlBranchNode = controls(function ControlBranchNode(
   const fieldEntries = Object.entries(control.fieldsNow);
   const elems = control.elementsNow;
 
-  return (
+  return rendered(
     <div className="font-mono text-xs">
       <div
         className="flex items-center gap-1.5 py-0.5 px-1 rounded cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -203,7 +195,7 @@ const ControlBranchNode = controls(function ControlBranchNode(
       )}
     </div>
   );
-});
+}
 
 function ControlNodeRenderer({
   control,
@@ -230,10 +222,8 @@ function ControlNodeRenderer({
 
 // ── FormStateNode tree inspector ────────────────────────────────────
 
-const FormStateLeafNode = controls(function FormStateLeafNode(
-  { node }: { node: FormStateNode },
-  { rc },
-) {
+function FormStateLeafNode({ node }: { node: FormStateNode }): Rendered {
+  const { rc, rendered } = useControls();
   const {
     visible,
     disabled,
@@ -252,7 +242,7 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
         ? "text-zinc-400"
         : "text-green-500";
 
-  return (
+  return rendered(
     <div className="flex items-center gap-1.5 py-0.5 px-1 font-mono text-xs">
       <span className="w-3" />
       <Badge
@@ -298,12 +288,10 @@ const FormStateLeafNode = controls(function FormStateLeafNode(
       </span>
     </div>
   );
-});
+}
 
-const FormStateBranchNode = controls(function FormStateBranchNode(
-  { node, defaultExpanded }: { node: FormStateNode; defaultExpanded?: boolean },
-  { rc },
-) {
+function FormStateBranchNode({ node, defaultExpanded }: { node: FormStateNode; defaultExpanded?: boolean }): Rendered {
+  const { rc, rendered } = useControls();
   const [expanded, setExpanded] = useState(defaultExpanded ?? true);
 
   const {
@@ -324,7 +312,7 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
         ? "text-zinc-400"
         : "text-green-500";
 
-  return (
+  return rendered(
     <div className="font-mono text-xs">
       <div
         className="flex items-center gap-1.5 py-0.5 px-1 rounded cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -384,26 +372,24 @@ const FormStateBranchNode = controls(function FormStateBranchNode(
       )}
     </div>
   );
-});
+}
 
-const FormStateNodeRenderer = controls(function FormStateNodeRenderer(
-  {
+function FormStateNodeRenderer({
     node,
     defaultExpanded,
   }: {
     node: FormStateNode;
     defaultExpanded?: boolean;
-  },
-  { rc },
-) {
+  }): Rendered {
+  const { rc, rendered } = useControls();
   const children = node.getChildren(rc);
   if (children.length > 0) {
-    return (
+    return rendered(
       <FormStateBranchNode node={node} defaultExpanded={defaultExpanded} />
     );
   }
-  return <FormStateLeafNode node={node} />;
-});
+  return rendered(<FormStateLeafNode node={node} />);
+}
 
 // ── Demo scenario ────────────────────────────────────────────────────
 
@@ -477,7 +463,9 @@ const emptyFormResolver: FormTreeResolver = {
   getFormTree: () => undefined,
 };
 
-const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
+function TreePageInner(): Rendered {
+  const { rc, rendered } = useControls();
+  const controlContext = useControlContext();
   const stateRef = useRef<{
     rootControl: Control<any>;
     definitionsControl: Control<ControlDefinition[]>;
@@ -521,7 +509,7 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
 
   const formNode = useFormStateNode(controlContext, formRoot, dataRoot);
 
-  return (
+  return rendered(
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">
@@ -584,7 +572,7 @@ const TreePageInner = controls(function TreePageInner({}, { controlContext }) {
       </div>
     </div>
   );
-});
+}
 
 // ── Set touched button ──────────────────────────────────────────────
 
@@ -602,20 +590,18 @@ function SetTouchedButton({ node }: { node: FormStateNode }) {
 
 // ── Validate button ─────────────────────────────────────────────────
 
-const ValidateButton = controls(function ValidateButton(
-  {
+function ValidateButton({
     node,
     rootControl,
   }: {
     node: FormStateNode;
     rootControl: Control<any>;
-  },
-  { rc },
-) {
+  }): Rendered {
+  const { rc, rendered } = useControls();
   const valid = rc.isValid(rootControl);
   const [validated, setValidated] = useState(false);
 
-  return (
+  return rendered(
     <div className="flex items-center gap-2">
       {validated && (
         <span
@@ -640,14 +626,13 @@ const ValidateButton = controls(function ValidateButton(
       </button>
     </div>
   );
-});
+}
 
 // ── Definition editor ───────────────────────────────────────────────
 
-const DefinitionEditor = controls(function DefinitionEditor(
-  { definitionsControl }: { definitionsControl: Control<ControlDefinition[]> },
-  { rc, update },
-) {
+function DefinitionEditor({ definitionsControl }: { definitionsControl: Control<ControlDefinition[]> }): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
   const current = rc.getValue(definitionsControl);
   const canonical = JSON.stringify(current, null, 2);
 
@@ -687,7 +672,7 @@ const DefinitionEditor = controls(function DefinitionEditor(
     setError(null);
   };
 
-  return (
+  return rendered(
     <div className="rounded-lg bg-white dark:bg-zinc-900 p-4 shadow mb-6">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
@@ -736,7 +721,7 @@ const DefinitionEditor = controls(function DefinitionEditor(
       )}
     </div>
   );
-});
+}
 
 export default function TreePage() {
   const controlContext = useMemo(() => createControlContext(), []);

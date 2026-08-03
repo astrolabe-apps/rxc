@@ -14,7 +14,7 @@ import {
  * - `hideTitle` on data, or `groupOptions.hideTitle` on groups, returns `null`.
  * - Action and Display controls don't have engine-emitted labels.
  */
-export function useLabelText(
+export function resolveLabelText(
   node: FormStateNode,
   rc: ReadContext,
 ): string | null {

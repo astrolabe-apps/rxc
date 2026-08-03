@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered, useControlContext } from "@rxc/controls";
 import {
   isDataControl,
   ValidatorType,
@@ -68,82 +68,82 @@ function getLengthRange(
  * apps opt in per definition; consumers can also slot it ahead of the
  * default `ArrayRenderer` to make every collection sortable.
  */
-export const SortableArrayRenderer = controls<DataRendererProps>(
-  "SortableArrayRenderer",
-  ({ node }, { rc, update }) => {
-    const { data, definition } = node.getState(rc);
-    if (!data) return null;
+export function SortableArrayRenderer({ node }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
+  // Above the bail-out below — `useSensors`/`useSensor` are hooks.
+  const sensors = useSensors(useSensor(PointerSensor));
 
-    const children = node.getChildren(rc);
-    const validators = isDataControl(definition)
-      ? definition.validators
-      : undefined;
-    const { min, max } = getLengthRange(validators);
-    const len = children.length;
+  const { data, definition } = node.getState(rc);
+  if (!data) return rendered(null);
 
-    const sensors = useSensors(useSensor(PointerSensor));
+  const children = node.getChildren(rc);
+  const validators = isDataControl(definition)
+    ? definition.validators
+    : undefined;
+  const { min, max } = getLengthRange(validators);
+  const len = children.length;
 
-    const wrapperClass = rendererClass(definition.styleClass, DEFAULT_WRAPPER);
+  const wrapperClass = rendererClass(definition.styleClass, DEFAULT_WRAPPER);
 
-    const ids = children.map((c) => c.uniqueId);
+  const ids = children.map((c) => c.uniqueId);
 
-    const onDragEnd = (e: DragEndEvent) => {
-      const { active, over } = e;
-      if (!over || active.id === over.id) return;
-      const oldIndex = ids.indexOf(active.id as string);
-      const newIndex = ids.indexOf(over.id as string);
-      if (oldIndex < 0 || newIndex < 0) return;
-      update((wc) =>
-        wc.updateElements(
-          data as Parameters<typeof wc.updateElements>[0],
-          (elems) => arrayMove(elems, oldIndex, newIndex),
-        ),
-      );
-    };
-
-    return (
-      <div className={wrapperClass}>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-            {children.map((child, i) => (
-              <SortableRow
-                key={child.uniqueId}
-                id={child.uniqueId}
-                onRemove={() =>
-                  update((wc) =>
-                    wc.removeElement(
-                      data as Parameters<typeof wc.removeElement>[0],
-                      i,
-                    ),
-                  )
-                }
-                canRemove={len > min}
-              >
-                <Field node={child} />
-              </SortableRow>
-            ))}
-          </SortableContext>
-        </DndContext>
-        <button
-          type="button"
-          disabled={len >= max}
-          onClick={() =>
-            update((wc) =>
-              wc.addElement(data as Parameters<typeof wc.addElement>[0], null),
-            )
-          }
-          className={DEFAULT_ADD}
-        >
-          Add
-        </button>
-      </div>
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(active.id as string);
+    const newIndex = ids.indexOf(over.id as string);
+    if (oldIndex < 0 || newIndex < 0) return;
+    update((wc) =>
+      wc.updateElements(
+        data as Parameters<typeof wc.updateElements>[0],
+        (elems) => arrayMove(elems, oldIndex, newIndex),
+      ),
     );
-  },
-);
+  };
+
+  return rendered(
+    <div className={wrapperClass}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={onDragEnd}
+      >
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          {children.map((child, i) => (
+            <SortableRow
+              key={child.uniqueId}
+              id={child.uniqueId}
+              onRemove={() =>
+                update((wc) =>
+                  wc.removeElement(
+                    data as Parameters<typeof wc.removeElement>[0],
+                    i,
+                  ),
+                )
+              }
+              canRemove={len > min}
+            >
+              <Field node={child} />
+            </SortableRow>
+          ))}
+        </SortableContext>
+      </DndContext>
+      <button
+        type="button"
+        disabled={len >= max}
+        onClick={() =>
+          update((wc) =>
+            wc.addElement(data as Parameters<typeof wc.addElement>[0], null),
+          )
+        }
+        className={DEFAULT_ADD}
+      >
+        Add
+      </button>
+    </div>
+  );
+}
 
 function SortableRow({
   id,

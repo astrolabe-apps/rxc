@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import {
   clsx,
@@ -22,55 +22,53 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * `formData.option` + `formData.optionSelected` in scope for scripting).
  * The controller resolves each `entry.child`; rendered inside the wrapper.
  */
-export const ChecklistRenderer = controls<DataRendererProps>(
-  "ChecklistRenderer",
-  ({ node, id }, { rc }) => {
-    const c = useChecklistController(rc, node);
-    const checkTheme = useHtmlTheme().data.checkList;
-    if (!c.data) return null;
-    const fieldsetClass = rendererClass(c.styleClass, checkTheme.className);
-    const entryWrapperClass = rendererClass(
-      c.entryWrapperClass,
-      checkTheme.entryWrapperClass,
-    );
+export function ChecklistRenderer({ node, id }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const c = useChecklistController(rc, node);
+  const checkTheme = useHtmlTheme().data.checkList;
+  if (!c.data) return rendered(null);
+  const fieldsetClass = rendererClass(c.styleClass, checkTheme.className);
+  const entryWrapperClass = rendererClass(
+    c.entryWrapperClass,
+    checkTheme.entryWrapperClass,
+  );
 
-    return (
-      <fieldset
-        id={id}
-        disabled={c.disabled}
-        className={fieldsetClass}
-        aria-labelledby={`${id}-label`}
-        aria-describedby={`${id}-error`}
-      >
-        {c.entries.map((entry, i) => {
-          const stateClass = entry.checked
-            ? rendererClass(c.selectedClass, checkTheme.selectedClass)
-            : rendererClass(c.notSelectedClass, checkTheme.notSelectedClass);
-          const inputId = `${id}_${i}`;
-          return (
-            <div
-              key={String(entry.option.value)}
-              className={clsx(entryWrapperClass, stateClass)}
-            >
-              <div className={checkTheme.entryClass}>
-                <input
-                  id={inputId}
-                  type="checkbox"
-                  checked={entry.checked}
-                  disabled={c.disabled || c.readonly}
-                  className={checkTheme.inputClass}
-                  onChange={(e) => c.toggle(entry.option.value, e.target.checked)}
-                  onBlur={c.onBlur}
-                />
-                <label htmlFor={inputId} className={checkTheme.labelClass}>
-                  {entry.option.name}
-                </label>
-              </div>
-              {entry.child && <Field node={entry.child} />}
+  return rendered(
+    <fieldset
+      id={id}
+      disabled={c.disabled}
+      className={fieldsetClass}
+      aria-labelledby={`${id}-label`}
+      aria-describedby={`${id}-error`}
+    >
+      {c.entries.map((entry, i) => {
+        const stateClass = entry.checked
+          ? rendererClass(c.selectedClass, checkTheme.selectedClass)
+          : rendererClass(c.notSelectedClass, checkTheme.notSelectedClass);
+        const inputId = `${id}_${i}`;
+        return (
+          <div
+            key={String(entry.option.value)}
+            className={clsx(entryWrapperClass, stateClass)}
+          >
+            <div className={checkTheme.entryClass}>
+              <input
+                id={inputId}
+                type="checkbox"
+                checked={entry.checked}
+                disabled={c.disabled || c.readonly}
+                className={checkTheme.inputClass}
+                onChange={(e) => c.toggle(entry.option.value, e.target.checked)}
+                onBlur={c.onBlur}
+              />
+              <label htmlFor={inputId} className={checkTheme.labelClass}>
+                {entry.option.name}
+              </label>
             </div>
-          );
-        })}
-      </fieldset>
-    );
-  },
-);
+            {entry.child && <Field node={entry.child} />}
+          </div>
+        );
+      })}
+    </fieldset>
+  );
+}

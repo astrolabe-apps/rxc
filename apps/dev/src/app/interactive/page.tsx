@@ -1,11 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  ControlContextProvider,
-  controls,
-  createControlContext,
-} from "@rxc/controls";
+import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import type { Control } from "@rxc/controls";
 import {
   accordionGroupOptions,
@@ -162,10 +158,9 @@ const emptyFormResolver: FormTreeResolver = {
 
 const controlContext = createControlContext();
 
-const InteractiveInner = controls(function InteractiveInner(
-  {},
-  { controlContext },
-) {
+function InteractiveInner(): Rendered {
+  const { rc, rendered } = useControls();
+  const controlContext = useControlContext();
   const ref = useRef<{
     rootControl: Control<unknown>;
     formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
@@ -207,7 +202,7 @@ const InteractiveInner = controls(function InteractiveInner(
     return undefined;
   };
 
-  return (
+  return rendered(
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">
@@ -235,19 +230,17 @@ const InteractiveInner = controls(function InteractiveInner(
       </div>
     </div>
   );
-});
+}
 
-const DataJson = controls(function DataJson(
-  { control }: { control: Control<unknown> },
-  { rc },
-) {
+function DataJson({ control }: { control: Control<unknown> }): Rendered {
+  const { rc, rendered } = useControls();
   const value = rc.getValue(control);
-  return (
+  return rendered(
     <pre className="overflow-auto rounded bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 p-3 text-xs font-mono whitespace-pre-wrap">
       {JSON.stringify(value, null, 2)}
     </pre>
   );
-});
+}
 
 export default function InteractivePage() {
   return (

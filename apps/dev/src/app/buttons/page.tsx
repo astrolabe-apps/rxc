@@ -1,11 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  ControlContextProvider,
-  controls,
-  createControlContext,
-} from "@rxc/controls";
+import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import {
   actionControl,
   ActionStyle,
@@ -338,7 +334,9 @@ const formOptions: HtmlFormOptions = {
   },
 };
 
-const ButtonsInner = controls(function ButtonsInner({}, { controlContext }) {
+function ButtonsInner(): Rendered {
+  const { rc, rendered } = useControls();
+  const controlContext = useControlContext();
   const ref = useRef<{
     formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
     dataRoot: ReturnType<typeof createDataNode>;
@@ -365,7 +363,7 @@ const ButtonsInner = controls(function ButtonsInner({}, { controlContext }) {
     return undefined;
   };
 
-  return (
+  return rendered(
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-4">
@@ -390,7 +388,7 @@ const ButtonsInner = controls(function ButtonsInner({}, { controlContext }) {
       </div>
     </div>
   );
-});
+}
 
 export default function ButtonsPage() {
   return (

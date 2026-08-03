@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   type ArrayElementRenderOptions,
   type FormStateNode,
@@ -71,67 +71,65 @@ function applyValidation(
  * `applyValidation` wrapper. The modal applies for both `add` and
  * `edit` sessions.
  */
-export const ArrayElementModalHostRenderer = controls<DataRendererProps>(
-  "ArrayElementModalHostRenderer",
-  ({ node, id }, { rc }) => {
-    const { definition } = node.getState(rc);
-    const arrayTheme = useHtmlTheme().data.array;
-    const designMode = useDesignMode();
+export function ArrayElementModalHostRenderer({ node, id }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { definition } = node.getState(rc);
+  const arrayTheme = useHtmlTheme().data.array;
+  const designMode = useDesignMode();
 
-    const renderOptions = isDataControl(definition)
-      ? (definition.renderOptions as ArrayElementRenderOptions | undefined)
-      : undefined;
-    const inline = !!renderOptions?.showInline || designMode;
+  const renderOptions = isDataControl(definition)
+    ? (definition.renderOptions as ArrayElementRenderOptions | undefined)
+    : undefined;
+  const inline = !!renderOptions?.showInline || designMode;
 
-    const editController = getExternalEdit(node);
-    const session = editController.session(rc);
+  const editController = getExternalEdit(node);
+  const session = editController.session(rc);
 
-    const dialogRef = useRef<HTMLDialogElement | null>(null);
-    useEffect(() => {
-      if (inline) return;
-      const el = dialogRef.current;
-      if (!el) return;
-      if (session && !el.open) el.showModal();
-      if (!session && el.open) el.close();
-    }, [session, inline]);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  useEffect(() => {
+    if (inline) return;
+    const el = dialogRef.current;
+    if (!el) return;
+    if (session && !el.open) el.showModal();
+    if (!session && el.open) el.close();
+  }, [session, inline]);
 
-    const className = isDataControl(definition)
-      ? rendererClass(definition.styleClass, undefined)
-      : undefined;
+  const className = isDataControl(definition)
+    ? rendererClass(definition.styleClass, undefined)
+    : undefined;
 
-    // The Cancel + confirm actions come from the session (staged by the
-    // controller — legacy's `getExternalEditData(control).fields.actions`),
-    // NOT hardcoded here. Each renders through `<Action>` so the host's
-    // registry decides chrome (override per id via
-    // `matchActionId("apply", ...)`), matching legacy's
-    // `formRenderer.renderAction(applyValidation(c.value))`.
-    const content = session ? (
-      <div className={arrayTheme.dialogBodyClass}>
-        <Field node={session.draftForm} />
-        <div className={className ?? arrayTheme.actionsClass}>
-          {session.actions.map((a, i) => {
-            const props = applyValidation(a, session.draftForm);
-            return <Action key={props.actionId || i} {...props} />;
-          })}
-        </div>
+  // The Cancel + confirm actions come from the session (staged by the
+  // controller — legacy's `getExternalEditData(control).fields.actions`),
+  // NOT hardcoded here. Each renders through `<Action>` so the host's
+  // registry decides chrome (override per id via
+  // `matchActionId("apply", ...)`), matching legacy's
+  // `formRenderer.renderAction(applyValidation(c.value))`.
+  const content = session ? (
+    <div className={arrayTheme.dialogBodyClass}>
+      <Field node={session.draftForm} />
+      <div className={className ?? arrayTheme.actionsClass}>
+        {session.actions.map((a, i) => {
+          const props = applyValidation(a, session.draftForm);
+          return <Action key={props.actionId || i} {...props} />;
+        })}
       </div>
-    ) : null;
+    </div>
+  ) : null;
 
-    // Inline (and design) mode: render the draft body directly, no
-    // dialog chrome — matches legacy `showInline || designMode`.
-    if (inline) {
-      return content ? <div id={id}>{content}</div> : null;
-    }
+  // Inline (and design) mode: render the draft body directly, no
+  // dialog chrome — matches legacy `showInline || designMode`.
+  if (inline) {
+    return rendered(content ? <div id={id}>{content}</div> : null);
+  }
 
-    return (
-      <dialog
-        id={id}
-        ref={dialogRef}
-        onClose={() => editController.cancel()}
-        className={arrayTheme.dialogClass}
-      >
-        {content}
-      </dialog>
-    );
-  },
-);
+  return rendered(
+    <dialog
+      id={id}
+      ref={dialogRef}
+      onClose={() => editController.cancel()}
+      className={arrayTheme.dialogClass}
+    >
+      {content}
+    </dialog>
+  );
+}

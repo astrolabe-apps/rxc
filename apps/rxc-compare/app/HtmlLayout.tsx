@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { DataRenderType, isDataControl } from "@rxc/forms-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import type { LayoutProps } from "@rxc/forms";
@@ -17,38 +17,36 @@ const DISPLAY_ONLY_WRAPPER = "flex flex-row items-center gap-2";
 // parsing of label text and error styling are handled by the custom
 // `<Label>` (HtmlLabel) and `<Error>` (HtmlError) components, passed to
 // `<Form>` separately.
-export const HtmlLayout = controls<LayoutProps>(
-  "HtmlLayout",
-  ({ node, label, error, inline, className, style, children }, { rc }) => {
-    const def = node.getState(rc).definition;
-    const isDisplayOnly =
-      isDataControl(def) &&
-      def.renderOptions?.type === DataRenderType.DisplayOnly;
-    const labelContainer =
-      label == null ? null : (
-        <div className="flex gap-4 items-baseline flex-wrap">{label}</div>
-      );
-    const merged = rendererClass(
-      def.layoutClass,
-      inline ? undefined : isDisplayOnly ? DISPLAY_ONLY_WRAPPER : "flex flex-col",
+export function HtmlLayout({ node, label, error, inline, className, style, children }: LayoutProps): Rendered {
+  const { rc, rendered } = useControls();
+  const def = node.getState(rc).definition;
+  const isDisplayOnly =
+    isDataControl(def) &&
+    def.renderOptions?.type === DataRenderType.DisplayOnly;
+  const labelContainer =
+    label == null ? null : (
+      <div className="flex gap-4 items-baseline flex-wrap">{label}</div>
     );
-    const finalClass =
-      [merged, className].filter(Boolean).join(" ") || undefined;
-    if (inline) {
-      return (
-        <span className={finalClass} style={style}>
-          {labelContainer && <>{labelContainer} </>}
-          {children}
-          {error && <> {error}</>}
-        </span>
-      );
-    }
-    return (
-      <div className={finalClass} style={style}>
-        {labelContainer}
+  const merged = rendererClass(
+    def.layoutClass,
+    inline ? undefined : isDisplayOnly ? DISPLAY_ONLY_WRAPPER : "flex flex-col",
+  );
+  const finalClass =
+    [merged, className].filter(Boolean).join(" ") || undefined;
+  if (inline) {
+    return rendered(
+      <span className={finalClass} style={style}>
+        {labelContainer && <>{labelContainer} </>}
         {children}
-        {error}
-      </div>
+        {error && <> {error}</>}
+      </span>
     );
-  },
-);
+  }
+  return rendered(
+    <div className={finalClass} style={style}>
+      {labelContainer}
+      {children}
+      {error}
+    </div>
+  );
+}

@@ -1,10 +1,10 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   rendererClass,
   useCheckboxController,
-  useLabelText,
+  resolveLabelText,
 } from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { useLabel } from "../../Label";
@@ -35,36 +35,34 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * collapse it onto `disabled` to actually prevent toggling — matches
  * the Radio renderer's handling.
  */
-export const CheckboxRenderer = controls<DataRendererProps>(
-  "CheckboxRenderer",
-  ({ node, id }, { rc }) => {
-    const c = useCheckboxController(rc, node);
-    const checkboxTheme = useHtmlTheme().data.checkbox;
-    const labelText = useLabelText(node, rc);
-    const Label = useLabel();
-    if (!c.data) return null;
-    const wrapperClass = rendererClass(c.styleClass, checkboxTheme.className);
-    return (
-      <span className={wrapperClass}>
-        <input
-          id={id}
-          type="checkbox"
-          checked={c.checked}
-          disabled={c.disabled || c.readonly}
-          required={c.required}
-          aria-required={c.required || undefined}
-          aria-invalid={c.hasError || undefined}
-          aria-describedby={`${id}-error`}
-          className={checkboxTheme.inputClass}
-          onChange={(e) => c.onChange(e.target.checked)}
-          onBlur={c.onBlur}
-        />
-        {labelText && (
-          <Label node={node} htmlFor={id} id={`${id}-label`}>
-            {labelText}
-          </Label>
-        )}
-      </span>
-    );
-  },
-);
+export function CheckboxRenderer({ node, id }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const c = useCheckboxController(rc, node);
+  const checkboxTheme = useHtmlTheme().data.checkbox;
+  const labelText = resolveLabelText(node, rc);
+  const Label = useLabel();
+  if (!c.data) return rendered(null);
+  const wrapperClass = rendererClass(c.styleClass, checkboxTheme.className);
+  return rendered(
+    <span className={wrapperClass}>
+      <input
+        id={id}
+        type="checkbox"
+        checked={c.checked}
+        disabled={c.disabled || c.readonly}
+        required={c.required}
+        aria-required={c.required || undefined}
+        aria-invalid={c.hasError || undefined}
+        aria-describedby={`${id}-error`}
+        className={checkboxTheme.inputClass}
+        onChange={(e) => c.onChange(e.target.checked)}
+        onBlur={c.onBlur}
+      />
+      {labelText && (
+        <Label node={node} htmlFor={id} id={`${id}-label`}>
+          {labelText}
+        </Label>
+      )}
+    </span>
+  );
+}

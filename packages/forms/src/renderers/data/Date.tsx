@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass, useDateController } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
@@ -9,12 +9,13 @@ function makeDateRenderer(
   inputType: "date" | "datetime-local" | "time",
   displayName: string,
 ) {
-  return controls<DataRendererProps>(displayName, ({ node, id }, { rc }) => {
+  function DateInputRenderer({ node, id }: DataRendererProps): Rendered {
+    const { rc, rendered } = useControls();
     const c = useDateController(rc, node);
     const dataTheme = useHtmlTheme().data;
-    if (!c.data) return null;
+    if (!c.data) return rendered(null);
     const className = rendererClass(c.styleClass, dataTheme.inputClass);
-    return (
+    return rendered(
       <input
         id={id}
         type={inputType}
@@ -26,9 +27,11 @@ function makeDateRenderer(
         className={className}
         onChange={(e) => c.onChangeText(e.target.value)}
         onBlur={c.onBlur}
-      />
+      />,
     );
-  });
+  }
+  DateInputRenderer.displayName = displayName;
+  return DateInputRenderer;
 }
 
 export const DateRenderer = makeDateRenderer("date", "DateRenderer");

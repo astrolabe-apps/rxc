@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { controls } from "@rxc/controls";
+import { useControlContext, useControls, type Rendered } from "@rxc/controls";
 import {
   ControlAdornmentType,
   type SetFieldAdornment as SetFieldAdornmentDef,
@@ -18,9 +18,13 @@ import { useExpression } from "@rxc/forms-react-core";
  * `defaultOnly: true` writes only when the target is currently null, so
  * the user's edits aren't clobbered.
  */
-const SetFieldAdornmentRender = controls<
-  AdornmentRenderProps<SetFieldAdornmentDef>
->("SetFieldAdornment", ({ adornment, node, children }, { rc, update }) => {
+function SetFieldAdornmentRender({
+  adornment,
+  node,
+  children,
+}: AdornmentRenderProps<SetFieldAdornmentDef>): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
   const evaluated = useExpression(rc, node, adornment.expression);
   const lastWritten = useRef<unknown>(undefined);
 
@@ -40,8 +44,8 @@ const SetFieldAdornmentRender = controls<
     update((wc) => wc.setValue(targetControl, evaluated));
   }, [targetControl, evaluated, defaultOnly, targetValue, update]);
 
-  return <>{children}</>;
-});
+  return rendered(<>{children}</>);
+}
 
 export const SetFieldAdornment: AdornmentRegistration<SetFieldAdornmentDef> = {
   type: ControlAdornmentType.SetField,

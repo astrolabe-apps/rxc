@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { type Control, effect, type ReadContext } from "@rxc/controls-core";
 import {
   boolField,
@@ -320,14 +320,47 @@ export const dataGridResolveChildren: ChildResolverFunc = (
 function createDataGridRenderer(classes?: DataGridClasses) {
   const gridClasses: DataGridClasses = { ...defaultDataGridClasses, ...classes };
 
-  return controls<DataRendererProps>(
-    "DataGridRenderer",
-    ({ node }, { rc, update }) => {
+  function DataGridRenderer({ node }: DataRendererProps): Rendered {
+    const { rc, rendered } = useControls();
     const ctx = useControlContext();
+    const { update } = ctx;
     const actionHandler = useActionHandler();
     const state = node.getState(rc);
     const def = state.definition;
-    if (!isDataControl(def)) return null;
+    // `reorderGroups` clustering runs as a post-commit reactive effect. Hoisted
+    // above the `isDataControl` bail-out because `useEffect` is a hook; its
+    // inputs are re-derived defensively here and the effect body already
+    // no-ops when any of them is missing.
+    // `renderOptions` only exists on `DataControlDefinition`, and this sits
+    // above the `isDataControl` narrowing — read it optionally.
+    const gridOptions = ((state.definition as Partial<DataControlDefinition>)
+      .renderOptions ?? {}) as DataGridOptions;
+    const reorderGroups = gridOptions.reorderGroups;
+    const groupByFieldForEffect = gridOptions.groupByField;
+    const arrayControlForEffect = state.data as Control<unknown[]> | undefined;
+    useEffect(() => {
+      if (!reorderGroups || !groupByFieldForEffect || !arrayControlForEffect)
+        return;
+      const eff = effect(ctx, (erc) => {
+        const elems = erc.getElements(arrayControlForEffect);
+        const keyOf = (el: Control<unknown>) => {
+          const fc = (el as Control<Record<string, unknown>>).fields[
+            groupByFieldForEffect
+          ];
+          return fc ? erc.getValue(fc) : undefined;
+        };
+        const reordered = stableGroupByKey(elems, keyOf);
+        if (
+          reordered.length === elems.length &&
+          reordered.every((c, i) => c === elems[i])
+        )
+          return;
+        ctx.update((wc) => wc.updateElements(arrayControlForEffect, () => reordered));
+      });
+      return () => eff.cleanup();
+    }, [ctx, arrayControlForEffect, groupByFieldForEffect, reorderGroups]);
+
+    if (!isDataControl(def)) return rendered(null);
 
     const renderOptions = (def.renderOptions ?? {}) as DataGridOptions &
       RenderOptions;
@@ -367,31 +400,6 @@ function createDataGridRenderer(classes?: DataGridClasses) {
     const arrayControl = state.data as Control<unknown[]> | undefined;
     const isReadonly = state.readonly || state.disabled;
 
-    // Opt-in `reorderGroups`: cluster same-key rows adjacently by mutating the
-    // bound array (legacy `useGroupedRows`). Runs as a post-commit reactive
-    // effect — re-clusters when rows or their group keys change, and is a
-    // no-op once already grouped (so it converges and never loops).
-    const reorderGroups = renderOptions.reorderGroups;
-    useEffect(() => {
-      if (!reorderGroups || !groupByField || !arrayControl) return;
-      const eff = effect(ctx, (erc) => {
-        const elems = erc.getElements(arrayControl);
-        const keyOf = (el: Control<unknown>) => {
-          const fc = (el as Control<Record<string, unknown>>).fields[
-            groupByField
-          ];
-          return fc ? erc.getValue(fc) : undefined;
-        };
-        const reordered = stableGroupByKey(elems, keyOf);
-        if (
-          reordered.length === elems.length &&
-          reordered.every((c, i) => c === elems[i])
-        )
-          return;
-        ctx.update((wc) => wc.updateElements(arrayControl, () => reordered));
-      });
-      return () => eff.cleanup();
-    }, [ctx, arrayControl, groupByField, reorderGroups]);
     const { min, max } = getDataGridLengthRange(def as DataControlDefinition);
 
     const displayOnly = !!renderOptions.displayOnly;
@@ -602,7 +610,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
       },
     });
 
-    return (
+    return rendered(
       <>
         <DataGrid
           className={rendererClass(def.styleClass, gridClasses.className)}
@@ -686,7 +694,8 @@ function createDataGridRenderer(classes?: DataGridClasses) {
         ) : null}
       </>
     );
-  });
+  }
+  return DataGridRenderer;
 }
 
 /**

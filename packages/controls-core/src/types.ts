@@ -143,7 +143,7 @@ export interface ReadContext {
 
   /**
    * `true` if this rc is past its render window (the wrapping
-   * `controls()` component has reconciled). Reads still return current
+   * component's `rendered(…)` has reconciled). Reads still return current
    * values but no longer register tracked dependencies — late reads
    * cannot establish live subscriptions and silently fail to trigger
    * re-renders. Code paths that legitimately use a captured rc outside

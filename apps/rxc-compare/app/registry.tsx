@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   combineRegistries,
   groupPlugin,
@@ -14,21 +14,19 @@ import { AllErrors } from "./components/AllErrors";
 import { TopLevelGroupValue } from "./formExtensions";
 import { PopoverHelpTextAdornment } from "./adornments/PopoverHelpText";
 
-const TopLevelGroup = controls<GroupRendererProps>(
-  "TopLevelGroup",
-  ({ node }, { rc }) => {
-    const children = node.getChildren(rc);
-    const groupClass = useHtmlTheme().group?.standardClass;
-    return (
-      <div className={groupClass}>
-        <AllErrors node={node} />
-        {children.map((c) => (
-          <Field key={c.uniqueId} node={c} />
-        ))}
-      </div>
-    );
-  },
-);
+function TopLevelGroup({ node }: GroupRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const children = node.getChildren(rc);
+  const groupClass = useHtmlTheme().group?.standardClass;
+  return rendered(
+    <div className={groupClass}>
+      <AllErrors node={node} />
+      {children.map((c) => (
+        <Field key={c.uniqueId} node={c} />
+      ))}
+    </div>
+  );
+}
 
 export function createRegistry(gridClasses?: DataGridClasses): FormRegistry {
   return combineRegistries(

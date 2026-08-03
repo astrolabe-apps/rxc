@@ -2,11 +2,7 @@
 
 import { useRef } from "react";
 import type { Control, ControlSetup } from "@rxc/controls";
-import {
-  controls,
-  ControlContextProvider,
-  createControlContext,
-} from "@rxc/controls";
+import { useComputed, useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 
 interface FormData {
   firstName: string;
@@ -14,15 +10,17 @@ interface FormData {
   email: string;
 }
 
-const TextInput = controls<{
+function TextInput({ control, label }: {
   control: Control<string>;
   label: string;
-}>(function TextInput({ control, label }, { rc, update }) {
+}): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
   const value = rc.getValue(control);
   const touched = rc.isTouched(control);
   const error = rc.getError(control);
   
-  return (
+  return rendered(
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
         {label}
@@ -42,12 +40,11 @@ const TextInput = controls<{
       )}
     </div>
   );
-});
+}
 
-const MyForm = controls<{ form: Control<FormData> }>(function MyForm(
-  { form },
-  { rc, update, useComputed },
-) {
+function MyForm({ form }: { form: Control<FormData> }): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
   const dirty = rc.isDirty(form);
   const valid = rc.isValid(form);
   const fields = form.fields;
@@ -57,7 +54,7 @@ const MyForm = controls<{ form: Control<FormData> }>(function MyForm(
     const last = rc.getValue(fields.lastName);
     return [first, last].filter(Boolean).join(" ") || "(empty)";
   });
-  return (
+  return rendered(
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
         New Controls API Demo
@@ -120,7 +117,7 @@ const MyForm = controls<{ form: Control<FormData> }>(function MyForm(
       </div>
     </div>
   );
-});
+}
 
 const initialData: FormData = {
   firstName: "",
@@ -174,15 +171,23 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     label: "/externaledit",
     description: "editExternal staged-edit modal — Add + per-row Edit",
   },
+  {
+    href: "/renderboundary",
+    label: "/renderboundary",
+    description:
+      "what a missing rendered(…) breaks, and the dev warning that catches it",
+  },
 ];
 
-const Home = controls(function Home({}, { controlContext }) {
+function Home(): Rendered {
+  const { rc, rendered } = useControls();
+  const controlContext = useControlContext();
   const formRef = useRef<Control<FormData> | null>(null);
   if (!formRef.current) {
     formRef.current = controlContext.newControl(initialData, formSetup);
   }
 
-  return (
+  return rendered(
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="w-full max-w-md rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
         <MyForm form={formRef.current} />
@@ -210,7 +215,7 @@ const Home = controls(function Home({}, { controlContext }) {
       </main>
     </div>
   );
-});
+}
 
 export default function Page() {
   return (
