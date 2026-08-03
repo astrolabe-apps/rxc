@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { isActionControl, type FormStateNode } from "@rxc/forms-core";
 import {
   Action,
@@ -31,48 +31,53 @@ import { Field } from "./Field";
  * `matchActionId(actionId, MyRenderer)`; `MyRenderer` receives the
  * same `ActionRendererProps`.
  */
-export const FieldAction = controls<{ node: FormStateNode }>(
-  "FieldAction",
-  ({ node }, { rc }) => {
-    const state = node.getState(rc);
-    const def = state.definition;
-    if (!isActionControl(def)) return null;
+export function FieldAction({ node }: { node: FormStateNode }): Rendered {
+  const { rc, rendered } = useControls();
+  const state = node.getState(rc);
+  const def = state.definition;
+  const action = isActionControl(def) ? def : undefined;
 
-    const dispatch = useActionHandler();
-    const onClick = useAsyncAction(
-      node,
-      dispatch,
-      def.actionId,
-      def.actionData,
-      def.disableType ?? undefined,
-    );
+  // Hooks stay above the bail-out below. `def.type` is stable for a
+  // node's lifetime, so the guard never actually flips — but keeping the
+  // hooks unconditional is what makes that a fact about the data rather
+  // than a rules-of-hooks landmine. (This is why `FieldAction` was split
+  // out of `Field`'s `switch` in the first place.)
+  const dispatch = useActionHandler();
+  const onClick = useAsyncAction(
+    node,
+    dispatch,
+    action?.actionId ?? "",
+    action?.actionData,
+    action?.disableType ?? undefined,
+  );
 
-    const actionChildren = node.getChildren(rc);
-    const renderedChildren =
-      actionChildren.length > 0 ? (
-        <>
-          {actionChildren.map((c) => (
-            <Field key={c.uniqueId} node={c} />
-          ))}
-        </>
-      ) : undefined;
+  if (!action) return rendered(null);
 
-    return (
-      <Action
-        actionId={def.actionId}
-        actionText={def.title ?? undefined}
-        onClick={onClick}
-        disabled={state.disabled}
-        busy={state.busy}
-        icon={def.icon}
-        actionStyle={def.actionStyle}
-        iconPlacement={def.iconPlacement}
-        disableType={def.disableType}
-        styleClass={def.styleClass}
-        textClass={def.textClass}
-      >
-        {renderedChildren}
-      </Action>
-    );
-  },
-);
+  const actionChildren = node.getChildren(rc);
+  const renderedChildren =
+    actionChildren.length > 0 ? (
+      <>
+        {actionChildren.map((c) => (
+          <Field key={c.uniqueId} node={c} />
+        ))}
+      </>
+    ) : undefined;
+
+  return rendered(
+    <Action
+      actionId={action.actionId}
+      actionText={action.title ?? undefined}
+      onClick={onClick}
+      disabled={state.disabled}
+      busy={state.busy}
+      icon={action.icon}
+      actionStyle={action.actionStyle}
+      iconPlacement={action.iconPlacement}
+      disableType={action.disableType}
+      styleClass={action.styleClass}
+      textClass={action.textClass}
+    >
+      {renderedChildren}
+    </Action>
+  );
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   IconLibrary,
   isDisplayControl,
@@ -47,31 +47,29 @@ export function resolveIcon(
   return { className: iconClass ?? "" };
 }
 
-// See `HtmlDisplayRenderer` for the rationale on `controls()` wrapping
+// See `HtmlDisplayRenderer` for the rationale on reading through an own rc
 // and reading through `node.getState(rc)` rather than the `data` prop.
-export const IconDisplayRenderer = controls<DisplayRendererProps>(
-  "IconDisplayRenderer",
-  ({ node }, { rc }) => {
-    const displayTheme = useHtmlTheme().display;
-    const def = node.getState(rc).definition;
-    const d = isDisplayControl(def)
-      ? (def.displayData as IconDisplay)
-      : undefined;
-    const resolved = resolveIcon(d?.iconClass, d?.icon);
-    // `resolved.className` carries the icon's identity (FA / Material /
-    // CssClass / FA6 family) and must always be on the element. Only
-    // `styleClass` and the theme's `iconClass` participate in the
-    // override convention — otherwise a `@ `-prefixed styleClass would
-    // drop the icon-library class along with the theme styling.
-    const finalClass = clsx(
-      resolved.className,
-      rendererClass(def.styleClass, displayTheme.iconClass),
-    );
-    if (!finalClass && !resolved.text) return null;
-    return (
-      <i className={finalClass} aria-hidden>
-        {resolved.text}
-      </i>
-    );
-  },
-);
+export function IconDisplayRenderer({ node }: DisplayRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const displayTheme = useHtmlTheme().display;
+  const def = node.getState(rc).definition;
+  const d = isDisplayControl(def)
+    ? (def.displayData as IconDisplay)
+    : undefined;
+  const resolved = resolveIcon(d?.iconClass, d?.icon);
+  // `resolved.className` carries the icon's identity (FA / Material /
+  // CssClass / FA6 family) and must always be on the element. Only
+  // `styleClass` and the theme's `iconClass` participate in the
+  // override convention — otherwise a `@ `-prefixed styleClass would
+  // drop the icon-library class along with the theme styling.
+  const finalClass = clsx(
+    resolved.className,
+    rendererClass(def.styleClass, displayTheme.iconClass),
+  );
+  if (!finalClass && !resolved.text) return rendered(null);
+  return rendered(
+    <i className={finalClass} aria-hidden>
+      {resolved.text}
+    </i>
+  );
+}

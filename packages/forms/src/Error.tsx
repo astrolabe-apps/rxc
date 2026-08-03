@@ -6,7 +6,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import type { FormStateNode } from "@rxc/forms-core";
 import { useFormOptions } from "@rxc/forms-react-core";
 import type { HtmlFormOptions } from "./theme";
@@ -26,47 +26,45 @@ export interface ErrorProps {
 
 export type ErrorComponent = ComponentType<ErrorProps>;
 
-export const DefaultError = controls<ErrorProps>(
-  "DefaultError",
-  ({ node, id, all }, { rc }) => {
-    const { data, touched } = node.getState(rc);
-    const theme = useHtmlTheme().error;
-    const opts = useFormOptions() as HtmlFormOptions;
-    const showAll = all ?? !!opts.showAllErrors;
-    if (!data || !touched) return null;
+export function DefaultError({ node, id, all }: ErrorProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { data, touched } = node.getState(rc);
+  const theme = useHtmlTheme().error;
+  const opts = useFormOptions() as HtmlFormOptions;
+  const showAll = all ?? !!opts.showAllErrors;
+  if (!data || !touched) return rendered(null);
 
-    if (showAll) {
-      const errors = rc.getErrors(data);
-      const entries = Object.entries(errors);
-      if (entries.length === 0) return null;
-      return (
-        <ul
-          role="alert"
-          id={id}
-          className={theme.className}
-        >
-          {entries.map(([key, message]) => (
-            <li key={key} className={theme.itemClass}>
-              {message}
-            </li>
-          ))}
-        </ul>
-      );
-    }
-
-    const message = rc.getError(data);
-    if (!message) return null;
-    return (
-      <span
+  if (showAll) {
+    const errors = rc.getErrors(data);
+    const entries = Object.entries(errors);
+    if (entries.length === 0) return rendered(null);
+    return rendered(
+      <ul
         role="alert"
         id={id}
         className={theme.className}
       >
-        {message}
-      </span>
+        {entries.map(([key, message]) => (
+          <li key={key} className={theme.itemClass}>
+            {message}
+          </li>
+        ))}
+      </ul>
     );
-  },
-);
+  }
+
+  const message = rc.getError(data);
+  if (!message) return rendered(null);
+  return rendered(
+    <span
+      role="alert"
+      id={id}
+      className={theme.className}
+    >
+      {message}
+    </span>
+  );
+}
 
 const ErrorCtx = createContext<ErrorComponent>(DefaultError);
 

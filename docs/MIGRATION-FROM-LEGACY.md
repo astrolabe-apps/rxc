@@ -137,7 +137,7 @@ const TextfieldRenderer = controls<DataRendererProps>(
 );
 ```
 
-Renderers built with `controls(name, fn)` receive the rc as the second argument. Reads through `rc` (`rc.getValue`, `rc.getError`, `node.getState(rc)`, `node.getChildren(rc)`) are tracked per-render — finer-grained than legacy `@trackControls`.
+Renderers are plain function components that call `useControls()` for their rc. Reads through `rc` (`rc.getValue`, `rc.getError`, `node.getState(rc)`, `node.getChildren(rc)`) are tracked per-render — finer-grained than legacy `@trackControls` — and **every return path must be wrapped in `rendered(…)`**, which is what turns the tracked reads into live subscriptions. Annotate the return type `Rendered` so a missed path is a build error; see `docs/RENDER-BOUNDARY.md`.
 
 The legacy "influence the chrome" use cases collapse to rendering different React trees:
 
@@ -424,7 +424,7 @@ These legacy invariants are preserved:
 6. **`HtmlComponents` slot is gone.** Renderers emit DOM directly; theme customisation goes through `HtmlFormOptions.theme`.
 7. **`FormRenderer` interface is gone.** There's no aggregated renderer object — dispatch reads `useRegistry()` directly. Code that took a `FormRenderer` parameter ports to taking a `FormRegistry`.
 8. **`useDataHook` is gone.** Read `node.getState(rc)` directly.
-9. **Reactivity boundary is per-renderer.** Each renderer is a `controls()` component; reads through `rc` track automatically. Replace `@trackControls` with a `controls()` wrapper.
+9. **Reactivity boundary is per-renderer.** Each renderer is an ordinary function component that calls `useControls()` and returns `rendered(…)`. Replace `@trackControls` with `const { rc, rendered } = useControls()` plus a `: Rendered` return annotation.
 
 ## Known limitations / port hazards
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useId, useMemo } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   ControlDefinitionType,
   isDisplayControl,
@@ -11,7 +11,7 @@ import {
   pickDataRenderer,
   pickDisplayRenderer,
   pickGroupRenderer,
-  useLabelText,
+  resolveLabelText,
   useRegistry,
   wrapAdornments,
 } from "@rxc/forms-react-core";
@@ -34,125 +34,126 @@ import type { FieldProps } from "./types";
  * Layout → control-kind adornments → renderer. Label-kind adornments
  * wrap the label inside Layout.
  */
-const FieldRender = controls<FieldProps>(
-  "Field",
-  ({ node, inline }, { rc }) => {
-    const state = node.getState(rc);
-    const Layout = useLayout();
-    const Visibility = useVisibility();
-    const Label = useLabel();
-    const Error = useError();
-    const registry = useRegistry();
-    const id = useId();
-    const errorId = `${id}-error`;
+function FieldRender({ node, inline }: FieldProps): Rendered {
+  const { rc, rendered } = useControls();
+  const state = node.getState(rc);
+  const Layout = useLayout();
+  const Visibility = useVisibility();
+  const Label = useLabel();
+  const Error = useError();
+  const registry = useRegistry();
+  const id = useId();
+  const errorId = `${id}-error`;
 
-    // Pick the renderer + dispatch metadata
-    const def = state.definition;
-    let hidesLabel = false;
-    let inner: React.ReactNode = null;
+  // Hoisted above the `inline` bail-out below — `useMemo` is a hook and the
+  // returns further down are conditional.
+  const adornmentMap = useMemo(
+    () => indexAdornments(registry.adornments),
+    [registry.adornments],
+  );
 
-    switch (def.type) {
-      case ControlDefinitionType.Data: {
-        const match = pickDataRenderer(registry.data, node, rc);
+  // Pick the renderer + dispatch metadata
+  const def = state.definition;
+  let hidesLabel = false;
+  let inner: React.ReactNode = null;
+
+  switch (def.type) {
+    case ControlDefinitionType.Data: {
+      const match = pickDataRenderer(registry.data, node, rc);
+      if (match) {
+        hidesLabel = !!match.hidesLabel;
+        inner = <match.component node={node} id={id} inline={inline} />;
+      }
+      break;
+    }
+    case ControlDefinitionType.Group: {
+      const match = pickGroupRenderer(registry.group, node, rc);
+      if (match) {
+        hidesLabel = !!match.hidesLabel;
+        inner = <match.component node={node} />;
+      }
+      break;
+    }
+    case ControlDefinitionType.Action: {
+      // Delegated to `FieldAction` because the dispatch hooks
+      // (`useActionHandler` / `useAsyncAction`) would otherwise live
+      // inside this `switch` case — fine in practice (def.type is
+      // stable per FormStateNode) but technically a rules-of-hooks
+      // landmine if a node ever changed type between renders.
+      inner = <FieldAction node={node} />;
+      break;
+    }
+    case ControlDefinitionType.Display: {
+      if (isDisplayControl(def)) {
+        const match = pickDisplayRenderer(registry.display, def.displayData);
         if (match) {
-          hidesLabel = !!match.hidesLabel;
-          inner = <match.component node={node} id={id} inline={inline} />;
+          inner = <match.component node={node} data={def.displayData} />;
         }
-        break;
       }
-      case ControlDefinitionType.Group: {
-        const match = pickGroupRenderer(registry.group, node, rc);
-        if (match) {
-          hidesLabel = !!match.hidesLabel;
-          inner = <match.component node={node} />;
-        }
-        break;
-      }
-      case ControlDefinitionType.Action: {
-        // Delegated to `FieldAction` because the dispatch hooks
-        // (`useActionHandler` / `useAsyncAction`) would otherwise live
-        // inside this `switch` case — fine in practice (def.type is
-        // stable per FormStateNode) but technically a rules-of-hooks
-        // landmine if a node ever changed type between renders.
-        inner = <FieldAction node={node} />;
-        break;
-      }
-      case ControlDefinitionType.Display: {
-        if (isDisplayControl(def)) {
-          const match = pickDisplayRenderer(registry.display, def.displayData);
-          if (match) {
-            inner = <match.component node={node} data={def.displayData} />;
-          }
-        }
-        break;
-      }
+      break;
     }
+  }
 
-    if (inner === null) {
-      // No matcher hit — fail loudly during dev so missing registrations
-      // surface immediately. Production builds may want to swap this for
-      // a silent null.
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[@rxc/forms] No renderer matched for ${def.type} node`,
-        def,
-      );
-      return null;
-    }
-
-    // Inline mode: render the renderer output directly. No Layout wrap,
-    // no label, no error slot, no adornments. Visibility still applies
-    // (hidden subtrees collapse to null) so dynamic show/hide inside an
-    // inline group works. Used by `InlineGroupRenderer` for legacy
-    // parity, where inline-group children are composed as raw inline
-    // content with no per-child wrapper.
-    if (inline) {
-      if (state.visible === false) return null;
-      return inner;
-    }
-
-    // Build label (suppressed when the renderer absorbs it)
-    const labelText = hidesLabel ? null : useLabelText(node, rc);
-    const labelEl =
-      labelText != null ? (
-        <Label node={node} htmlFor={id} id={`${id}-label`}>
-          {labelText}
-        </Label>
-      ) : null;
-
-    // Compose adornments by kind. Label-kind adornments are composed
-    // inside the Label component itself — `labelEl` is already
-    // adorned (or null when the renderer is `hidesLabel`).
-    const adornmentList = state.definition.adornments ?? [];
-    const adornmentMap = useMemo(
-      () => indexAdornments(registry.adornments),
-      [registry.adornments],
+  if (inner === null) {
+    // No matcher hit — fail loudly during dev so missing registrations
+    // surface immediately. Production builds may want to swap this for
+    // a silent null.
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@rxc/forms] No renderer matched for ${def.type} node`,
+      def,
     );
-    const decoratedInner = wrapAdornments(
-      adornmentList,
-      adornmentMap,
-      "control",
-      inner,
-      node,
-    );
+    return rendered(null);
+  }
 
-    const layoutEl = (
-      <Layout
-        node={node}
-        label={labelEl}
-        error={<Error node={node} id={errorId} />}
-      >
-        {decoratedInner}
-      </Layout>
-    );
+  // Inline mode: render the renderer output directly. No Layout wrap,
+  // no label, no error slot, no adornments. Visibility still applies
+  // (hidden subtrees collapse to null) so dynamic show/hide inside an
+  // inline group works. Used by `InlineGroupRenderer` for legacy
+  // parity, where inline-group children are composed as raw inline
+  // content with no per-child wrapper.
+  if (inline) {
+    if (state.visible === false) return rendered(null);
+    return rendered(inner);
+  }
 
-    return (
-      <Visibility visible={state.visible}>
-        {wrapAdornments(adornmentList, adornmentMap, "field", layoutEl, node)}
-      </Visibility>
-    );
-  },
-);
+  // Build label (suppressed when the renderer absorbs it)
+  const labelText = hidesLabel ? null : resolveLabelText(node, rc);
+  const labelEl =
+    labelText != null ? (
+      <Label node={node} htmlFor={id} id={`${id}-label`}>
+        {labelText}
+      </Label>
+    ) : null;
+
+  // Compose adornments by kind. Label-kind adornments are composed
+  // inside the Label component itself — `labelEl` is already
+  // adorned (or null when the renderer is `hidesLabel`).
+  const adornmentList = state.definition.adornments ?? [];
+  const decoratedInner = wrapAdornments(
+    adornmentList,
+    adornmentMap,
+    "control",
+    inner,
+    node,
+  );
+
+  const layoutEl = (
+    <Layout
+      node={node}
+      label={labelEl}
+      error={<Error node={node} id={errorId} />}
+    >
+      {decoratedInner}
+    </Layout>
+  );
+
+  return rendered(
+    <Visibility visible={state.visible}>
+      {wrapAdornments(adornmentList, adornmentMap, "field", layoutEl, node)}
+    </Visibility>
+  );
+}
 
 /**
  * Memoized so an ancestor re-render (a parent group re-rendering because

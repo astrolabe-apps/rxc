@@ -1,0 +1,11 @@
+{
+  "name": "lint",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autoinstaller for `rush lint` — eslint + the React hooks rules.",
+  "dependencies": {
+    "@typescript-eslint/parser": "~8.46.0",
+    "eslint": "~9.39.0",
+    "eslint-plugin-react-hooks": "~5.2.0"
+  }
+}

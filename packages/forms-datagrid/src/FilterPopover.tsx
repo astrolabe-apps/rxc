@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered, useControlContext } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import type { FieldOption } from "@rxc/forms-core";
 import { clsx } from "@rxc/forms-react-core";
@@ -28,13 +28,10 @@ export interface FilterPopoverProps {
  * Column-filter popover: an `fa-filter` trigger (solid when any value is
  * selected) opening a checkbox list of the column's option values. Ported
  * from the legacy `@astroapps/schemas-datagrid` `FilterPopover`, re-expressed
- * as a `controls()` component. Options are resolved by the caller (via the
+ * via `useControls()`. Options are resolved by the caller (via the
  * SchemaInterface) and passed in, rather than via a `getFilterOptions` hook.
  */
-export const FilterPopover = controls<FilterPopoverProps>(
-  "FilterPopover",
-  (
-    {
+export function FilterPopover({
       filtersControl,
       offsetControl,
       colKey,
@@ -43,67 +40,66 @@ export const FilterPopover = controls<FilterPopoverProps>(
       clearText = "Clear",
       clearClass = "",
       disableClear,
-    },
-    { rc, update },
-  ) => {
-    const baseId = useId();
-    const filters = rc.getValue(filtersControl) ?? {};
-    const current = (filters[colKey] as unknown[] | undefined) ?? [];
-    const isAnyChecked = current.length > 0;
+    }: FilterPopoverProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
+  const baseId = useId();
+  const filters = rc.getValue(filtersControl) ?? {};
+  const current = (filters[colKey] as unknown[] | undefined) ?? [];
+  const isAnyChecked = current.length > 0;
 
-    const setOption = (v: unknown, checked: boolean) =>
-      update((wc) => {
-        wc.updateValue(filtersControl, (cur) =>
-          setFilterValue(colKey, v, checked)(cur ?? undefined),
-        );
-        wc.setValue(offsetControl, 0);
-      });
+  const setOption = (v: unknown, checked: boolean) =>
+    update((wc) => {
+      wc.updateValue(filtersControl, (cur) =>
+        setFilterValue(colKey, v, checked)(cur ?? undefined),
+      );
+      wc.setValue(offsetControl, 0);
+    });
 
-    const clear = disableClear
-      ? undefined
-      : () =>
-          update((wc) => {
-            wc.setValue(filtersControl, {} as SearchFilters);
-            wc.setValue(offsetControl, 0);
-          });
+  const clear = disableClear
+    ? undefined
+    : () =>
+        update((wc) => {
+          wc.setValue(filtersControl, {} as SearchFilters);
+          wc.setValue(offsetControl, 0);
+        });
 
-    return (
-      <Popover
-        className={popoverClass}
-        content={
-          <div>
-            {clear && (
-              <button type="button" onClick={clear} className={clearClass}>
-                {clearText}
-              </button>
-            )}
-            {options.map((o, i) => {
-              const checked = current.includes(o.value);
-              return (
-                <label
-                  key={i}
-                  className="grid grid-cols-[auto_1fr] cursor-pointer gap-2 align-text-top"
-                  htmlFor={baseId + i}
-                >
-                  <input
-                    id={baseId + i}
-                    className="mt-0.5"
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => setOption(o.value, !checked)}
-                  />
-                  <span className="inline align-middle">{o.name}</span>
-                </label>
-              );
-            })}
-          </div>
-        }
-      >
-        <i
-          aria-hidden
-          className={clsx(isAnyChecked ? "fa-solid" : "fa-light", "fa-filter")}
-        />
-      </Popover>
-    );
-  },
-);
+  return rendered(
+    <Popover
+      className={popoverClass}
+      content={
+        <div>
+          {clear && (
+            <button type="button" onClick={clear} className={clearClass}>
+              {clearText}
+            </button>
+          )}
+          {options.map((o, i) => {
+            const checked = current.includes(o.value);
+            return (
+              <label
+                key={i}
+                className="grid grid-cols-[auto_1fr] cursor-pointer gap-2 align-text-top"
+                htmlFor={baseId + i}
+              >
+                <input
+                  id={baseId + i}
+                  className="mt-0.5"
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => setOption(o.value, !checked)}
+                />
+                <span className="inline align-middle">{o.name}</span>
+              </label>
+            );
+          })}
+        </div>
+      }
+    >
+      <i
+        aria-hidden
+        className={clsx(isAnyChecked ? "fa-solid" : "fa-light", "fa-filter")}
+      />
+    </Popover>
+  );
+}

@@ -21,6 +21,13 @@ import {
   pickGroupRenderer,
 } from "@rxc/forms-react-core";
 
+/** Renderer identity: plain function components expose `.name`;
+ *  `memo()`-wrapped ones only carry `displayName`. */
+function rendererName(c: unknown): string | undefined {
+  const f = c as { name?: string; displayName?: string } | undefined;
+  return f?.displayName ?? f?.name;
+}
+
 interface FakeStateInput {
   definition: ControlDefinition;
   field?: SchemaField;
@@ -82,7 +89,7 @@ describe("defaultRegistry — data dispatch", () => {
     });
     const m = pickDataRenderer(reg.data, node, rc);
     expect(m?.hidesLabel).toBe(true);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "CheckboxRenderer",
     );
   });
@@ -97,7 +104,7 @@ describe("defaultRegistry — data dispatch", () => {
       ],
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).not.toBe(
+    expect(rendererName(m?.component)).not.toBe(
       "CheckboxRenderer",
     );
   });
@@ -111,7 +118,7 @@ describe("defaultRegistry — data dispatch", () => {
       fieldOptions: [{ name: "Red", value: "red" }],
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "SelectRenderer",
     );
     expect(m?.hidesLabel).toBeFalsy();
@@ -124,7 +131,7 @@ describe("defaultRegistry — data dispatch", () => {
       fieldOptions: [{ name: "Red", value: "red" }],
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "SelectRenderer",
     );
   });
@@ -136,7 +143,7 @@ describe("defaultRegistry — data dispatch", () => {
       fieldOptions: [{ name: "S", value: "S" }],
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "RadioRenderer",
     );
     expect(m?.hidesLabel).toBeFalsy();
@@ -149,7 +156,7 @@ describe("defaultRegistry — data dispatch", () => {
       fieldOptions: [{ name: "A", value: "a" }],
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "ChecklistRenderer",
     );
     expect(m?.hidesLabel).toBeFalsy();
@@ -162,7 +169,7 @@ describe("defaultRegistry — data dispatch", () => {
     });
     const m = pickDataRenderer(reg.data, node, rc);
     expect(m?.hidesLabel).toBe(true);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "CheckboxRenderer",
     );
   });
@@ -178,7 +185,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "bio" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "MultilineRenderer",
     );
   });
@@ -189,7 +196,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.Int, field: "age" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "NumberRenderer",
     );
   });
@@ -232,7 +239,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "tags", collection: true },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "ArrayRenderer",
     );
   });
@@ -243,7 +250,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.Compound, field: "address" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "CompoundDelegate",
     );
   });
@@ -254,7 +261,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.Compound, field: "addresses", collection: true },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "ArrayRenderer",
     );
   });
@@ -266,7 +273,7 @@ describe("defaultRegistry — data dispatch", () => {
       elementIndex: 0,
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "CompoundDelegate",
     );
   });
@@ -278,7 +285,7 @@ describe("defaultRegistry — data dispatch", () => {
       elementIndex: 0,
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "TextfieldRenderer",
     );
   });
@@ -289,7 +296,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "x" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "DisplayOnlyRenderer",
     );
   });
@@ -302,7 +309,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "items", collection: true },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "ArrayElementModalHostRenderer",
     );
   });
@@ -320,7 +327,7 @@ describe("defaultRegistry — data dispatch", () => {
       elementIndex: 0,
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "TextfieldRenderer",
     );
   });
@@ -333,7 +340,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "items", collection: true },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "ScrollListRenderer",
     );
   });
@@ -347,7 +354,7 @@ describe("defaultRegistry — data dispatch", () => {
     } as GroupedControlsDefinition;
     const node = fakeNode({ definition: def });
     const m = pickGroupRenderer(reg2.group, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "WizardRenderer",
     );
   });
@@ -363,7 +370,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "selected", collection: true },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "ElementSelectedRenderer",
     );
     expect(m?.hidesLabel).toBe(true);
@@ -377,7 +384,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "x" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "JsonataRenderer",
     );
   });
@@ -389,7 +396,7 @@ describe("defaultRegistry — data dispatch", () => {
       fieldOptions: [{ name: "AU", value: "AU" }],
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "AutocompleteRenderer",
     );
   });
@@ -400,7 +407,7 @@ describe("defaultRegistry — data dispatch", () => {
       field: { type: FieldType.String, field: "name" },
     });
     const m = pickDataRenderer(reg.data, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "TextfieldRenderer",
     );
     expect(m?.hidesLabel).toBeFalsy();
@@ -420,7 +427,7 @@ describe("defaultRegistry — group dispatch", () => {
   ] as const)("%s → %s", (renderType, expected) => {
     const node = fakeNode({ definition: groupDef(renderType) });
     const m = pickGroupRenderer(reg.group, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       expected,
     );
   });
@@ -428,7 +435,7 @@ describe("defaultRegistry — group dispatch", () => {
   it("unknown group renderType falls back to StandardGroupRenderer", () => {
     const node = fakeNode({ definition: groupDef("Unknown") });
     const m = pickGroupRenderer(reg.group, node, rc);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       "StandardGroupRenderer",
     );
   });
@@ -445,7 +452,7 @@ describe("defaultRegistry — display dispatch", () => {
   ] as const)("%s → %s", (type, expectedName) => {
     const data: DisplayData = { type };
     const m = pickDisplayRenderer(reg.display, data);
-    expect((m?.component as { displayName?: string })?.displayName).toBe(
+    expect(rendererName(m?.component)).toBe(
       expectedName,
     );
   });

@@ -2,11 +2,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect } from "vitest";
-import {
-  ControlContextProvider,
-  controls,
-  createControlContext,
-} from "@rxc/controls";
+import { useControls, type Rendered, ControlContextProvider, createControlContext } from "@rxc/controls";
 import { noopReadContext, type Control } from "@rxc/controls-core";
 import {
   ControlDefinitionType,
@@ -53,15 +49,13 @@ const renderCounts = { field: 0 };
 let useMemoField = false;
 let tickControl: Control<number>;
 
-const CountingText = controls<DataRendererProps>(
-  "CountingText",
-  ({ node }, { rc }) => {
-    const { data } = node.getState(rc);
-    renderCounts.field++;
-    const v = data ? rc.getValue(data) : null;
-    return <span>{v == null ? "" : String(v)}</span>;
-  },
-);
+function CountingText({ node }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { data } = node.getState(rc);
+  renderCounts.field++;
+  const v = data ? rc.getValue(data) : null;
+  return rendered(<span>{v == null ? "" : String(v)}</span>);
+}
 
 type FieldLike = React.ComponentType<{ node: FormStateNode }>;
 
@@ -76,21 +70,19 @@ const PlainField: FieldLike =
 // A group renderer that (a) reads `tickControl` so we can force it to
 // re-render on demand, and (b) renders each child through either the raw
 // Field or the shipped memo(Field), controlled by `useMemoField`.
-const BenchGroup = controls<GroupRendererProps>(
-  "BenchGroup",
-  ({ node }, { rc }) => {
-    rc.getValue(tickControl); // subscribe: toggling tick re-renders this group
-    const children = node.getChildren(rc);
-    const F = useMemoField ? ShippedField : PlainField;
-    return (
-      <div>
-        {children.map((c) => (
-          <F node={c} key={c.uniqueId} />
-        ))}
-      </div>
-    );
-  },
-);
+function BenchGroup({ node }: GroupRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  rc.getValue(tickControl); // subscribe: toggling tick re-renders this group
+  const children = node.getChildren(rc);
+  const F = useMemoField ? ShippedField : PlainField;
+  return rendered(
+    <div>
+      {children.map((c) => (
+        <F node={c} key={c.uniqueId} />
+      ))}
+    </div>,
+  );
+}
 
 // ── Static (stateless) schema + form definitions, built once ─────────
 const schemaFields: SchemaField[] = Array.from(

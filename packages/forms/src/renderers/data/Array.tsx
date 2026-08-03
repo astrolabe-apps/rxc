@@ -1,6 +1,6 @@
 "use client";
 
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import { Field } from "../../Field";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { Action, rendererClass, useArrayActions } from "@rxc/forms-react-core";
@@ -24,30 +24,28 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * ArrayElement` control bound to the same array field — see
  * `ArrayElementModalHostRenderer`. `ArrayRenderer` does not self-host it.
  */
-export const ArrayRenderer = controls<DataRendererProps>(
-  "ArrayRenderer",
-  ({ node }, { rc }) => {
-    const c = useArrayActions(rc, node);
-    const arrayTheme = useHtmlTheme().data.array;
-    if (!c.data) return null;
-    const wrapperClass = rendererClass(c.styleClass, arrayTheme.className);
+export function ArrayRenderer({ node }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const c = useArrayActions(rc, node);
+  const arrayTheme = useHtmlTheme().data.array;
+  if (!c.data) return rendered(null);
+  const wrapperClass = rendererClass(c.styleClass, arrayTheme.className);
 
-    return (
-      <div className={wrapperClass}>
-        {c.children.map((child, i) => {
-          const row = c.rowActions[i];
-          return (
-            <div key={child.uniqueId} className={arrayTheme.childClass}>
-              <div className="flex-1">
-                <Field node={child} />
-              </div>
-              {row.edit ? <Action {...row.edit} /> : null}
-              <Action {...row.remove} />
+  return rendered(
+    <div className={wrapperClass}>
+      {c.children.map((child, i) => {
+        const row = c.rowActions[i];
+        return (
+          <div key={child.uniqueId} className={arrayTheme.childClass}>
+            <div className="flex-1">
+              <Field node={child} />
             </div>
-          );
-        })}
-        {c.addAction && <Action {...c.addAction} />}
-      </div>
-    );
-  },
-);
+            {row.edit ? <Action {...row.edit} /> : null}
+            <Action {...row.remove} />
+          </div>
+        );
+      })}
+      {c.addAction && <Action {...c.addAction} />}
+    </div>
+  );
+}

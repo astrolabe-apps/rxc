@@ -9,11 +9,7 @@ import {
   useState,
 } from "react";
 import type { Control } from "@rxc/controls";
-import {
-  ControlContextProvider,
-  controls,
-  createControlContext,
-} from "@rxc/controls";
+import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import {
   buildSchema,
   createDataNode,
@@ -56,46 +52,45 @@ interface StarsRenderOptions {
   maxStars?: number;
 }
 
-const StarsRenderer = controls<DataRendererProps>(
-  "StarsRenderer",
-  ({ node, id }, { rc, update }) => {
-    const { data, definition, disabled, readonly } = node.getState(rc);
-    if (!data) return null;
-    const value = (rc.getValue(data) as number | null | undefined) ?? 0;
-    const opts = (definition as { renderOptions?: StarsRenderOptions })
-      .renderOptions;
-    const maxStars = opts?.maxStars ?? 5;
-    const stars: number[] = [];
-    for (let i = 1; i <= maxStars; i++) stars.push(i);
-    return (
-      <div
-        id={id}
-        role="radiogroup"
-        aria-label="Rating"
-        className="inline-flex items-center gap-1"
-      >
-        {stars.map((i) => (
-          <button
-            key={i}
-            type="button"
-            disabled={disabled || readonly}
-            onClick={() => update((wc) => wc.setValue(data, i))}
-            className={`text-2xl leading-none ${
-              i <= value ? "text-amber-400" : "text-zinc-300 dark:text-zinc-600"
-            } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-110 transition"}`}
-            aria-label={`${i} star${i > 1 ? "s" : ""}`}
-            aria-pressed={i <= value}
-          >
-            ★
-          </button>
-        ))}
-        <span className="ml-2 text-xs text-zinc-500">
-          ({value} / {maxStars})
-        </span>
-      </div>
-    );
-  },
-);
+function StarsRenderer({ node, id }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const { update } = useControlContext();
+  const { data, definition, disabled, readonly } = node.getState(rc);
+  if (!data) return rendered(null);
+  const value = (rc.getValue(data) as number | null | undefined) ?? 0;
+  const opts = (definition as { renderOptions?: StarsRenderOptions })
+    .renderOptions;
+  const maxStars = opts?.maxStars ?? 5;
+  const stars: number[] = [];
+  for (let i = 1; i <= maxStars; i++) stars.push(i);
+  return rendered(
+    <div
+      id={id}
+      role="radiogroup"
+      aria-label="Rating"
+      className="inline-flex items-center gap-1"
+    >
+      {stars.map((i) => (
+        <button
+          key={i}
+          type="button"
+          disabled={disabled || readonly}
+          onClick={() => update((wc) => wc.setValue(data, i))}
+          className={`text-2xl leading-none ${
+            i <= value ? "text-amber-400" : "text-zinc-300 dark:text-zinc-600"
+          } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-110 transition"}`}
+          aria-label={`${i} star${i > 1 ? "s" : ""}`}
+          aria-pressed={i <= value}
+        >
+          ★
+        </button>
+      ))}
+      <span className="ml-2 text-xs text-zinc-500">
+        ({value} / {maxStars})
+      </span>
+    </div>
+  );
+}
 
 // Plugin schema declares the renderer's options, with `maxStars` flagged
 // scriptable. This is the load-bearing claim of the "schemaExtensions
@@ -124,78 +119,76 @@ interface SelectionState {
 
 const SelectionContext = createContext<SelectionState | null>(null);
 
-const SelectionAdornmentRender = controls<AdornmentRenderProps>(
-  "SelectionAdornmentRender",
-  ({ node, children }, { rc }) => {
-    const designing = useDesignMode();
-    const sel = useContext(SelectionContext);
-    if (!designing || !sel) return <>{children}</>;
-    const isSelected = sel.selected === node.uniqueId;
-    const def = node.getState(rc).definition as ControlDefinition & {
-      field?: string;
-      compoundField?: string;
-      title?: string;
-    };
-    const badge = def.field ?? def.compoundField ?? def.title ?? null;
-    // Mirror legacy FormControlPreview mouse-capture: containers (groups
-    // and data-with-children) use bubbling onClick so the deepest leaf
-    // wins; leaves use onClickCapture + onMouseDownCapture to block input
-    // focus before the browser can deliver it.
-    const hasChildren = (def.children?.length ?? 0) > 0;
-    const isContainer = def.type === "Group" || hasChildren;
-    const select = (e: SyntheticEvent) => {
-      e.stopPropagation();
-      sel.setSelected(node.uniqueId);
-    };
-    const mouseCapture = isContainer
-      ? { onClick: select }
-      : {
-          onClickCapture: (e: MouseEvent) => {
-            e.preventDefault();
-            select(e);
-          },
-          onMouseDownCapture: (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-          },
-        };
-    return (
-      <div
-        {...mouseCapture}
-        data-form-node={node.uniqueId}
-        style={{
-          position: "relative",
-          backgroundColor: isSelected ? "rgba(25, 118, 210, 0.08)" : undefined,
-          cursor: "pointer",
-          padding: "2px",
-          borderRadius: "4px",
-        }}
-      >
-        {badge && (
-          <span
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              fontSize: "10px",
-              padding: "1px 4px",
-              border: "solid 1px rgba(0, 0, 0, 0.4)",
-              background: "white",
-              color: "black",
-              borderRadius: "2px",
-              fontFamily: "monospace",
-              pointerEvents: "none",
-              zIndex: 1,
-            }}
-          >
-            {badge}
-          </span>
-        )}
-        {children}
-      </div>
-    );
-  },
-);
+function SelectionAdornmentRender({ node, children }: AdornmentRenderProps): Rendered {
+  const { rc, rendered } = useControls();
+  const designing = useDesignMode();
+  const sel = useContext(SelectionContext);
+  if (!designing || !sel) return rendered(<>{children}</>);
+  const isSelected = sel.selected === node.uniqueId;
+  const def = node.getState(rc).definition as ControlDefinition & {
+    field?: string;
+    compoundField?: string;
+    title?: string;
+  };
+  const badge = def.field ?? def.compoundField ?? def.title ?? null;
+  // Mirror legacy FormControlPreview mouse-capture: containers (groups
+  // and data-with-children) use bubbling onClick so the deepest leaf
+  // wins; leaves use onClickCapture + onMouseDownCapture to block input
+  // focus before the browser can deliver it.
+  const hasChildren = (def.children?.length ?? 0) > 0;
+  const isContainer = def.type === "Group" || hasChildren;
+  const select = (e: SyntheticEvent) => {
+    e.stopPropagation();
+    sel.setSelected(node.uniqueId);
+  };
+  const mouseCapture = isContainer
+    ? { onClick: select }
+    : {
+        onClickCapture: (e: MouseEvent) => {
+          e.preventDefault();
+          select(e);
+        },
+        onMouseDownCapture: (e: MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+        },
+      };
+  return rendered(
+    <div
+      {...mouseCapture}
+      data-form-node={node.uniqueId}
+      style={{
+        position: "relative",
+        backgroundColor: isSelected ? "rgba(25, 118, 210, 0.08)" : undefined,
+        cursor: "pointer",
+        padding: "2px",
+        borderRadius: "4px",
+      }}
+    >
+      {badge && (
+        <span
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            fontSize: "10px",
+            padding: "1px 4px",
+            border: "solid 1px rgba(0, 0, 0, 0.4)",
+            background: "white",
+            color: "black",
+            borderRadius: "2px",
+            fontFamily: "monospace",
+            pointerEvents: "none",
+            zIndex: 1,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+      {children}
+    </div>
+  );
+}
 
 const SelectionAdornment: AdornmentRegistration = {
   type: "_Selection",
@@ -293,7 +286,9 @@ const emptyFormResolver: FormTreeResolver = {
 
 const controlContext = createControlContext();
 
-const DesignerInner = controls(function DesignerInner({}, { controlContext }) {
+function DesignerInner(): Rendered {
+  const { rc, rendered } = useControls();
+  const controlContext = useControlContext();
   const [designing, setDesigning] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -352,7 +347,7 @@ const DesignerInner = controls(function DesignerInner({}, { controlContext }) {
 
   const stubAction = () => true; // ActionScope swallows everything in design mode
 
-  return (
+  return rendered(
     <SelectionContext.Provider value={{ selected, setSelected }}>
       <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
         <div className="max-w-6xl mx-auto">
@@ -410,19 +405,17 @@ const DesignerInner = controls(function DesignerInner({}, { controlContext }) {
       </div>
     </SelectionContext.Provider>
   );
-});
+}
 
-const DataJson = controls(function DataJson(
-  { control }: { control: Control<unknown> },
-  { rc },
-) {
+function DataJson({ control }: { control: Control<unknown> }): Rendered {
+  const { rc, rendered } = useControls();
   const value = rc.getValue(control);
-  return (
+  return rendered(
     <pre className="overflow-auto rounded bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 p-3 text-xs font-mono whitespace-pre-wrap">
       {JSON.stringify(value, null, 2)}
     </pre>
   );
-});
+}
 
 export default function DesignerPage() {
   return (

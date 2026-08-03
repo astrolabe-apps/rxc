@@ -96,7 +96,7 @@ export { useFormStateNode } from "./useFormStateNode";
 export { useDeferredCleanup } from "./useDeferredCleanup";
 
 // Helpers
-export { useLabelText } from "./labelText";
+export { resolveLabelText } from "./labelText";
 export { useExpression, ensureExpressionResult } from "./useExpression";
 export { getExternalEdit } from "./getExternalEdit";
 export type {

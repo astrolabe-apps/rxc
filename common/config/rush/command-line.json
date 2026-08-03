@@ -7,6 +7,15 @@
       "summary": "Run tests for each project",
       "enableParallelism": true,
       "ignoreDependencyOrder": true
+    },
+    {
+      "commandKind": "global",
+      "name": "lint",
+      "summary": "Lint the repo (React hooks rules)",
+      "description": "Runs ESLint across packages/ and apps/ using the `lint` autoinstaller. Enforces react-hooks/rules-of-hooks; see docs/RENDER-BOUNDARY.md.",
+      "safeForSimultaneousRushProcesses": true,
+      "autoinstallerName": "lint",
+      "shellCommand": "eslint packages apps"
     }
   ],
   "parameters": []

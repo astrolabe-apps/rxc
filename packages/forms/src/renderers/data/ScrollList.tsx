@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   rendererClass,
   useScrollListController,
@@ -23,28 +23,26 @@ const SENTINEL_HEIGHT = 1;
  * renderer fires `onSentinelVisible`, which dispatches the configured
  * `bottomActionId` so the host can fetch the next page.
  */
-export const ScrollListRenderer = controls<DataRendererProps>(
-  "ScrollListRenderer",
-  ({ node }, { rc }) => {
-    const c = useScrollListController(rc, node);
-    const scrollTheme = useHtmlTheme().data.scrollList;
-    if (!c.data) return null;
-    const wrapperClass = rendererClass(c.styleClass, scrollTheme.className);
+export function ScrollListRenderer({ node }: DataRendererProps): Rendered {
+  const { rc, rendered } = useControls();
+  const c = useScrollListController(rc, node);
+  const scrollTheme = useHtmlTheme().data.scrollList;
+  if (!c.data) return rendered(null);
+  const wrapperClass = rendererClass(c.styleClass, scrollTheme.className);
 
-    return (
-      <div className={wrapperClass}>
-        {c.children.map((child) => (
-          <Field key={child.uniqueId} node={child} />
-        ))}
-        {c.loading && <div className={scrollTheme.spinnerClass}>Loading…</div>}
-        <ScrollSentinel
-          enabled={c.sentinelEnabled}
-          onVisible={c.onSentinelVisible}
-        />
-      </div>
-    );
-  },
-);
+  return rendered(
+    <div className={wrapperClass}>
+      {c.children.map((child) => (
+        <Field key={child.uniqueId} node={child} />
+      ))}
+      {c.loading && <div className={scrollTheme.spinnerClass}>Loading…</div>}
+      <ScrollSentinel
+        enabled={c.sentinelEnabled}
+        onVisible={c.onSentinelVisible}
+      />
+    </div>
+  );
+}
 
 function ScrollSentinel({
   enabled,

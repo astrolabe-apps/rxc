@@ -39,10 +39,20 @@ export type NestedProxyBuilder = (
 // finalized. The pre-mounted Set is keyed by the call-site's frame
 // fingerprint so a single offender doesn't spam the console.
 const warnedSites = new Set<string>();
-declare const process: { env?: { NODE_ENV?: string } } | undefined;
+declare const process: { env: { NODE_ENV?: string } } | undefined;
+
+/**
+ * True only when a development build can be positively confirmed. The literal
+ * `process.env.NODE_ENV` is what bundlers statically replace (optional chaining
+ * is not matched, and defeating the replacement made webpack shim `process`,
+ * leaving this warning live in production bundles); the `typeof` guard keeps an
+ * unbundled browser ESM load from throwing. Evaluated once per module.
+ */
+const IS_DEV: boolean =
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+
 function warnEscapedRead(propertyKey: string): void {
-  if (typeof process !== "undefined" && process?.env?.NODE_ENV === "production")
-    return;
+  if (!IS_DEV) return;
   // Two frames up from inside the warn helper lands at the proxy get; one
   // more skips that and points at the consumer's actual read site.
   const stack = new Error().stack ?? "";
@@ -57,8 +67,8 @@ function warnEscapedRead(propertyKey: string): void {
       `current value but did NOT register a subscription — when the ` +
       `script's override lands, no component will re-render. The proxy ` +
       `was likely passed as a prop and read inside a child component ` +
-      `whose own controls() reconcile had not yet seen the property. ` +
-      `Wrap the consuming component in controls() and read through its own ` +
+      `whose own rendered() reconcile had not yet seen the property. ` +
+      `Have the consuming component call useControls() and read through its own ` +
       `rc (e.g. node.getState(rc).definition.X) instead of the passed-in prop.\n` +
       `Site: ${callerLine.trim()}`,
   );

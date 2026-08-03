@@ -145,7 +145,7 @@ export class TrackingReadContext implements ReadContext {
   }
 
   /**
-   * Close the render window. Called by the React `controls()` wrapper
+   * Close the render window. Called by the React adapter's `rendered(…)`
    * immediately after `reconcile()` so reads happening later (in JSX
    * descendants, event handlers, async effects) no longer pollute
    * `tracked`. Reads still return current values.

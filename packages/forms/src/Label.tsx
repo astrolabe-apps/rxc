@@ -7,7 +7,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { controls } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   DataRenderType,
   isDataControl,
@@ -57,59 +57,57 @@ export function isGroupLabel(def: ControlDefinition): boolean {
   return isDataControl(def) && def.renderOptions?.type === DataRenderType.Group;
 }
 
-export const DefaultLabel = controls<LabelProps>(
-  "DefaultLabel",
-  ({ node, htmlFor, as: tag, id, children }, { rc }) => {
-    const def = node.getState(rc).definition;
-    const required = isDataControl(def) && !!def.required;
-    const theme = useHtmlTheme().label;
-    // Merge text-class onto the label tag itself (matches legacy
-    // `<label class="py-4 text-2xl title1">…` shape — one element, all
-    // classes). Earlier the textClass was wrapped on an inner `<span>`,
-    // which produced extra DOM and broke inheritance / specificity
-    // assumptions that hosts (e.g. Bootstrap label rules) rely on.
-    const textClassName = rendererClass(def.labelTextClass, theme.textClass);
-    const labelClassName = rendererClass(
-      def.labelClass,
-      clsx(
-        theme.className,
-        isGroupLabel(def) ? theme.groupClassName : undefined,
-        textClassName,
-      ),
-    );
-    const Tag = tag ?? "label";
-    const tagProps = {
-      ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
-      ...(id ? { id } : {}),
-    };
-    const labelEl = (
-      <Tag {...tagProps} className={labelClassName}>
-        {children}
-        {required && (
-          <span
-            aria-hidden
-            className={theme.requiredClass}
-          >
-            {theme.requiredText}
-          </span>
-        )}
-      </Tag>
-    );
-    // Compose label-kind adornments here so any caller that renders
-    // a <Label> (Field by default, or renderers like Bool/Radio that
-    // want their own inline label) automatically picks up HelpText /
-    // Icon / etc. adornments. When no <Label> is rendered, no
-    // adornment fires — which is the correct behavior for
-    // `hidesLabel` renderers that intentionally omit a label slot.
-    const adornments = def.adornments ?? [];
-    const registry = useRegistry();
-    const adornmentMap = useMemo(
-      () => indexAdornments(registry.adornments),
-      [registry.adornments],
-    );
-    return wrapAdornments(adornments, adornmentMap, "label", labelEl, node);
-  },
-);
+export function DefaultLabel({ node, htmlFor, as: tag, id, children }: LabelProps): Rendered {
+  const { rc, rendered } = useControls();
+  const def = node.getState(rc).definition;
+  const required = isDataControl(def) && !!def.required;
+  const theme = useHtmlTheme().label;
+  // Merge text-class onto the label tag itself (matches legacy
+  // `<label class="py-4 text-2xl title1">…` shape — one element, all
+  // classes). Earlier the textClass was wrapped on an inner `<span>`,
+  // which produced extra DOM and broke inheritance / specificity
+  // assumptions that hosts (e.g. Bootstrap label rules) rely on.
+  const textClassName = rendererClass(def.labelTextClass, theme.textClass);
+  const labelClassName = rendererClass(
+    def.labelClass,
+    clsx(
+      theme.className,
+      isGroupLabel(def) ? theme.groupClassName : undefined,
+      textClassName,
+    ),
+  );
+  const Tag = tag ?? "label";
+  const tagProps = {
+    ...(Tag === "label" && htmlFor ? { htmlFor } : {}),
+    ...(id ? { id } : {}),
+  };
+  const labelEl = (
+    <Tag {...tagProps} className={labelClassName}>
+      {children}
+      {required && (
+        <span
+          aria-hidden
+          className={theme.requiredClass}
+        >
+          {theme.requiredText}
+        </span>
+      )}
+    </Tag>
+  );
+  // Compose label-kind adornments here so any caller that renders
+  // a <Label> (Field by default, or renderers like Bool/Radio that
+  // want their own inline label) automatically picks up HelpText /
+  // Icon / etc. adornments. When no <Label> is rendered, no
+  // adornment fires — which is the correct behavior for
+  // `hidesLabel` renderers that intentionally omit a label slot.
+  const adornments = def.adornments ?? [];
+  const registry = useRegistry();
+  const adornmentMap = useMemo(
+    () => indexAdornments(registry.adornments),
+    [registry.adornments],
+  );
+  return rendered(wrapAdornments(adornments, adornmentMap, "label", labelEl, node));
+}
 
 const LabelCtx = createContext<LabelComponent>(DefaultLabel);
 

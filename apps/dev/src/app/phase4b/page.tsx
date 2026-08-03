@@ -1,11 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  ControlContextProvider,
-  controls,
-  createControlContext,
-} from "@rxc/controls";
+import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import type { Control } from "@rxc/controls";
 import {
   accordionAdornment,
@@ -313,7 +309,9 @@ const customRegistry = combineRegistries(
   defaultRegistry(),
 );
 
-const Phase4bInner = controls(function Phase4bInner({}, { controlContext }) {
+function Phase4bInner(): Rendered {
+  const { rc, rendered } = useControls();
+  const controlContext = useControlContext();
   const ref = useRef<{
     rootControl: Control<PageData>;
     formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];
@@ -396,7 +394,7 @@ const Phase4bInner = controls(function Phase4bInner({}, { controlContext }) {
     return undefined;
   };
 
-  return (
+  return rendered(
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 font-sans">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-6">
@@ -431,19 +429,17 @@ const Phase4bInner = controls(function Phase4bInner({}, { controlContext }) {
       </div>
     </div>
   );
-});
+}
 
-const DataJson = controls(function DataJson(
-  { control }: { control: Control<unknown> },
-  { rc },
-) {
+function DataJson({ control }: { control: Control<unknown> }): Rendered {
+  const { rc, rendered } = useControls();
   const value = rc.getValue(control);
-  return (
+  return rendered(
     <pre className="overflow-auto rounded bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 p-3 text-xs font-mono whitespace-pre-wrap">
       {JSON.stringify(value, null, 2)}
     </pre>
   );
-});
+}
 
 export default function Phase4bPage() {
   return (

@@ -9,7 +9,7 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | Package | Dir | Purpose |
 |---|---|---|
 | `@rxc/controls-core` | `packages/controls-core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
-| `@rxc/controls` | `packages/controls` | React adapter: `controls()` wrapper, `ControlContextProvider`. Re-exports all of controls-core. |
+| `@rxc/controls` | `packages/controls` | React adapter: `useControls()` hook (rc + the `rendered()` render boundary), `useComputed`, `ControlContextProvider`. Re-exports all of controls-core. |
 | `@rxc/forms-core` | `packages/forms-core` | Full canonical schema types + persistent SchemaNode/DataNode/FormNode handles, cursor-based reactive traversal, FormStateNode, validators, jsonata, scripted-proxy. |
 | `@rxc/forms-react-core` | `packages/forms-react-core` | Headless React forms layer: registry, matchers, dispatch helpers, adornment composition, plugin builders, contexts (Registry/Options/ActionScope/DesignMode), hooks (useFormStateNode/useLabelText/useExpression/useAsyncAction/useFormErrors), and the `getExternalEdit` staged-edit controller accessor (a memoized get-or-create on the array Control's meta — deliberately **not** a `use*` hook). Also exports `<Action>` (the only "component" — a one-liner over `pickActionRenderer`). No DOM-emitting components — platform packages provide those. |
 | `@rxc/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rxc/forms` only. |
@@ -18,7 +18,7 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 | `@rxc/forms-datagrid` | `packages/forms-datagrid` | Optional DataGrid add-on. Ships `dataGridRegistry()` — `DataGrid` + `Pager` data renderers + `ColumnOptions` adornment, layered on the published `@astroapps/datagrid` base grid. Columns + rows from the bound array, column **filter/sort** header controls (driven by a sibling `SearchOptions` control via `searchField`), offset/length **paging**, per-column `visible`/`rowSpan` expressions, adjacent-key `groupByField` row-spanning, and **add/remove/edit** array actions including the **editExternal** modal-staged flow (via `getExternalEdit`): Add/Edit stage a draft, and the modal is hosted by a **sibling `renderType: ArrayElement` control** bound to the same array (the same two-sibling pattern `Array` uses — DataGrid does **not** self-host the modal). `clientSearchPage`/`fieldClientSearch`/`schemaClientSearch` helpers for client-side search (filters/sort/query). All buttons (Add/Edit/Remove + Pager prev/next) render via `<Action>` so hosts can override chrome per id via `matchActionId`. |
 | `@rxc/compat-controls` | `packages/compat-controls` | Legacy compat for `@react-typed-forms/core` consumers. **Not yet implemented.** |
 | `@rxc/compat-forms` | `packages/compat-forms` | Legacy compat for `@react-typed-forms/schemas` consumers. **Not yet implemented.** |
-| `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo, `/phase4b` motion/dnd add-ons, `/buttons` ButtonAction variants, `/externaledit` editExternal staged-edit modal. |
+| `rxc-dev-app` | `apps/dev` | Next.js 16 playground with Tailwind CSS. Routes: `/` simple controls demo, `/tree` FormStateNode visualizer, `/showcase` kitchen-sink renderer demo, `/interactive` tabs/dialog/accordion/async-action demo, `/designer` plugin + design-mode demo, `/phase4b` motion/dnd add-ons, `/buttons` ButtonAction variants, `/externaledit` editExternal staged-edit modal, `/renderboundary` missing-`rendered()` failure modes + the dev guard. |
 | `rxc-legacy-demos` | `apps/legacy-demos` | Standalone Next.js app (port 3001) hosting legacy reference renderings via the published `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` with `defaultTailwindTheme`. Routes: `/buttons` (ButtonAction parity baseline — pair with dev `/buttons`), `/externaledit` (editExternal modal baseline — pair with dev `/externaledit`). Add more pages here when a new rxc feature needs a side-by-side legacy comparison that doesn't fit the Fire-form-shaped `legacy-compare`. |
 | `rxc-legacy-compare-demo` | `apps/legacy-compare` | Renders the canonical "Fire" form using the published legacy `@react-typed-forms/schemas` (port 3002). Loads the same `Fire.json`, the same `bootstrap.min.css` + `theme.css` baseline as the legacy ServiceTas portal — the reference rendering that `rxc-compare-demo` is compared against. |
 | `rxc-compare-demo` | `apps/rxc-compare` | Mirrors `legacy-compare` via `@rxc/forms` (port 3003). Same `Fire.json`, same schemas, same CSS baseline. Drives upstream `@rxc/*` API improvements whenever the port hits a gap (see "Comparison-app workstream" below). |
@@ -42,7 +42,7 @@ rushx test:watch     # Watch mode
 
 1. **No globals** — all state is explicit. ControlContext instances are passed, not ambient.
 2. **Explicit reactivity** — reading through `ReadContext` registers dependencies. Writing through `WriteContext` batches notifications.
-3. **React is an adapter** — the core library (`controls-core`) has zero React dependency. The `controls()` wrapper in `@rxc/controls` injects ReadContext/WriteContext into render functions.
+3. **React is an adapter** — the core library (`controls-core`) has zero React dependency. `useControls()` in `@rxc/controls` hands a component its `ReadContext`; the component closes the render pass with `rendered(…)`, which reconciles tracked reads into subscriptions (see `docs/RENDER-BOUNDARY.md`).
 4. **ESM only** — all packages use `"type": "module"`.
 
 ### Dependency graph
@@ -72,7 +72,8 @@ All in `docs/`:
 - **CONTROL-SEMANTICS.md** — The authoritative reference for control tree behavior: value propagation, error handling, dirty/touched/disabled cascading, element lifecycle, null materialization. **These semantics are settled and must be preserved.**
 - **FORM-SEMANTICS.md** — The authoritative reference for form state behavior: FormStateNode lifecycle, visibility/disabled/readonly cascading, children resolution, data node syncing, script overrides. **These semantics are settled and must be preserved.**
 - **MIGRATION-FROM-LEGACY.md** — Rosetta stone for porting hosts and custom renderer sets from `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` onto `@rxc/forms` + `@rxc/forms-react-core`. Maps every legacy registration shape, hook, and slot to its new equivalent, calls out mechanical ports vs translations, and lists known gaps. The renderer engine itself has no design doc — the implementation in `packages/forms-react-core/src` and `packages/forms/src` is the source of truth.
-- **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, controls() wrapper rationale.
+- **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, React-adapter rationale.
+- **RENDER-BOUNDARY.md** — The authoritative reference for how a component gets reactive reads: the `useControls()` / `rendered(…)` contract, why reconcile must stay synchronous with the render body, `Rendered` branded-type enforcement, the dev-mode guard, and behaviour under throw/suspend. **Settled semantics.**
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
 
@@ -126,7 +127,7 @@ Extensions/divergences are a **separate, later** effort — flag them, don't sli
 
 ### Phase 1–2: @rxc/controls-core + @rxc/controls
 
-Fully implemented with 51 tests. Core control tree, reactive ReadContext/WriteContext, computed/effect primitives, React `controls()` wrapper.
+Fully implemented. Core control tree, reactive ReadContext/WriteContext, computed/effect primitives, and the React `useControls()` / `rendered()` boundary.
 
 ### Phase 3a: @rxc/forms-core (types only)
 
@@ -234,6 +235,63 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
 #### Rendering performance — `Field` is `React.memo`-wrapped
 `Field` (`packages/forms/src/Field.tsx`) is `memo(FieldRender)`. Because `FormStateNode` is a stable handle, the `node` prop is referentially stable, so a parent group re-rendering (child-list / visibility / disabled change) does **not** cascade into every descendant Field — each re-renders only when its own reactive subscription fires or its props change. Benchmarked in `packages/forms/test/memoBenchmark.test.tsx` (500-field form): a single field value toggle re-renders 1 field with or without memo (the reactive layer already isolates it), while an ancestor re-render drops from 500 renders → 0. This makes `Form`-provided context stability **load-bearing** (memo is a bailout boundary that context value changes punch through) — hence the stable `defaultRegistry()` / `options` fallbacks in `Form.tsx`. Don't memo `Layout`/`Label` (they take `ReactNode` children → shallow-compare always misses). The benchmark added `happy-dom` + `react-dom` devDeps to `@rxc/forms` and widened its vitest glob to `.test.{ts,tsx}`.
 
+### Dev-only code must use the literal `process.env.NODE_ENV`
+
+Both dev guards (`useControls`'s missing-`rendered()` warning, `overrideProxy`'s escaped-read
+warning) gate on a module-scope `IS_DEV`:
+
+```ts
+const IS_DEV: boolean =
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+```
+
+The **literal, non-optional** `process.env.NODE_ENV` is load-bearing. Bundlers (webpack/Next
+`DefinePlugin`, esbuild, vite) statically replace exactly that member expression; optional chaining
+(`process?.env?.NODE_ENV`) is **not** matched, and when it isn't, webpack injects a `process`
+browser shim instead — which evaluated to `undefined?.env?.NODE_ENV !== "production"` → `true`, so
+the guards ran in production bundles (a stack capture per mounted component, plus warnings with
+minified names in consumers' consoles). Verified by grepping the built chunk: with the literal form
+the warning string and the stack capture are gone from `apps/dev/.next/static/chunks/`.
+
+No `try`/`catch` is needed — the `typeof` guard covers unbundled browser ESM (where `process` is an
+undeclared identifier) without blocking the fold.
+
+## React version support
+
+Peer range is `react: ^18 || ^19` across all published packages. Nothing in `packages/*/src` uses a
+React-19-only API — the full set of React imports is `createContext`, `memo`, `useCallback`,
+`useContext`, `useEffect`, `useId`, `useMemo`, `useRef`, `useState` (`useId` sets the real floor at
+18.0).
+
+Verified against React 18.3.1 / `@types/react` 18.3.31: the `@rxc/controls` suite (12 tests) passes
+unchanged, and the `Rendered` brand still typechecks — including its negative cases, which matters
+because `ReactNode`'s union differs between the two `@types/react` majors. To re-check after touching
+`@rxc/controls`, copy `packages/controls/{src,test}` into a scratch project pinned to React 18,
+symlink `@rxc/controls-core`, and run `tsc --noEmit` + `vitest`. (The tests' `import { act } from
+"react"` needs 18.3+; the shipped source does not.)
+
+## Linting
+
+`rush lint` runs ESLint over `packages/` + `apps/` and is wired into CI (before
+`rush rebuild`). Deliberately narrow — the point is **`react-hooks/rules-of-hooks` as an
+error**; `exhaustive-deps` is a warning.
+
+- eslint + plugins live in a Rush **autoinstaller** (`common/autoinstallers/lint`), not in
+  every package's devDeps — `ensureConsistentVersions` is on, so 14 duplicated entries would
+  be friction for zero benefit. Change versions there, then `rush update-autoinstaller --name lint`.
+- The flat config is `eslint.config.mjs` at the repo root. It resolves the plugins through
+  `createRequire` against the autoinstaller's `package.json`, because bare specifiers won't
+  resolve from the root — and the config has to *stay* at the root, since flat-config
+  `files`/`ignores` globs are relative to the config file's own directory.
+- `reportUnusedDisableDirectives` is off: the repo carries `eslint-disable` comments aimed at
+  a fuller rule set (`no-console`) that this config doesn't enable.
+- This gate is only meaningful because renderers are now ordinary function components. Under
+  the old `controls()` HOC every hook sat inside a callback argument, so the rule reported
+  "cannot be called inside a callback" everywhere instead of finding real bugs. Turning it on
+  immediately found three genuine conditional-hook violations (`Field.tsx` `useMemo`,
+  `DataGrid.tsx` `useEffect`, and a false positive from `useLabelText` — a non-hook whose
+  `use` prefix misled the rule, now `resolveLabelText`).
+
 ## Testing
 
 - **Framework**: Vitest + fast-check (property-based testing)
@@ -241,6 +299,7 @@ Implementation plan in `~/.claude/plans/what-are-your-throughts-dynamic-origami.
 - **Config**: `vitest.config.ts` per package
 - Current counts:
   - `controls-core`: **54** (uniqueId determinism)
+  - `controls`: **11** (`useControls` boundary: subscribe/unsubscribe, facet tracking, post-`rendered()` finalize, missing-`rendered()` dev guard, StrictMode convergence, `useComputed`, stable `update` identity)
   - `forms-core`: **113** (+3 acquireDisabler / disabler stack)
   - `forms-react-core`: **61** (+14 getExternalEdit suite including sibling-FormStateNode controller sharing + session-staged Cancel/confirm actions)
   - `forms`: **45** (+1 `React.memo(Field)` render benchmark — mounts a 500-field form via `react-dom/client` + happy-dom and asserts value-toggle re-renders 1 field while an ancestor re-render bails out to 0)
@@ -276,8 +335,8 @@ The `apps/legacy-compare` + `apps/rxc-compare` pairing exists to validate that t
 - **`@rxc/forms-core`: resolver factories exported.** `createSchemaTreeResolver` and `createFormTreeResolver` (plus their `SchemaTreeFactory` / `FormTreeFactory` types) are now re-exported from `nodes/index.ts`. Hosts that previously inlined a cached `Record<string, SchemaField[]> → SchemaTree` resolver can drop the boilerplate.
 - **`@rxc/forms`: Radio / Checklist render `entryWrapperClass` + `selectedClass` / `notSelectedClass` + per-option children.** `RadioRenderer` and `ChecklistRenderer` now read `entryWrapperClass` / `selectedClass` / `notSelectedClass` from the form definition's `renderOptions` (typed via `RadioButtonRenderOptions` / `CheckListRenderOptions`), layered with matching theme slots on `HtmlOptionGroupTheme`. Each option's wrapper `<div>` carries those classes, and the per-option children that `defaultResolveChildren` already spawns (keyed by `meta.fieldOptionValue`) are rendered inside the wrapper via `<Field>` — matching the legacy `fieldOptionAdornment(p)` + `HtmlCheckButtons` shape. Outer `<fieldset>`/`<legend>` retained for a11y.
 - **`@rxc/forms-react-core` (`useFormStateNode`): deferred `runAsync` queue.** Mirrors the legacy `useAsyncRunner` from `astrolabe-common/schemas/src/RenderForm.tsx`: `runAsync` callbacks fired during render are queued on a stable component-scoped ref, then drained inside a `useEffect` after React commits. This is what keeps SSR snapshots and the first client hydration in agreement when Jsonata scripts would otherwise resolve via `queueMicrotask` between SSR HTML ship and CSR commit — a hydration-mismatch trap that surfaced the first time a `Display`-typed Jsonata script ran during initial render. Custom runners can still be supplied via `options.runAsync` for tests.
-- **`@rxc/forms`: display renderers wrapped in `controls()` and read through `node.getState(rc).definition`.** `HtmlDisplayRenderer`, `TextDisplayRenderer`, `IconDisplayRenderer`, and `CustomDisplayRenderer` are now `controls()`-wrapped and ignore the `data` prop's properties for reactive reads — they re-resolve through their own `rc` from `node.getState(rc).definition.displayData`. The `data` prop is bound to the dispatching Field's rc, whose `reconcile()` has already happened by the time the renderer body runs; reads through it never establish subscriptions. Reading via the renderer's own rc is the working contract. All three also layer `definition.styleClass` over the theme class via `rendererClass`, matching legacy `rendererClass(className, options.htmlClassName)`.
-- **`@rxc/controls-core`: `ReadContext.isFinalized` + render-window enforcement.** `TrackingReadContext` flips a `rendering` flag back to false in `finalize()` (called by the React `controls()` wrapper immediately after `reconciler.reconcile()`). While finalized, `track()` returns the impl without mutating `tracked`, so escaped-proxy reads can no longer corrupt the next render's subscription set. Reads still return current values (event handlers, refs, etc. work). `noopReadContext.isFinalized` is permanently `true`.
+- **`@rxc/forms`: display renderers read through `node.getState(rc).definition`.** `HtmlDisplayRenderer`, `TextDisplayRenderer`, `IconDisplayRenderer`, and `CustomDisplayRenderer` read through their own `rc` and ignore the `data` prop's properties for reactive reads — they re-resolve through their own `rc` from `node.getState(rc).definition.displayData`. The `data` prop is bound to the dispatching Field's rc, whose `reconcile()` has already happened by the time the renderer body runs; reads through it never establish subscriptions. Reading via the renderer's own rc is the working contract. All three also layer `definition.styleClass` over the theme class via `rendererClass`, matching legacy `rendererClass(className, options.htmlClassName)`.
+- **`@rxc/controls-core`: `ReadContext.isFinalized` + render-window enforcement.** `TrackingReadContext` flips a `rendering` flag back to false in `finalize()` (called by `rendered(…)` immediately after `reconciler.reconcile()`). While finalized, `track()` returns the impl without mutating `tracked`, so escaped-proxy reads can no longer corrupt the next render's subscription set. Reads still return current values (event handlers, refs, etc. work). `noopReadContext.isFinalized` is permanently `true`.
 - **`@rxc/forms-core` (`createOverrideProxy`): dev-mode escape warning.** The scripted-override proxy now checks `rc.isFinalized` on each scriptable property read; if true, a one-per-call-site `console.warn` fires explaining the read landed past the owning rc's reconcile window and the consumer won't re-render on script updates. Includes a call-site stack frame and a one-line fix recipe (wrap the consumer in `controls()` and read via `node.getState(rc)`).
 - **`@rxc/forms-react-core`: `getExternalEdit` + the sibling `ArrayElementModalHostRenderer` pattern.** Ported the legacy `@react-typed-forms/schemas` "Add / Edit stages a draft, modal commits on Apply" flow for arrays. Two pieces:
   - **`getExternalEdit(arrayNode, options?)`** — returns a per-array controller exposing `session(rc)`, `beginAdd(initialValue?)`, `beginEdit(index)`, `apply({ dontValidate? })`, `cancel()`. Session is a standalone draft `Control` + standalone `FormStateNode` rooted on the array's element schema/form; `apply()` validates via `draftForm.validate()` (touching all nodes on failure so errors surface) and writes through `wc.addElement` / `wc.setValue(elem, draft)`. **The Cancel + confirm actions are staged on the session** (`session.actions: ExternalEditAction[]` = `{ action: ActionRendererProps; dontValidate? }`), mirroring legacy's `getExternalEditData(control).fields.actions` — the controller builds them (Cancel = `cancel`/"Cancel"/`dontValidate`; confirm = the array's `addActionId`/`addText` for an `add` session, `apply`/"Apply" for an `edit` session), and the modal host renders them rather than hardcoding its own buttons. Each action's `onClick` performs the raw commit/cancel; the host wraps the non-`dontValidate` one with draft validation (legacy `applyValidation`). The `apply()`/`cancel()` controller methods remain (used by tests + programmatic callers) and back the staged actions' `onClick`. **The controller is cached on `arrayControl.meta["$externalEdit"]`** — not on the FormStateNode meta — so two sibling FormStateNodes bound to the same array field share **one** controller and **one** session. The shared cache is the linchpin: `Array` writes a session, the sibling modal host reads from the same cache. `staticDef` arg added to `createFormStateNode` so a custom draft definition can shadow the form node's own definition for the root. **Multi-child draft auto-detect:** with no `options`, the draft root form node is the single element-template child when the array has one child; for a **multi-child** array (e.g. DataGrid columns) it roots on the array's own form but defaults the root *definition* to a `Contents` group — otherwise the root would re-dispatch to the array's own collection renderer (a nested Array/DataGrid bound to one element). This is what lets `DataGrid` use the sibling-host pattern with plain `getExternalEdit(node)` (no per-caller override). Explicit `options.elementForm`/`elementDefinition` still win.
@@ -289,7 +348,7 @@ The `apps/legacy-compare` + `apps/rxc-compare` pairing exists to validate that t
     `<Field>` dispatches each control to its own renderer; both resolve to the same array `Control`, so they share the session. `ArrayRenderer` (and its per-row Edit button) *does not* host its own modal — only the sibling `ArrayElementModalHostRenderer` does. **`DataGrid` follows the same sibling-host pattern** (it does not self-host): pair the `renderType: DataGrid` control with a sibling `renderType: ArrayElement` control bound to the same array (same columns as children). Both call `getExternalEdit(node)` with no options → shared `$externalEdit` controller; the no-options auto-detect roots the multi-column draft in a `Contents` group (see "multi-child draft" below). Reproduces the legacy `@react-typed-forms/schemas-html@5.2.1` shape; the legacy package shipped a fix during this work to wire the previously-stubbed modal body via `createChildNode("draft", ...) + getResolvedChildren()`.
 - **`@rxc/forms-react-core`: `ActionRenderer` signature changed to plain props (legacy parity).** Previously `(props: { node: FormStateNode })` — node-driven like every other renderer. Now `(props: ActionRendererProps)` where `ActionRendererProps` is a flat POJO: `{ actionId, actionText?, onClick, disabled?, busy?, icon?, actionStyle?, iconPlacement?, disableType?, styleClass?, textClass?, children? }`. Matches the legacy `@react-typed-forms/schemas` shape so the same custom action renderers port across (legacy `RendererRegistration` for actions worked the same way). Three flow-on changes:
   - **`<Action>` component** in `@rxc/forms-react-core`. One-liner that `useRegistry()` + `pickActionRenderer(reg.action, props)` + renders the matched component. The single entry point for inline action buttons in any renderer (Array / DataGrid / Pager all use it).
-  - **`FieldAction` adapter** in `@rxc/forms` — own `controls()`-wrapped component (not a switch case in `Field.tsx`) that translates a form-tree `Action` `FormStateNode` to `ActionRendererProps`. Wires `onClick` through `useAsyncAction(node, dispatch, …)` so busy state ties back to the node; renders child action defs (each via `<Field>`) into `props.children`. Extracted because `useActionHandler`/`useAsyncAction` inside `Field`'s `switch` were technically rules-of-hooks landmines (fine in practice but only because `def.type` is stable per node lifetime).
+  - **`FieldAction` adapter** in `@rxc/forms` — own component (not a switch case in `Field.tsx`) that translates a form-tree `Action` `FormStateNode` to `ActionRendererProps`. Wires `onClick` through `useAsyncAction(node, dispatch, …)` so busy state ties back to the node; renders child action defs (each via `<Field>`) into `props.children`. Extracted because `useActionHandler`/`useAsyncAction` inside `Field`'s `switch` were technically rules-of-hooks landmines (fine in practice but only because `def.type` is stable per node lifetime).
   - **`ActionRendererProps.children?: ReactNode`** — rendered content for nested action def children. **`ButtonAction` uses `children` as the button body when present**, otherwise composes `icon + text` per `iconPlacement`. Lets you render any nested form-defined content inside the clickable element (multi-line label, custom icon+text layouts, an HTML chunk). **Legacy divergence**: legacy `@react-typed-forms/schemas` gates this flow on `actionStyle === Group` (`actionContent = isGroup ? renderChildren() : undefined`); rxc accepts children for *any* style. Documented on the `/buttons` demos in both `apps/dev` and `apps/legacy-demos` with a "Non-Group ignores children" row in the legacy demo highlighting the gap.
 - **`apps/legacy-buttons` renamed → `apps/legacy-demos`** (port 3001, package `rxc-legacy-demos`). Now a generic multi-page legacy reference app rather than a single buttons demo. Routes: `/buttons` (existing ButtonAction baseline) + `/externaledit` (legacy `editExternal` modal baseline, paired with rxc `/externaledit` at port 3000). Add new pages here whenever a new rxc feature needs a side-by-side legacy comparison that doesn't fit the Fire-form-shaped `legacy-compare`. The app's `globals.css` registers `@source "../node_modules/@astroapps/aria-base/lib/**/*.js"` so the legacy Modal's Tailwind classes get emitted, plus a small v3→v4 compat shim (`.bg-black.bg-opacity-50 { background-color: rgb(0 0 0 / 0.5); }`) for the modal underlay since `bg-opacity-*` was removed in Tailwind v4.
 
@@ -332,7 +391,7 @@ Port of the legacy `@astroapps/schemas-datagrid` `DataGridRenderer` (display-onl
 
 - Depends on the **published** `@astroapps/datagrid` (1.2.0) base grid directly — it has zero Control/forms deps (only `react` + `clsx`), so no fork was needed.
 - `dataGridResolveChildren` (registered via `dataPlugin`'s `resolveChildren` on render type `DataGrid`) expands the bound array into one `Contents`-group row per element; each row's `node: form` sources the grid's declared column controls, so `row.getChildren(rc)` yields the per-column cells bound to that element. This skips the legacy two-level (synthesized-headers-group + data-array) resolver — column header metadata is read directly from `definition.children` in the renderer. Mirrors the `resolveOptionChildren` pattern in `forms-core/src/nodes/resolveChildren.ts`.
-- `createDataGridRenderer` (controls()-wrapped) maps each column definition → `ColumnDefInit` (title + `getColumnHeaderFromOptions` classes from the `ColumnOptions` adornment, `columnTemplate`), precomputes the `cellGrid` (rows × column cells) for closure-safe cell rendering via `<Field>`, and renders the base `<DataGrid>`.
+- `createDataGridRenderer` maps each column definition → `ColumnDefInit` (title + `getColumnHeaderFromOptions` classes from the `ColumnOptions` adornment, `columnTemplate`), precomputes the `cellGrid` (rows × column cells) for closure-safe cell rendering via `<Field>`, and renders the base `<DataGrid>`.
 - `ColumnOptions` adornment (`columnAdornment.ts`) ported verbatim (schema + `isColumnAdornment` + `getColumnHeaderFromOptions` + `defaultDataGridClasses`).
 - Registration order matters: `combineRegistries(dataGridRegistry(), defaultRegistry())` so the `DataGrid` render type beats the default collection (Array) matcher.
 - The trailing `auto`-width delete-check column **is** rendered (empty `removeColumnClass` div in display-only) so column templates + per-row markup match legacy. Headers wrap their title in `titleContainerClass` via `renderHeaderContent`, matching legacy.
@@ -344,7 +403,7 @@ Port of the legacy `@astroapps/schemas-datagrid` `DataGridRenderer` (display-onl
 
 - **`@astroapps/searchstate` (2.0.0, zero-dep) added** to `@rxc/forms-datagrid` (+ `@radix-ui/react-popover` for the filter popover). Provides `SearchOptions`, `setFilterValue`, `rotateSort`, `findSortField`, `makeClientSortAndFilter`, `getPageOfResults`.
 - **No new forms-core helpers needed.** The legacy `schemaDataForFieldRef`/`fieldPathForDefinition`/`schemaForFieldPath` are covered by existing rxc cursor utils — the `searchField` SearchOptions control resolves via `dataRef(node.parent.cursor(rc), searchField)` (`FormStateNode.parent` is the legacy `dataContext.parentNode`).
-- **`Popover` / `SortableHeader` / `FilterPopover`** ported (`src/{Popover,SortableHeader,FilterPopover}.tsx`). `SortableHeader`/`FilterPopover` are `controls()` components that read/write the SearchOptions `sort`/`filters`/`offset` fields through their own rc/wc (`updateValue` matches the `setFilterValue`/`rotateSort` updater shape). Filter options are resolved by the renderer (from a populated cell's `fieldOptions`) and passed in — no `getFilterOptions` added to `SchemaInterface`.
+- **`Popover` / `SortableHeader` / `FilterPopover`** ported (`src/{Popover,SortableHeader,FilterPopover}.tsx`). `SortableHeader`/`FilterPopover` call `useControls()` and read/write the SearchOptions `sort`/`filters`/`offset` fields through their own rc/wc (`updateValue` matches the `setFilterValue`/`rotateSort` updater shape). Filter options are resolved by the renderer (from a populated cell's `fieldOptions`) and passed in — no `getFilterOptions` added to `SchemaInterface`.
 - **`DataGrid` renderer** resolves `renderOptions.searchField` and wires `FilterPopover`/`SortableHeader` into `renderHeaderContent`, driven per-column by `ColumnOptions.enabledFilter`/`enabledSort` (filter/sort key defaults to the column's bound field). `DataGridOptions` gained `searchField` + `disableClear`; `DataGridClasses` gained `popoverClass`/`clearFilterClass`/`clearFilterText`.
 - **`Pager` renderer** (`src/Pager.tsx`, `pagerPlugin()`, render type `Pager`) — binds to the SearchOptions control, reads total from a sibling field (default `results/total`), renders "Showing page X of Y" + Previous/Next (plain `<button>`s; legacy routed these through the host action renderer). `dataGridRegistry()` now combines the DataGrid + Pager plugins.
 - **Client-side search helper** (`src/clientSearch.ts`): `fieldClientSearch({ searchableFields?, getSearchText? })` (plain `row[field]` filter/compare; full-text `query` joins the listed fields or runs a custom builder) + `clientSearchPage(allRows, search, client)` → `{ entries, total }`, standing in for a server. Both compare apps wire it in their host (rxc via `effect` + `cc.update`; legacy via `useControlEffect`) so filter/sort/paging/query actually slice the rows; both set `results.total = filtered.length` so the pager reflects the filtered count. 9 unit tests in `packages/forms-datagrid/test/clientSearch.test.ts`.

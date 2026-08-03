@@ -3,14 +3,10 @@ export * from "@rxc/controls-core";
 
 // React-specific API
 export {
-  controls,
+  useControls,
+  useComputed,
   ControlContextProvider,
   useControlContext,
-} from "./controls";
+} from "./useControls";
 
-export type {
-  ControlsRender,
-  ControlsContext,
-  UpdateFn,
-  UseComputed,
-} from "./types";
+export type { Controls, Rendered } from "./types";
