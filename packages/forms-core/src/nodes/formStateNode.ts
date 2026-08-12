@@ -620,7 +620,13 @@ function initFormState(
     if (!dn) return;
     const dc = dn.cursor(rc).control;
     const t = rc.isTouched(dc);
-    ctx.update((wc) => wc.setTouched(base, t));
+    // Only sync the immediate form state node from the control. The child
+    // FormStateNode bases are elements of this base's `children` control, so
+    // a recursive setTouched would cascade into every sibling subtree — and
+    // each sibling's touchedPush would then mark its *data* control touched,
+    // surfacing errors form-wide from one field's blur. (Port of legacy
+    // formStateNode "Dont recurse the touched flag".)
+    ctx.update((wc) => wc.setTouched(base, t, true));
   });
   impl.addCleanup(() => touchedPull.cleanup());
 

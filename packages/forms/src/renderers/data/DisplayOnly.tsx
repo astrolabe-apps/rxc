@@ -19,19 +19,18 @@ export function DisplayOnlyRenderer({ node, inline }: DataRendererProps): Render
   if (!data) return rendered(null);
   const value = rc.getValue(data);
   const schemaInterface = node.schemaInterface;
-  let text: string;
-  if (Array.isArray(value)) {
-    text = value
-      .map(
-        (v) =>
-          (field && schemaInterface.textValue(field, v, fieldOptions)) ??
-          String(v),
-      )
-      .join(", ");
-  } else {
+  // textValue handles collections itself (formats each element, joins) —
+  // the local fallbacks only cover a definition with no schema field.
+  let text: string | undefined = field
+    ? schemaInterface.textValue(field, value, undefined, fieldOptions)
+    : undefined;
+  if (text === undefined) {
     text =
-      (field && schemaInterface.textValue(field, value, fieldOptions)) ??
-      (value == null ? "" : String(value));
+      value == null
+        ? ""
+        : Array.isArray(value)
+          ? value.map(String).join(", ")
+          : String(value);
   }
   const className = rendererClass(
     definition.textClass,

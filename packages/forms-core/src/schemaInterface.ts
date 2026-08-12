@@ -84,14 +84,19 @@ export interface SchemaInterface {
   parseToMillis(field: SchemaField, v: string): number;
 
   /**
-   * Human-readable display text for a scalar value under this field's type.
+   * Human-readable display text for a value under this field's type.
    * Resolves the matching option `name` first, then applies type-aware
    * formatting (locale date/time strings, `Yes`/`No` for booleans). Used by
    * the display-only renderer. Returns `undefined` for empty values.
+   *
+   * For a collection field the value is the whole array and the result is
+   * the formatted elements joined (comma-separated by default); pass
+   * `element: true` when formatting a single element of the collection.
    */
   textValue(
     field: SchemaField,
     value: unknown,
+    element?: boolean,
     options?: FieldOption[] | null,
   ): string | undefined;
 }
@@ -105,6 +110,8 @@ export interface SchemaInterface {
  * computation accepts any `SchemaInterface` via `FormGlobalOptions`.
  */
 export class DefaultSchemaInterface implements SchemaInterface {
+  constructor(protected arraySeparator: string = ", ") {}
+
   protected booleanOptions: FieldOption[] = [
     { name: "Yes", value: true },
     { name: "No", value: false },
@@ -219,8 +226,16 @@ export class DefaultSchemaInterface implements SchemaInterface {
   textValue(
     field: SchemaField,
     value: unknown,
+    element?: boolean,
     options?: FieldOption[] | null,
   ): string | undefined {
+    if (field.collection && !element) {
+      if (!Array.isArray(value)) return undefined;
+      return value
+        .map((v) => this.textValue(field, v, true, options))
+        .filter((x): x is string => Boolean(x))
+        .join(this.arraySeparator);
+    }
     const actualOptions = options ?? this.getOptions(field);
     const option = actualOptions?.find((x) => x.value === value);
     if (option) return option.name;

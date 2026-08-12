@@ -115,6 +115,52 @@ describe("createFormStateNode — Layer 1", () => {
     expect(state.data?.valueNow).toBe("alice");
   });
 
+  it("touching one field's data control does not touch its siblings", () => {
+    const fields = [stringField("a"), stringField("b")];
+    const defs = [dataDef("a"), dataDef("b")];
+    const { ctx, formTree, dataNode, dataControl, globals } = makeEnv(
+      fields,
+      defs,
+      { a: "", b: "" },
+    );
+    const root = createFormStateNode(ctx, formTree.rootNode, dataNode, globals);
+    const [nodeA, nodeB] = root.getChildren(rd);
+
+    const dc = dataControl as any;
+    ctx.update((wc) => wc.setTouched(dc.fields.a, true));
+
+    expect(nodeA.getState(rd).touched).toBe(true);
+    expect(nodeB.getState(rd).touched).toBe(false);
+    // The sibling's data control must stay untouched too — the recursive
+    // pull cascade used to reach it via the parent base's children control.
+    expect(dc.fields.b.touchedNow).toBe(false);
+  });
+
+  it("setTouched on a node still cascades to its subtree", () => {
+    const fields = [compoundField("addr", [stringField("street")])];
+    const defs = [
+      {
+        type: ControlDefinitionType.Group,
+        compoundField: "addr",
+        children: [dataDef("street")],
+      } as ControlDefinition,
+    ];
+    const { ctx, formTree, dataNode, dataControl, globals } = makeEnv(
+      fields,
+      defs,
+      { addr: { street: "" } },
+    );
+    const root = createFormStateNode(ctx, formTree.rootNode, dataNode, globals);
+    const [addrNode] = root.getChildren(rd);
+    const [streetNode] = addrNode.getChildren(rd);
+
+    addrNode.setTouched(true);
+    expect(addrNode.getState(rd).touched).toBe(true);
+    expect(streetNode.getState(rd).touched).toBe(true);
+    const dc = dataControl as any;
+    expect(dc.fields.addr.fields.street.touchedNow).toBe(true);
+  });
+
   it("cascades disabled from parent → child → data control", () => {
     const fields = [compoundField("addr", [stringField("street")])];
     const defs = [
