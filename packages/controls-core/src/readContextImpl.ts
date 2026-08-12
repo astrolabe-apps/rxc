@@ -97,12 +97,39 @@ export const noopReadContext: ReadContext = {
   getValueRx<V>(control: Control<V>): V {
     return createValueRxProxy(control, this);
   },
+  trackValidate(): void {},
   // The noop rc is permanently non-tracking; treat it as "always
   // finalized" so subscribers know reads here are snapshots only.
   isFinalized: true,
 };
 
 // ── TrackingReadContext ──────────────────────────────────────────────
+
+/**
+ * Notified when a {@link TrackingReadContext} is read after its render window
+ * has closed. Such a read returns a current value but registers no dependency,
+ * so nothing will re-render when that control later changes.
+ *
+ * Most finalized reads are perfectly legitimate — event handlers, refs and
+ * effects all run after `finalize()` and read current values on purpose — so
+ * core deliberately does not decide whether any given one is a mistake. It
+ * only reports them. The React adapter installs a hook that knows the one
+ * damning circumstance: a finalized rc read *while another rc's render window
+ * is open*, which means a callback captured an enclosing component's `rc`
+ * instead of using the one it was handed.
+ *
+ * Dev-only by convention: the adapter installs this behind its `IS_DEV` check,
+ * so the branch below stays `null` in production builds. It sits on the
+ * already-taken early-return path, so tracked reads pay nothing for it.
+ */
+export type FinalizedReadHook = (rc: TrackingReadContext) => void;
+
+let finalizedReadHook: FinalizedReadHook | null = null;
+
+/** Install (or clear, with `null`) the {@link FinalizedReadHook}. */
+export function setFinalizedReadHook(hook: FinalizedReadHook | null): void {
+  finalizedReadHook = hook;
+}
 
 export class TrackingReadContext implements ReadContext {
   tracked = new Map<ControlImpl, ControlChange>();
@@ -129,7 +156,10 @@ export class TrackingReadContext implements ReadContext {
 
   private track(control: Control<any>, change: ControlChange): ControlImpl {
     const c = toImpl(control);
-    if (!this.rendering) return c;
+    if (!this.rendering) {
+      finalizedReadHook?.(this);
+      return c;
+    }
     const existing = this.tracked.get(c);
     if (existing !== undefined) {
       this.tracked.set(c, existing | change);
@@ -200,6 +230,10 @@ export class TrackingReadContext implements ReadContext {
   getElements<V>(control: Control<V[]>): Control<V>[] {
     const c = this.track(control, ControlChange.Structure);
     return c.getOrCreateElements() as unknown as Control<V>[];
+  }
+
+  trackValidate(control: Control<unknown>): void {
+    this.track(control, ControlChange.Validate);
   }
 
   getValueRx<V>(control: Control<V>): V {

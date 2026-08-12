@@ -16,6 +16,8 @@ export { WriteContextImpl } from "./writeContextImpl";
 export {
   TrackingReadContext,
   SubscriptionReconciler,
+  setFinalizedReadHook,
+  type FinalizedReadHook,
 } from "./readContextImpl";
 
 export { Subscriptions } from "./subscriptions";

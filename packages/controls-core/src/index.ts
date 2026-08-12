@@ -32,3 +32,5 @@ export {
   getElementIndex,
   as,
 } from "./controlUtils";
+
+export { controlGroup, setFields } from "./groupControl";

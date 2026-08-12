@@ -154,6 +154,72 @@ Degrades safely. After an unwind, `tracked` holds partial reads and `reconciler.
 Accepted wart: `rc.rendering` stays `true` until the next `reset()`, so `isFinalized` reports wrong
 in that window and `overrideProxy`'s escaped-read warning won't fire. Spans throw → next render only.
 
+## Nested scopes: the render helpers
+
+`RenderControl`, `RenderElements`, `RenderOptional` and `renderOptionally` (in `@rxc/controls`) exist
+to narrow **subscription scope**, not to render anything. They are the ports of the legacy
+`@react-typed-forms/core` helpers, which did the same job by a different mechanism: under ambient
+tracking each was a component, so reads inside its callback attributed to it rather than to the
+caller.
+
+Here the mechanism is explicit. Each helper calls `useControls()` itself and hands its own `rc` to
+the callback:
+
+```tsx
+export function RenderControl({ children }: RenderControlProps): Rendered {
+  const { rc, rendered } = useControls();
+  return rendered(children(rc));
+}
+```
+
+Two consequences follow from the helper — not the callback — owning the boundary:
+
+- **The callback returns a plain `ReactNode`.** It has no `rendered` in hand, so requiring it to
+  return `Rendered` would be an uninhabitable type. `children(rc)` is evaluated before `rendered` is
+  applied to the result, so every read it made is tracked by the time the pass reconciles.
+- **Forgetting the boundary is impossible** in a callback, unlike a `useControls` component where it
+  is only caught by the branded return type and the dev guard.
+
+`RenderElements` subscribes to array *structure* only and wraps each element in its own
+`RenderControl`, keyed by `Control.uniqueId` — allocated per `ControlContext` rather than from a
+module global, so the key sequence matches across SSR and hydration. A change inside one element
+re-renders that element's scope alone.
+
+### The hazard: reads that escape the scope
+
+The isolation covers reads the callback makes **itself**. A value read in the caller's body and then
+closed over is tracked by the *caller*, so the wrapper buys nothing:
+
+```tsx
+const name = rc.getValue(nameControl);                    // caller subscribes
+<RenderControl>{(rc) => <div>{name}</div>}</RenderControl>  // isolates nothing
+```
+
+This degrades to over-rendering, never to stale UI — the caller re-renders and the subtree follows.
+Nothing detects it: no wrong `rc` is used (none is used at all), the brand is irrelevant, and the
+guard below stays silent because the read was legitimate inside the caller's own window. A lint rule
+flagging a helper callback whose `rc` parameter is never referenced would catch it; not yet written.
+
+### The guard: reading an enclosing component's `rc`
+
+The related mistake *is* detectable. A callback that reads the enclosing component's `rc` gets a
+current value but subscribes to nothing, so the value silently stops updating.
+
+**The naming convention prevents it outright: call the parameter `rc`.** It then shadows the
+enclosing `rc`, making the mistake a scoping impossibility rather than a discipline problem.
+
+For code that opts out by renaming, `TrackingReadContext` calls a dev-only `FinalizedReadHook` on
+reads that land past `finalize()`. Core does not decide whether any given one is a mistake — most are
+legitimate (event handlers, refs and effects all read finalized contexts on purpose). The adapter
+installs a hook that knows the damning circumstance: **a finalized read while another rc's render
+window is open**, which can only be a captured context, because legitimate finalized reads happen
+with no render in progress. `@rxc/controls` tracks the open window in a module-scoped `openRc`, set
+when `useControls` opens the pass and cleared by `rendered(…)` — plus in the post-commit effect, so a
+component that threw before closing its window can't leave it stale.
+
+Windows never overlap: React renders one component at a time, and a parent's `rendered(…)` runs
+before any of its children begin.
+
 ## A subtlety worth knowing
 
 Whether a missed `rendered(…)` on a *conditional* path is visible depends on which path the

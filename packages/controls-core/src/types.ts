@@ -122,6 +122,31 @@ export interface ReadContext {
   getElements<V>(control: Control<V[]>): Control<V>[];
 
   /**
+   * Register a dependency on `validate()` broadcasts for this control.
+   *
+   * Unlike the other methods this reads nothing — it adds
+   * `ControlChange.Validate` to the tracked mask, so the surrounding
+   * computation re-runs when `WriteContext.validate()` is called on the
+   * control (or an ancestor). Validators use this to re-publish their error
+   * on demand, matching the built-in `ControlSetup.validator` wiring, which
+   * subscribes to `Value | Validate`.
+   */
+  trackValidate(control: Control<unknown>): void;
+
+  /**
+   * Register a dependency on `validate()` broadcasts for this control,
+   * without reading anything.
+   *
+   * `WriteContext.validate()` notifies subscribers holding the
+   * `ControlChange.Validate` bit so validators re-publish their errors on
+   * demand (after a `clearErrors`, on submit, …) even though no value
+   * changed. A computation that publishes errors calls this so it re-runs
+   * on that signal — exactly how the built-in `ControlSetup.validator`
+   * subscription behaves.
+   */
+  trackValidate(control: Control<unknown>): void;
+
+  /**
    * Returns a deep reactive proxy over the control's value.
    *
    * - For null/undefined: tracks Structure, returns the value

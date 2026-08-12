@@ -7,6 +7,7 @@ import type { ComputedRef } from "@rxc/controls-core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
+  setFinalizedReadHook,
 } from "@rxc/controls-core/internal";
 import type { Controls, Rendered } from "./types";
 
@@ -108,6 +109,53 @@ function warnMissingRendered(site: string): void {
   );
 }
 
+// ── Wrong-rc guard ──────────────────────────────────────────────────
+
+/**
+ * The rc whose render window is currently open, or `null` between renders.
+ *
+ * Only one can be open at a time: React renders one component at a time, and
+ * a parent's `rendered(…)` runs before any of its children begin, so windows
+ * never overlap.
+ */
+let openRc: TrackingReadContext | null = null;
+
+/**
+ * Warn when a callback reads through an enclosing component's `rc` instead of
+ * the one it was handed.
+ *
+ * The read itself is harmless — {@link TrackingReadContext} drops it rather
+ * than corrupting anyone's subscription set — but nothing subscribes, so the
+ * value silently stops updating. The naming convention (call the parameter
+ * `rc`, so it shadows) prevents this outright; this catches the cases that
+ * opt out of it by renaming.
+ *
+ * The discriminator is *when*, not *what*: a finalized read while some other
+ * rc's window is open can only be a captured context, because legitimate
+ * finalized reads (event handlers, refs, effects) all happen with no render
+ * in progress.
+ */
+function warnWrongRc(): void {
+  const site = captureCallSite();
+  if (warnedSites.has(site)) return;
+  warnedSites.add(site);
+  // eslint-disable-next-line no-console
+  console.error(
+    `[@rxc/controls] ${site} read through a ReadContext belonging to an ` +
+      `enclosing component, whose render pass has already closed. The read ` +
+      `returned a current value but subscribed to nothing, so this will not ` +
+      `re-render when that control changes. Use the \`rc\` the callback was ` +
+      `given — naming the parameter \`rc\` shadows the outer one and makes ` +
+      `this impossible.`,
+  );
+}
+
+if (IS_DEV) {
+  setFinalizedReadHook((rc) => {
+    if (openRc !== null && openRc !== rc) warnWrongRc();
+  });
+}
+
 // ── useControls ─────────────────────────────────────────────────────
 
 interface Tracker {
@@ -162,6 +210,7 @@ export function useControls(): Controls {
           // handlers, refs, escaped proxies) still return current values but
           // no longer register dependencies that nothing would reconcile.
           rc.finalize();
+          if (IS_DEV && openRc === rc) openRc = null;
           return node as unknown as Rendered;
         },
       },
@@ -173,6 +222,7 @@ export function useControls(): Controls {
   // Open this render's tracking window.
   tracker.rc.reset();
   tracker.didRender = false;
+  if (IS_DEV) openRc = tracker.rc;
 
   // Alive/dead lifecycle. Stable deps — mount/unmount only, so an abandoned
   // render's subscriptions are swept rather than left live.
@@ -187,6 +237,12 @@ export function useControls(): Controls {
   // effects, so this cannot cry wolf on a caught error.
   useEffect(() => {
     if (!tracker.didRender) warnMissingRendered(tracker.site);
+    // A component that threw (or returned without `rendered(…)`) never closed
+    // its window, which would leave `openRc` stale and make the next
+    // legitimate handler read look like a captured context. Effects run after
+    // commit, when no render is in progress, so clearing here is always safe
+    // and bounds the staleness to a single pass.
+    if (IS_DEV) openRc = null;
   });
 
   return tracker.controls;
