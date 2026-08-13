@@ -138,7 +138,9 @@ function ControlBranchNode({
   const valid = rc.isValid(control);
   const error = rc.getError(control);
 
-  const fieldEntries = Object.entries(control.fieldsNow);
+  const fieldEntries = Object.entries(control.fieldsNow).filter(
+    (e): e is [string, Control<unknown>] => e[1] !== undefined,
+  );
   const elems = control.elementsNow;
 
   return rendered(
@@ -184,7 +186,7 @@ function ControlBranchNode({
           {fieldEntries.map(([key, child]) => (
             <ControlNodeRenderer key={key} control={child} name={`.${key}`} />
           ))}
-          {elems.map((elem, i) => (
+          {elems.map((elem: Control<unknown>, i: number) => (
             <ControlNodeRenderer
               key={elem.uniqueId}
               control={elem}

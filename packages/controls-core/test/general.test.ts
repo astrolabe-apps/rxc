@@ -92,7 +92,7 @@ describe("general", () => {
               ctx.update((wc) =>
                 wc.setValue(base, Array.from({ length: childId + 1 })),
               );
-              base = base.elements[childId];
+              base = base.elementsNow[childId];
             }
             index++;
           }
@@ -110,7 +110,7 @@ describe("general", () => {
     const proto = first.fields["__proto__"];
     ctx.update((wc) => wc.setValue(proto, [1]));
     ctx.update((wc) => wc.setValue(proto, [1]));
-    const elem = proto.elements[0];
+    const elem = proto.elementsNow[0];
     expect(getControlPath(proto)).toEqual(["first", "__proto__"]);
     expect(getControlPath(elem)).toEqual(["first", "__proto__", 0]);
   });

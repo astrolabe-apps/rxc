@@ -135,12 +135,12 @@ describe("object", () => {
         ({ v: obj, iv }) => {
           const ctx = makeCtx();
           const f = ctx.newControl(obj.map((x) => x.v1));
-          f.elements.forEach((x) => x.valueNow);
+          f.elementsNow.forEach((x) => x.valueNow);
           ctx.update((wc) => wc.setValue(f, obj.map((x) => x.v2)));
-          expect(f.valueNow).toStrictEqual(f.elements.map((x) => x.valueNow));
+          expect(f.valueNow).toStrictEqual(f.elementsNow.map((x) => x.valueNow));
           ctx.update((wc) => wc.setInitialValue(f, iv));
-          expect(f.elements.map((_, i) => iv[i])).toStrictEqual(
-            f.elements.map((x) => x.initialValueNow),
+          expect(f.elementsNow.map((_, i) => iv[i])).toStrictEqual(
+            f.elementsNow.map((x) => x.initialValueNow),
           );
         },
       ),
@@ -235,7 +235,7 @@ describe("object", () => {
           const ctx = makeCtx();
           const changes: ControlChange[] = [];
           const f = ctx.newControl<number[] | null>(arr1val);
-          f.elements;
+          f.elementsNow;
           f.subscribe((a, c) => changes.push(c), ControlChange.Structure);
           ctx.update((wc) => wc.setValue(f, arr2val));
           expect(changes).toStrictEqual(
@@ -311,11 +311,11 @@ describe("object", () => {
         const controlValue = control.valueNow;
         expect(controlValue).toStrictEqual(copy1);
         ctx.update((wc) =>
-          wc.setValue(control.elements[0].fields.v1, childValue + "a"),
+          wc.setValue(control.elementsNow[0].fields.v1, childValue + "a"),
         );
         const controlValue2 = control.valueNow;
         ctx.update((wc) =>
-          wc.setValue(control.elements[0].fields.v1, childValue + "b"),
+          wc.setValue(control.elementsNow[0].fields.v1, childValue + "b"),
         );
         expect(controlValue).toStrictEqual(copy1);
         expect(controlValue2).toStrictEqual([{ v1: childValue + "a" }]);

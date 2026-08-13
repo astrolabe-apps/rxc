@@ -12,7 +12,7 @@ export function lookupControl(
     if (typeof segment === "string") {
       base = base.fields[segment];
     } else {
-      base = base.elements[segment];
+      base = base.elementsNow[segment];
     }
     index++;
   }

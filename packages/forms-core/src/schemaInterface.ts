@@ -50,7 +50,7 @@ export interface SchemaInterface {
 
   /**
    * Length of the value held in a {@link Control}. For collection fields,
-   * returns `control.elements.length`; for scalars, delegates to
+   * returns `control.elementsNow.length`; for scalars, delegates to
    * {@link valueLength}. Used by the `Length` validator.
    *
    * Snapshot read — validation effects register their own reactive deps

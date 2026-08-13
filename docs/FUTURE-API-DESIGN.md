@@ -148,7 +148,7 @@ const MyForm = controls(function MyForm({ form }, { rc, update }) {
 | `null` / `undefined` | The value directly | Structure (null transitions) |
 | Primitive (string, number, boolean) | The value directly | Value |
 | Object | Proxy — `proxy.key` recurses via `control.fields[key]` | Structure on parent, then recurses per-field |
-| Array | Proxy — `proxy[i]` recurses via `control.elements[i]`, `proxy.length` returns element count | Structure on parent, then recurses per-element |
+| Array | Proxy — `proxy[i]` recurses via `control.elementsNow[i]`, `proxy.length` returns element count | Structure on parent, then recurses per-element |
 
 The proxy is recursive — `proxy.address.city` traverses `control.fields.address.fields.city`, subscribing to each level only as accessed. This is the explicit `ReadContext` equivalent of the `[patch]` layer's implicit reactive property getters, but scoped and without globals.
 
@@ -526,7 +526,7 @@ class WriteContextImpl {
 ### 3. Control is read-only interface, mutations on ControlImpl
 
 `Control<V>` exposes only read and subscription operations:
-- `uniqueId`, `current` (snapshot), `fields`, `elements`, `subscribe`, `unsubscribe`, `cleanup`, `meta`, `as`
+- `uniqueId`, `current` (snapshot), `fields`, `elementsNow`, `subscribe`, `unsubscribe`, `cleanup`, `meta`, `as`
 - `validate` lives on `WriteContext` (not `Control`) — it needs a write batch to set errors. `@react-typed-forms/core` monkey-patches a convenience `control.validate()` for legacy compat
 - No `value` setter, no `set*` methods on Control
 
@@ -574,7 +574,7 @@ Hooks and form components stay in `@react-typed-forms/core` for now — the `con
 
 ### What stays in `@astroapps/controls` (clean core)
 
-- `Control<V>` with only `*Now` snapshot reads, `fields`, `elements`, `subscribe`/`unsubscribe`, `meta`, `uniqueId`
+- `Control<V>` with only `*Now` snapshot reads, `fields`, `elementsNow`, `subscribe`/`unsubscribe`, `meta`, `uniqueId`
 - `ReadContext` / `WriteContext` interfaces
 - `newControl()` factory
 - Subscription bitmask system (`ControlChange`, `Subscription`, `ChangeListenerFunc`)

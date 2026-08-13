@@ -44,7 +44,7 @@ function mount(ui: React.ReactNode, strict = false) {
 }
 
 const groupsOf = (c: Control<SelectionGroup<string>[]>) =>
-  (c.elements as Control<SelectionGroup<string>>[]).map((g) => ({
+  (c.elementsNow as Control<SelectionGroup<string>>[]).map((g) => ({
     selected: g.fields.selected.valueNow,
     value: g.fields.value.valueNow,
   }));
@@ -79,7 +79,7 @@ describe("useSelectableArray", () => {
     }
 
     mount(<Comp />);
-    const first = (selectable.elements as Control<SelectionGroup<string>>[])[0];
+    const first = (selectable.elementsNow as Control<SelectionGroup<string>>[])[0];
     act(() =>
       ctx.update((wc) => wc.setValue(first.fields.selected, false)),
     );
@@ -100,7 +100,7 @@ describe("useSelectableArray", () => {
     }
 
     mount(<Comp />);
-    const group = (selectable.elements as Control<SelectionGroup<string>>[])[0];
+    const group = (selectable.elementsNow as Control<SelectionGroup<string>>[])[0];
     act(() => ctx.update((wc) => wc.setValue(group.fields.value, "edited")));
     expect(arr.valueNow).toEqual(["edited"]);
   });
@@ -127,7 +127,7 @@ describe("useSelectableArray", () => {
     // The initial sync keeps only selected values.
     expect(arr.valueNow).toEqual(["b"]);
 
-    const groups = selectable.elements as Control<SelectionGroup<string>>[];
+    const groups = selectable.elementsNow as Control<SelectionGroup<string>>[];
     act(() =>
       ctx.update((wc) => wc.setValue(groups[2].fields.selected, true)),
     );
@@ -195,7 +195,7 @@ describe("useSelectableArray", () => {
       { selected: true, value: "b" },
     ]);
 
-    const first = (selectable.elements as Control<SelectionGroup<string>>[])[0];
+    const first = (selectable.elementsNow as Control<SelectionGroup<string>>[])[0];
     act(() =>
       ctx.update((wc) => wc.setValue(first.fields.selected, false)),
     );

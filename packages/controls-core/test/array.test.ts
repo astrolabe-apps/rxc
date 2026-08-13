@@ -16,7 +16,7 @@ describe("array", () => {
           const val2 = obj.map((x) => x.v2);
           const arr1 = ctx.newControl(val1);
           const elems2 = val2.map((x) => ctx.newControl(x));
-          const origElems = arr1.elements;
+          const origElems = arr1.elementsNow;
           ctx.update((wc) =>
             wc.updateElements(arr1, (x) => [...elems2, ...x]),
           );
@@ -36,7 +36,7 @@ describe("array", () => {
         const changes: ControlChange[] = [];
         const f = ctx.newControl(obj);
         f.subscribe((a, c) => changes.push(c), ControlChange.Value);
-        ctx.update((wc) => wc.setValue(f.elements[0], obj[0] + "a"));
+        ctx.update((wc) => wc.setValue(f.elementsNow[0], obj[0] + "a"));
         expect(changes).toStrictEqual([ControlChange.Value]);
         expect(f.valueNow).toStrictEqual([obj[0] + "a", ...obj.slice(1)]);
         return f.dirtyNow;
@@ -52,7 +52,7 @@ describe("array", () => {
         const f = ctx.newControl(obj);
         f.subscribe((a, c) => changes.push(c), ControlChange.InitialValue);
         ctx.update((wc) =>
-          wc.setInitialValue(f.elements[ind], obj[ind] + "a"),
+          wc.setInitialValue(f.elementsNow[ind], obj[ind] + "a"),
         );
         expect(changes).toStrictEqual([]);
         expect(f.initialValueNow).toStrictEqual(obj);
@@ -68,7 +68,7 @@ describe("array", () => {
         (obj) => {
           const ctx = makeCtx();
           const arr1 = ctx.newControl(obj.map((x) => x.v1));
-          const elems1 = arr1.elements;
+          const elems1 = arr1.elementsNow;
           ctx.update((wc) =>
             elems1.forEach((c, i) => wc.setValue(c, obj[i].v2)),
           );
@@ -100,7 +100,7 @@ describe("array", () => {
           const ctx = makeCtx();
           const arr1 = ctx.newControl(obj.map((x) => x.v1));
           const arr2 = ctx.newControl(obj.map((x) => x.v2));
-          const elems2 = arr2.elements;
+          const elems2 = arr2.elementsNow;
           ctx.update((wc) => wc.setValue(arr2, []));
           ctx.update((wc) =>
             elems2.forEach((c, i) => wc.setValue(c, obj[i].v1)),
@@ -125,7 +125,7 @@ describe("array", () => {
         expect(control.valueNow).toStrictEqual([-1, ...numArray, 0]);
         ctx.update((wc) => wc.addElement(control, -2, 0, true));
         expect(control.valueNow).toStrictEqual([-1, -2, ...numArray, 0]);
-        ctx.update((wc) => wc.setValue(control.elements[0], 1));
+        ctx.update((wc) => wc.setValue(control.elementsNow[0], 1));
         expect(control.valueNow).toStrictEqual([1, -2, ...numArray, 0]);
       }),
     );
@@ -143,7 +143,7 @@ describe("array", () => {
           (a, c) => changes.push(c),
           ControlChange.Value | ControlChange.InitialValue,
         );
-        const child = control.elements[0];
+        const child = control.elementsNow[0];
         ctx.update((wc) => wc.setValue(child, childValue + "a"));
         child.subscribe(
           (a, c) => childChanges.push(c),
@@ -190,23 +190,23 @@ describe("array", () => {
       fc.property(arrayAndIndex, arrayAndIndex, ([obj, ind], [obj2, ind2]) => {
         const ctx = makeCtx();
         const control = ctx.newControl(obj);
-        expect(control.elements.map((x) => getElementIndex(x))).toStrictEqual(
-          control.elements.map((_, i) => ({ index: i, initialIndex: i })),
+        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+          control.elementsNow.map((_, i) => ({ index: i, initialIndex: i })),
         );
         ctx.update((wc) => wc.removeElement(control, ind));
-        expect(control.elements.map((x) => getElementIndex(x))).toStrictEqual(
-          control.elements.map((_, i) => ({
+        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+          control.elementsNow.map((_, i) => ({
             index: i,
             initialIndex: i >= ind ? i + 1 : i,
           })),
         );
         ctx.update((wc) => wc.setInitialValue(control, obj2));
-        expect(control.elements.map((x) => getElementIndex(x))).toStrictEqual(
-          control.elements.map((_, i) => ({ index: i, initialIndex: i })),
+        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+          control.elementsNow.map((_, i) => ({ index: i, initialIndex: i })),
         );
         ctx.update((wc) => wc.removeElement(control, ind2));
-        expect(control.elements.map((x) => getElementIndex(x))).toStrictEqual(
-          control.elements.map((_, i) => ({
+        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+          control.elementsNow.map((_, i) => ({
             index: i,
             initialIndex: i >= ind2 ? i + 1 : i,
           })),
@@ -221,8 +221,8 @@ describe("array", () => {
         const ctx = makeCtx();
         const control = ctx.newControl(obj);
         ctx.update((wc) => wc.addElement(control, "", ind));
-        expect(control.elements.map((x) => getElementIndex(x))).toStrictEqual(
-          control.elements.map((_, i) => ({
+        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+          control.elementsNow.map((_, i) => ({
             index: i,
             initialIndex: i == ind ? undefined : i < ind ? i : i - 1,
           })),
@@ -247,8 +247,8 @@ describe("array", () => {
               [...x].sort((a, b) => a.valueNow - b.valueNow),
             ),
           );
-          expect(control.elements.map((x) => getElementIndex(x))).toStrictEqual(
-            control.elements.map((c, i) => ({
+          expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+            control.elementsNow.map((c, i) => ({
               index: i,
               initialIndex: obj.indexOf(c.valueNow),
             })),

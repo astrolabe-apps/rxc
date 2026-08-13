@@ -84,8 +84,8 @@ describe("errors", () => {
           const changes: ControlChange[] = [];
           parent.subscribe((a, c) => changes.push(c), ControlChange.Valid);
           expect(parent.validNow).toStrictEqual(true);
-          const brokenParent = parent.elements[0];
-          const brokenChild = brokenParent.elements[0];
+          const brokenParent = parent.elementsNow[0];
+          const brokenChild = brokenParent.elementsNow[0];
           ctx.update((wc) => wc.setValue(brokenChild, ""));
           expect(brokenChild.validNow).toStrictEqual(false);
           expect(parent.validNow).toStrictEqual(false);

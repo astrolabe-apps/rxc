@@ -74,6 +74,7 @@ All in `docs/`:
 - **MIGRATION-FROM-LEGACY.md** — Rosetta stone for porting hosts and custom renderer sets from `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` onto `@rxc/forms` + `@rxc/forms-react-core`. Maps every legacy registration shape, hook, and slot to its new equivalent, calls out mechanical ports vs translations, and lists known gaps. The renderer engine itself has no design doc — the implementation in `packages/forms-react-core/src` and `packages/forms/src` is the source of truth.
 - **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, React-adapter rationale.
 - **RENDER-BOUNDARY.md** — The authoritative reference for how a component gets reactive reads: the `useControls()` / `rendered(…)` contract, why reconcile must stay synchronous with the render body, `Rendered` branded-type enforcement, the dev-mode guard, and behaviour under throw/suspend. **Settled semantics.**
+- **COMPAT-CONTROLS-DESIGN.md** — Design for `@rxc/compat-controls`: three ambient bridges (collector → SubscriptionReconciler, ambient WriteContext, singleton ControlContext), `ControlImpl.prototype` patching, the `withAmbient(rc, fn)` rc-bridge trick, full legacy export inventory with dispositions, phasing A/B/C. Targets `@react-typed-forms/core@4.6.0`.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
 
@@ -477,7 +478,7 @@ Reference port target: `astrolabe-common/astrolabe-schemas-editor/src/`.
 
 ### Phase 5 — Legacy compat packages
 
-- `@rxc/compat-controls` — Monkey-patches `Control.prototype` to restore `.value`, `.touched` getters, `useControl()` hook, `Finput`/`Fselect`/`Fcheckbox` components, global transaction machinery.
+- `@rxc/compat-controls` — Design complete: `docs/COMPAT-CONTROLS-DESIGN.md`. Monkey-patches `ControlImpl.prototype` (via the internal subpath) to restore `.value`/`.touched` getters + mutators; three compat-owned ambient bridges (read collector, write transaction, singleton context) map the legacy globals onto explicit-reactivity primitives; React hooks/components are thin adapters over `@rxc/controls` via `withAmbient(rc, fn)`. The `/controls` kitchen-sink demo pair is the acceptance test.
 - `@rxc/compat-forms` — Wraps `@rxc/forms` with the old `createFormRenderer()` / `FormRenderer` interface. Mapping legacy `RendererRegistration[]` to new matcher functions; renderers that returned plain `ReactNode` port mechanically; renderers that mutated `ControlLayoutProps` need manual translation (documented limitation).
 
 ### Smaller follow-ups

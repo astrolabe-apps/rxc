@@ -85,13 +85,17 @@ export interface Control<V> {
   readonly errorsNow: Record<string, string>;
   readonly isNullNow: boolean;
 
-  // Structural navigation
+  // Structural navigation. `fields` lazily materializes child controls on
+  // access; `elementsNow` lazily materializes the element controls for the
+  // current value. Both are untracked ("Now") — subscribe to structure via
+  // `rc.getElements` in reactive scopes.
   readonly fields: ControlFields<V>;
-  readonly elements: ControlElements<V>;
+  readonly elementsNow: ControlElements<V>;
 
-  // Snapshot structural reads (no lazy creation)
-  readonly fieldsNow: Record<string, Control<unknown>>;
-  readonly elementsNow: Control<unknown>[];
+  // Snapshot structural read (no lazy creation): only the fields that have
+  // been materialized — a field nobody has navigated to yet is absent, hence
+  // `| undefined` on every lookup.
+  readonly fieldsNow: Record<string, Control<unknown> | undefined>;
 
   // Subscriptions
   subscribe(listener: ChangeListenerFunc<V>, mask: ControlChange): Subscription;
@@ -154,7 +158,7 @@ export interface ReadContext {
    * - For objects: tracks Structure, returns a Proxy where property access
    *   recurses through `control.fields[prop]` → `getValueRx(child)`
    * - For arrays: tracks Structure, returns a Proxy where index access
-   *   recurses through `control.elements[i]` → `getValueRx(elem)`
+   *   recurses through `control.elementsNow[i]` → `getValueRx(elem)`
    *
    * This gives fine-grained reactivity: reading `proxy.name` only subscribes
    * to the `name` child control, not the entire parent.

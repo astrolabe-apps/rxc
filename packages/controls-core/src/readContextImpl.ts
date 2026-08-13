@@ -92,7 +92,7 @@ export const noopReadContext: ReadContext = {
     return control.errorsNow;
   },
   getElements<V>(control: Control<V[]>): Control<V>[] {
-    return control.elements as unknown as Control<V>[];
+    return control.elementsNow;
   },
   getValueRx<V>(control: Control<V>): V {
     return createValueRxProxy(control, this);

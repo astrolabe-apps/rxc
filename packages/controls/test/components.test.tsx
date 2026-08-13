@@ -125,7 +125,7 @@ describe("RenderElements", () => {
     expect(list).toBe(1);
     expect(rows).toEqual([1, 1, 1]);
 
-    act(() => ctx.update((wc) => wc.setValue(arr.elements[1] as any, "B")));
+    act(() => ctx.update((wc) => wc.setValue(arr.elementsNow[1] as any, "B")));
     expect(container.textContent).toBe("aBc");
     // The list subscribed to structure only; one row re-rendered.
     expect(list).toBe(1);

@@ -29,7 +29,7 @@ export type SelectionGroupSync<V> = (
 ) => [boolean, Control<V>, boolean?][];
 
 const defaultSelectionCreator: SelectionGroupSync<unknown> = (original) =>
-  (original.elements as Control<unknown>[]).map((x) => [true, x]);
+  original.elementsNow.map((x) => [true, x]);
 
 /**
  * A {@link SelectionGroupSync} that guarantees an entry per value of
@@ -45,7 +45,7 @@ export function ensureSelectableValues<V>(
   key: (v: V) => unknown,
 ): SelectionGroupSync<V> {
   return (original, ctx) => {
-    const remaining = [...(original.elements as Control<V>[])];
+    const remaining = [...original.elementsNow];
     const fromValues: [boolean, Control<V>, boolean?][] = values.map((x) => {
       const index = remaining.findIndex((e) => key(e.valueNow) === key(x));
       const existing = index >= 0 ? remaining.splice(index, 1)[0] : undefined;
@@ -105,7 +105,7 @@ export function useSelectableArray<V>(
     const syncToOriginal = () =>
       ctx.update((wc) =>
         wc.updateElements(control, () =>
-          (selectable.elements as Control<SelectionGroup<V>>[])
+          selectable.elementsNow
             .filter((g) => g.fields.selected.valueNow)
             .map((g) => g.fields.value),
         ),

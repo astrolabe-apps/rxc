@@ -50,7 +50,7 @@ describe("controlGroup", () => {
   it("keeps a child shared with another parent in sync", () => {
     const ctx = makeCtx();
     const arr = ctx.newControl<string[]>(["x"]);
-    const elem = arr.elements[0];
+    const elem = arr.elementsNow[0];
 
     const group = controlGroup(ctx, { value: elem });
     ctx.update((wc) => wc.setValue(group, { value: "y" }));
