@@ -65,7 +65,7 @@ export class WriteContextImpl implements WriteContext {
   }
 
   validate(control: Control<unknown>): boolean {
-    return toImpl(control).validate(this.notify, this);
+    return toImpl(control).validateImpl(this.notify, this);
   }
 
   // ── Array methods ─────────────────────────────────────────────

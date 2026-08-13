@@ -280,9 +280,14 @@ supertype structurally at runtime, enforced by the patch).
 
 Collisions audit: **zero overrides.** Every patched member is either absent
 from core (`value`, `error`, `elements`, mutators) or already identical
-(`subscribe`, `meta`, `fields`, `uniqueId`). Core renamed its element
-accessor to `elementsNow` specifically to keep it that way — re-audit this
-table against core whenever core's `Control` grows a member.
+(`subscribe`, `meta`, `fields`, `uniqueId`). Core made two renames
+specifically to keep it that way — the public element accessor became
+`elementsNow`, and `ControlImpl`'s internal `validate(notify, wc)` became
+`validateImpl` (matching the `setValueImpl` convention) so legacy
+`control.validate()` could be patched without shadowing the method
+`WriteContext.validate` dispatches to. The patch dev-asserts `!(name in
+prototype)` per member on load — re-audit whenever core's `Control` grows a
+member.
 
 ## The React layer
 
@@ -367,7 +372,12 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 
 - **Phase A — engine bridge (no React)**: compat `Control` type, prototype
   patch, Bridges 1–3, `newControl`/array ops/transactions/`collectChanges`,
-  trivial function ports. Unit tests for the bridges.
+  trivial function ports. Unit tests for the bridges. ✅ **Shipped** (40
+  tests). Notes from implementation: `updateComputedValue` builds on core
+  `computed()` (eager first run, torn down by `control.cleanup()`);
+  `withChildren`/`addCleanup`/`cleanupControl`/`createCleanupScope` turned
+  out trivial and shipped in A rather than C; `delayedValue` re-computes per
+  read (legacy parity — no caching).
 - **Phase B — React surface**: `useComponentTracking`/`useTrackedComponent`,
   all hook adapters, F-components, render helpers, `formControlProps` /
   `useFormControlProps`, FormEdit re-exports. The `/compat` kitchen-sink page

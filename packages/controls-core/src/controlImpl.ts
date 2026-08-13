@@ -452,8 +452,8 @@ export class ControlImpl<V = unknown> implements Control<V> {
     }
   }
 
-  validate(notify: NotifyFn, wc: WriteContext): boolean {
-    this.withChildren((c) => c.validate(notify, wc));
+  validateImpl(notify: NotifyFn, wc: WriteContext): boolean {
+    this.withChildren((c) => c.validateImpl(notify, wc));
     this._subscriptions?.runMatchingListeners(this, ControlChange.Validate, wc);
     notify(this);
     return this.isValid();
