@@ -139,6 +139,12 @@ const formSetup: ControlSetup<FormData> = {
 const controlContext = createControlContext();
 
 const NAV_LINKS: { href: string; label: string; description: string }[] = [
+  {
+    href: "/controls",
+    label: "/controls",
+    description:
+      "@rxc/controls kitchen sink — legacy core surface ported, pair with localhost:3001/controls",
+  },
   { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
   {
     href: "/showcase",

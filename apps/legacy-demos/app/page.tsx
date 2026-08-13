@@ -15,6 +15,12 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     description:
       "Staged-edit modal (ArrayRenderOptions.editExternal) baseline — pair with localhost:3000/externaledit in the dev app.",
   },
+  {
+    href: "/controls",
+    label: "/controls",
+    description:
+      "@react-typed-forms/core kitchen sink — every core hook/component — pair with localhost:3000/controls in the dev app.",
+  },
 ];
 
 export default function Home(): ReactElement {
