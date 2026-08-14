@@ -19,7 +19,7 @@ For background on *why* the redesign turned out the way it did, see `docs/legacy
 
 `@rxc/forms` re-exports `@rxc/forms-react-core` so consumers import from `@rxc/forms` only. The split exists so a future `@rxc/forms-native` (or `@rxc/forms-mui`) can sit on the same headless layer.
 
-A planned `@rxc/compat-controls` and `@rxc/compat-forms` will provide best-effort shims for the legacy APIs — neither is implemented yet. This doc assumes a direct port.
+For the *controls* layer, `@rxc/compat-controls` provides a drop-in shim for `@react-typed-forms/core` consumers (see `docs/COMPAT-CONTROLS-DESIGN.md`). For the schemas/renderer layer there is deliberately no compat package — this doc's direct port is the migration path.
 
 ## Entry points
 

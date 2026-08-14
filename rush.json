@@ -52,11 +52,6 @@
       "shouldPublish": true
     },
     {
-      "packageName": "@rxc/compat-forms",
-      "projectFolder": "packages/compat-forms",
-      "shouldPublish": true
-    },
-    {
       "packageName": "rxc-dev-app",
       "projectFolder": "apps/dev",
       "shouldPublish": false

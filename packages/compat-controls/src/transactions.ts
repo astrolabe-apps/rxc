@@ -25,8 +25,18 @@ export function runInWc<A>(fn: (wc: WriteContext) => A): A {
   try {
     return fn(wc);
   } finally {
-    currentWc = null;
-    wc.flush();
+    try {
+      // The wc stays ambient through its own flush: compat writes and
+      // `addAfterChangesCallback` calls made from inside subscription
+      // listeners join this transaction (flush's drain loops pick them up),
+      // reproducing legacy's single listener storm per transaction. The
+      // effects API depends on this — an Effect defers its re-run via
+      // addAfterChangesCallback from inside a listener, coalescing several
+      // dependency changes in one transaction into one run.
+      wc.flush();
+    } finally {
+      currentWc = null;
+    }
   }
 }
 

@@ -19,7 +19,7 @@ import { getCompatContext } from "./context";
 import { newControl } from "./newControl";
 import { asLegacy, asCore } from "./patch";
 import { runInWc } from "./transactions";
-import type { CleanupScopeImpl, Control, Value } from "./types";
+import type { CleanupScope, CleanupScopeImpl, Control, Value } from "./types";
 
 export { deepEquals };
 
@@ -186,6 +186,11 @@ export function addCleanup(scope: { addCleanup(cb: () => void): void }, cleanup:
 
 export function cleanupControl(c: Control<any>): void {
   c.cleanup();
+}
+
+/** Tear down `child` when `parent`'s scope cleans up. */
+export function addDependent(parent: CleanupScope, child: Control<any>): void {
+  parent.addCleanup(() => child.cleanup());
 }
 
 export function createCleanupScope(): CleanupScopeImpl {

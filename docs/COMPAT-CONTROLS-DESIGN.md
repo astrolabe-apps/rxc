@@ -330,9 +330,9 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 | `getCurrentFields`, `cloneFields`, `controlNotNull`, `notEmpty`, `delayedValue` | trivial compat-local ports |
 | `updateComputedValue(c, compute)` | core `computed(ctx, c, (rc) => withAmbient(rc, compute))` — verify legacy's exact "recompute on read vs on change" contract during implementation |
 | `groupedChanges`, `runTransaction`, `addAfterChangesCallback`, `runPendingChanges`, `setChangeCollector`, `collectChange`, `collectChanges`, `trackControlChange` | Bridges 1–2 |
-| `createEffect`, `createSyncEffect`, `createScopedEffect`, `AsyncEffect`, `createAsyncEffect`, `SubscriptionTracker` | Phase C: `SubscriptionTracker` = Map + `SubscriptionReconciler` + ambient install/uninstall (the non-React half of `useComponentTracking`); effects build on it. `@rxc/compat-forms` needs these (legacy schemas' async tracking) |
-| `trackedValue`, `unsafeRestoreControl`, `unwrapTrackedControl` | Phase C: port legacy proxy over compat getters; explicit `tracker` param maps to a collector. Prerequisite for `@rxc/compat-forms` and the editor |
-| `addCleanup`, `cleanupControl`, `createCleanupScope`, `addDependent`, `withChildren` | Phase C: meta-backed cleanup list (see patch table); `addDependent`/`withChildren` need a semantics check against legacy source before porting |
+| `createEffect`, `createSyncEffect`, `createScopedEffect`, `AsyncEffect`, `createAsyncEffect`, `SubscriptionTracker` | ✅ ported near-verbatim (`effects.ts`): `SubscriptionTracker` runs on the public per-control `subscribe`/`unsubscribe` (identical in the new engine — no reconciler needed); effects defer re-runs via `addAfterChangesCallback`, which coalesces to one run per transaction because `runInWc` keeps the ambient wc open through its own flush |
+| `trackedValue`, `unsafeRestoreControl`, `unwrapTrackedControl` | ✅ ported verbatim (`trackedValue.ts`) over `current` + patched navigation; explicit `tracker` param, ambient collector default |
+| `addCleanup`, `cleanupControl`, `createCleanupScope`, `addDependent`, `withChildren` | ✅ shipped (meta-backed cleanup list; `addDependent` = parent cleanup tears down child, legacy-verbatim) |
 | `getControlMetrics`, `getHeavyControls`, `getControlById`, `printControlMetrics`, `printHeavyControls`, `ControlMetricsRegistry`, `unsafeFreezeCountEdit` | no-op stubs (documented) |
 | `ControlChange`, `ChangeListenerFunc`, `Subscription`, `ControlSetup`, `ControlValue`, `ControlFields`, `ControlElements`, `ControlProperties`, `FormControlProps`, `SelectionGroup` | type re-exports/re-declarations against the compat `Control` |
 
@@ -395,9 +395,15 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
   debounce without legacy's conditional-hook call; `controlValues`' single
   argument is always the record form (legacy contract).
 - **Phase C — schemas prerequisites**: `trackedValue` + `SubscriptionTracker`
-  + effects + cleanup scopes. Gate: whatever `@rxc/compat-forms`' first
-  vertical slice needs. (`@astroapps/controls` deep-cuts like `addDependent`,
-  `withChildren`, `delayedValue` verified against legacy source here.)
+  + effects + cleanup scopes. ✅ **Shipped** (17 further tests; 79 total).
+  Notes: `SubscriptionTracker`/`Effect`/`AsyncEffect` ported near-verbatim —
+  they only ever needed the public control surface plus the ambient bridges.
+  One Bridge-2 semantic fix fell out: `runInWc` now keeps the ambient wc
+  open **through its own flush**, so writes and `addAfterChangesCallback`
+  calls made from inside subscription listeners join the flushing
+  transaction (its drain loops pick them up) — reproducing legacy's single
+  listener storm per transaction, which is what makes an Effect's deferred
+  re-run coalesce to once per `groupedChanges` batch.
 
 ## Open questions
 

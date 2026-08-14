@@ -3,8 +3,8 @@
  * `@react-typed-forms/core` / `@astroapps/controls` surface, running on
  * `@rxc/controls-core`. See `docs/COMPAT-CONTROLS-DESIGN.md`.
  *
- * Phases A (engine bridge) + B (React surface) are implemented;
- * `trackedValue` and the effects API land with Phase C.
+ * All three phases are implemented: A (engine bridge), B (React surface),
+ * C (`trackedValue` + the effects API + `SubscriptionTracker`).
  */
 
 // The prototype patch is a load-time side effect — importing anything from
@@ -129,11 +129,31 @@ export {
   type RenderElementsProps,
 } from "./components";
 
+// ── Effects (Phase C) ────────────────────────────────────────────────
+export {
+  AsyncEffect,
+  Effect,
+  SubscriptionTracker,
+  createAsyncEffect,
+  createEffect,
+  createScopedEffect,
+  createSyncEffect,
+  type TrackedSubscription,
+} from "./effects";
+
+// ── trackedValue (Phase C) ───────────────────────────────────────────
+export {
+  trackedValue,
+  unsafeRestoreControl,
+  unwrapTrackedControl,
+} from "./trackedValue";
+
 // ── Functions, meta, cleanup, stubs ──────────────────────────────────
 export {
   ControlImpl,
   ControlMetricsRegistry,
   addCleanup,
+  addDependent,
   cleanupControl,
   clearMetaValue,
   cloneFields,

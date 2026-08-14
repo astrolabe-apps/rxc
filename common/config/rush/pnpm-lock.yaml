@@ -291,37 +291,6 @@ importers:
         specifier: ~3.1.0
         version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.30.2)
 
-  ../../packages/compat-forms:
-    dependencies:
-      '@rxc/compat-controls':
-        specifier: workspace:*
-        version: link:../compat-controls
-      '@rxc/controls':
-        specifier: workspace:*
-        version: link:../controls
-      '@rxc/controls-core':
-        specifier: workspace:*
-        version: link:../controls-core
-      '@rxc/forms':
-        specifier: workspace:*
-        version: link:../forms
-      '@rxc/forms-core':
-        specifier: workspace:*
-        version: link:../forms-core
-    devDependencies:
-      '@types/react':
-        specifier: ~19.1.0
-        version: 19.1.17
-      react:
-        specifier: ~19.1.0
-        version: 19.1.7
-      typescript:
-        specifier: ~5.8.0
-        version: 5.8.3
-      vitest:
-        specifier: ~3.1.0
-        version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.30.2)
-
   ../../packages/controls:
     dependencies:
       '@rxc/controls-core':
