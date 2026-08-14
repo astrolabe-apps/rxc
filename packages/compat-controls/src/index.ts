@@ -1,7 +1,9 @@
 /**
- * @rxc/compat-controls — drop-in replacement for the legacy
- * `@react-typed-forms/core` / `@astroapps/controls` surface, running on
- * `@rxc/controls-core`. See `docs/COMPAT-CONTROLS-DESIGN.md`.
+ * @react-typed-forms/core v5 — the legacy v4 (`@react-typed-forms/core` /
+ * `@astroapps/controls`) surface reimplemented on `@rxc/controls-core`.
+ * Published under the legacy package name, so migrating is a semver-major
+ * bump plus the provider line below. Lives in the rxc repo as
+ * `packages/compat-controls`; design in `docs/COMPAT-CONTROLS-DESIGN.md`.
  *
  * All three phases are implemented: A (engine bridge), B (React surface),
  * C (`trackedValue` + the effects API + `SubscriptionTracker`).

@@ -263,7 +263,7 @@ const PATCH: Record<string, Accessor> = {
 
 // Guard against a second copy of this module re-patching (or a bundler
 // duplicating the package): a well-known symbol on the prototype.
-const PATCHED = Symbol.for("@rxc/compat-controls/patched");
+const PATCHED = Symbol.for("@react-typed-forms/core/compat-patched");
 
 export function ensurePatched(): void {
   const proto = ControlImpl.prototype as any;
@@ -273,7 +273,7 @@ export function ensurePatched(): void {
     if (IS_DEV && name in proto) {
       // eslint-disable-next-line no-console
       console.error(
-        `[@rxc/compat-controls] ControlImpl already defines "${name}" — ` +
+        `[@react-typed-forms/core] ControlImpl already defines "${name}" — ` +
           `the compat patch would shadow a core member. The core contract ` +
           `is that every legacy name stays free (see COMPAT-CONTROLS-DESIGN.md ` +
           `"Collisions audit"); skipping this member.`,

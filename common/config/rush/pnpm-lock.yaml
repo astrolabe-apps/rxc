@@ -21,7 +21,7 @@ importers:
       '@dnd-kit/utilities':
         specifier: ~3.2.0
         version: 3.2.2(react@19.1.7)
-      '@rxc/compat-controls':
+      '@react-typed-forms/core':
         specifier: workspace:*
         version: link:../../packages/compat-controls
       '@rxc/controls':

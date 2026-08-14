@@ -1,10 +1,13 @@
-# @rxc/compat-controls — Design
+# @react-typed-forms/core v5 (compat) — Design
 
-A drop-in replacement for the published `@react-typed-forms/core` (and its
-re-exported `@astroapps/controls` surface), implemented on top of
-`@rxc/controls-core` + `@rxc/controls`. Existing legacy consumers keep their
-source unchanged — ambient `.value` reads, global transactions, the SWC
-tracking plugin — while running on the new explicit-reactivity engine.
+The v5 major of `@react-typed-forms/core`: the legacy v4 surface (including
+its re-exported `@astroapps/controls`) reimplemented on top of
+`@rxc/controls-core` + `@rxc/controls`, published under the legacy package
+name. Existing legacy consumers keep their source unchanged — ambient
+`.value` reads, global transactions, the SWC tracking plugin — while running
+on the new explicit-reactivity engine. (Repo folder:
+`packages/compat-controls`; designed under the working name
+`@rxc/compat-controls`.)
 
 Reference legacy version: `@react-typed-forms/core@4.6.0` /
 `@astroapps/controls@1.4.2`. The compat surface targets that release
@@ -12,8 +15,9 @@ Reference legacy version: `@react-typed-forms/core@4.6.0` /
 
 ## Goals
 
-1. **Source-compatible**: a legacy app switches by aliasing the package (or
-   renaming imports) — no code changes beyond the alias.
+1. **Source-compatible**: a legacy app switches by bumping
+   `@react-typed-forms/core` to `^5.0.0` — no import changes, no code changes
+   beyond the one-line root provider.
 2. **Interoperable**: compat controls and new-API controls are the *same*
    objects. A control created via compat `newControl()` can be read through a
    new-API `rc`, passed to `@rxc/controls` components, and vice versa. This is
@@ -35,29 +39,34 @@ Reference legacy version: `@react-typed-forms/core@4.6.0` /
 
 ## How consumers adopt it
 
-Two supported modes, both giving the full legacy import surface:
+The package is **published under the legacy name as its next major:
+`@react-typed-forms/core@5.0.0`** (open question 1, resolved the strong
+way). Migration is a plain semver-major bump — no aliasing, no import
+renames, and the SWC tracking plugin keeps working because its injected
+import specifier resolves to the same package name:
 
-1. **Bundler/package alias** (near-zero source change):
-   - npm/pnpm: `"@react-typed-forms/core": "npm:@rxc/compat-controls@^0.1"`
-     (overrides/resolutions for transitive deps).
-   - or webpack/vite `resolve.alias`, tsconfig `paths` for types.
-2. **Import rename**: `@react-typed-forms/core` → `@rxc/compat-controls`.
+1. `@react-typed-forms/core`: `^4.x` → `^5.0.0`.
+2. Mount `<ControlContextProvider value={getCompatContext()}>` at the app
+   root so the React layer resolves a context (see Bridge 3).
 
-Either way, one additional one-time step: mount
-`<ControlContextProvider value={getCompatContext()}>` at the app root so the
-React layer resolves a context (see Bridge 3).
+In this repo the package lives at `packages/compat-controls` with
+`"name": "@react-typed-forms/core"`. The legacy reference apps
+(`legacy-demos`, `legacy-compare`) deliberately stay on the published 4.6
+baseline: `decoupledLocalDependencies` in `rush.json` makes their `^4.6.0`
+resolve from the registry instead of the workspace, and
+`allowedAlternativeVersions` permits the two ranges to coexist.
 
 The package also re-exports the *new* API (`useControls`, `createControlContext`,
-`ReadContext`, …) under a `@rxc/compat-controls/next` subpath so a migrating
-app can adopt new-style components file-by-file without adding a second
-dependency edge.
+`ReadContext`, …) under a `@react-typed-forms/core/next` subpath so a
+migrating app can adopt new-style components file-by-file without adding a
+second dependency edge. (Not yet implemented — depending on `@rxc/controls`
+directly works too.)
 
 > The legacy SWC plugin (`@astroapps/swc-controls-plugin`) injects
-> `useComponentTracking()` calls that import from the legacy module specifier;
-> under mode 1 the alias redirects those to compat automatically. Verify the
-> plugin's emitted specifier during implementation; if it hardcodes
-> `@react-typed-forms/core`, mode 2 consumers must keep the alias for that one
-> specifier or disable the plugin per file.
+> `useComponentTracking()` calls importing from `@react-typed-forms/core` —
+> which is exactly this package, so the plugin keeps working with no
+> configuration at all. (This is the strongest argument for publishing under
+> the legacy name.)
 
 ## Architecture — three ambient bridges
 
@@ -356,7 +365,8 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 
 1. **The `/controls` kitchen-sink page is the acceptance test.** Copy
    `apps/legacy-demos/app/controls/page.tsx` into a dev-app route (e.g.
-   `/compat`) changing only the import to `@rxc/compat-controls` — it
+   `/compat`) — with the package published under the legacy name its
+   imports stay byte-identical; only the root provider is added — it
    exercises every hook, component, mutator, and render helper with known
    behavior on both engines. It must behave identically to both `/controls`
    pages. (No SWC plugin in the dev app: the page relies on
@@ -407,10 +417,10 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 
 ## Open questions
 
-1. **Package export shape**: should compat *also* publish under the exact
-   names `@react-typed-forms/core` (a stub package whose main re-exports
-   compat) to make transitive-dependency aliasing unnecessary? Decide when
-   first real consumer migrates.
+1. ~~**Package export shape**~~ — resolved beyond the original question: the
+   package *is* `@react-typed-forms/core@5.0.0`, not a stub or alias target.
+   (The `@rxc/compat-controls` working name survives only as the repo folder
+   `packages/compat-controls`.)
 2. **`NotDefinedContext`'s odd legacy typing** (function returning a context)
    — match the 4.6 runtime export exactly; check whether any consumer calls
    it vs uses it as a context.

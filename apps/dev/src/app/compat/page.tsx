@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * Phase B acceptance test for @rxc/compat-controls: the legacy
- * @react-typed-forms/core kitchen-sink page (legacy-demos /controls, port
- * 3001) with only two changes — the import, and the one-time
- * ControlContextProvider wrap at the root. Same sections, same ambient
- * `.value` reads, same legacy mutation style, now running on the
- * @rxc/controls-core engine. Pair with :3001/controls (legacy) and
- * /controls (rxc-native port).
+ * Acceptance test for @react-typed-forms/core v5 (the compat package,
+ * packages/compat-controls, published under the legacy name): the legacy
+ * kitchen-sink page (legacy-demos /controls, port 3001) with its imports
+ * UNCHANGED — the only edit is the one-time ControlContextProvider wrap at
+ * the root. Same sections, same ambient `.value` reads, same legacy
+ * mutation style, now running on the @rxc/controls-core engine. Pair with
+ * :3001/controls (published v4) and /controls (rxc-native port).
  *
  * The dev app doesn't run the legacy SWC tracking plugin, so the `tracked()`
  * wrapper below stands in for it: it is exactly the code the plugin injects
@@ -45,7 +45,7 @@ import {
   useValidator,
   useComponentTracking,
   useValueChangeEffect,
-} from "@rxc/compat-controls";
+} from "@react-typed-forms/core";
 
 // ── tracked(): what the legacy SWC plugin injects into every component ─
 
@@ -704,12 +704,13 @@ function PageBody() {
       <main className="mx-auto flex max-w-3xl flex-col gap-6">
         <header className="rounded-lg bg-white p-6 shadow">
           <h1 className="text-2xl font-bold text-zinc-900">
-            @rxc/compat-controls kitchen sink
+            @react-typed-forms/core v5 kitchen sink
           </h1>
           <p className="mt-2 text-sm text-zinc-600">
-            The legacy kitchen-sink page with its import changed to{" "}
-            <code>@rxc/compat-controls</code> plus a one-time root{" "}
-            <code>ControlContextProvider</code> — ambient reads and legacy
+            The legacy kitchen-sink page with its imports unchanged —{" "}
+            <code>@react-typed-forms/core</code> here is v5, the compat
+            package — plus a one-time root{" "}
+            <code>ControlContextProvider</code>. Ambient reads and legacy
             mutations running on the new engine. Compare with{" "}
             <a
               className="text-blue-600 hover:underline"
@@ -717,7 +718,7 @@ function PageBody() {
             >
               localhost:3001/controls
             </a>{" "}
-            (published legacy package) and{" "}
+            (published v4) and{" "}
             <a className="text-blue-600 hover:underline" href="/controls">
               /controls
             </a>{" "}

@@ -1,6 +1,6 @@
 /**
- * @rxc/compat-controls — the legacy `@react-typed-forms/core` /
- * `@astroapps/controls` type surface, re-declared over the new engine.
+ * @react-typed-forms/core v5 — the legacy v4 type surface, re-declared
+ * over the new engine.
  *
  * The runtime objects are `@rxc/controls-core` `ControlImpl`s with the legacy
  * members added by the prototype patch (see `patch.ts`); these types are the
@@ -9,7 +9,7 @@
  * is assignable wherever a core `Control<V>` is expected — same objects,
  * both APIs.
  *
- * Reference: `@react-typed-forms/core@4.6.0` type declarations.
+ * Reference: `@react-typed-forms/core@4.6.0` type declarations (the last v4).
  */
 
 import { ControlChange } from "@rxc/controls-core";

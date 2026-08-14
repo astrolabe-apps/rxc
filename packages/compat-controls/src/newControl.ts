@@ -39,7 +39,7 @@ export function convertSetup<V>(
     warnedEquals = true;
     // eslint-disable-next-line no-console
     console.warn(
-      "[@rxc/compat-controls] ControlSetup.equals is not supported — the " +
+      "[@react-typed-forms/core] ControlSetup.equals is not supported — the " +
         "engine uses context-level equality (deepEquals). The custom " +
         "comparator was ignored.",
     );
@@ -71,7 +71,7 @@ function resolveDelayed<V>(
     warnedDelayed = true;
     // eslint-disable-next-line no-console
     console.warn(
-      "[@rxc/compat-controls] DelayedSetup thunks are resolved eagerly — " +
+      "[@react-typed-forms/core] DelayedSetup thunks are resolved eagerly — " +
         "recursive setups are not supported by the engine.",
     );
   }

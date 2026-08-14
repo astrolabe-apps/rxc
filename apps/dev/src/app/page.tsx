@@ -149,7 +149,7 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     href: "/compat",
     label: "/compat",
     description:
-      "@rxc/compat-controls acceptance — the legacy kitchen-sink page unchanged, running on the new engine",
+      "@react-typed-forms/core v5 (compat) acceptance — the legacy kitchen-sink page, imports unchanged, on the new engine",
   },
   { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
   {

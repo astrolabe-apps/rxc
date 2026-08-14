@@ -1,6 +1,6 @@
 {
-  "name": "@rxc/compat-controls",
-  "version": "0.1.0",
+  "name": "@react-typed-forms/core",
+  "version": "5.0.0",
   "type": "module",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",

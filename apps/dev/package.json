@@ -21,7 +21,7 @@
     "next": "~16.1.0",
     "react": "~19.1.0",
     "react-dom": "~19.1.0",
-    "@rxc/compat-controls": "workspace:*"
+    "@react-typed-forms/core": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "~4.1.0",
