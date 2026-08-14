@@ -145,6 +145,12 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     description:
       "@rxc/controls kitchen sink — legacy core surface ported, pair with localhost:3001/controls",
   },
+  {
+    href: "/compat",
+    label: "/compat",
+    description:
+      "@rxc/compat-controls acceptance — the legacy kitchen-sink page unchanged, running on the new engine",
+  },
   { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
   {
     href: "/showcase",

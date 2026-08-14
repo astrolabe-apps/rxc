@@ -37,11 +37,15 @@ Reference legacy version: `@react-typed-forms/core@4.6.0` /
 
 Two supported modes, both giving the full legacy import surface:
 
-1. **Bundler/package alias** (zero source change):
+1. **Bundler/package alias** (near-zero source change):
    - npm/pnpm: `"@react-typed-forms/core": "npm:@rxc/compat-controls@^0.1"`
      (overrides/resolutions for transitive deps).
    - or webpack/vite `resolve.alias`, tsconfig `paths` for types.
 2. **Import rename**: `@react-typed-forms/core` → `@rxc/compat-controls`.
+
+Either way, one additional one-time step: mount
+`<ControlContextProvider value={getCompatContext()}>` at the app root so the
+React layer resolves a context (see Bridge 3).
 
 The package also re-exports the *new* API (`useControls`, `createControlContext`,
 `ReadContext`, …) under a `@rxc/compat-controls/next` subpath so a migrating
@@ -227,12 +231,14 @@ export function setCompatContext(ctx: ControlContext): void;  // compat-only exp
 - `newControl(value, setup, initialValue?)` → `compatContext.newControl` (+
   `wc.setInitialValue` when the third arg is given).
 - The React layer (`useControl` etc.) delegates to `@rxc/controls` hooks,
-  which resolve their context from `ControlContextProvider`. Compat wraps
-  `useControlContext` with a fallback: **provider if present, else the compat
-  singleton** — legacy apps have no provider; mixed apps that mount a
-  provider get coherent behavior with new-API components in the same tree.
-  (Implementation: read the React context directly and default, rather than
-  calling the throwing `useControlContext`.)
+  which resolve their context from `ControlContextProvider`. **Legacy apps
+  add one line at the root**:
+  `<ControlContextProvider value={getCompatContext()}>` (both names exported
+  from this package). This is a deliberate, explicit migration step — no
+  no-provider fallback exists, so `@rxc/controls` stays free of ambient
+  context globals. Using `getCompatContext()` as the value keeps
+  module-level `newControl()` controls and hook-created controls in one
+  context (one uniqueId sequence, one equality).
 - Reads and writes are context-free (Bridges 1–2), so "wrong context" can
   only affect creation-time concerns: `uniqueId` sequences and tree equality
   (`_ctx.equals` — the default `deepEquals` everywhere in practice).
@@ -381,7 +387,13 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 - **Phase B — React surface**: `useComponentTracking`/`useTrackedComponent`,
   all hook adapters, F-components, render helpers, `formControlProps` /
   `useFormControlProps`, FormEdit re-exports. The `/compat` kitchen-sink page
-  lands here and must reach parity.
+  lands here and must reach parity. ✅ **Shipped** (22 further tests + the
+  dev-app `/compat` acceptance page). Notes: no no-provider fallback — legacy
+  apps mount `<ControlContextProvider value={getCompatContext()}>` once at
+  the root (open question 3, resolved); `NotDefinedContext` ported as the
+  legacy lazy singleton-context factory; `useValueChangeEffect` composes its
+  debounce without legacy's conditional-hook call; `controlValues`' single
+  argument is always the record form (legacy contract).
 - **Phase C — schemas prerequisites**: `trackedValue` + `SubscriptionTracker`
   + effects + cleanup scopes. Gate: whatever `@rxc/compat-forms`' first
   vertical slice needs. (`@astroapps/controls` deep-cuts like `addDependent`,
@@ -396,7 +408,9 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 2. **`NotDefinedContext`'s odd legacy typing** (function returning a context)
    — match the 4.6 runtime export exactly; check whether any consumer calls
    it vs uses it as a context.
-3. **`useControlContext` fallback vs require-provider**: the design says
-   provider-else-singleton. If mixed apps prove confusing (two roots, two
-   contexts), consider a dev-mode warning when compat controls from different
-   contexts meet in one tree.
+3. ~~**`useControlContext` fallback vs require-provider**~~ — resolved:
+   provider required. A `setControlContextFallback` seam was prototyped in
+   `@rxc/controls` and removed — the one-line root
+   `<ControlContextProvider value={getCompatContext()}>` is an acceptable
+   migration step and keeps the React adapter free of module-global context
+   state.
