@@ -5,12 +5,17 @@
  *
  * The packing itself is just Rush:
  *
- *   rush build
  *   rush publish --publish --pack --include-all --release-folder <dir>
  *
  * which packs every `shouldPublish: true` project via `pnpm pack` (so
- * `workspace:*` specs are rewritten to real versions). Run those two commands
- * directly if that is all you want.
+ * `workspace:*` specs are rewritten to real versions).
+ *
+ * The build step is scoped to those same projects rather than being a bare
+ * `rush build`, which currently exits 1: the two legacy Next apps warn that
+ * ESLint isn't installed, and Rush treats "succeeded with warnings" as a
+ * non-zero exit. Those apps are not packed, so building `--to` each
+ * publishable project skips them and keeps the build honest about what the
+ * tarballs actually contain.
  *
  * What this script adds is the last step: writing an `overrides.json` for the
  * three packages a legacy `@react-typed-forms/core` consumer needs. Listing
@@ -56,7 +61,21 @@ function rushCmd(...cmdArgs) {
   execFileSync("node", [rush, ...cmdArgs], { cwd: repoRoot, stdio: "inherit" });
 }
 
-if (build) rushCmd("build");
+/** The projects `--include-all` will pack, straight from Rush. */
+function publishableProjects() {
+  const raw = execFileSync("node", [rush, "list", "--json"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  // `rush list` prefixes its JSON with a banner
+  const { projects } = JSON.parse(raw.slice(raw.indexOf("{")));
+  return projects.filter((p) => p.shouldPublish).map((p) => p.name);
+}
+
+if (build) {
+  rushCmd("build", ...publishableProjects().flatMap((n) => ["--to", n]));
+}
 
 fs.rmSync(out, { recursive: true, force: true });
 rushCmd(

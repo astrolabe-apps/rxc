@@ -29,20 +29,18 @@ loudly rather than silently giving you a second control context.
 
 ## Trying it before it is published
 
-The three packages are not on the registry yet, so pack them from the rxc repo.
-Packing is plain Rush:
-
-```bash
-rush build
-rush publish --publish --pack --include-all --release-folder /some/vendor/dir
-```
-
-Or run the helper, which does both and additionally writes an `overrides.json`
-for the three packages this stack needs:
+The three packages are not on the registry yet, so pack them from the rxc repo:
 
 ```bash
 node scripts/pack-compat.mjs --out /some/vendor/dir
 ```
+
+Packing itself is plain Rush — `rush publish --publish --pack --include-all
+--release-folder <dir>` — and you can run that directly. The helper adds two
+things: it writes the `overrides.json` below, and it scopes the preceding build
+to the publishable packages. A bare `rush build` currently exits 1 (the two
+legacy Next apps warn that ESLint isn't installed, and Rush treats "succeeded
+with warnings" as a failure), which would otherwise abort packing.
 
 In the consuming project, add those to **`pnpm.overrides`** (or, in a Rush repo,
 `globalOverrides` in `common/config/rush/pnpm-config.json`):

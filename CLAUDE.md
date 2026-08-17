@@ -39,6 +39,13 @@ rush publish --publish --pack --include-all --release-folder <dir>
 node scripts/pack-compat.mjs --out <dir>   # the above + a compat overrides.json
 ```
 
+**`rush build` currently exits 1.** The two legacy Next apps (`rxc-legacy-demos`,
+`rxc-legacy-compare-demo`) have no ESLint installed, Next reports that as a build
+warning, and Rush turns "succeeded with warnings" into a non-zero exit — so every
+package builds fine but the command still fails. Scripts must not shell out to a
+bare `rush build`: scope it, e.g. `rush build --to @react-typed-forms/core`, or
+`--to` each `shouldPublish: true` project (`rush list --json` reports the flag).
+
 ## Architecture
 
 ### Core design principles
