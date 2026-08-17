@@ -121,6 +121,11 @@ export interface Control<V> extends ControlProperties<V>, CleanupScopeImpl {
   element: any;
   meta: Record<string, any>;
   lookupControl(path: (string | number)[]): Control<any> | undefined;
+  /**
+   * Widen the control's value type. Purely a type-level cast — returns the
+   * same control. `V extends V2` keeps it to widening only, matching legacy.
+   */
+  as<V2>(): V extends V2 ? Control<V2> : never;
 
   // ── New-core snapshot surface, so compat controls flow into new-API
   //    positions unchanged ─────────────────────────────────────────────

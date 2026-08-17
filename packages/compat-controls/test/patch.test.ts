@@ -129,6 +129,15 @@ describe("prototype patch — getters", () => {
     expect(found?.value).toBe("n1");
   });
 
+  it("as() is an identity cast that widens the value type", () => {
+    const c = newControl<string>("a");
+    const widened: Control<string | undefined> = c.as<string | undefined>();
+    expect(widened).toBe(c);
+    // writes through the widened view land on the same control
+    widened.value = undefined;
+    expect(c.current.value).toBe(undefined);
+  });
+
   it("addCleanup/cleanup run once and clear", () => {
     const c = newControl("a");
     let runs = 0;

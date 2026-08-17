@@ -246,6 +246,12 @@ const PATCH: Record<string, Accessor> = {
       return coreLookupControl(this as CoreControl<any>, path);
     },
   },
+  // Type-level widening cast; the runtime is the identity, as in legacy.
+  as: {
+    value(this: ControlImpl<any>) {
+      return this;
+    },
+  },
   addCleanup: {
     value(this: ControlImpl<any>, cleanup: () => void) {
       ((this.meta[CLEANUP_KEY] ??= []) as (() => void)[]).push(cleanup);

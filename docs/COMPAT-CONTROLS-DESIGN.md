@@ -290,6 +290,7 @@ supertype structurally at runtime, enforced by the patch).
 | `isEqual(a,b)` | `toImpl(this)._ctx.equals` |
 | `element` get/set | alias for `meta.element` |
 | `lookupControl(path)` | core `lookupControl` |
+| `as<V2>()` | `return this` — type-level widening cast (`V extends V2 ? Control<V2> : never`), identical to legacy |
 | `meta`, `uniqueId`, `subscribe`, `unsubscribe` | already present and signature-compatible — untouched |
 | `addCleanup(fn)` / `cleanup()` (CleanupScope) | compat-local: list on `meta[$cleanup]`; `cleanup()` drains it. `cleanupControl`/`createCleanupScope`/`addCleanup` free functions ride the same list |
 
