@@ -348,7 +348,10 @@ error**; `exhaustive-deps` is a warning.
   - `forms-core`: **123** (+3 acquireDisabler / disabler stack; +2 touched sync: blur isolation to the immediate node, setTouched subtree cascade preserved; +8 `textValue` incl. collection join/element mode/custom separator)
   - `forms-react-core`: **61** (+14 getExternalEdit suite including sibling-FormStateNode controller sharing + session-staged Cancel/confirm actions)
   - `forms`: **45** (+1 `React.memo(Field)` render benchmark — mounts a 500-field form via `react-dom/client` + happy-dom and asserts value-toggle re-renders 1 field while an ancestor re-render bails out to 0)
-  - `forms-datagrid`: **22** (+4 editExternal integration tests: draft form mirrors columns, add commit, edit commit-snapshot, edit cancel)
+  - `forms-datagrid`: **31** (+4 editExternal integration tests: draft form mirrors columns, add commit, edit commit-snapshot, edit cancel)
+  - `forms-dnd`, `forms-motion`: no tests, and deliberately **no `test` script** — see the `rush test` note above
+  - **Total: 481** across the 7 packages that have tests. Re-check with `rush test`, or
+    per package with `rushx test`; update these numbers in the same commit as the tests.
   - `compat-controls`: **79** (Phase A bridges: prototype-patch getters/setters + per-facet ambient collection, collector nesting, `groupedChanges` single-flush/reentrancy/throw-safety, array ops, group/object/meta/computed functions, interop both directions incl. `withAmbient` facet mapping; +22 Phase B React: `useComponentTracking` facet-selective re-render, `useTrackedComponent`, useControl/useComputed/effects/validators/group/previous adapters, `useValueChangeEffect` debounce, F-components under the compat provider, `useFormControlProps` FormEdit fold, render helpers with legacy callback signatures incl. `NotDefinedContext` + `renderOptionally` composition; +17 Phase C: `SubscriptionTracker` mask merge/reconcile/drop, `Effect` eager+conditional re-tracking+per-transaction coalescing+same-storm writes, `AsyncEffect` abort-and-supersede, scoped effects, `trackedValue` deep proxy per-step facet reporting + restore/unwrap round-trip + Effect/tracker integration)
   - Known flaky: `controls-core` `general > can set computation` is a fast-check property test that occasionally fails on an unlucky seed and passes on re-run (pre-existing, seed-dependent).
 
@@ -475,7 +478,7 @@ A file-by-file diff against the legacy `astrolabe-schemas-datagrid/src` closed t
 - **Edit-session button disabling**: Add/Edit/Remove grey out while an `editExternal` draft is open (legacy `disableActionIfEdit`).
 - **Pager `designMode` guard**: paging is a no-op in design mode (legacy parity).
 
-22 → 29 datagrid tests.
+Phase D took the datagrid suite 22 → 29 tests; it stands at 31 today.
 
 #### DataGrid — still deferred
 

@@ -14,7 +14,7 @@ Both apps use Tailwind 4.
 From the repo root after `rush update`:
 
 ```bash
-cd apps/legacy-buttons
+cd apps/legacy-demos
 rushx dev
 # → http://localhost:3001
 ```
