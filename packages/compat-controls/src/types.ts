@@ -56,7 +56,7 @@ export type ChangeListenerFunc<V> = (
 
 // ── Field/Element type helpers (legacy-identical) ────────────────────
 
-type FieldsUndefined<V> = { [K in keyof V]-?: V[K] | undefined };
+export type FieldsUndefined<V> = { [K in keyof V]-?: V[K] | undefined };
 
 type FieldsMapNull<T> = undefined extends T
   ? FieldsUndefined<T>

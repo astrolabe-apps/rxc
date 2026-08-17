@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { Control, ControlSetup } from "@rxc/controls-core";
-import { useControlContext } from "./useControls";
+import { useControlContext } from "./useControls.js";
 
 /**
  * Options for {@link useControl} — a {@link ControlSetup} plus the `use`

@@ -18,9 +18,9 @@ import { ControlChange } from "@rxc/controls-core";
 import { ControlImpl, toImpl } from "@rxc/controls-core/internal";
 import { lookupControl as coreLookupControl } from "@rxc/controls-core";
 import type { Control as CoreControl } from "@rxc/controls-core";
-import { collectChange } from "./ambient";
-import { runInWc } from "./transactions";
-import type { Control, ControlProperties } from "./types";
+import { collectChange } from "./ambient.js";
+import { runInWc } from "./transactions.js";
+import type { Control, ControlProperties } from "./types.js";
 
 declare const process: { env: { NODE_ENV?: string } } | undefined;
 const IS_DEV: boolean =

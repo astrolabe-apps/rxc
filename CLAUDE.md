@@ -33,6 +33,10 @@ rush test            # Run tests across all packages
 # Inside a package dir:
 rushx test           # Run that package's tests
 rushx test:watch     # Watch mode
+
+# Pack for a trial install in an external project
+rush publish --publish --pack --include-all --release-folder <dir>
+node scripts/pack-compat.mjs --out <dir>   # the above + a compat overrides.json
 ```
 
 ## Architecture
@@ -43,6 +47,25 @@ rushx test:watch     # Watch mode
 2. **Explicit reactivity** — reading through `ReadContext` registers dependencies. Writing through `WriteContext` batches notifications.
 3. **React is an adapter** — the core library (`controls-core`) has zero React dependency. `useControls()` in `@rxc/controls` hands a component its `ReadContext`; the component closes the render pass with `rendered(…)`, which reconciles tracked reads into subscriptions (see `docs/RENDER-BOUNDARY.md`).
 4. **ESM only** — all packages use `"type": "module"`.
+
+### Module resolution: `nodenext` for shippable packages
+
+`tsconfig.base.json` sets `moduleResolution: "bundler"`, which lets source omit
+extensions on relative imports (`from "./patch"`). That is fine for anything only
+ever consumed through a bundler, but **`tsc` emits the specifier verbatim**, so the
+built output is not loadable by Node's ESM resolver — `ERR_MODULE_NOT_FOUND` on the
+first relative import. It fails in more places than you'd expect: vitest externalizes
+`node_modules` and hands them to Node, as does a Next server bundle. The repo's own
+tests never caught it because in-workspace source goes through vite.
+
+`controls-core`, `controls`, and `compat-controls` therefore override both `module`
+and `moduleResolution` to `"nodenext"` and **write `.js` on every relative import** in
+`src`. TypeScript then enforces it. Any package that gets packed for an external
+consumer needs the same treatment; do it before packing, not after.
+
+Bundling would also solve this (relative imports collapse away), but is the wrong tool
+here — see `packages/compat-controls/README.md` for why the compat stack must stay
+three separate packages.
 
 ### Dependency graph
 

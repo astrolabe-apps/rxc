@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { ControlChange } from "@rxc/controls-core";
 import type { ReadContext } from "@rxc/controls-core";
-import { useComputed } from "./useControls";
+import { useComputed } from "./useControls.js";
 
 /**
  * Run a side effect when a computed value changes.

@@ -1,6 +1,6 @@
-import { ControlChange } from "./types";
-import type { ChangeListenerFunc, Subscription, WriteContext } from "./types";
-import type { ControlImpl } from "./controlImpl";
+import { ControlChange } from "./types.js";
+import type { ChangeListenerFunc, Subscription, WriteContext } from "./types.js";
+import type { ControlImpl } from "./controlImpl.js";
 
 interface SubscriptionInternal extends Subscription {
   list: SubscriptionList;

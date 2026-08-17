@@ -2,6 +2,11 @@
   "name": "@react-typed-forms/core",
   "version": "5.0.0",
   "type": "module",
+  "files": [
+    "lib",
+    "src",
+    "README.md"
+  ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "exports": {

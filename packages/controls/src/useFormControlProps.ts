@@ -2,8 +2,8 @@
 
 import type { ChangeEvent } from "react";
 import type { Control } from "@rxc/controls-core";
-import { useFormEdit } from "./FormEditState";
-import { useControlContext } from "./useControls";
+import { useFormEdit } from "./FormEditState.js";
+import { useControlContext } from "./useControls.js";
 import type { ReadContext } from "@rxc/controls-core";
 
 /**

@@ -26,9 +26,9 @@ import {
   RenderElements as RxcRenderElements,
   RenderOptional as RxcRenderOptional,
 } from "@rxc/controls";
-import { withAmbient } from "./ambient";
-import { asLegacy } from "./patch";
-import type { Control, ControlValue } from "./types";
+import { withAmbient } from "./ambient.js";
+import { asLegacy } from "./patch.js";
+import type { Control, ControlValue } from "./types.js";
 
 // ── F-components (rxc implementations, legacy prop types) ───────────
 

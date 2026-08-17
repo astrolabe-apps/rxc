@@ -1,13 +1,13 @@
-import { toImpl } from "./controlImpl";
-import type { ControlImpl } from "./controlImpl";
-import type { WriteContextImpl } from "./writeContextImpl";
-import { ControlChange } from "./types";
+import { toImpl } from "./controlImpl.js";
+import type { ControlImpl } from "./controlImpl.js";
+import type { WriteContextImpl } from "./writeContextImpl.js";
+import { ControlChange } from "./types.js";
 import type {
   Control,
   ControlContext,
   ControlValue,
   WriteContext,
-} from "./types";
+} from "./types.js";
 
 /**
  * Create a group control from existing controls.

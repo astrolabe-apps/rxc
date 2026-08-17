@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { controlGroup, setFields } from "@rxc/controls-core";
 import type { Control, ControlValue } from "@rxc/controls-core";
-import { useControlContext } from "./useControls";
+import { useControlContext } from "./useControls.js";
 
 /**
  * A group control assembled from independently owned controls, stable for

@@ -8,10 +8,10 @@ import {
   type ControlSetup as CoreControlSetup,
   type Control as CoreControl,
 } from "@rxc/controls-core";
-import { getCompatContext } from "./context";
-import { runInWc } from "./transactions";
-import { asLegacy } from "./patch";
-import type { Control, ControlSetup, ControlValue, DelayedSetup } from "./types";
+import { getCompatContext } from "./context.js";
+import { runInWc } from "./transactions.js";
+import { asLegacy } from "./patch.js";
+import type { Control, ControlSetup, ControlValue, DelayedSetup } from "./types.js";
 
 declare const process: { env: { NODE_ENV?: string } } | undefined;
 const IS_DEV: boolean =

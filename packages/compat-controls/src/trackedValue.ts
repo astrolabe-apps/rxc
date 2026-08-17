@@ -9,8 +9,8 @@
  */
 
 import { ControlChange } from "@rxc/controls-core";
-import { collectChange } from "./ambient";
-import type { ChangeListenerFunc, Control } from "./types";
+import { collectChange } from "./ambient.js";
+import type { ChangeListenerFunc, Control } from "./types.js";
 
 const restoreControlSymbol = Symbol("restoreControl");
 

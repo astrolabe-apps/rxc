@@ -7,37 +7,37 @@ export {
   useComputed,
   ControlContextProvider,
   useControlContext,
-} from "./useControls";
+} from "./useControls.js";
 
-export { useControl } from "./useControl";
-export type { UseControlSetup } from "./useControl";
+export { useControl } from "./useControl.js";
+export type { UseControlSetup } from "./useControl.js";
 
-export { useControlEffect } from "./useControlEffect";
+export { useControlEffect } from "./useControlEffect.js";
 
-export { useValidator, useAsyncValidator } from "./useValidator";
+export { useValidator, useAsyncValidator } from "./useValidator.js";
 
-export { useControlGroup } from "./useControlGroup";
-export { usePreviousValue } from "./usePreviousValue";
+export { useControlGroup } from "./useControlGroup.js";
+export { usePreviousValue } from "./usePreviousValue.js";
 export {
   ensureSelectableValues,
   useSelectableArray,
   type SelectionGroup,
   type SelectionGroupSync,
-} from "./useSelectableArray";
+} from "./useSelectableArray.js";
 
 // Binding layer — controls ↔ native form elements
 export {
   FormEditProvider,
   useFormEdit,
   type FormEditState,
-} from "./FormEditState";
+} from "./FormEditState.js";
 export {
   useFormControlProps,
   type FormControlProps,
-} from "./useFormControlProps";
-export { Finput, type FinputProps } from "./Finput";
-export { Fselect, type FselectProps } from "./Fselect";
-export { Fcheckbox, type FcheckboxProps } from "./Fcheckbox";
+} from "./useFormControlProps.js";
+export { Finput, type FinputProps } from "./Finput.js";
+export { Fselect, type FselectProps } from "./Fselect.js";
+export { Fcheckbox, type FcheckboxProps } from "./Fcheckbox.js";
 
 // Render helpers — nested subscription scopes
 export {
@@ -47,7 +47,7 @@ export {
   RenderElements,
   RenderOptional,
   renderOptionally,
-} from "./components";
+} from "./components.js";
 
 export type {
   Controls,
@@ -58,4 +58,4 @@ export type {
   RenderOptionalProps,
   Rendered,
   ValuesOfControls,
-} from "./types";
+} from "./types.js";

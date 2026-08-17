@@ -2,10 +2,10 @@
 
 import React from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControlContext, useControls } from "./useControls";
-import { useControlEffect } from "./useControlEffect";
-import { useFormControlProps } from "./useFormControlProps";
-import type { Rendered } from "./types";
+import { useControlContext, useControls } from "./useControls.js";
+import { useControlEffect } from "./useControlEffect.js";
+import { useFormControlProps } from "./useFormControlProps.js";
+import type { Rendered } from "./types.js";
 
 export type FcheckboxProps = React.InputHTMLAttributes<HTMLInputElement> & {
   control: Control<boolean | undefined | null>;

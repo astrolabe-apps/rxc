@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./lib",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

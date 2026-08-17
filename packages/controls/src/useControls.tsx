@@ -9,7 +9,7 @@ import {
   TrackingReadContext,
   setFinalizedReadHook,
 } from "@rxc/controls-core/internal";
-import type { Controls, Rendered } from "./types";
+import type { Controls, Rendered } from "./types.js";
 
 // ── React Context ───────────────────────────────────────────────────
 

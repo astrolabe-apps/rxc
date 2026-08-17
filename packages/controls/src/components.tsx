@@ -3,7 +3,7 @@
 import React, { createContext, useContext } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControls } from "./useControls";
+import { useControls } from "./useControls.js";
 import type {
   RenderArrayElementsProps,
   RenderControlProps,
@@ -12,7 +12,7 @@ import type {
   RenderOptionalProps,
   Rendered,
   ValuesOfControls,
-} from "./types";
+} from "./types.js";
 
 /**
  * Fallback content for a control that holds no value, supplied by an ancestor.

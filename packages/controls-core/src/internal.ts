@@ -9,18 +9,18 @@ export {
   ControlFlags,
   type ParentLink,
   type ControlContextInternal,
-} from "./controlImpl";
+} from "./controlImpl.js";
 
-export { WriteContextImpl } from "./writeContextImpl";
+export { WriteContextImpl } from "./writeContextImpl.js";
 
 export {
   TrackingReadContext,
   SubscriptionReconciler,
   setFinalizedReadHook,
   type FinalizedReadHook,
-} from "./readContextImpl";
+} from "./readContextImpl.js";
 
-export { Subscriptions } from "./subscriptions";
+export { Subscriptions } from "./subscriptions.js";
 
 // Re-export public API for convenience
-export * from "./index";
+export * from "./index.js";

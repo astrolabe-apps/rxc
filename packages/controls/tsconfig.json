@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "./lib",
     "rootDir": "./src",
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

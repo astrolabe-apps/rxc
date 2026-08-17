@@ -2,10 +2,10 @@
 
 import React from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControls } from "./useControls";
-import { useControlEffect } from "./useControlEffect";
-import { useFormControlProps } from "./useFormControlProps";
-import type { Rendered } from "./types";
+import { useControls } from "./useControls.js";
+import { useControlEffect } from "./useControlEffect.js";
+import { useFormControlProps } from "./useFormControlProps.js";
+import type { Rendered } from "./types.js";
 
 // Only allow strings and numbers
 export type FinputProps<V extends string | number> =

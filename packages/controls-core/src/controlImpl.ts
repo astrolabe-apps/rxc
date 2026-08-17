@@ -1,5 +1,5 @@
-import { Subscriptions } from "./subscriptions";
-import { ControlChange } from "./types";
+import { Subscriptions } from "./subscriptions.js";
+import { ControlChange } from "./types.js";
 import type {
   Control,
   ControlElements,
@@ -8,7 +8,7 @@ import type {
   ChangeListenerFunc,
   Subscription,
   WriteContext,
-} from "./types";
+} from "./types.js";
 
 // ── Internal types ──────────────────────────────────────────────────
 

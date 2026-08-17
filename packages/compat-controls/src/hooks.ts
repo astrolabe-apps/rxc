@@ -29,10 +29,10 @@ import {
   useValidator as rxcUseValidator,
   type SelectionGroupSync as RxcSelectionGroupSync,
 } from "@rxc/controls";
-import { withAmbient } from "./ambient";
-import { convertSetup } from "./newControl";
-import { asCore, asLegacy } from "./patch";
-import type { Control, ControlSetup, ControlValue } from "./types";
+import { withAmbient } from "./ambient.js";
+import { convertSetup } from "./newControl.js";
+import { asCore, asLegacy } from "./patch.js";
+import type { Control, ControlSetup, ControlValue } from "./types.js";
 
 // ── useRefState / useDebounced (pure React utilities, legacy-verbatim) ─
 

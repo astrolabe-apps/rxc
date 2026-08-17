@@ -6,9 +6,9 @@
 import type { Control as CoreControl } from "@rxc/controls-core";
 import { getElementIndex as coreGetElementIndex } from "@rxc/controls-core";
 import { toImpl } from "@rxc/controls-core/internal";
-import { runInWc } from "./transactions";
-import { asLegacy } from "./patch";
-import type { Control } from "./types";
+import { runInWc } from "./transactions.js";
+import { asLegacy } from "./patch.js";
+import type { Control } from "./types.js";
 
 export function addElement<V>(
   control: Control<V[] | undefined | null>,

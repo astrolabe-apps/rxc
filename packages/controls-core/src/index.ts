@@ -12,18 +12,18 @@ export {
   type ReadContext,
   type WriteContext,
   type ControlContext,
-} from "./types";
+} from "./types.js";
 
 export {
   type ControlContextOptions,
   createControlContext,
-} from "./controlContextImpl";
+} from "./controlContextImpl.js";
 
-export { deepEquals } from "./deepEquals";
+export { deepEquals } from "./deepEquals.js";
 
-export { noopReadContext, unwrapValueProxy } from "./readContextImpl";
+export { noopReadContext, unwrapValueProxy } from "./readContextImpl.js";
 
-export { type ComputedRef, computed, type EffectRef, effect } from "./computed";
+export { type ComputedRef, computed, type EffectRef, effect } from "./computed.js";
 
 export {
   ensureMetaValue,
@@ -31,6 +31,6 @@ export {
   getControlPath,
   getElementIndex,
   as,
-} from "./controlUtils";
+} from "./controlUtils.js";
 
-export { controlGroup, setFields } from "./groupControl";
+export { controlGroup, setFields } from "./groupControl.js";

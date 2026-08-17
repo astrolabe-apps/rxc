@@ -12,14 +12,14 @@
 
 import { ControlChange } from "@rxc/controls-core";
 import type { Subscription } from "@rxc/controls-core";
-import { collectChanges } from "./ambient";
-import { createCleanupScope } from "./functions";
-import { addAfterChangesCallback } from "./transactions";
+import { collectChanges } from "./ambient.js";
+import { createCleanupScope } from "./functions.js";
+import { addAfterChangesCallback } from "./transactions.js";
 import type {
   ChangeListenerFunc,
   CleanupScope,
   Control,
-} from "./types";
+} from "./types.js";
 
 /** One tracked control: `[control, live subscription (if any), latest mask]`. */
 export type TrackedSubscription = [

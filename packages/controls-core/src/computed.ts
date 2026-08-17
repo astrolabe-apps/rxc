@@ -1,5 +1,5 @@
-import type { Control, ControlContext, ReadContext } from "./types";
-import { TrackingReadContext, SubscriptionReconciler } from "./readContextImpl";
+import type { Control, ControlContext, ReadContext } from "./types.js";
+import { TrackingReadContext, SubscriptionReconciler } from "./readContextImpl.js";
 
 export interface ComputedRef extends SubscriptionReconciler {
   replaceCompute(newCompute: (rc: ReadContext) => any): void;

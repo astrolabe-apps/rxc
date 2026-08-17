@@ -1,6 +1,6 @@
-import { ControlImpl, toImpl } from "./controlImpl";
-import { ControlChange } from "./types";
-import type { Control, ReadContext, Subscription } from "./types";
+import { ControlImpl, toImpl } from "./controlImpl.js";
+import { ControlChange } from "./types.js";
+import type { Control, ReadContext, Subscription } from "./types.js";
 
 const restoreControlSymbol = Symbol("restoreControl");
 

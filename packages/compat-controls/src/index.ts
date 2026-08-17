@@ -15,7 +15,7 @@
 // One-time migration step for the React layer: mount
 // `<ControlContextProvider value={getCompatContext()}>` at the app root —
 // the hooks and components below resolve their context through it.
-import "./patch";
+import "./patch.js";
 
 // ── Types ────────────────────────────────────────────────────────────
 export {
@@ -31,9 +31,10 @@ export {
   type ControlValidator,
   type ControlValue,
   type DelayedSetup,
+  type FieldsUndefined,
   type Subscription,
   type Value,
-} from "./types";
+} from "./types.js";
 
 // ── Bridge 1: ambient reads ──────────────────────────────────────────
 export {
@@ -43,7 +44,7 @@ export {
   setChangeCollector,
   trackControlChange,
   withAmbient,
-} from "./ambient";
+} from "./ambient.js";
 
 // ── Bridge 2: ambient transactions ───────────────────────────────────
 export {
@@ -53,16 +54,16 @@ export {
   runPendingChanges,
   runTransaction,
   unsafeFreezeCountEdit,
-} from "./transactions";
+} from "./transactions.js";
 
 // ── Bridge 3: compat context ─────────────────────────────────────────
-export { getCompatContext, setCompatContext } from "./context";
+export { getCompatContext, setCompatContext } from "./context.js";
 
 // ── Patch + casts ────────────────────────────────────────────────────
-export { asCore, asLegacy, ensurePatched, toImpl } from "./patch";
+export { asCore, asLegacy, ensurePatched, toImpl } from "./patch.js";
 
 // ── Creation ─────────────────────────────────────────────────────────
-export { controlGroup, convertSetup, newControl } from "./newControl";
+export { controlGroup, convertSetup, newControl } from "./newControl.js";
 
 // ── Arrays ───────────────────────────────────────────────────────────
 export {
@@ -71,10 +72,10 @@ export {
   newElement,
   removeElement,
   updateElements,
-} from "./arrays";
+} from "./arrays.js";
 
 // ── React: component tracking (SWC-plugin contract) ──────────────────
-export { useComponentTracking, useTrackedComponent } from "./useComponentTracking";
+export { useComponentTracking, useTrackedComponent } from "./useComponentTracking.js";
 
 // The one-line root wrap for legacy apps:
 // <ControlContextProvider value={getCompatContext()}>
@@ -98,14 +99,14 @@ export {
   useValueChangeEffect,
   type SelectionGroup,
   type SelectionGroupSync,
-} from "./hooks";
+} from "./hooks.js";
 
 // ── React: input binding ─────────────────────────────────────────────
 export {
   formControlProps,
   useFormControlProps,
   type FormControlProps,
-} from "./formControlProps";
+} from "./formControlProps.js";
 export {
   FormEditProvider,
   useFormEdit,
@@ -129,7 +130,7 @@ export {
   type RenderArrayElementsProps,
   type RenderControlProps,
   type RenderElementsProps,
-} from "./components";
+} from "./components.js";
 
 // ── Effects (Phase C) ────────────────────────────────────────────────
 export {
@@ -141,14 +142,14 @@ export {
   createScopedEffect,
   createSyncEffect,
   type TrackedSubscription,
-} from "./effects";
+} from "./effects.js";
 
 // ── trackedValue (Phase C) ───────────────────────────────────────────
 export {
   trackedValue,
   unsafeRestoreControl,
   unwrapTrackedControl,
-} from "./trackedValue";
+} from "./trackedValue.js";
 
 // ── Functions, meta, cleanup, stubs ──────────────────────────────────
 export {
@@ -178,4 +179,4 @@ export {
   withChildren,
   type ControlInfo,
   type ControlMetrics,
-} from "./functions";
+} from "./functions.js";

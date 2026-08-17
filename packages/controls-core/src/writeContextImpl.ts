@@ -1,7 +1,7 @@
-import { ControlImpl, toImpl, ControlFlags } from "./controlImpl";
-import type { NotifyFn } from "./controlImpl";
-import { ControlChange } from "./types";
-import type { Control, WriteContext } from "./types";
+import { ControlImpl, toImpl, ControlFlags } from "./controlImpl.js";
+import type { NotifyFn } from "./controlImpl.js";
+import { ControlChange } from "./types.js";
+import type { Control, WriteContext } from "./types.js";
 
 export class WriteContextImpl implements WriteContext {
   pending = new Set<ControlImpl>();

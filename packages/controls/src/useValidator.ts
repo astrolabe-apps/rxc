@@ -7,8 +7,8 @@ import {
   SubscriptionReconciler,
   TrackingReadContext,
 } from "@rxc/controls-core/internal";
-import { useControlContext } from "./useControls";
-import { useControlEffect } from "./useControlEffect";
+import { useControlContext } from "./useControls.js";
+import { useControlEffect } from "./useControlEffect.js";
 
 /**
  * Attach a validator to a control for this component's lifetime.

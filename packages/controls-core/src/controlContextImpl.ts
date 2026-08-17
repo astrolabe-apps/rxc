@@ -1,10 +1,10 @@
-import type {ControlContextInternal} from "./controlImpl";
-import {ControlFlags, ControlImpl, noopNotify,} from "./controlImpl";
-import type {Control, ControlContext, ControlSetup, WriteContext} from "./types";
-import {ControlChange} from "./types";
-import {WriteContextImpl} from "./writeContextImpl";
-import {deepEquals} from "./deepEquals";
-import type {SubscriptionReconciler} from "./readContextImpl";
+import type {ControlContextInternal} from "./controlImpl.js";
+import {ControlFlags, ControlImpl, noopNotify,} from "./controlImpl.js";
+import type {Control, ControlContext, ControlSetup, WriteContext} from "./types.js";
+import {ControlChange} from "./types.js";
+import {WriteContextImpl} from "./writeContextImpl.js";
+import {deepEquals} from "./deepEquals.js";
+import type {SubscriptionReconciler} from "./readContextImpl.js";
 
 export interface ControlContextOptions {
   equals?: (a: unknown, b: unknown) => boolean;

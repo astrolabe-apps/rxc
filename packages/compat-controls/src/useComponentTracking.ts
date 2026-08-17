@@ -25,8 +25,8 @@ import {
 } from "@rxc/controls-core/internal";
 import type { Control as CoreControl } from "@rxc/controls-core";
 import { useControlContext } from "@rxc/controls";
-import { collectChange, setChangeCollector } from "./ambient";
-import type { ChangeListenerFunc } from "./types";
+import { collectChange, setChangeCollector } from "./ambient.js";
+import type { ChangeListenerFunc } from "./types.js";
 
 interface Tracker {
   map: Map<ControlImpl, ControlChange>;

@@ -1,9 +1,9 @@
 "use client";
 
 import type { Control } from "@rxc/controls-core";
-import { useControl } from "./useControl";
-import { useControlEffect } from "./useControlEffect";
-import { useControlContext } from "./useControls";
+import { useControl } from "./useControl.js";
+import { useControlEffect } from "./useControlEffect.js";
+import { useControlContext } from "./useControls.js";
 
 /**
  * A control holding a control's current value alongside the value it had

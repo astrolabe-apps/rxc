@@ -1,5 +1,5 @@
-import { toImpl } from "./controlImpl";
-import type { Control, ControlSetup } from "./types";
+import { toImpl } from "./controlImpl.js";
+import type { Control, ControlSetup } from "./types.js";
 
 export function lookupControl(
   control: Control<any>,

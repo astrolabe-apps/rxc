@@ -10,7 +10,7 @@
 
 import { ControlChange } from "@rxc/controls-core";
 import type { Control as CoreControl, ReadContext } from "@rxc/controls-core";
-import type { ChangeListenerFunc } from "./types";
+import type { ChangeListenerFunc } from "./types.js";
 
 /**
  * The currently installed ambient collector, or `undefined` outside any
@@ -50,7 +50,7 @@ export function trackControlChange(c: Control<any>, change: ControlChange): void
 }
 
 // `Control` here is the compat type; at runtime these are core ControlImpls.
-import type { Control } from "./types";
+import type { Control } from "./types.js";
 
 /**
  * A collector that converts ambient reads into explicit `rc` reads.

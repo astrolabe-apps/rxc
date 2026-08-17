@@ -14,12 +14,12 @@ import {
   type Control as CoreControl,
 } from "@rxc/controls-core";
 import { ControlImpl, toImpl } from "@rxc/controls-core/internal";
-import { withAmbient } from "./ambient";
-import { getCompatContext } from "./context";
-import { newControl } from "./newControl";
-import { asLegacy, asCore } from "./patch";
-import { runInWc } from "./transactions";
-import type { CleanupScope, CleanupScopeImpl, Control, Value } from "./types";
+import { withAmbient } from "./ambient.js";
+import { getCompatContext } from "./context.js";
+import { newControl } from "./newControl.js";
+import { asLegacy, asCore } from "./patch.js";
+import { runInWc } from "./transactions.js";
+import type { CleanupScope, CleanupScopeImpl, Control, Value } from "./types.js";
 
 export { deepEquals };
 
