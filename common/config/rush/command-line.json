@@ -5,8 +5,10 @@
       "commandKind": "bulk",
       "name": "test",
       "summary": "Run tests for each project",
+      "description": "Runs each project's `test` script. Projects without one (the Next apps) are skipped rather than failing the command.",
       "enableParallelism": true,
-      "ignoreDependencyOrder": true
+      "ignoreDependencyOrder": true,
+      "ignoreMissingScript": true
     },
     {
       "commandKind": "global",

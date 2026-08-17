@@ -11,9 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@rxc/controls": "workspace:*",

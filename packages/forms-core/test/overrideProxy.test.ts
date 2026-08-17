@@ -8,6 +8,7 @@ import {
 
 const makeCtx = () => createControlContext();
 
+// The escaped-read warning these tests trip is filtered in test/setup.ts.
 describe("createOverrideProxy", () => {
   it("returns base value when no override is set", () => {
     const ctx = makeCtx();

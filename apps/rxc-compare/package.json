@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3003",
     "build": "next build",
-    "start": "next start -p 3003",
-    "test": "echo \"no tests\""
+    "start": "next start -p 3003"
   },
   "dependencies": {
     "@astroapps/searchstate": "^2.0.0",

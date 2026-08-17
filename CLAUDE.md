@@ -330,6 +330,18 @@ error**; `exhaustive-deps` is a warning.
 - **Framework**: Vitest + fast-check (property-based testing)
 - **Location**: `test/` dir in each package
 - **Config**: `vitest.config.ts` per package
+- **`rush test` skips projects with no `test` script** (`ignoreMissingScript: true` on
+  the bulk command). Packages without tests — currently `forms-dnd`, `forms-motion` —
+  therefore declare **no** `test` script at all; add one when the first test lands. A
+  `vitest run` in a package with zero test files exits 1, and `--passWithNoTests` still
+  writes a banner to stderr that Rush escalates into a failing run.
+- **Anything on stderr fails `rush test`.** Rush reports stderr output as a build
+  warning and turns "succeeded with warnings" into a non-zero exit, so a test that
+  deliberately provokes a `console.warn`/`console.error` breaks the command even
+  though it passes. `forms-core/test/setup.ts` filters the two expected messages (the
+  scripted-override escaped-read guard, and the jsonata parse error from the
+  malformed-expression test) and lets everything else through. Add to that list rather
+  than blanket-stubbing the console.
 - Current counts:
   - `controls-core`: **63** (uniqueId determinism; +9 `controlGroup`/`setFields`: value/initial composition, bidirectional sync, multi-parent sharing, validity aggregation, field swap/detach, no-op detection)
   - `controls`: **79** (`useControls` boundary: subscribe/unsubscribe, facet tracking, post-`rendered()` finalize, missing-`rendered()` dev guard, StrictMode convergence, `useComputed`, stable `update` identity; +15 render helpers: per-element scope isolation, structure-only list subscription, `notDefined`/`empty`/`container` slots, and the wrong-`rc` dev guard incl. its two silent cases; +8 `useControl`: identity stability, once-only lazy init, StrictMode single-creation, `ControlSetup` passthrough, and the `use` escape hatch in both directions; +9 `useControlEffect`: change-only firing per tree equality, no component re-render, `initial` fn/true/absent variants, StrictMode once-only initial, latest-callback freshness, unmount teardown, writes from onChange; +11 validators: `useValidator` immediate publish/keyed errors/cross-field rc reads/re-publish on `validate()`/unmount clear/StrictMode, `useAsyncValidator` debounce/burst-collapse/stale-drop/abort-on-supersede; +10 selectable/group/previous: `useSelectableArray` default + `ensureSelectableValues` syncers, deselect→array rewrite, shared value controls, reset re-sync, StrictMode; `useControlGroup` stable identity + field swap; `usePreviousValue`; +14 binding layer: `Finput` value/write-back/blur-touch/disabled/custom-validity/self-subscribing isolation, `FormEditState` disabled lock + restriction-only + readonly (incl. select/checkbox fold to disabled), `Fselect` + `Fcheckbox` incl. `notValue`/radio)
