@@ -179,7 +179,8 @@ interface WriteContext {
   setValue<V>(control: Control<V>, value: V): void
   updateValue<V>(control: Control<V>, cb: (current: V) => V): void
   setValueAndInitial<V>(control: Control<V>, value: V, initial: V): void
-  setInitialValue<V>(control: Control<V>, value: V): void
+  setInitialValue<V>(control: Control<V>, value: V): void      // reset: value + initial
+  setInitialValueOnly<V>(control: Control<V>, value: V): void  // baseline move: initial alone
   markAsClean(control: Control<unknown>): void
 
   // State mutations

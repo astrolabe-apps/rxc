@@ -485,7 +485,10 @@ Added to `Control.prototype`. Each calls `collectChange?.(this, flag)` then retu
 These wrap the core `ControlImpl` mutations with `runTransaction`:
 - `setValue(cb)` — read-modify-write convenience
 - `setValueAndInitial(v, iv)` — batched via `groupedChanges`
-- `setInitialValue(v)`
+- `setInitialValue(v)` — **a reset**: defined as `setValueAndInitial(v, v)`, so it
+  sets the current value too. Only the `.initialValue = v` property setter moves
+  the clean baseline on its own. `WriteContext` mirrors the pair as
+  `setInitialValue` / `setInitialValueOnly`.
 - `setTouched(touched, notChildren?)`
 - `setDisabled(disabled, notChildren?)`
 - `setError(key, error?)`

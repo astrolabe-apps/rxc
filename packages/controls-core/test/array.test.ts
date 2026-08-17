@@ -52,7 +52,7 @@ describe("array", () => {
         const f = ctx.newControl(obj);
         f.subscribe((a, c) => changes.push(c), ControlChange.InitialValue);
         ctx.update((wc) =>
-          wc.setInitialValue(f.elementsNow[ind], obj[ind] + "a"),
+          wc.setInitialValueOnly(f.elementsNow[ind], obj[ind] + "a"),
         );
         expect(changes).toStrictEqual([]);
         expect(f.initialValueNow).toStrictEqual(obj);
@@ -138,7 +138,7 @@ describe("array", () => {
         const changes: ControlChange[] = [];
         const childChanges: ControlChange[] = [];
         const control = ctx.newControl<string[] | null>([childValue]);
-        ctx.update((wc) => wc.setInitialValue(control, []));
+        ctx.update((wc) => wc.setInitialValueOnly(control, []));
         control.subscribe(
           (a, c) => changes.push(c),
           ControlChange.Value | ControlChange.InitialValue,
@@ -153,7 +153,7 @@ describe("array", () => {
         expect(child.valueNow).toStrictEqual(childValue + "a");
         // Should not update parent
         ctx.update((wc) => wc.setValue(child, childValue + "b"));
-        ctx.update((wc) => wc.setInitialValue(child, childValue + "c"));
+        ctx.update((wc) => wc.setInitialValueOnly(child, childValue + "c"));
         expect(control.valueNow).toStrictEqual(null);
         // Should not update child
         ctx.update((wc) => wc.setValue(control, [childValue]));
@@ -167,7 +167,7 @@ describe("array", () => {
         ctx.update((wc) => wc.setValue(control, [childValue]));
         expect(child.valueNow).toStrictEqual(childValue);
         // Attached child does not update parent initial value
-        ctx.update((wc) => wc.setInitialValue(child, childValue + "c"));
+        ctx.update((wc) => wc.setInitialValueOnly(child, childValue + "c"));
         expect(control.initialValueNow).toStrictEqual([]);
         expect(changes).toStrictEqual([
           ControlChange.Value,
@@ -200,7 +200,7 @@ describe("array", () => {
             initialIndex: i >= ind ? i + 1 : i,
           })),
         );
-        ctx.update((wc) => wc.setInitialValue(control, obj2));
+        ctx.update((wc) => wc.setInitialValueOnly(control, obj2));
         expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
           control.elementsNow.map((_, i) => ({ index: i, initialIndex: i })),
         );

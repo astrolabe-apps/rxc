@@ -238,7 +238,8 @@ export function setCompatContext(ctx: ControlContext): void;  // compat-only exp
 ```
 
 - `newControl(value, setup, initialValue?)` → `compatContext.newControl` (+
-  `wc.setInitialValue` when the third arg is given).
+  `wc.setInitialValueOnly` when the third arg is given — legacy constructs
+  with `(value, initialValue)`, so the current value is untouched).
 - The React layer (`useControl` etc.) delegates to `@rxc/controls` hooks,
   which resolve their context from `ControlContextProvider`. **Legacy apps
   add one line at the root**:
@@ -276,7 +277,7 @@ supertype structurally at runtime, enforced by the patch).
 |---|---|
 | `value` get | collect `Value` → `valueNow` |
 | `value` set | `runInWc(wc.setValue)` |
-| `initialValue` get/set | collect `InitialValue` → `initialValueNow` / `wc.setInitialValue` |
+| `initialValue` get/set | collect `InitialValue` → `initialValueNow` / `wc.setInitialValueOnly` (the setter moves the clean baseline alone) |
 | `error` get/set | collect `Error` → `errorNow` / `wc.setError(c,"default",e)` |
 | `errors` get | collect `Error` → `errorsNow` |
 | `valid` / `dirty` / `touched` / `disabled` / `isNull` get | collect respective bit → `*Now` |
@@ -285,7 +286,7 @@ supertype structurally at runtime, enforced by the patch).
 | `elements` get | collect `Structure` → `elementsNow` (the name is free on core — no override) |
 | `fields` get | already present; legacy collects nothing here — leave untouched |
 | `setValue(cb)` | `runInWc(wc.updateValue)` |
-| `setValueAndInitial` / `setInitialValue` / `markAsClean` / `setTouched` / `setDisabled` / `setError` / `setErrors` / `clearErrors` | corresponding `wc.*` via `runInWc` |
+| `setValueAndInitial` / `setInitialValue` / `markAsClean` / `setTouched` / `setDisabled` / `setError` / `setErrors` / `clearErrors` | corresponding `wc.*` via `runInWc`. Note `setInitialValue(v)` is legacy shorthand for `setValueAndInitial(v, v)` — a **reset**, not a baseline move; `wc.setInitialValue` carries the same meaning, `wc.setInitialValueOnly` is the baseline move |
 | `validate()` | `runInWc((wc) => wc.validate(c))` |
 | `isEqual(a,b)` | `toImpl(this)._ctx.equals` |
 | `element` get/set | alias for `meta.element` |

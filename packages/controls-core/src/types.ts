@@ -192,7 +192,22 @@ export interface WriteContext {
   setValue<V>(control: Control<V>, value: V): void;
   updateValue<V>(control: Control<V>, cb: (current: V) => V): void;
   setValueAndInitial<V>(control: Control<V>, value: V, initial: V): void;
+  /**
+   * Reset the control to `value` — sets **both** the value and the initial
+   * value, leaving the control clean. Same meaning as legacy
+   * `@react-typed-forms/core`'s `control.setInitialValue(v)`.
+   *
+   * To move the clean baseline without touching the current value (legacy's
+   * `control.initialValue = v` property setter), use
+   * {@link WriteContext.setInitialValueOnly}.
+   */
   setInitialValue<V>(control: Control<V>, value: V): void;
+  /**
+   * Set the initial value alone, leaving the current value as-is — so the
+   * control becomes dirty if the two now differ. Equivalent to legacy's
+   * `control.initialValue = v` property setter.
+   */
+  setInitialValueOnly<V>(control: Control<V>, value: V): void;
   markAsClean(control: Control<unknown>): void;
 
   setTouched(

@@ -22,10 +22,10 @@ describe("object", () => {
           ctx.update((wc) => {
             if (useFields) {
               if (useVal) wc.setValue(f.fields.v1, obj.v1);
-              else wc.setInitialValue(f.fields.v1, obj.v1);
+              else wc.setInitialValueOnly(f.fields.v1, obj.v1);
             } else {
               if (useVal) wc.setValue(f, { ...obj });
-              else wc.setInitialValue(f, { ...obj });
+              else wc.setInitialValueOnly(f, { ...obj });
             }
           });
           expect(changes).toStrictEqual([]);
@@ -138,7 +138,7 @@ describe("object", () => {
           f.elementsNow.forEach((x) => x.valueNow);
           ctx.update((wc) => wc.setValue(f, obj.map((x) => x.v2)));
           expect(f.valueNow).toStrictEqual(f.elementsNow.map((x) => x.valueNow));
-          ctx.update((wc) => wc.setInitialValue(f, iv));
+          ctx.update((wc) => wc.setInitialValueOnly(f, iv));
           expect(f.elementsNow.map((_, i) => iv[i])).toStrictEqual(
             f.elementsNow.map((x) => x.initialValueNow),
           );
@@ -213,12 +213,12 @@ describe("object", () => {
           ControlChange.InitialValue,
         );
         const child = control.fields.child;
-        ctx.update((wc) => wc.setInitialValue(child, childValue + "a"));
+        ctx.update((wc) => wc.setInitialValueOnly(child, childValue + "a"));
         child.subscribe(
           (a, c) => childChanges.push(c),
           ControlChange.InitialValue,
         );
-        ctx.update((wc) => wc.setInitialValue(control, null));
+        ctx.update((wc) => wc.setInitialValueOnly(control, null));
         expect(child.initialValueNow).toStrictEqual(undefined);
         expect(changes).toStrictEqual([ControlChange.InitialValue]);
         expect(childChanges).toStrictEqual([ControlChange.InitialValue]);

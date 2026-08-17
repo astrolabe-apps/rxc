@@ -100,6 +100,30 @@ describe("prototype patch — getters", () => {
     expect(c.meta.element).toBe(fake);
   });
 
+  it("setInitialValue(v) resets value + initial; the setter moves the baseline alone", () => {
+    // Legacy defines the method as setValueAndInitial(v, v)...
+    const c = newControl("a");
+    c.value = "edited";
+    c.setInitialValue("b");
+    expect(c.value).toBe("b");
+    expect(c.initialValue).toBe("b");
+    expect(c.dirty).toBe(false);
+
+    // ...while the property setter leaves the current value alone.
+    const d = newControl("a");
+    d.initialValue = "b";
+    expect(d.value).toBe("a");
+    expect(d.initialValue).toBe("b");
+    expect(d.dirty).toBe(true);
+  });
+
+  it("newControl's third arg sets the initial value only", () => {
+    const c = newControl("a", undefined, "b");
+    expect(c.value).toBe("a");
+    expect(c.initialValue).toBe("b");
+    expect(c.dirty).toBe(true);
+  });
+
   it("setValue takes an updater callback", () => {
     const c = newControl(10);
     c.setValue((v) => v + 5);

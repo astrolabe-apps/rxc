@@ -89,7 +89,9 @@ export function newControl<V>(
 ): Control<V> {
   const c = getCompatContext().newControl(value, convertSetup(setup));
   if (initialValue !== undefined) {
-    runInWc((wc) => wc.setInitialValue(c, initialValue));
+    // Legacy `newControl` constructs with `(value, initialValue)` — the
+    // current value stays as passed, so this is initial-only.
+    runInWc((wc) => wc.setInitialValueOnly(c, initialValue));
   }
   return asLegacy(c);
 }

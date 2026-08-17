@@ -99,8 +99,10 @@ const PATCH: Record<string, Accessor> = {
       collect(this, ControlChange.InitialValue);
       return this.initialValueNow;
     },
+    // The legacy property setter moves the clean baseline only — unlike the
+    // `setInitialValue(v)` method below, which resets value + initial.
     set(this: ControlImpl<any>, v) {
-      runInWc((wc) => wc.setInitialValue(this as CoreControl<any>, v));
+      runInWc((wc) => wc.setInitialValueOnly(this as CoreControl<any>, v));
     },
   },
   error: {
@@ -192,6 +194,8 @@ const PATCH: Record<string, Accessor> = {
       runInWc((wc) => wc.setValueAndInitial(this as CoreControl<any>, v, iv));
     },
   },
+  // Legacy `setInitialValue(v)` is `setValueAndInitial(v, v)` — a reset, not
+  // a baseline move. `wc.setInitialValue` carries the same meaning.
   setInitialValue: {
     value(this: ControlImpl<any>, v: any) {
       runInWc((wc) => wc.setInitialValue(this as CoreControl<any>, v));

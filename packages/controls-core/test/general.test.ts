@@ -22,6 +22,36 @@ describe("general", () => {
     );
   });
 
+  it("setInitialValue resets, setInitialValueOnly moves the baseline", () => {
+    const ctx = makeCtx();
+    const f = ctx.newControl("a");
+    ctx.update((wc) => wc.setValue(f, "edited"));
+
+    ctx.update((wc) => wc.setInitialValueOnly(f, "b"));
+    expect(f.valueNow).toBe("edited");
+    expect(f.initialValueNow).toBe("b");
+    expect(f.dirtyNow).toBe(true);
+
+    ctx.update((wc) => wc.setInitialValue(f, "c"));
+    expect(f.valueNow).toBe("c");
+    expect(f.initialValueNow).toBe("c");
+    expect(f.dirtyNow).toBe(false);
+  });
+
+  it("setInitialValue publishes both Value and InitialValue changes", () => {
+    const ctx = makeCtx();
+    const changes: ControlChange[] = [];
+    const f = ctx.newControl("a");
+    f.subscribe(
+      (a, c) => changes.push(c),
+      ControlChange.Value | ControlChange.InitialValue,
+    );
+    ctx.update((wc) => wc.setInitialValue(f, "b"));
+    expect(changes).toStrictEqual([
+      ControlChange.Value | ControlChange.InitialValue,
+    ]);
+  });
+
   it("only get changes after subscription", () => {
     fc.assert(
       fc.property(fc.string(), (text) => {

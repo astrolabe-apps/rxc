@@ -111,6 +111,11 @@ export interface Control<V> extends ControlProperties<V>, CleanupScopeImpl {
   setErrors(errors?: { [k: string]: string | null | undefined } | null): void;
   setValue(cb: (v: V) => V): void;
   setValueAndInitial(v: V, iv: V): void;
+  /**
+   * Reset to `v` — sets value *and* initial value (legacy defines this as
+   * `setValueAndInitial(v, v)`). Assign `control.initialValue = v` to move
+   * the clean baseline alone.
+   */
   setInitialValue(v: V): void;
   setTouched(touched: boolean, notChildren?: boolean): void;
   setDisabled(disabled: boolean, notChildren?: boolean): void;
