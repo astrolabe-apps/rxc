@@ -11,11 +11,8 @@
  * `workspace:*` specs are rewritten to real versions).
  *
  * The build step is scoped to those same projects rather than being a bare
- * `rush build`, which currently exits 1: the two legacy Next apps warn that
- * ESLint isn't installed, and Rush treats "succeeded with warnings" as a
- * non-zero exit. Those apps are not packed, so building `--to` each
- * publishable project skips them and keeps the build honest about what the
- * tarballs actually contain.
+ * `rush build`, so it builds exactly what ends up in the tarballs and doesn't
+ * spend time on four Next apps that are never packed.
  *
  * What this script adds is the last step: writing an `overrides.json` for the
  * three packages a legacy `@react-typed-forms/core` consumer needs. Listing

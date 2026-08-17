@@ -36,11 +36,9 @@ node scripts/pack-compat.mjs --out /some/vendor/dir
 ```
 
 Packing itself is plain Rush — `rush publish --publish --pack --include-all
---release-folder <dir>` — and you can run that directly. The helper adds two
-things: it writes the `overrides.json` below, and it scopes the preceding build
-to the publishable packages. A bare `rush build` currently exits 1 (the two
-legacy Next apps warn that ESLint isn't installed, and Rush treats "succeeded
-with warnings" as a failure), which would otherwise abort packing.
+--release-folder <dir>` — and you can run that directly. The helper adds the
+`overrides.json` below, and scopes the preceding build to the publishable
+packages so it doesn't rebuild the four Next apps that never get packed.
 
 In the consuming project, add those to **`pnpm.overrides`** (or, in a Rush repo,
 `globalOverrides` in `common/config/rush/pnpm-config.json`):

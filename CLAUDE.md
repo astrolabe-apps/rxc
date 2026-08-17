@@ -39,12 +39,15 @@ rush publish --publish --pack --include-all --release-folder <dir>
 node scripts/pack-compat.mjs --out <dir>   # the above + a compat overrides.json
 ```
 
-**`rush build` currently exits 1.** The two legacy Next apps (`rxc-legacy-demos`,
-`rxc-legacy-compare-demo`) have no ESLint installed, Next reports that as a build
-warning, and Rush turns "succeeded with warnings" into a non-zero exit — so every
-package builds fine but the command still fails. Scripts must not shell out to a
-bare `rush build`: scope it, e.g. `rush build --to @react-typed-forms/core`, or
-`--to` each `shouldPublish: true` project (`rush list --json` reports the flag).
+**Next 15 apps need `eslint: { ignoreDuringBuilds: true }`.** `rush build` used to
+exit 1 even though every project compiled: the two Next 15 apps (`rxc-legacy-demos`,
+`rxc-legacy-compare-demo`) lint during `next build`, ESLint isn't in their devDeps
+(it lives in the `lint` autoinstaller — see Linting below), Next reports that as a
+build *warning*, and Rush escalates "succeeded with warnings" to a non-zero exit.
+Both configs now disable build-time linting; `rush lint` runs `eslint packages apps`
+over them anyway, so no coverage is lost. Next 16 dropped lint-during-build, so the
+Next 16 apps (`rxc-dev-app`, `rxc-compare-demo`) never had the problem. Any new
+Next 15 app in this repo needs the same flag.
 
 ## Architecture
 
