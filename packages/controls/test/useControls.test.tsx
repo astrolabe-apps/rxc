@@ -10,6 +10,7 @@ import {
   useControls,
   type Control,
   type ControlContext,
+  type Controls,
   type Rendered,
 } from "../src/index";
 
@@ -255,6 +256,48 @@ describe("useComputed", () => {
 
     act(() => ctx.update((wc) => wc.setValue(last, "Byron")));
     expect(container.textContent).toBe("Ada Byron");
+  });
+});
+
+describe("useControls — update", () => {
+  it("batches writes against the ambient context, so writes need no second hook", () => {
+    const c = ctx.newControl("a");
+
+    function Comp(): Rendered {
+      const { rc, rendered, update } = useControls();
+      expect(update).toBe(ctx.update);
+      return rendered(
+        <button onClick={() => update((wc) => wc.setValue(c, "b"))}>
+          {rc.getValue(c)}
+        </button>,
+      );
+    }
+
+    mount(<Comp />);
+    expect(container.textContent).toBe("a");
+    act(() => container.querySelector("button")!.click());
+    expect(container.textContent).toBe("b");
+  });
+
+  it("tracks a swapped provider rather than freezing at first mount", () => {
+    const other = createControlContext();
+    const seen: Array<Controls["update"]> = [];
+
+    function Comp(): Rendered {
+      const { rendered, update } = useControls();
+      seen.push(update);
+      return rendered(null);
+    }
+
+    mount(<Comp />);
+    act(() =>
+      root.render(
+        <ControlContextProvider value={other}>
+          <Comp />
+        </ControlContextProvider>,
+      ),
+    );
+    expect(seen).toEqual([ctx.update, other.update]);
   });
 });
 

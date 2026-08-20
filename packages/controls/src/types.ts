@@ -6,7 +6,12 @@
  */
 
 import type { Key, ReactElement, ReactNode } from "react";
-import type { Control, ControlValue, ReadContext } from "@rxc/controls-core";
+import type {
+  Control,
+  ControlValue,
+  ReadContext,
+  WriteContext,
+} from "@rxc/controls-core";
 
 declare const callRendered: unique symbol;
 
@@ -37,11 +42,28 @@ export type Rendered = ReactElement & { readonly [callRendered]: never };
  *
  * `rc` is threaded into every reactive read (`rc.getValue(c)`,
  * `node.getState(rc)`, the `forms-react-core` controllers). `rendered` is
- * called exactly once, at each `return`, and never passed anywhere.
+ * called exactly once, at each `return`, and never passed anywhere. `update`
+ * is the write side — the ambient `ControlContext`'s own batching call.
  */
 export interface Controls {
   /** Tracks every read made during this render pass. */
   rc: ReadContext;
+  /**
+   * Batch a set of writes against the ambient `ControlContext` — the same
+   * `update` that `useControlContext()` exposes, so a component that both
+   * reads and writes needs only one hook call:
+   *
+   * ```tsx
+   * const { rc, rendered, update } = useControls();
+   * … onChange={(e) => update((wc) => wc.setValue(data, e.target.value))}
+   * ```
+   *
+   * Subscribers run once after `cb` returns. Reads still go through `rc` —
+   * reading inside `cb` (via the `WriteContext`) never subscribes. Anything
+   * else off the context (`newControl`, tracker lifecycle) still comes from
+   * `useControlContext()`.
+   */
+  update: (cb: (wc: WriteContext) => void) => void;
   /**
    * Close the render pass: turn everything read through `rc` into live
    * subscriptions, stop tracking, and return `node` unchanged.

@@ -182,6 +182,9 @@ interface Tracker {
  * Every read through `rc` during this render is tracked; `rendered(…)` turns
  * that set into live subscriptions and closes the tracking window. The
  * component re-renders when any of them changes.
+ *
+ * `update` comes along for the write side, so a component that reads and
+ * writes needs no separate {@link useControlContext} call.
  */
 export function useControls(): Controls {
   const controlContext = useControlContext();
@@ -199,6 +202,9 @@ export function useControls(): Controls {
       site: IS_DEV ? captureCallSite() : "",
       controls: {
         rc,
+        // Reassigned below on every render, so a swapped provider is picked
+        // up rather than frozen at first mount.
+        update: controlContext.update,
         rendered: (node) => {
           tracker.didRender = true;
           // Reconcile during render, not in an effect: between the body and a
@@ -218,6 +224,7 @@ export function useControls(): Controls {
     ref.current = tracker;
   }
   const tracker = ref.current;
+  tracker.controls.update = controlContext.update;
 
   // Open this render's tracking window.
   tracker.rc.reset();
@@ -276,4 +283,35 @@ export function useComputed<V>(compute: (rc: ReadContext) => V): Control<V> {
   }, [ctx, reconciler]);
 
   return ref.current.control;
+}
+
+// ── wrapWithControlsContext ─────────────────────────────────────────
+
+/**
+ * Wrap a component so it always renders under a given {@link ControlContext}.
+ *
+ * The HOC form of `<ControlContextProvider>`, for the cases where you own the
+ * component but not its call site — a page/root exported to a framework
+ * router, a component handed to a third-party host, or a test helper:
+ *
+ * ```tsx
+ * export default wrapWithControlsContext(Page, createControlContext());
+ * ```
+ *
+ * The provider is inside the wrapper, so the wrapped component and everything
+ * it renders see `controlsContext`, overriding any provider above it.
+ */
+export function wrapWithControlsContext<P extends object>(
+  Component: React.ComponentType<P>,
+  controlsContext: ControlContext,
+): React.FunctionComponent<P> {
+  const Wrapped = (props: P) => (
+    <ControlContextReact.Provider value={controlsContext}>
+      <Component {...props} />
+    </ControlContextReact.Provider>
+  );
+  Wrapped.displayName = `wrapWithControlsContext(${
+    Component.displayName ?? Component.name ?? "Component"
+  })`;
+  return Wrapped;
 }

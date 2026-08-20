@@ -36,8 +36,18 @@ all work normally, and `react-hooks/rules-of-hooks` analyses them (`rush lint`).
 `useControls()` takes no arguments. `rendered(node)` accepts any `ReactNode` — string, number,
 fragment, array, `null` — and returns it unchanged.
 
-`ControlContext` comes from `useControlContext()` (its `update` is a stable reference, safe in
-dependency arrays). `useComputed(fn)` is a standalone hook.
+`useControls()` also returns `update` — the ambient `ControlContext`'s write-batching call — so a
+component that reads *and* writes needs one hook call rather than two:
+
+```tsx
+const { rc, rendered, update } = useControls();
+… onChange={(e) => update((wc) => wc.setValue(data, e.target.value))}
+```
+
+It is re-read from React context on every render, so a swapped provider is picked up, and it is the
+context's own stable reference (safe in dependency arrays). Only `update` is surfaced this way —
+anything else off the context (`newControl`, tracker lifecycle), and write-only components with no
+reads at all, still go through `useControlContext()`. `useComputed(fn)` is a standalone hook.
 
 ## Why reconcile must stay in the render body
 

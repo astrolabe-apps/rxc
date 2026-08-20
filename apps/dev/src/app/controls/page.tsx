@@ -8,7 +8,8 @@
  * The structural difference is reactivity: legacy tracking is ambient (the
  * SWC plugin instruments `.value` reads), while here every reactive read goes
  * through the `rc` from `useControls()` and each component closes its render
- * pass with `rendered(…)`. Writes batch through `useControlContext().update`.
+ * pass with `rendered(…)`. Writes batch through the `update` that same call
+ * returns (or `useControlContext().update` in the write-only sections).
  *
  * Surface differences from legacy called out inline:
  *  - no `useValueChangeEffect` — debounce is composed from `useControlEffect`
@@ -120,8 +121,7 @@ interface BasicForm {
 }
 
 function BasicFormSection(): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const form = useControl<BasicForm>(
     { firstName: "", lastName: "", email: "" },
     {
@@ -249,8 +249,7 @@ function ComputedSection(): Rendered {
 // ── 3. useControlEffect (+ composed debounce) ────────────────────────
 
 function EffectsSection(): Rendered {
-  const { rendered } = useControls();
-  const { update } = useControlContext();
+  const { rendered, update } = useControls();
   const watched = useControl("");
   const debounced = useControl("");
   const log = useControl<string[]>([]);
@@ -403,8 +402,7 @@ function GroupSection(): Rendered {
 // ── 6. usePreviousValue ──────────────────────────────────────────────
 
 function PreviousValueSection(): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const price = useControl(10);
   const withPrev = usePreviousValue(price);
   const { previous, current } = rc.getValue(withPrev);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useControlContext, useControls, type Rendered } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import {
   ControlAdornmentType,
   type SetFieldAdornment as SetFieldAdornmentDef,
@@ -23,8 +23,7 @@ function SetFieldAdornmentRender({
   node,
   children,
 }: AdornmentRenderProps<SetFieldAdornmentDef>): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const evaluated = useExpression(rc, node, adornment.expression);
   const lastWritten = useRef<unknown>(undefined);
 

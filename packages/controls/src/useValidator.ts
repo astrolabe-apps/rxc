@@ -120,10 +120,7 @@ export function useAsyncValidator<V>(
   const aborter = useRef<AbortController | null>(null);
 
   useControlEffect(
-    (rc) => {
-      rc.trackValidate(control);
-      return checkRef.current(rc, control);
-    },
+    (rc) => checkRef.current(rc, control),
     (version) => {
       if (timer.current != null) clearTimeout(timer.current);
       aborter.current?.abort();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { useControls, type Rendered, useControlContext } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import type { FieldOption } from "@rxc/forms-core";
 import { clsx } from "@rxc/forms-react-core";
@@ -41,8 +41,7 @@ export function FilterPopover({
       clearClass = "",
       disableClear,
     }: FilterPopoverProps): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const baseId = useId();
   const filters = rc.getValue(filtersControl) ?? {};
   const current = (filters[colKey] as unknown[] | undefined) ?? [];

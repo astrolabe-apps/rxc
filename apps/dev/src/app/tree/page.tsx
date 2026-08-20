@@ -633,8 +633,7 @@ function ValidateButton({
 // ── Definition editor ───────────────────────────────────────────────
 
 function DefinitionEditor({ definitionsControl }: { definitionsControl: Control<ControlDefinition[]> }): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const current = rc.getValue(definitionsControl);
   const canonical = JSON.stringify(current, null, 2);
 

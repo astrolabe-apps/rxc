@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered, useControlContext } from "@rxc/controls";
+import { useControls, type Rendered } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import { clsx } from "@rxc/forms-react-core";
 import { findSortField, rotateSort } from "@astroapps/searchstate";
@@ -25,8 +25,7 @@ export interface SortableHeaderProps {
  * own `ReadContext`.
  */
 export function SortableHeader({ sortControl, offsetControl, sortField, defaultSort }: SortableHeaderProps): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const cd = findSortField(rc.getValue(sortControl), sortField);
   return rendered(
     <button

@@ -53,8 +53,7 @@ interface StarsRenderOptions {
 }
 
 function StarsRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const { data, definition, disabled, readonly } = node.getState(rc);
   if (!data) return rendered(null);
   const value = (rc.getValue(data) as number | null | undefined) ?? 0;

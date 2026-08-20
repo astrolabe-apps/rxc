@@ -7,6 +7,7 @@ export {
   useComputed,
   ControlContextProvider,
   useControlContext,
+  wrapWithControlsContext,
 } from "./useControls.js";
 
 export { useControl } from "./useControl.js";

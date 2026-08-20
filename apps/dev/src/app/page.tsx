@@ -14,8 +14,7 @@ function TextInput({ control, label }: {
   control: Control<string>;
   label: string;
 }): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const value = rc.getValue(control);
   const touched = rc.isTouched(control);
   const error = rc.getError(control);
@@ -43,8 +42,7 @@ function TextInput({ control, label }: {
 }
 
 function MyForm({ form }: { form: Control<FormData> }): Rendered {
-  const { rc, rendered } = useControls();
-  const { update } = useControlContext();
+  const { rc, rendered, update } = useControls();
   const dirty = rc.isDirty(form);
   const valid = rc.isValid(form);
   const fields = form.fields;

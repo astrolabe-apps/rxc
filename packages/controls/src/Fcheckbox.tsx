@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControlContext, useControls } from "./useControls.js";
+import { useControls } from "./useControls.js";
 import { useControlEffect } from "./useControlEffect.js";
 import { useFormControlProps } from "./useFormControlProps.js";
 import type { Rendered } from "./types.js";
@@ -25,8 +25,7 @@ export function Fcheckbox({
   notValue = false,
   ...others
 }: FcheckboxProps): Rendered {
-  const ctx = useControlContext();
-  const { rc, rendered } = useControls();
+  const { rc, rendered, update } = useControls();
   // Update the HTML5 custom validity whenever the error message changes.
   useControlEffect(
     (rc) => rc.getError(control),
@@ -50,7 +49,7 @@ export function Fcheckbox({
         if (r) r.setCustomValidity(control.errorNow ?? "");
       }}
       onChange={(e) =>
-        ctx.update((wc) =>
+        update((wc) =>
           wc.setValue(control, e.target.checked !== notValue),
         )
       }
