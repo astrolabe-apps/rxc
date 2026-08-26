@@ -229,6 +229,33 @@ export interface WriteContext {
     cb: (elems: Control<V>[]) => Control<V>[],
   ): Control<V>[];
 
+  /**
+   * Include or exclude `element` in an array control **treated as a set**.
+   *
+   * Membership is the only thing that matters, so order is not preserved as
+   * meaningful state. When the resulting members match the control's
+   * `initialValue` — in any order — the initial value itself is written
+   * instead of the newly built array. Toggling an element off and back on
+   * therefore leaves the control *clean*, rather than dirty on a reordering,
+   * and because the written value is genuinely equal to the baseline the
+   * clean state is visible to ancestor controls too.
+   *
+   * Nullable arrays round-trip: an empty result against a `null`/`undefined`
+   * baseline writes that baseline back rather than materialising `[]`, and
+   * excluding from a null value is a no-op.
+   *
+   * **Elements must be primitives** — identity is `Set`/`===` based, since
+   * set members here are option values. Objects would each be their own
+   * member regardless of shape, and a value carrying duplicates is not
+   * accounted for. Including an element already present (or excluding one
+   * that is absent) is a no-op.
+   */
+  setElementIncluded<V>(
+    control: Control<V[] | null | undefined>,
+    element: V,
+    included: boolean,
+  ): void;
+
   afterChanges(cb: () => void): void;
 }
 

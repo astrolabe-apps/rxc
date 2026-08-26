@@ -215,12 +215,20 @@ export function useChecklistController(
     styleClass: definition.styleClass,
     ...optionEntryClasses(definition),
     toggle: (optValue, checked) => {
-      const next = checked
-        ? selected.includes(optValue)
-          ? selected
-          : [...selected, optValue]
-        : selected.filter((v) => v !== optValue);
-      ctx.update((wc) => data && wc.setValue(data, next));
+      // The bound array is a set of selected option values, so membership is
+      // written through `setElementIncluded` rather than spliced by hand:
+      // unchecking an option and rechecking it restores the initial value
+      // itself, leaving the field (and its ancestors) clean instead of dirty
+      // on a reordering.
+      ctx.update(
+        (wc) =>
+          data &&
+          wc.setElementIncluded(
+            data as Control<unknown[] | null | undefined>,
+            optValue,
+            checked,
+          ),
+      );
     },
     onBlur: () => ctx.update((wc) => data && wc.setTouched(data, true, true)),
   };
@@ -307,16 +315,11 @@ export function useElementSelectedController(
     toggle: (checked) =>
       ctx.update((wc) => {
         if (!data) return;
-        const current = (rc.getValue(data) as unknown[] | undefined) ?? [];
-        if (checked) {
-          if (!current.includes(elementValue))
-            wc.setValue(data, [...current, elementValue]);
-        } else {
-          wc.setValue(
-            data,
-            current.filter((x) => x !== elementValue),
-          );
-        }
+        wc.setElementIncluded(
+          data as Control<unknown[] | null | undefined>,
+          elementValue,
+          checked,
+        );
       }),
     onBlur: () => ctx.update((wc) => data && wc.setTouched(data, true, true)),
   };

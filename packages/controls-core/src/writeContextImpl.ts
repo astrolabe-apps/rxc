@@ -3,6 +3,21 @@ import type { NotifyFn } from "./controlImpl.js";
 import { ControlChange } from "./types.js";
 import type { Control, WriteContext } from "./types.js";
 
+/**
+ * Do two arrays hold the same members, ignoring order?
+ *
+ * Backs `WriteContext.setElementIncluded`, whose elements are set members —
+ * option values, i.e. primitives — so `Set` identity is the right comparison
+ * and keeps this O(n). Assumes both arrays are duplicate-free, which the
+ * length check relies on.
+ */
+function sameMembers(a: readonly unknown[], b: readonly unknown[]): boolean {
+  if (a.length !== b.length) return false;
+  const members = new Set(b);
+  for (const x of a) if (!members.has(x)) return false;
+  return true;
+}
+
 export class WriteContextImpl implements WriteContext {
   pending = new Set<ControlImpl>();
   afterChangesCbs: (() => void)[] = [];
@@ -114,6 +129,35 @@ export class WriteContextImpl implements WriteContext {
     )
       return [];
     return this.applyUpdateElements(c, oldElems, newElems) as unknown as Control<V>[];
+  }
+
+  setElementIncluded<V>(
+    control: Control<V[] | null | undefined>,
+    element: V,
+    included: boolean,
+  ): void {
+    const c = toImpl(control);
+    const current = c._value as V[] | null | undefined;
+    const arr = current ?? [];
+    // Already in the requested state — nothing to write.
+    if (included === arr.includes(element)) return;
+    const next = included
+      ? [...arr, element]
+      : arr.filter((x) => x !== element);
+    // The array is a set, so order carries no meaning. If the new members
+    // match the baseline, write the baseline itself — the control lands back
+    // on a value that is genuinely equal to its initial value, so it reads
+    // clean here and at every ancestor. A `null`/`undefined` baseline is the
+    // representative of the empty set, so it round-trips too.
+    const initial = c._initialValue as V[] | null | undefined;
+    const matchesBaseline =
+      next.length === 0
+        ? initial == null
+        : Array.isArray(initial) && sameMembers(next, initial);
+    c.setValueImpl(
+      (matchesBaseline ? initial : next) as V[] | null | undefined,
+      this.notify,
+    );
   }
 
   afterChanges(cb: () => void): void {
