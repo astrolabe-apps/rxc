@@ -48,6 +48,35 @@ Two consequences for naming:
 - **Anything whose name implies render is suspect.** `isFinalized` and the private `rendering` flag
   behind it are the live examples — see item 5 below.
 
+## What a `WriteContext` is — and is not
+
+The mirror of the section above, and the reason one tempting rename is rejected below.
+`ControlContext.update` is the whole of it:
+
+```ts
+update(cb) { const wc = new WriteContextImpl(); cb(wc); wc.flush(); }
+```
+
+- **Writes apply immediately.** `setValueImpl` mutates `_value` on the spot; what is deferred is
+  *notification*. `flush()` then drains `pending`, re-draining as listeners cause more, and finally
+  runs the `afterChanges` callbacks (re-draining after those too).
+- **No atomicity and no rollback.** Nothing is staged, so nothing can be undone. A throw inside
+  `cb` skips `flush()` altogether — the tree is mutated and the pending notifications are discarded
+  with the `wc`.
+- **No nesting.** There is no ambient "currently open" write context: calling `ctx.update()` from
+  inside a listener creates a *separate* `WriteContextImpl` that flushes to completion inline,
+  part-way through the outer flush. It does not join the outer batch.
+- **Listeners do join.** `runListeners(wc)` threads the wc down, so a listener writing through the
+  wc it was handed lands in the same `pending` set and the outer drain loop picks it up. This is how
+  the built-in `ControlSetup.validator` subscription republishes without forking a batch.
+
+`packages/compat-controls` is the confirming case: `runInWc` maintains an ambient current-wc
+*because core has no such thing*, and holds it open through its own flush to reproduce legacy's
+single-storm semantics — which its comment notes the effects API depends on.
+
+The naming consequence is in the `*Context` item below: **`WriteContext` → `Transaction` is
+rejected**, not for churn but because it would be inaccurate.
+
 ## The compat constraint is smaller than it looks
 
 `packages/compat-controls` (published as `@react-typed-forms/core@5`) already imports almost
@@ -209,9 +238,14 @@ configuration threaded through React context, which is what "context" means to a
 The confusion is caused by the other two borrowing the suffix, and both of those are staying.
 
 `ReadContext` stays because the `rc` convention is load-bearing across every downstream package and
-`docs/RENDER-BOUNDARY.md`. `WriteContext` → `Transaction` reads beautifully at call sites
-(`update(tx => tx.setValue(…))`) but `wc` is spelled out across four packages — worth doing only if
-we're renaming anyway.
+`docs/RENDER-BOUNDARY.md`.
+
+`WriteContext` stays too, and `Transaction` is the trap worth naming explicitly. It reads beautifully
+at the call site — `update(tx => tx.setValue(…))` — and it would be a lie: there is no atomicity, no
+rollback and no nesting (see the section above). A reader who trusts the name would reasonably expect
+an inner `update` to join the outer batch, or a throw to leave the tree untouched; neither holds. If
+the suffix ever does get broken, `WriteBatch` is the accurate name, because batched notification is
+exactly and only what the type provides.
 
 ### The doc comments — done
 
@@ -315,7 +349,7 @@ It's a factory returning a `SelectionGroupSync`. `selectableValues(options, key)
 | `createControlContext` | function | Builds one, optionally with a custom `equals`. | keep | — (follows the above) |
 | `ControlContextOptions` | interface | `{ equals? }`. | keep | — |
 | `ReadContext` | interface | The library's reactive read scope, threaded everywhere as `rc`; reading through it registers a `(control, facet)` dependency. Opened by render passes, `computed`, `effect`, validators and async expression evaluation alike. | keep | — |
-| `WriteContext` | interface | The batched write scope handed to `update`; subscribers fire once at flush. | keep | `Transaction`, if renaming |
+| `WriteContext` | interface | The write scope handed to `update`. Writes apply immediately; notification is batched until `flush()`. No atomicity, rollback or nesting. | keep | — (`WriteBatch` if breaking the `*Context` family; **not** `Transaction`) |
 | `noopReadContext` | const | A `ReadContext` that returns current values and subscribes to nothing. | **rename** | `untrackedRead` |
 | `unwrapValueProxy` | function | Recovers the `Control` behind a value returned by `getValueRx`. | **rename** | `controlFromValue` |
 | `deepEquals` | function | Structural equality over plain objects/arrays, NaN-aware; the default tree `equals`. | keep | — |
