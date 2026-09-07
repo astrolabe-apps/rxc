@@ -118,21 +118,19 @@ rather than two unrelated helpers.
 
 ### 5. `ReadContext.isFinalized` → `isTracking` (polarity flipped)
 
-The name and its docs are written from the render caller's point of view — the private field behind
-it is literally called `rendering`, and its comment says "the next `reset()` flips it back to true
-for the next render". But of the five callers above, **only** `useControls` ever calls `finalize()`.
-For `computed`, `effect`, `useValidator` and `jsonataEval` the window never closes and
-`isFinalized` is permanently `false`, so a reader who takes the name at face value concludes those
-scopes are somehow perpetually mid-render.
+Of the five callers above, **only** `useControls` ever calls `finalize()`. For `computed`, `effect`,
+`useValidator` and `jsonataEval` the window never closes and `isFinalized` is permanently `false` —
+so the name invites the conclusion that those scopes are somehow perpetually mid-render, which is
+exactly the wrong model of the whole engine.
 
-What the flag actually means is *this scope is still accepting tracked reads*. Say that:
-`isTracking`, with `rendering` → `tracking` behind it. Positive sense also reads better at the one
-consumer — `forms-core/src/overrideProxy.ts:110` becomes `if (!rc.isTracking) warnEscapedRead(p)`,
-and the escaped-read guard's whole point is "this read registered nothing", which is what the
-positive form names directly.
+What the flag means is *this scope is still accepting tracked reads*. Say that: `isTracking`. The
+positive sense also reads better at the one consumer — `forms-core/src/overrideProxy.ts:110` becomes
+`if (!rc.isTracking) warnEscapedRead(p)`, and the escaped-read guard's whole point is "this read
+registered nothing", which the positive form names directly.
 
-Churn is two call sites plus the dev guard in `useControls.tsx`. The polarity flip makes this the
-one item here that isn't purely mechanical, so it wants a careful eye rather than a sed.
+Churn is one consumer plus the dev guard in `useControls.tsx`; the private field behind the flag is
+already called `tracking`. The polarity flip makes this the one item here that isn't purely
+mechanical, so it wants a careful eye rather than a sed.
 
 ### 6. `Finput` / `Fselect` / `Fcheckbox` → `ControlInput` / `ControlSelect` / `ControlCheckbox`
 
@@ -215,47 +213,26 @@ The confusion is caused by the other two borrowing the suffix, and both of those
 (`update(tx => tx.setValue(…))`) but `wc` is spelled out across four packages — worth doing only if
 we're renaming anyway.
 
-### The doc comments are written from the render caller's seat
+### The doc comments — done
 
-Not a naming item, and worth doing regardless of which renames land. Several comments describe
-general machinery in the vocabulary of one caller, which is how a reader arrives at the two wrong
-models this document has had to argue against — that `ReadContext` is a render-time thing, and that
-a `ControlContext` is a tree.
+Not a naming item, and independent of every rename above, so it has already landed on this branch.
+Several comments described general machinery in the vocabulary of one caller, which is how a reader
+arrives at either of the two wrong models this document argues against — that `ReadContext` is a
+render-time thing, and that a `ControlContext` is a tree:
 
-| Where | Says | Problem |
+| Where | Said | Problem |
 |---|---|---|
-| `TrackingReadContext.rendering` (field name + comment) | "the rc is in its 'rendering' window"; "the next `reset()` flips it back to true for the next render" | Named for one of five callers. For the other four there is no render and no next one. |
+| `TrackingReadContext.rendering` | "the rc is in its 'rendering' window"; "flips it back to true for the next render" | Named for one of five callers. For the other four there is no render and no next one. |
 | `TrackingReadContext.finalize()` | "Close the render window. Called by the React adapter's `rendered(…)`" | True, but reads as though every scope has a render window. |
 | `ReadContext.isFinalized` (`types.ts`) | "past its render window (the wrapping component's `rendered(…)` has reconciled)" | The *public* interface, describing a flag four of five callers never set. |
 | `ControlContext` (`types.ts`) | "tree-level configuration and factory"; `equals` "used for value comparison across this tree" | Means *applies to every control created here*; reads as *there is one tree here*. |
-| CLAUDE.md, Core design principles | "Tree-level equality via ControlContext" | Same. |
+| `types.ts` trailing design notes | "A 'tracking' ReadContext implementation **would** record …  is TBD" | Both implementations shipped; the note read as though neither existed. |
+| CLAUDE.md, settled semantics | "Tree-level equality via ControlContext" | Same as the `ControlContext` entry. |
 
-The fix in each case is to state the general contract first and name React as one caller. Proposed
-wording:
-
-- **`rendering` → `tracking`**, and the comment: *"True while this scope is accepting tracked reads
-  — between `reset()` and `finalize()`. Reads outside that window still return current values but
-  register no dependency, so they cannot reach a reconciler. React closes the window in
-  `rendered(…)`; `computed`, `effect`, validators and async evaluators never close theirs and simply
-  `reset()` before each run."*
-- **`finalize()`**: *"Stop accepting tracked reads. Called by hosts that hand the scope's `rc` to
-  code which runs after `reconcile()` — the React adapter does this in `rendered(…)`, since JSX
-  descendants, event handlers and refs all read through the same `rc` after the render pass has
-  closed. Hosts that own every read (`computed`, `effect`) need not call it."*
-- **`ReadContext.isFinalized`**: *"`true` once this scope has stopped accepting tracked reads.
-  Reads still return current values but register no dependency, so they cannot trigger a re-run.
-  Code holding an `rc` whose origin it does not control should check this before relying on a read
-  to be reactive."*
-- **`ControlContext`**: *"Factory and runtime for controls: allocates controls and their unique
-  ids, runs write transactions, holds the equality function every control it creates compares with,
-  and garbage-collects subscription trackers. Holds no controls itself — one context typically
-  serves many independent control trees."* And `equals`: *"the equality function used by every
-  control this context creates"*.
-- **CLAUDE.md**: "Tree-level equality via ControlContext" → "Value equality is configured per
-  `ControlContext` and applies to every control it creates".
-
-If `isFinalized` → `isTracking` (item 5) lands, the first three collapse into one consistent story
-and the wording above needs the polarity inverted to match.
+Each now states the general contract first and names React as one caller. The private
+`rendering` field is renamed `tracking` in the same change — internal to `TrackingReadContext`, no
+API impact, and the public `isFinalized` is deliberately left alone since changing it is item 5's
+decision to make.
 
 ### `ControlChange.All` does not mean all
 

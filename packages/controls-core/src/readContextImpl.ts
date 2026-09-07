@@ -135,28 +135,32 @@ export class TrackingReadContext implements ReadContext {
   tracked = new Map<ControlImpl, ControlChange>();
 
   /**
-   * True between `reset()` and `finalize()` — the rc is in its
-   * "rendering" window and reads register tracked dependencies that
-   * subsequent `reconcile()` will turn into live subscriptions.
+   * True while this scope is accepting tracked reads — between `reset()`
+   * and `finalize()`. Reads made in that window register dependencies in
+   * `tracked`, which a subsequent `reconcile()` turns into live
+   * subscriptions.
    *
-   * After `finalize()` (called by the React wrapper right after it
-   * reconciles), the rc remains usable for reading current values
-   * (event handlers, refs, etc. legitimately read here) but reads no
-   * longer mutate `tracked` — preventing late additions that would
-   * never reach a reconciler and silently break subscriptions.
+   * Outside the window reads still return current values but register
+   * nothing, so they cannot reach a reconciler and cannot trigger a
+   * re-run. That is the point: it prevents late additions that would
+   * silently corrupt the next run's subscription set.
    *
-   * The next `reset()` flips it back to true for the next render.
+   * Only hosts that hand this scope's `rc` to code running after
+   * `reconcile()` close the window — the React adapter does, in
+   * `rendered(…)`. `computed`, `effect`, validators and async evaluators
+   * own every read they make and simply `reset()` before each run, so
+   * their window stays open for the scope's whole life.
    */
-  private rendering = true;
+  private tracking = true;
 
-  /** Whether this rc is past its render window (post-reconcile). */
+  /** Whether this scope has stopped accepting tracked reads. */
   get isFinalized(): boolean {
-    return !this.rendering;
+    return !this.tracking;
   }
 
   private track(control: Control<any>, change: ControlChange): ControlImpl {
     const c = toImpl(control);
-    if (!this.rendering) {
+    if (!this.tracking) {
       finalizedReadHook?.(this);
       return c;
     }
@@ -171,17 +175,23 @@ export class TrackingReadContext implements ReadContext {
 
   reset(): void {
     this.tracked.clear();
-    this.rendering = true;
+    this.tracking = true;
   }
 
   /**
-   * Close the render window. Called by the React adapter's `rendered(…)`
-   * immediately after `reconcile()` so reads happening later (in JSX
-   * descendants, event handlers, async effects) no longer pollute
-   * `tracked`. Reads still return current values.
+   * Stop accepting tracked reads.
+   *
+   * For hosts that hand this scope's `rc` to code which runs after
+   * `reconcile()`. The React adapter calls it in `rendered(…)`, because
+   * JSX descendants, event handlers and refs all keep reading through
+   * the same `rc` once the render pass has closed, and those reads must
+   * not pollute `tracked`. Hosts that own every read (`computed`,
+   * `effect`) never need to call it.
+   *
+   * Reads still return current values afterwards.
    */
   finalize(): void {
-    this.rendering = false;
+    this.tracking = false;
   }
 
   getValue<V>(control: Control<V>): V {

@@ -126,7 +126,7 @@ Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 - WriteContext transactional batching with NotifyFn pattern
 - Bitmask-based change detection (ControlChange enum)
 - Lazy child creation (eager for validators)
-- Tree-level equality via ControlContext
+- Value equality configured per `ControlContext` and applied to every control it creates
 
 FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
 - `FormStateNode` is a persistent handle; `getState(rc)` returns `FormState` with fine-grained reactive property access

@@ -110,8 +110,18 @@ export type ControlValue<C> = C extends Control<infer V> ? V : never;
 // ── ReadContext ───────────────────────────────────────────────────────
 
 /**
- * ReadContext — explicit reactive read context.
- * Reading through it registers a dependency on the control+property pair.
+ * ReadContext — explicit reactive read scope.
+ *
+ * Reading through it registers a dependency on the (control, property)
+ * pair. This is the library's single reactive read mechanism, not a
+ * render-time facility: a React render pass is one of the things that
+ * opens a scope, alongside `computed`, `effect`, `useValidator` and the
+ * async expression evaluators. All of them share one lifecycle —
+ * `reset()`, then tracked reads, then `reconcile(tracked)`, which diffs
+ * the tracked set against the live subscriptions.
+ *
+ * `noopReadContext` is the non-tracking implementation, for one-shot
+ * reads that should subscribe to nothing.
  */
 export interface ReadContext {
   getValue<V>(control: Control<V>): V;
@@ -160,13 +170,20 @@ export interface ReadContext {
   getValueRx<V>(control: Control<V>): V;
 
   /**
-   * `true` if this rc is past its render window (the wrapping
-   * component's `rendered(…)` has reconciled). Reads still return current
-   * values but no longer register tracked dependencies — late reads
-   * cannot establish live subscriptions and silently fail to trigger
-   * re-renders. Code paths that legitimately use a captured rc outside
-   * its owning render should check this and either route through their
-   * own rc or accept the read as a one-shot snapshot.
+   * `true` once this scope has stopped accepting tracked reads. Reads
+   * still return current values but register no dependency, so they
+   * cannot trigger a re-run.
+   *
+   * Only hosts that expose their `rc` to code running after
+   * `reconcile()` close a scope — the React adapter does so in
+   * `rendered(…)`, so a component's `rc` is finalized for the whole
+   * window between renders. Scopes owned by `computed`, `effect`,
+   * validators and async evaluators are never closed, so this stays
+   * `false` for their whole life.
+   *
+   * Code holding an `rc` whose origin it does not control should check
+   * this before relying on a read to be reactive, and either route
+   * through its own scope or accept the read as a one-shot snapshot.
    */
   readonly isFinalized: boolean;
 }
@@ -262,9 +279,16 @@ export interface WriteContext {
 // ── ControlContext ────────────────────────────────────────────────────
 
 /**
- * ControlContext — tree-level configuration and factory.
- * The central object in the core: provides control creation, write batching,
- * read context creation, and tree-level configuration (equality).
+ * ControlContext — factory and runtime for controls.
+ *
+ * Allocates controls and their unique ids, runs write transactions, holds
+ * the equality function every control it creates compares with, and
+ * garbage-collects subscription trackers.
+ *
+ * It holds no controls itself, and is not per control tree: one context
+ * typically serves a whole app (or one SSR request, which is what makes
+ * `uniqueId` sequences reproducible across render and hydration), and
+ * every `newControl` call mints an independent root within it.
  */
 export interface ControlContext {
   /** Create a new control with the given initial value */
@@ -273,9 +297,9 @@ export interface ControlContext {
   /** Execute a batch of writes; subscribers run after the callback completes */
   update(cb: (wc: WriteContext) => void): void;
 
-  // Design note: a method for creating tracking ReadContext instances
-  // (for reactive dependency tracking during renders/effects) is planned
-  // but the exact API is TBD.
+  // Note: tracking ReadContext instances are not created here — hosts
+  // construct `TrackingReadContext` from `@rxc/controls-core/internal`
+  // and pair it with a `SubscriptionReconciler` themselves.
 
   /** Mark a tracker as dead (alive=false); cleanup is deferred via lazy sweep */
   markTrackerDead(tracker: { alive: boolean; cleanup(): void }): void;
@@ -283,18 +307,18 @@ export interface ControlContext {
   /** Revive a tracker (alive=true); cancels pending cleanup (React strict mode safe) */
   reviveTracker(tracker: { alive: boolean; cleanup(): void }): void;
 
-  /** The equality function used for value comparison across this tree */
+  /** The equality function used by every control this context creates */
   readonly equals: (a: unknown, b: unknown) => boolean;
 }
 
 /*
- * Design notes:
+ * Implementations of the two ReadContext shapes both ship:
  *
- * - A "tracking" ReadContext implementation would record (control, ControlChange)
- *   pairs during execution, then reconcile subscriptions after the render/effect
- *   completes. The exact shape (class vs function, SubscriptionTracker abstraction)
- *   is TBD.
+ * - `TrackingReadContext` records (control, ControlChange) pairs as they are
+ *   read, and a `SubscriptionReconciler` turns that set into live
+ *   subscriptions. Both are exported from `@rxc/controls-core/internal`, for
+ *   sibling packages that host a reactive scope of their own.
  *
- * - A "noop" ReadContext would return snapshot values (*Now properties) without
- *   subscribing. Useful for tests, one-shot reads, or event handlers.
+ * - `noopReadContext` returns snapshot values (the `*Now` properties) without
+ *   subscribing — for tests, one-shot reads, and event handlers.
  */
