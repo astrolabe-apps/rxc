@@ -44,10 +44,32 @@ class ControlContextImpl implements ControlContext {
     return control;
   }
 
+  /**
+   * Run a batch of writes and notify subscribers once, after `cb` returns.
+   *
+   * Writes take effect on the controls immediately; it is *notification*
+   * that is batched. There is no staging, so no atomicity and no rollback —
+   * see `docs/CONTROL-SEMANTICS.md` section I.
+   *
+   * The flush is in a `finally` because the alternative is worse: if `cb`
+   * throws part-way, the writes it already made are applied but their
+   * pending notifications would be discarded with the `wc`, leaving
+   * subscribers stale indefinitely — until some unrelated change happened to
+   * touch the same controls. Flushing publishes the partial write and then
+   * rethrows, so the tree and its subscribers stay consistent with each
+   * other whichever way `cb` exits.
+   *
+   * Batching does not nest: an `update` called from inside a listener gets
+   * its own `WriteContext`, which flushes inline rather than joining the
+   * outer batch.
+   */
   update(cb: (wc: WriteContext) => void): void {
     const wc = new WriteContextImpl();
-    cb(wc);
-    wc.flush();
+    try {
+      cb(wc);
+    } finally {
+      wc.flush();
+    }
   }
 
   markTrackerDead(reconciler: SubscriptionReconciler): void {

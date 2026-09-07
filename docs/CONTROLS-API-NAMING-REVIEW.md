@@ -61,11 +61,12 @@ update(cb) { const wc = new WriteContextImpl(); cb(wc); wc.flush(); }
   *notification*. `flush()` then drains `pending`, re-draining as listeners cause more, and finally
   runs the `afterChanges` callbacks (re-draining after those too).
 - **No atomicity and no rollback.** Nothing is staged, so nothing can be undone. A throw inside
-  `cb` skips `flush()` altogether — the tree is mutated and the pending notifications are discarded
-  with the `wc`.
+  `cb` leaves the writes it already made applied; `update` flushes in a `finally` and rethrows, so
+  those writes are at least published rather than silently lost.
 - **No nesting.** There is no ambient "currently open" write context: calling `ctx.update()` from
   inside a listener creates a *separate* `WriteContextImpl` that flushes to completion inline,
-  part-way through the outer flush. It does not join the outer batch.
+  part-way through the outer flush. It does not join the outer batch. Batching is therefore not
+  compositional — see `docs/CONTROL-SEMANTICS.md` section I.
 - **Listeners do join.** `runListeners(wc)` threads the wc down, so a listener writing through the
   wc it was handed lands in the same `pending` set and the outer drain loop picks it up. This is how
   the built-in `ControlSetup.validator` subscription republishes without forking a batch.

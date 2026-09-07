@@ -200,15 +200,45 @@ When a child's error presence changes (had errors -> no errors, or vice versa):
 
 **Note**: Only checks existing (already-created) children. Uncreated fields with validators aren't considered until accessed.
 
-## I. Transaction Batching
+## I. Write Batching
 
-Batching exists in two forms with identical semantics:
+Batching exists in two forms. They are **not** equivalent: the core form does not nest and does not
+swallow errors, while the legacy/compat form does both. Anything relying on nesting is relying on
+the patch, not the core.
 
 ### Core batching (`WriteContext`) `[core]`
 
 `WriteContext` owns a `pending: Set<ControlImpl>` and a `NotifyFn` callback. Mutations on `ControlImpl` accept `NotifyFn` — when a mutation causes a change, it calls `notify(this)` to add itself to the pending set. After the callback completes, `WriteContext.flush()` drains the pending set, running listeners. Listeners may cause further mutations (via the same `WriteContext`), adding more controls to the pending set — the drain loop continues until settled. `afterChanges` callbacks run after all listeners have drained.
 
-No global state. Each `ControlContext.update()` call creates a fresh `WriteContext`. This is also what `@astroapps/controls-react`'s `controls()` wrapper uses — the `update` function passed to components calls `ControlContext.update()` directly.
+No global state. Each `ControlContext.update()` call creates a fresh `WriteContext`.
+
+**What is batched is notification, not the write.** A mutation takes effect on the control as it is
+made — `setValueImpl` assigns `_value` on the spot. Nothing is staged, so there is no atomicity and
+no rollback. Do not read `update` as a database transaction; it is a notification batch.
+
+**Errors: the batch flushes anyway.** `update` calls `flush()` in a `finally` and rethrows. The
+writes `cb` managed before throwing are already applied, so discarding their pending notifications
+would leave subscribers stale indefinitely — until some unrelated change happened to touch the same
+controls. Publishing the partial write keeps the tree and its subscribers consistent with each
+other on both exit paths. (Contrast the patch form below, which catches and logs instead.)
+
+**Batching does not nest.** There is no ambient "currently open" write context. Two cases, and the
+difference is which `wc` the writer uses:
+
+- A listener that writes through the `wc` it was handed **joins** the batch: `runListeners(wc)`
+  threads it down, so the write lands in the same `pending` set and the outer drain loop picks it
+  up. Notification arrives after the listener returns. This is how the built-in
+  `ControlSetup.validator` subscription republishes.
+- Calling `ControlContext.update()` again — from a listener, or from a helper invoked inside an
+  outer `update` — creates a **separate** `WriteContext` that flushes to completion inline, part-way
+  through the outer flush. Its subscribers are notified before the outer batch finishes, and they
+  can observe the outer write half-applied.
+
+The practical consequence is that batching is not compositional: factoring writes into a helper
+that calls `update` itself splits one notification storm into two. Helpers meant to be composed
+should take a `wc` parameter rather than reaching for `ControlContext.update`.
+
+Covered by `packages/controls-core/test/writeBatch.test.ts`.
 
 ### Global batching (`runTransaction` / `groupedChanges`) `[patch]`
 
