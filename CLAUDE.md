@@ -109,6 +109,7 @@ All in `docs/`:
 - **COMPAT-CONTROLS-DESIGN.md** — Design for the legacy-compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`): three ambient bridges (collector → SubscriptionReconciler, ambient WriteContext, singleton ControlContext), `ControlImpl.prototype` patching, the `withAmbient(rc, fn)` rc-bridge trick, full legacy export inventory with dispositions, phasing A/B/C. Replicates the `@react-typed-forms/core@4.6.0` surface.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
+- **CONTROLS-API-NAMING-REVIEW.md** — Pre-publish naming pass over the full `@rxc/controls` (+ re-exported `controls-core`) public surface: what each export does, a keep/consider/rename verdict, and the compat-coupling analysis showing only four names cross into `packages/compat-controls` unaliased. **Proposal — nothing implemented.**
 
 ## Constraints
 
