@@ -119,15 +119,36 @@ Higher churn, real payoff.
 
 ### Three unrelated things are all called `*Context`
 
-`ControlContext` is a tree owner and factory, `ReadContext` is a per-render dependency tracker,
+`ControlContext` is a factory and runtime, `ReadContext` is a per-render dependency tracker,
 `WriteContext` is a transaction. The shared suffix advertises a family that doesn't exist.
 
-Recommendation: rename **`ControlContext` → `ControlTree`** (with `ControlTreeProvider` /
-`useControlTree`) — it's the one users construct, provide, and hold, and "tree" is the word the docs
-already use for it. Keep `ReadContext`: it's threaded like a context, and the `rc` convention is
-load-bearing across the forms packages. `WriteContext` → `Transaction` reads beautifully at call
-sites (`update(tx => tx.setValue(…))`) but `wc` is spelled out across four downstream packages —
-worth doing only if we're renaming anyway.
+**Recommendation: leave all three alone** — this item is a no-op, recorded because the complaint is
+real even though every fix is worse than the status quo.
+
+An earlier draft of this doc proposed `ControlContext` → `ControlTree`. That was wrong, and worth
+recording as a caution. A `ControlContext` holds no controls: its entire state is the `equals`
+policy, the `uniqueId` counter, the dead-tracker set and its sweep timer. Nor is there one per
+tree — every dev-app page creates exactly one at module scope, and each `useControl` /
+`newControl` call mints an independent root from it. One context, many unrelated trees.
+
+The misreading came from this repo's own wording: `types.ts` calls it "tree-level configuration and
+factory" and describes `equals` as "used for value comparison across this tree", and CLAUDE.md
+repeats "tree-level equality via ControlContext". That phrasing means *applies to every control
+created here*, not *there is one tree here*. *(Worth fixing in those comments independently of any
+rename.)*
+
+What it actually is, is a runtime: it allocates controls and ids, runs transactions, holds the
+equality policy, and garbage-collects subscription trackers. `ControlRuntime` (with
+`ControlRuntimeProvider` / `useControlRuntime`) would be accurate if breaking the family resemblance
+is worth the churn — but `ControlContext` is the one member of the trio whose name is already
+honest: it is ambient configuration threaded through React context, which is what "context" means
+to a React developer. The confusion is caused by the other two borrowing the suffix, and both of
+those are staying.
+
+`ReadContext` stays because the `rc` convention is load-bearing across every downstream package and
+`docs/RENDER-BOUNDARY.md`. `WriteContext` → `Transaction` reads beautifully at call sites
+(`update(tx => tx.setValue(…))`) but `wc` is spelled out across four packages — worth doing only if
+we're renaming anyway.
 
 ### `ControlChange.All` does not mean all
 
@@ -206,7 +227,7 @@ It's a factory returning a `SelectionGroupSync`. `selectableValues(options, key)
 | `ControlChange` | enum | Subscription bitmask: `Value`, `InitialValue`, `Valid`, `Dirty`, `Touched`, `Disabled`, `Error`, `Structure`, `Validate`, `All`. | consider | keep the enum; `All` → `AllState` |
 | `ChangeListenerFunc<V>` | type | Subscription callback: `(control, change, wc)`. | consider | `ChangeListener` |
 | `Subscription` | type | The handle `subscribe` returns and `unsubscribe` takes. | keep | — |
-| `ControlContext` | interface | Tree owner: `newControl`, `update`, tracker lifecycle, and the tree's `equals`. | consider | `ControlTree` |
+| `ControlContext` | interface | Factory and runtime: `newControl`, `update`, `uniqueId` allocation, tracker lifecycle, and the `equals` policy for every control it creates. Holds no controls. | keep | — (`ControlRuntime` if breaking the `*Context` family) |
 | `createControlContext` | function | Builds one, optionally with a custom `equals`. | keep | — (follows the above) |
 | `ControlContextOptions` | interface | `{ equals? }`. | keep | — |
 | `ReadContext` | interface | The reactive read scope threaded everywhere as `rc`; reading through it registers a dependency. | keep | — |
