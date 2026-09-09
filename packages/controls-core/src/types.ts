@@ -203,11 +203,8 @@ export interface WriteContext {
    * value, leaving the control clean. Same meaning as legacy
    * `@react-typed-forms/core`'s `control.setInitialValue(v)`, which is why
    * that name is *not* used for it here: it reads as "set the initial value"
-   * while doing strictly more than that.
-   *
-   * To move the clean baseline without touching the current value (legacy's
-   * `control.initialValue = v` property setter), use
-   * {@link WriteContext.setInitialValueOnly}.
+   * while doing strictly more than that. {@link WriteContext.setInitialValue}
+   * is the one that does only what it says.
    */
   reset<V>(control: Control<V>, value: V): void;
   /**
@@ -215,7 +212,7 @@ export interface WriteContext {
    * control becomes dirty if the two now differ. Equivalent to legacy's
    * `control.initialValue = v` property setter.
    */
-  setInitialValueOnly<V>(control: Control<V>, value: V): void;
+  setInitialValue<V>(control: Control<V>, value: V): void;
   markClean(control: Control<unknown>): void;
 
   setTouched(

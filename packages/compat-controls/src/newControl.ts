@@ -91,7 +91,7 @@ export function newControl<V>(
   if (initialValue !== undefined) {
     // Legacy `newControl` constructs with `(value, initialValue)` — the
     // current value stays as passed, so this is initial-only.
-    runInWc((wc) => wc.setInitialValueOnly(c, initialValue));
+    runInWc((wc) => wc.setInitialValue(c, initialValue));
   }
   return asLegacy(c);
 }

@@ -22,12 +22,12 @@ describe("general", () => {
     );
   });
 
-  it("reset() resets, setInitialValueOnly moves the baseline", () => {
+  it("reset() resets, setInitialValue moves the baseline", () => {
     const ctx = makeCtx();
     const f = ctx.newControl("a");
     ctx.update((wc) => wc.setValue(f, "edited"));
 
-    ctx.update((wc) => wc.setInitialValueOnly(f, "b"));
+    ctx.update((wc) => wc.setInitialValue(f, "b"));
     expect(f.valueNow).toBe("edited");
     expect(f.initialValueNow).toBe("b");
     expect(f.dirtyNow).toBe(true);

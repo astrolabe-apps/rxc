@@ -120,7 +120,7 @@ export function useSelectableArray<V>(
             initiallySelected !== undefined &&
             initiallySelected !== selected
           ) {
-            wc.setInitialValueOnly(selectedControl, initiallySelected);
+            wc.setInitialValue(selectedControl, initiallySelected);
           }
           subs.push([
             selectedControl,

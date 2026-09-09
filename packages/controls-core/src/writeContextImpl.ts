@@ -47,7 +47,7 @@ export class WriteContextImpl implements WriteContext {
     this.setValueAndInitial(control, value, value);
   }
 
-  setInitialValueOnly<V>(control: Control<V>, value: V): void {
+  setInitialValue<V>(control: Control<V>, value: V): void {
     toImpl(control).setInitialValueImpl(value, this.notify);
   }
 

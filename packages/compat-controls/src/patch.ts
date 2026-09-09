@@ -102,7 +102,7 @@ const PATCH: Record<string, Accessor> = {
     // The legacy property setter moves the clean baseline only — unlike the
     // `setInitialValue(v)` method below, which resets value + initial.
     set(this: ControlImpl<any>, v) {
-      runInWc((wc) => wc.setInitialValueOnly(this as CoreControl<any>, v));
+      runInWc((wc) => wc.setInitialValue(this as CoreControl<any>, v));
     },
   },
   error: {
