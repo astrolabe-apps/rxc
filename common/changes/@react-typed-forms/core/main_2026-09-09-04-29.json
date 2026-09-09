@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Internal: consume the renamed @rxc/controls-core + @rxc/controls surface. The published legacy API is deliberately unchanged -- ControlChange keeps its `All` member (127) and its numeric reverse mapping, now declared here rather than re-exported from the engine, and FormEditState keeps the legacy `readonly` spelling via a local wrapper since the engine moved to `readOnly`. convertSetup maps `elems` -> `elements` and `dontClearError` -> `keepErrors` explicitly instead of letting them ride an `as` cast, and the legacy `control.setInitialValue(v)` method now calls `wc.reset` (which is what it always meant) rather than the engine's renamed `setInitialValue`, which is the baseline move.",
+      "type": "patch",
+      "packageName": "@react-typed-forms/core"
+    }
+  ],
+  "packageName": "@react-typed-forms/core",
+  "email": "doolse@gmail.com"
+}
