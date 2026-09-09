@@ -362,7 +362,9 @@ function effect(
 - If `fn` returns a cleanup function, it's called before each re-run and on dispose
 - Returns `SubscriptionReconciler` for lifecycle management (same disposal patterns as `computed`)
 
-### `asyncEffect` `[core]`
+### `asyncEffect` `[core]` — **NOT IMPLEMENTED**
+
+Specified here but absent from `@rxc/controls-core`; nothing exports it. `forms-core`'s jsonata evaluator hand-rolls the same abort-and-supersede pattern over a `TrackingReadContext` (see `evalExpression.ts`), and the compat package ports legacy's `AsyncEffect` for its own consumers. A host needing this today composes `effect` with its own `AbortController`.
 
 ```typescript
 function asyncEffect<V>(
