@@ -1,5 +1,5 @@
 import { toImpl } from "./controlImpl.js";
-import type { Control, ControlSetup } from "./types.js";
+import type { Control, ControlOptions } from "./types.js";
 
 export function lookupControl(
   control: Control<any>,
@@ -42,7 +42,7 @@ export function getControlPath(
 export function ensureMetaValue<V>(
   control: Control<any>,
   key: string,
-  init: (newControl: <T>(value: T, setup?: ControlSetup<T>) => Control<T>) => V,
+  init: (newControl: <T>(value: T, setup?: ControlOptions<T>) => Control<T>) => V,
 ): V {
   const meta = control.meta;
   if (key in meta) return meta[key] as V;
@@ -52,7 +52,7 @@ export function ensureMetaValue<V>(
   return value;
 }
 
-export function getElementIndex<V>(
+export function getElementPosition<V>(
   child: Control<V>,
   parent?: Control<V[]>,
 ): { index: number; initialIndex: number | undefined } | undefined {

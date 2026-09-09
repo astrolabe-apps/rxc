@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   type ControlContext,
 } from "@rxc/controls-core";
 import {
@@ -29,7 +29,7 @@ import {
 import { ValidatorType } from "@rxc/forms-core";
 import { ColumnOptionsType } from "../src/columnAdornment";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 // Dispatch DataGrid → custom resolver, everything else → default. Mirrors
 // the registry's `makeResolveChildren` so the test exercises the real path.

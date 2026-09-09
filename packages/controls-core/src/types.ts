@@ -9,12 +9,12 @@
 
 export type ControlValidator<V> = ((v: V) => string | undefined | null) | null;
 
-export interface ControlSetup<V> {
+export interface ControlOptions<V> {
   validator?: ControlValidator<V>;
   fields?: {
-    [K in keyof NonNullable<V>]?: ControlSetup<NonNullable<V>[K]>;
+    [K in keyof NonNullable<V>]?: ControlOptions<NonNullable<V>[K]>;
   };
-  elems?: V extends Array<infer X> ? ControlSetup<X> : unknown;
+  elems?: V extends Array<infer X> ? ControlOptions<X> : unknown;
   afterCreate?: (control: Control<V>) => void;
   meta?: Record<string, unknown>;
   dontClearError?: boolean;
@@ -36,7 +36,7 @@ export enum ControlChange {
   Validate = 256,
 }
 
-export type ChangeListenerFunc<V> = (
+export type ChangeListener<V> = (
   control: Control<V>,
   change: ControlChange,
   wc: WriteContext,
@@ -44,7 +44,7 @@ export type ChangeListenerFunc<V> = (
 
 export type Subscription = {
   mask: ControlChange;
-  listener: ChangeListenerFunc<any>;
+  listener: ChangeListener<any>;
 };
 
 // ── Field/Element type helpers ───────────────────────────────────────
@@ -95,10 +95,10 @@ export interface Control<V> {
   // Snapshot structural read (no lazy creation): only the fields that have
   // been materialized — a field nobody has navigated to yet is absent, hence
   // `| undefined` on every lookup.
-  readonly fieldsNow: Record<string, Control<unknown> | undefined>;
+  readonly existingFields: Record<string, Control<unknown> | undefined>;
 
   // Subscriptions
-  subscribe(listener: ChangeListenerFunc<V>, mask: ControlChange): Subscription;
+  subscribe(listener: ChangeListener<V>, mask: ControlChange): Subscription;
   unsubscribe(subscription: Subscription): void;
 
   // Metadata
@@ -120,7 +120,7 @@ export type ControlValue<C> = C extends Control<infer V> ? V : never;
  * `reset()`, then tracked reads, then `reconcile(tracked)`, which diffs
  * the tracked set against the live subscriptions.
  *
- * `noopReadContext` is the non-tracking implementation, for one-shot
+ * `untrackedRead` is the non-tracking implementation, for one-shot
  * reads that should subscribe to nothing.
  */
 export interface ReadContext {
@@ -144,7 +144,7 @@ export interface ReadContext {
    * control (or an ancestor). That signal fires even though no value
    * changed (after a `clearErrors`, on submit, …), so a computation that
    * publishes errors calls this to re-publish them on demand — exactly how
-   * the built-in `ControlSetup.validator` wiring behaves, subscribing to
+   * the built-in `ControlOptions.validator` wiring behaves, subscribing to
    * `Value | Validate`.
    */
   trackValidate(control: Control<unknown>): void;
@@ -155,9 +155,9 @@ export interface ReadContext {
    * - For null/undefined: tracks Structure, returns the value
    * - For primitives: tracks Value, returns the value
    * - For objects: tracks Structure, returns a Proxy where property access
-   *   recurses through `control.fields[prop]` → `getValueRx(child)`
+   *   recurses through `control.fields[prop]` → `getTrackedValue(child)`
    * - For arrays: tracks Structure, returns a Proxy where index access
-   *   recurses through `control.elementsNow[i]` → `getValueRx(elem)`
+   *   recurses through `control.elementsNow[i]` → `getTrackedValue(elem)`
    *
    * This gives fine-grained reactivity: reading `proxy.name` only subscribes
    * to the `name` child control, not the entire parent.
@@ -167,7 +167,7 @@ export interface ReadContext {
    * domain objects (e.g. class instances, opaque references), the proxy
    * will incorrectly route their property access through lazy child controls.
    */
-  getValueRx<V>(control: Control<V>): V;
+  getTrackedValue<V>(control: Control<V>): V;
 
   /**
    * `true` once this scope has stopped accepting tracked reads. Reads
@@ -214,7 +214,7 @@ export interface WriteContext {
    * `control.initialValue = v` property setter.
    */
   setInitialValueOnly<V>(control: Control<V>, value: V): void;
-  markAsClean(control: Control<unknown>): void;
+  markClean(control: Control<unknown>): void;
 
   setTouched(
     control: Control<unknown>,
@@ -273,7 +273,7 @@ export interface WriteContext {
     included: boolean,
   ): void;
 
-  afterChanges(cb: () => void): void;
+  afterFlush(cb: () => void): void;
 }
 
 // ── ControlContext ────────────────────────────────────────────────────
@@ -292,7 +292,7 @@ export interface WriteContext {
  */
 export interface ControlContext {
   /** Create a new control with the given initial value */
-  newControl<V>(value: V, setup?: ControlSetup<V>): Control<V>;
+  newControl<V>(value: V, setup?: ControlOptions<V>): Control<V>;
 
   /** Execute a batch of writes; subscribers run after the callback completes */
   update(cb: (wc: WriteContext) => void): void;
@@ -302,10 +302,10 @@ export interface ControlContext {
   // and pair it with a `SubscriptionReconciler` themselves.
 
   /** Mark a tracker as dead (alive=false); cleanup is deferred via lazy sweep */
-  markTrackerDead(tracker: { alive: boolean; cleanup(): void }): void;
+  releaseTracker(tracker: { alive: boolean; cleanup(): void }): void;
 
   /** Revive a tracker (alive=true); cancels pending cleanup (React strict mode safe) */
-  reviveTracker(tracker: { alive: boolean; cleanup(): void }): void;
+  retainTracker(tracker: { alive: boolean; cleanup(): void }): void;
 
   /** The equality function used by every control this context creates */
   readonly equals: (a: unknown, b: unknown) => boolean;
@@ -319,6 +319,6 @@ export interface ControlContext {
  *   subscriptions. Both are exported from `@rxc/controls-core/internal`, for
  *   sibling packages that host a reactive scope of their own.
  *
- * - `noopReadContext` returns snapshot values (the `*Now` properties) without
+ * - `untrackedRead` returns snapshot values (the `*Now` properties) without
  *   subscribing — for tests, one-shot reads, and event handlers.
  */

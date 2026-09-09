@@ -136,12 +136,12 @@ describe("setElementIncluded", () => {
   });
 
 
-  it("tracks a baseline moved by markAsClean", () => {
+  it("tracks a baseline moved by markClean", () => {
     const ctx = makeCtx();
     const tags = ctx.newControl<string[]>(["a", "b"]);
 
     ctx.update((wc) => wc.setElementIncluded(tags, "c", true));
-    ctx.update((wc) => wc.markAsClean(tags));
+    ctx.update((wc) => wc.markClean(tags));
     expect(tags.dirtyNow).toBe(false);
 
     ctx.update((wc) => wc.setElementIncluded(tags, "a", false));

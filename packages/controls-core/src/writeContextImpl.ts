@@ -51,7 +51,7 @@ export class WriteContextImpl implements WriteContext {
     toImpl(control).setInitialValueImpl(value, this.notify);
   }
 
-  markAsClean(control: Control<unknown>): void {
+  markClean(control: Control<unknown>): void {
     const c = toImpl(control);
     c.setInitialValueImpl(c._value, this.notify);
   }
@@ -160,7 +160,7 @@ export class WriteContextImpl implements WriteContext {
     );
   }
 
-  afterChanges(cb: () => void): void {
+  afterFlush(cb: () => void): void {
     this.afterChangesCbs.push(cb);
   }
 
@@ -175,12 +175,12 @@ export class WriteContextImpl implements WriteContext {
         c.runListeners(this);
       }
     }
-    // Run afterChanges callbacks
+    // Run afterFlush callbacks
     while (this.afterChangesCbs.length > 0) {
       const cbs = this.afterChangesCbs;
       this.afterChangesCbs = [];
       cbs.forEach((cb) => cb());
-      // Listeners triggered by afterChanges callbacks need to drain too
+      // Listeners triggered by afterFlush callbacks need to drain too
       while (this.pending.size > 0) {
         const snapshot = [...this.pending];
         this.pending.clear();

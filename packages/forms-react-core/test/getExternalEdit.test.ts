@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   type ControlContext,
 } from "@rxc/controls-core";
 import {
@@ -22,7 +22,7 @@ import { createFormTreeResolver } from "@rxc/forms-core";
 import { createSchemaTreeResolver } from "@rxc/forms-core";
 import { getExternalEdit } from "../src/getExternalEdit";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 function stringField(name: string): SchemaField {
   return { type: FieldType.String, field: name };

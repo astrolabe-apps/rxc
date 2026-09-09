@@ -2,7 +2,7 @@ import {
   type Control,
   type ControlContext,
   effect,
-  noopReadContext,
+  untrackedRead,
   type ReadContext,
 } from "@rxc/controls-core";
 import {
@@ -172,7 +172,7 @@ interface PathSegment {
  * Each segment carries the key (field name or element index) and whether
  * the field is a collection.
  *
- * Path is resolved as a snapshot (`noopReadContext`) — jsonata bindings are
+ * Path is resolved as a snapshot (`untrackedRead`) — jsonata bindings are
  * structural, not reactive w.r.t. the schema itself. For the editor-mode
  * reactive-schema use case this can be revisited.
  */
@@ -180,7 +180,7 @@ function getSchemaPath(dataNode: DataNode): PathSegment[] {
   const out: PathSegment[] = [];
   let cur: DataNode | undefined = dataNode;
   while (cur && cur.parent) {
-    const cursor = cur.cursor(noopReadContext);
+    const cursor = cur.cursor(untrackedRead);
     out.push({
       key: cursor.elementIndex ?? cursor.field.field,
       collection: !!cursor.field.collection,
@@ -284,7 +284,7 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
     parsed = jsonata("null");
   }
 
-  const rootControl = getRootDataNode(dataNode).cursor(noopReadContext).control;
+  const rootControl = getRootDataNode(dataNode).cursor(untrackedRead).control;
 
   const rc = new TrackingReadContext();
   const reconciler = new SubscriptionReconciler();
@@ -340,7 +340,7 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
 
     const trackedVars = variables?.(rc);
     const data = ensurePathNavigable(
-      rc.getValueRx(rootControl),
+      rc.getTrackedValue(rootControl),
       pathSegments,
     );
 

@@ -21,7 +21,7 @@ import { type ReactNode, useRef, useState } from "react";
 import {
   ControlContextProvider,
   createControlContext,
-  ensureSelectableValues,
+  selectableValues,
   Fcheckbox,
   Finput,
   FormEditProvider,
@@ -30,7 +30,7 @@ import {
   RenderControl,
   RenderElements,
   RenderOptional,
-  renderOptionally,
+  whenAllDefined,
   useAsyncValidator,
   useComputed,
   useControl,
@@ -39,7 +39,7 @@ import {
   useControlGroup,
   useControls,
   useFormControlProps,
-  usePreviousValue,
+  useValueWithPrevious,
   useSelectableArray,
   useValidator,
   type Rendered,
@@ -139,7 +139,7 @@ function BasicFormSection(): Rendered {
   return rendered(
     <Section
       title="1. useControl + Finput + setup validators"
-      note="ControlSetup field validators, dirty/valid/touched flags, validate(), markAsClean(), reset to initial value. One update(wc => …) call is the groupedChanges equivalent — writes batch natively."
+      note="ControlOptions field validators, dirty/valid/touched flags, validate(), markClean(), reset to initial value. One update(wc => …) call is the groupedChanges equivalent — writes batch natively."
     >
       <Labeled label="First name">
         <Finput className={inputClass} control={fields.firstName} />
@@ -173,7 +173,7 @@ function BasicFormSection(): Rendered {
               wc.setTouched(form, true);
               if (wc.validate(form)) {
                 setSubmitted(form.valueNow);
-                wc.markAsClean(form);
+                wc.markClean(form);
               }
             })
           }
@@ -399,17 +399,17 @@ function GroupSection(): Rendered {
   );
 }
 
-// ── 6. usePreviousValue ──────────────────────────────────────────────
+// ── 6. useValueWithPrevious ──────────────────────────────────────────────
 
 function PreviousValueSection(): Rendered {
   const { rc, rendered, update } = useControls();
   const price = useControl(10);
-  const withPrev = usePreviousValue(price);
+  const withPrev = useValueWithPrevious(price);
   const { previous, current } = rc.getValue(withPrev);
 
   return rendered(
     <Section
-      title="6. usePreviousValue"
+      title="6. useValueWithPrevious"
       note="A control holding the current value alongside the value it had before the last change."
     >
       <div className="flex items-center gap-2">
@@ -437,7 +437,7 @@ function PreviousValueSection(): Rendered {
   );
 }
 
-// ── 7. useSelectableArray + ensureSelectableValues ───────────────────
+// ── 7. useSelectableArray + selectableValues ───────────────────
 
 const ALL_TAGS = ["red", "green", "blue", "yellow"];
 
@@ -446,12 +446,12 @@ function SelectableSection(): Rendered {
   const tags = useControl<string[]>(["green"]);
   const selectable = useSelectableArray(
     tags,
-    ensureSelectableValues(ALL_TAGS, (x) => x),
+    selectableValues(ALL_TAGS, (x) => x),
   );
 
   return rendered(
     <Section
-      title="7. useSelectableArray + ensureSelectableValues"
+      title="7. useSelectableArray + selectableValues"
       note="A string[] control exposed as {selected, value} checkbox rows; toggling rewrites the underlying array."
     >
       <div className="flex gap-4">
@@ -575,7 +575,7 @@ function RenderHelpersSection() {
   return (
     <Section
       title="10. Render helpers + array ops"
-      note="RenderElements (wc.addElement / removeElement / updateElements), RenderOptional, RenderControl + renderOptionally, RenderArrayElements. This section component makes no reactive reads itself — each helper is its own subscription scope."
+      note="RenderElements (wc.addElement / removeElement / updateElements), RenderOptional, RenderControl + whenAllDefined, RenderArrayElements. This section component makes no reactive reads itself — each helper is its own subscription scope."
     >
       <h3 className="text-sm font-semibold text-zinc-800">
         RenderElements — people
@@ -651,12 +651,12 @@ function RenderHelpersSection() {
       </div>
 
       <h3 className="mt-2 text-sm font-semibold text-zinc-800">
-        RenderControl + renderOptionally — waits for both
+        RenderControl + whenAllDefined — waits for both
       </h3>
       <div className="flex items-center gap-2">
         <span className="text-sm text-zinc-700">
           <RenderControl>
-            {renderOptionally(
+            {whenAllDefined(
               { user, account },
               ({ user, account }) => (
                 <span>

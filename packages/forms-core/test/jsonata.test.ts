@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   type Control,
   type ControlContext,
 } from "@rxc/controls-core";
@@ -28,7 +28,7 @@ import { createSchemaTreeResolver } from "../src/nodes/schemaNode";
 import { createFormTreeResolver } from "../src/nodes/formNode";
 import type { FormGlobalOptions } from "../src/types";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 const stringField = (name: string): SchemaField => ({
   type: FieldType.String,

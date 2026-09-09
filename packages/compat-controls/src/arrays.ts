@@ -4,7 +4,7 @@
  */
 
 import type { Control as CoreControl } from "@rxc/controls-core";
-import { getElementIndex as coreGetElementIndex } from "@rxc/controls-core";
+import { getElementPosition as coreGetElementIndex } from "@rxc/controls-core";
 import { toImpl } from "@rxc/controls-core/internal";
 import { runInWc } from "./transactions.js";
 import { asLegacy } from "./patch.js";

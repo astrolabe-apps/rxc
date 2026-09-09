@@ -138,7 +138,7 @@ function ControlBranchNode({
   const valid = rc.isValid(control);
   const error = rc.getError(control);
 
-  const fieldEntries = Object.entries(control.fieldsNow).filter(
+  const fieldEntries = Object.entries(control.existingFields).filter(
     (e): e is [string, Control<unknown>] => e[1] !== undefined,
   );
   const elems = control.elementsNow;
@@ -208,7 +208,7 @@ function ControlNodeRenderer({
   name: string;
   defaultExpanded?: boolean;
 }) {
-  const fieldKeys = Object.keys(control.fieldsNow);
+  const fieldKeys = Object.keys(control.existingFields);
   const hasChildren = fieldKeys.length > 0 || control.elementsNow.length > 0;
   if (hasChildren) {
     return (

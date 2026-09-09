@@ -75,8 +75,8 @@ export function useComponentTracking(): () => void {
 
   // Alive/dead lifecycle across StrictMode remounts — mount/unmount only.
   useEffect(() => {
-    ctx.reviveTracker(tracker.reconciler);
-    return () => ctx.markTrackerDead(tracker.reconciler);
+    ctx.retainTracker(tracker.reconciler);
+    return () => ctx.releaseTracker(tracker.reconciler);
   }, [ctx, tracker]);
 
   // Safety net: a component that threw (or never called stop) would leave

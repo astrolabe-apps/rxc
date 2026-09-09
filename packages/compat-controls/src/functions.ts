@@ -9,8 +9,8 @@ import {
   computed,
   deepEquals,
   getControlPath as coreGetControlPath,
-  setFields as coreSetFields,
-  type ComputedRef,
+  attachFields as coreSetFields,
+  type ComputedHandle,
   type Control as CoreControl,
 } from "@rxc/controls-core";
 import { ControlImpl, toImpl } from "@rxc/controls-core/internal";
@@ -82,7 +82,7 @@ export function withChildren(
 export function getCurrentFields<V extends Record<string, any>>(
   control: Control<V>,
 ): { [K in keyof V]?: Control<V[K]> } {
-  return control.fieldsNow as { [K in keyof V]?: Control<V[K]> };
+  return control.existingFields as { [K in keyof V]?: Control<V[K]> };
 }
 
 /**
@@ -160,7 +160,7 @@ export function updateComputedValue<V>(
 ): void {
   const meta = control.meta;
   const existing = meta[COMPUTED_KEY] as
-    | { ref: ComputedRef; compute: () => V }
+    | { ref: ComputedHandle; compute: () => V }
     | undefined;
   if (existing?.compute === compute) return;
   const wrapped = (rc: Parameters<Parameters<typeof computed>[2]>[0]) =>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createControlContext, noopReadContext } from "@rxc/controls-core";
+import { createControlContext, untrackedRead } from "@rxc/controls-core";
 import { TrackingReadContext } from "@rxc/controls-core/internal";
 import {
   createOverrideProxy,
@@ -15,7 +15,7 @@ describe("createOverrideProxy", () => {
     const ctx = makeCtx();
     const overrides = ctx.newControl<Record<string, unknown>>({});
     const target = { name: "Sam", age: 30 };
-    const proxy = createOverrideProxy(target, overrides, noopReadContext);
+    const proxy = createOverrideProxy(target, overrides, untrackedRead);
     expect(proxy.name).toBe("Sam");
     expect(proxy.age).toBe(30);
   });
@@ -28,7 +28,7 @@ describe("createOverrideProxy", () => {
     const fname = overrides.fields.name;
     ctx.update((wc) => wc.setValue(fname, "Override"));
     const target = { name: "Sam", age: 30 };
-    const proxy = createOverrideProxy(target, overrides, noopReadContext);
+    const proxy = createOverrideProxy(target, overrides, untrackedRead);
     expect(proxy.name).toBe("Override");
     expect(proxy.age).toBe(30);
   });
@@ -39,7 +39,7 @@ describe("createOverrideProxy", () => {
     const fname = overrides.fields.name;
     ctx.update((wc) => wc.setValue(fname, NoOverride));
     const target = { name: "Sam", age: 30 };
-    const proxy = createOverrideProxy(target, overrides, noopReadContext);
+    const proxy = createOverrideProxy(target, overrides, untrackedRead);
     expect(proxy.name).toBe("Sam");
   });
 
@@ -74,7 +74,7 @@ describe("createOverrideProxy", () => {
     const proxy = createOverrideProxy(
       target,
       overrides,
-      noopReadContext,
+      untrackedRead,
       nested,
     );
 
@@ -115,7 +115,7 @@ describe("createOverrideProxy escaped-read guard", () => {
 
   it("warns when a scriptable property is read past the tracking window", () => {
     const { overrides } = withOverride();
-    const proxy = createOverrideProxy({ label: "base" }, overrides, noopReadContext);
+    const proxy = createOverrideProxy({ label: "base" }, overrides, untrackedRead);
     const warn = vi.spyOn(console, "warn");
     expect(proxy.label).toBe("scripted");
     expect(warn).toHaveBeenCalledOnce();

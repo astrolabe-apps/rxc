@@ -18,16 +18,16 @@ import { useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import type { Control as CoreControl } from "@rxc/controls-core";
 import {
-  ensureSelectableValues as rxcEnsureSelectableValues,
+  selectableValues as rxcEnsureSelectableValues,
   useAsyncValidator as rxcUseAsyncValidator,
   useComputed as rxcUseComputed,
   useControl as rxcUseControl,
   useControlEffect as rxcUseControlEffect,
   useControlGroup as rxcUseControlGroup,
-  usePreviousValue as rxcUsePreviousValue,
+  useValueWithPrevious as rxcUsePreviousValue,
   useSelectableArray as rxcUseSelectableArray,
   useValidator as rxcUseValidator,
-  type SelectionGroupSync as RxcSelectionGroupSync,
+  type SelectionBuilder as RxcSelectionGroupSync,
 } from "@rxc/controls";
 import { withAmbient } from "./ambient.js";
 import { convertSetup } from "./newControl.js";

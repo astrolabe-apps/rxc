@@ -1,14 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import type { Control, ControlSetup } from "@rxc/controls-core";
+import type { Control, ControlOptions } from "@rxc/controls-core";
 import { useControlContext } from "./useControls.js";
 
 /**
- * Options for {@link useControl} — a {@link ControlSetup} plus the `use`
+ * Options for {@link useControl} — a {@link ControlOptions} plus the `use`
  * escape hatch.
  */
-export type UseControlSetup<V> = ControlSetup<V> & {
+export type UseControlOptions<V> = ControlOptions<V> & {
   /**
    * Use this control instead of creating one.
    *
@@ -46,13 +46,13 @@ export type UseControlSetup<V> = ControlSetup<V> & {
  */
 export function useControl<V>(
   initialValue: V | (() => V),
-  setup?: UseControlSetup<V>,
+  setup?: UseControlOptions<V>,
 ): Control<V>;
 /** Create a control of the given type, initially `undefined`. */
 export function useControl<V = undefined>(): Control<V | undefined>;
 export function useControl<V>(
   initialValue?: V | (() => V),
-  setup?: UseControlSetup<V>,
+  setup?: UseControlOptions<V>,
 ): Control<V> {
   const ctx = useControlContext();
   const supplied = setup?.use;

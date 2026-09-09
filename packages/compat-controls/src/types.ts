@@ -144,7 +144,7 @@ export interface Control<V> extends ControlProperties<V>, CleanupScopeImpl {
   readonly errorsNow: Record<string, string>;
   readonly isNullNow: boolean;
   readonly elementsNow: ControlElements<V>;
-  readonly fieldsNow: Record<string, Control<unknown> | undefined>;
+  readonly existingFields: Record<string, Control<unknown> | undefined>;
 }
 
 export type ControlValue<C> = C extends Control<infer V> ? V : never;

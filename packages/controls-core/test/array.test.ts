@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { ControlChange } from "../src/types";
-import { getElementIndex } from "../src/controlUtils";
+import { getElementPosition } from "../src/controlUtils";
 import { makeCtx } from "./index";
 import { arrayAndIndex } from "./gen";
 
@@ -185,27 +185,27 @@ describe("array", () => {
     );
   });
 
-  it("getElementIndex is correct after removing element", () => {
+  it("getElementPosition is correct after removing element", () => {
     fc.assert(
       fc.property(arrayAndIndex, arrayAndIndex, ([obj, ind], [obj2, ind2]) => {
         const ctx = makeCtx();
         const control = ctx.newControl(obj);
-        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+        expect(control.elementsNow.map((x) => getElementPosition(x))).toStrictEqual(
           control.elementsNow.map((_, i) => ({ index: i, initialIndex: i })),
         );
         ctx.update((wc) => wc.removeElement(control, ind));
-        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+        expect(control.elementsNow.map((x) => getElementPosition(x))).toStrictEqual(
           control.elementsNow.map((_, i) => ({
             index: i,
             initialIndex: i >= ind ? i + 1 : i,
           })),
         );
         ctx.update((wc) => wc.setInitialValueOnly(control, obj2));
-        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+        expect(control.elementsNow.map((x) => getElementPosition(x))).toStrictEqual(
           control.elementsNow.map((_, i) => ({ index: i, initialIndex: i })),
         );
         ctx.update((wc) => wc.removeElement(control, ind2));
-        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+        expect(control.elementsNow.map((x) => getElementPosition(x))).toStrictEqual(
           control.elementsNow.map((_, i) => ({
             index: i,
             initialIndex: i >= ind2 ? i + 1 : i,
@@ -215,13 +215,13 @@ describe("array", () => {
     );
   });
 
-  it("getElementIndex is correct after adding element", () => {
+  it("getElementPosition is correct after adding element", () => {
     fc.assert(
       fc.property(arrayAndIndex, ([obj, ind]) => {
         const ctx = makeCtx();
         const control = ctx.newControl(obj);
         ctx.update((wc) => wc.addElement(control, "", ind));
-        expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+        expect(control.elementsNow.map((x) => getElementPosition(x))).toStrictEqual(
           control.elementsNow.map((_, i) => ({
             index: i,
             initialIndex: i == ind ? undefined : i < ind ? i : i - 1,
@@ -231,7 +231,7 @@ describe("array", () => {
     );
   });
 
-  it("getElementIndex is correct after re-ordering elements", () => {
+  it("getElementPosition is correct after re-ordering elements", () => {
     fc.assert(
       fc.property(
         fc
@@ -247,7 +247,7 @@ describe("array", () => {
               [...x].sort((a, b) => a.valueNow - b.valueNow),
             ),
           );
-          expect(control.elementsNow.map((x) => getElementIndex(x))).toStrictEqual(
+          expect(control.elementsNow.map((x) => getElementPosition(x))).toStrictEqual(
             control.elementsNow.map((c, i) => ({
               index: i,
               initialIndex: obj.indexOf(c.valueNow),

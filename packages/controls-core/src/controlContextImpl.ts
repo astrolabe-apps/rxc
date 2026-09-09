@@ -1,6 +1,6 @@
 import type {ControlContextInternal} from "./controlImpl.js";
 import {ControlFlags, ControlImpl, noopNotify,} from "./controlImpl.js";
-import type {Control, ControlContext, ControlSetup, WriteContext} from "./types.js";
+import type {Control, ControlContext, ControlOptions, WriteContext} from "./types.js";
 import {ControlChange} from "./types.js";
 import {WriteContextImpl} from "./writeContextImpl.js";
 import {deepEquals} from "./deepEquals.js";
@@ -35,7 +35,7 @@ class ControlContextImpl implements ControlContext {
     return ++this._uniqueIdCounter;
   }
 
-  newControl<V>(value: V, setup?: ControlSetup<V>): Control<V> {
+  newControl<V>(value: V, setup?: ControlOptions<V>): Control<V> {
     const ctx = this.buildChildContext(setup);
     const control = new ControlImpl<V>(value, value, ControlFlags.None, ctx);
     if (setup) {
@@ -72,13 +72,13 @@ class ControlContextImpl implements ControlContext {
     }
   }
 
-  markTrackerDead(reconciler: SubscriptionReconciler): void {
+  releaseTracker(reconciler: SubscriptionReconciler): void {
     reconciler.alive = false;
     this.deadTrackers.add(reconciler);
     this.scheduleSweep();
   }
 
-  reviveTracker(reconciler: SubscriptionReconciler): void {
+  retainTracker(reconciler: SubscriptionReconciler): void {
     reconciler.alive = true;
     this.deadTrackers.delete(reconciler);
   }
@@ -98,7 +98,7 @@ class ControlContextImpl implements ControlContext {
     }, 5000);
   }
 
-  private buildChildContext(setup?: ControlSetup<any>): ControlContextInternal {
+  private buildChildContext(setup?: ControlOptions<any>): ControlContextInternal {
     const self = this;
     return {
       equals: this.equals,
@@ -116,7 +116,7 @@ class ControlContextImpl implements ControlContext {
     };
   }
 
-  private initControl(control: ControlImpl, setup: ControlSetup<any>): void {
+  private initControl(control: ControlImpl, setup: ControlOptions<any>): void {
     // 1. Validator
     if (setup.validator !== undefined) {
       const v = setup.validator;
@@ -142,7 +142,7 @@ class ControlContextImpl implements ControlContext {
     // 2. Eager field creation (fields with validators)
     if (setup.fields) {
       for (const k of Object.keys(setup.fields)) {
-        const fieldSetup = (setup.fields as any)[k] as ControlSetup<any> | undefined;
+        const fieldSetup = (setup.fields as any)[k] as ControlOptions<any> | undefined;
         if (fieldSetup?.validator !== undefined) {
           control.getField(k);
         }

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
 import { computed } from "@rxc/controls-core";
-import type { ComputedRef } from "@rxc/controls-core";
+import type { ComputedHandle } from "@rxc/controls-core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
@@ -234,9 +234,9 @@ export function useControls(): Controls {
   // Alive/dead lifecycle. Stable deps — mount/unmount only, so an abandoned
   // render's subscriptions are swept rather than left live.
   useEffect(() => {
-    controlContext.reviveTracker(tracker.reconciler);
+    controlContext.retainTracker(tracker.reconciler);
     return () => {
-      controlContext.markTrackerDead(tracker.reconciler);
+      controlContext.releaseTracker(tracker.reconciler);
     };
   }, [controlContext, tracker]);
 
@@ -265,7 +265,7 @@ export function useControls(): Controls {
  */
 export function useComputed<V>(compute: (rc: ReadContext) => V): Control<V> {
   const ctx = useControlContext();
-  const ref = useRef<{ control: Control<V>; reconciler: ComputedRef } | null>(
+  const ref = useRef<{ control: Control<V>; reconciler: ComputedHandle } | null>(
     null,
   );
   if (!ref.current) {
@@ -278,14 +278,14 @@ export function useComputed<V>(compute: (rc: ReadContext) => V): Control<V> {
   const { reconciler } = ref.current;
 
   useEffect(() => {
-    ctx.reviveTracker(reconciler);
-    return () => ctx.markTrackerDead(reconciler);
+    ctx.retainTracker(reconciler);
+    return () => ctx.releaseTracker(reconciler);
   }, [ctx, reconciler]);
 
   return ref.current.control;
 }
 
-// ── wrapWithControlsContext ─────────────────────────────────────────
+// ── withControlContext ─────────────────────────────────────────
 
 /**
  * Wrap a component so it always renders under a given {@link ControlContext}.
@@ -295,13 +295,13 @@ export function useComputed<V>(compute: (rc: ReadContext) => V): Control<V> {
  * router, a component handed to a third-party host, or a test helper:
  *
  * ```tsx
- * export default wrapWithControlsContext(Page, createControlContext());
+ * export default withControlContext(Page, createControlContext());
  * ```
  *
  * The provider is inside the wrapper, so the wrapped component and everything
  * it renders see `controlsContext`, overriding any provider above it.
  */
-export function wrapWithControlsContext<P extends object>(
+export function withControlContext<P extends object>(
   Component: React.ComponentType<P>,
   controlsContext: ControlContext,
 ): React.FunctionComponent<P> {
@@ -310,7 +310,7 @@ export function wrapWithControlsContext<P extends object>(
       <Component {...props} />
     </ControlContextReact.Provider>
   );
-  Wrapped.displayName = `wrapWithControlsContext(${
+  Wrapped.displayName = `withControlContext(${
     Component.displayName ?? Component.name ?? "Component"
   })`;
   return Wrapped;

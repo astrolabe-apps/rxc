@@ -4,7 +4,7 @@ import type { Control, ReadContext, Subscription } from "./types.js";
 
 const restoreControlSymbol = Symbol("restoreControl");
 
-// ── getValueRx implementation ───────────────────────────────────────
+// ── getTrackedValue implementation ───────────────────────────────────────
 
 /**
  * Recursively creates a reactive proxy over a control's value.
@@ -58,12 +58,12 @@ function createValueRxProxy<V>(control: Control<V>, rc: ReadContext): V {
   }) as V;
 }
 
-export function unwrapValueProxy<A>(v: A): Control<A> | undefined {
+export function controlFromValue<A>(v: A): Control<A> | undefined {
   return v != null ? (v as any)[restoreControlSymbol] : undefined;
 }
 // ── NoopReadContext ─────────────────────────────────────────────────
 
-export const noopReadContext: ReadContext = {
+export const untrackedRead: ReadContext = {
   getValue<V>(control: Control<V>): V {
     return control.valueNow;
   },
@@ -94,7 +94,7 @@ export const noopReadContext: ReadContext = {
   getElements<V>(control: Control<V[]>): Control<V>[] {
     return control.elementsNow;
   },
-  getValueRx<V>(control: Control<V>): V {
+  getTrackedValue<V>(control: Control<V>): V {
     return createValueRxProxy(control, this);
   },
   trackValidate(): void {},
@@ -246,7 +246,7 @@ export class TrackingReadContext implements ReadContext {
     this.track(control, ControlChange.Validate);
   }
 
-  getValueRx<V>(control: Control<V>): V {
+  getTrackedValue<V>(control: Control<V>): V {
     return createValueRxProxy(control, this);
   }
 }

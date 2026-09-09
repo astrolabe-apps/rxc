@@ -3,7 +3,7 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect } from "vitest";
 import { ControlContextProvider, createControlContext } from "@rxc/controls";
-import { noopReadContext, type Control } from "@rxc/controls-core";
+import { untrackedRead, type Control } from "@rxc/controls-core";
 import {
   ControlDefinitionType,
   DataRenderType,
@@ -25,7 +25,7 @@ import { Form } from "@rxc/forms";
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 const schemaFields: SchemaField[] = [
   {

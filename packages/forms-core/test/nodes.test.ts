@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   effect,
   as,
 } from "@rxc/controls-core";
@@ -34,7 +34,7 @@ import {
 import { createSchemaTreeResolver } from "../src/nodes/schemaNode";
 import { createFormTreeResolver } from "../src/nodes/formNode";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 function makeCtx(): ControlContext {
   return createControlContext();

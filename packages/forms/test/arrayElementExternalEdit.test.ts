@@ -14,7 +14,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   type ControlContext,
 } from "@rxc/controls-core";
 import {
@@ -37,7 +37,7 @@ import {
 } from "@rxc/forms-core";
 import { getExternalEdit } from "@rxc/forms-react-core";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 const itemsSchema: SchemaField[] = [
   {

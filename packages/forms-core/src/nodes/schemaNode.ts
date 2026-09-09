@@ -2,7 +2,7 @@ import {
   as,
   type Control,
   type ReadContext,
-  unwrapValueProxy,
+  controlFromValue,
 } from "@rxc/controls-core";
 import {
   type SchemaField,
@@ -122,7 +122,7 @@ class ReactiveSchemaNode implements SchemaNode {
 
   cursor(rd: ReadContext): SchemaCursor {
     return new SchemaCursorImpl(
-      rd.getValueRx(this.field),
+      rd.getTrackedValue(this.field),
       this,
       rd,
       this.resolver,
@@ -132,7 +132,7 @@ class ReactiveSchemaNode implements SchemaNode {
 
 /**
  * Creates the appropriate {@link SchemaNode} for a child field. If the field
- * is a reactive value proxy (from `getValueRx`), creates a
+ * is a reactive value proxy (from `getTrackedValue`), creates a
  * {@link ReactiveSchemaNode}; otherwise creates a {@link StaticSchemaNode}.
  */
 function createChildSchemaNode(
@@ -140,7 +140,7 @@ function createChildSchemaNode(
   fieldOrProxy: SchemaField,
   resolver: SchemaTreeResolver,
 ): SchemaNode {
-  const c = unwrapValueProxy(fieldOrProxy);
+  const c = controlFromValue(fieldOrProxy);
   if (c) return new ReactiveSchemaNode(c, parentNode, resolver);
   return new StaticSchemaNode(fieldOrProxy, parentNode, resolver);
 }

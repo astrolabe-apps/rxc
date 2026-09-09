@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ControlContextProvider,
   createControlContext,
-  ensureSelectableValues,
+  selectableValues,
   useControlGroup,
-  usePreviousValue,
+  useValueWithPrevious,
   useControls,
   useSelectableArray,
   type Control,
@@ -105,7 +105,7 @@ describe("useSelectableArray", () => {
     expect(arr.valueNow).toEqual(["edited"]);
   });
 
-  it("ensureSelectableValues covers all candidate values", () => {
+  it("selectableValues covers all candidate values", () => {
     const arr = ctx.newControl(["b"]);
     let selectable!: Control<SelectionGroup<string>[]>;
 
@@ -113,7 +113,7 @@ describe("useSelectableArray", () => {
       const { rendered } = useControls();
       selectable = useSelectableArray(
         arr,
-        ensureSelectableValues(["a", "b", "c"], (v) => v),
+        selectableValues(["a", "b", "c"], (v) => v),
       );
       return rendered(<span />);
     }
@@ -142,7 +142,7 @@ describe("useSelectableArray", () => {
       const { rendered } = useControls();
       selectable = useSelectableArray(
         arr,
-        ensureSelectableValues(["a"], (v) => v),
+        selectableValues(["a"], (v) => v),
       );
       return rendered(<span />);
     }
@@ -247,14 +247,14 @@ describe("useControlGroup", () => {
   });
 });
 
-describe("usePreviousValue", () => {
+describe("useValueWithPrevious", () => {
   it("tracks previous and current across changes", () => {
     const c = ctx.newControl("a");
     let withPrev!: Control<{ previous?: string; current: string }>;
 
     function Comp(): Rendered {
       const { rendered } = useControls();
-      withPrev = usePreviousValue(c);
+      withPrev = useValueWithPrevious(c);
       return rendered(<span />);
     }
 

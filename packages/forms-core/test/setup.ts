@@ -4,7 +4,7 @@
  * Two messages are expected here and carry no signal:
  *
  *  - The scripted-override proxy's escaped-read guard. Tests build proxies
- *    against `noopReadContext`, whose `isFinalized` is permanently true, so
+ *    against `untrackedRead`, whose `isFinalized` is permanently true, so
  *    the guard fires on every scriptable property read — it is working as
  *    designed, and no test asserts on it.
  *  - The jsonata parse error, emitted by the test that feeds a deliberately

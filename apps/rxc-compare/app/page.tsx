@@ -107,9 +107,9 @@ function FormHost({ def }: FormHostProps): Rendered {
       searchableFields: cs.searchableFields,
     });
     const eff = effect(cc, (rc) => {
-      // Track the whole request Value (not getValueRx): the `filters`
+      // Track the whole request Value (not getTrackedValue): the `filters`
       // object has dynamic keys read via Object.keys(), which bypasses
-      // getValueRx's per-field proxy tracking, so a filter toggle (a Value
+      // getTrackedValue's per-field proxy tracking, so a filter toggle (a Value
       // change, not Structure) would otherwise not re-run this effect.
       const req = rc.getValue(reqControl);
       const { entries, total } = clientSearchPage(cs.allRows, req, client);

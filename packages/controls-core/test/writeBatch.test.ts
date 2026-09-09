@@ -103,17 +103,17 @@ describe("write batching", () => {
     ]);
   });
 
-  it("runs afterChanges callbacks once listeners have drained", () => {
+  it("runs afterFlush callbacks once listeners have drained", () => {
     const ctx = makeCtx();
     const c = ctx.newControl("a");
     const order: string[] = [];
     c.subscribe(() => order.push("listener"), ControlChange.Value);
 
     ctx.update((wc) => {
-      wc.afterChanges(() => order.push("afterChanges"));
+      wc.afterFlush(() => order.push("afterFlush"));
       wc.setValue(c, "b");
     });
 
-    expect(order).toStrictEqual(["listener", "afterChanges"]);
+    expect(order).toStrictEqual(["listener", "afterFlush"]);
   });
 });

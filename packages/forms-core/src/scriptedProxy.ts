@@ -50,7 +50,7 @@ function getChildFields(field: CompoundField): SchemaField[] | undefined {
  * Does this subtree have any scripts or `_ScriptNullInit` fields that
  * need an override control? Used to skip materialising override subtrees
  * for compound fields with no scripting — otherwise the parent proxy's
- * `Object.hasOwn(fieldsNow, X)` check would pick up the empty child
+ * `Object.hasOwn(existingFields, X)` check would pick up the empty child
  * control and shadow the base value.
  */
 function subtreeHasScripts(
@@ -265,7 +265,7 @@ function buildLevel(
   // Recurse into non-collection compound children — but only when the
   // subtree actually needs an override control. Materialising
   // `overridesControl.fields.X` unconditionally would add `X` to the
-  // parent's `fieldsNow` and shadow the base compound value on read.
+  // parent's `existingFields` and shadow the base compound value on read.
   for (const field of fields) {
     if (!isCompoundField(field) || field.collection) continue;
     let childFields = getChildFields(field);

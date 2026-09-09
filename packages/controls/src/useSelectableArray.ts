@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ControlChange, controlGroup } from "@rxc/controls-core";
+import { ControlChange, createControlGroup } from "@rxc/controls-core";
 import type {
   Control,
   ControlContext,
-  ControlSetup,
+  ControlOptions,
   Subscription,
 } from "@rxc/controls-core";
 import { useControlContext } from "./useControls.js";
@@ -23,16 +23,16 @@ export interface SelectionGroup<V> {
  * currently present (`ctx.newControl`); `initiallySelected` defaults to
  * `selected` and drives dirtiness of the selection flag.
  */
-export type SelectionGroupSync<V> = (
+export type SelectionBuilder<V> = (
   original: Control<V[]>,
   ctx: ControlContext,
 ) => [boolean, Control<V>, boolean?][];
 
-const defaultSelectionCreator: SelectionGroupSync<unknown> = (original) =>
+const defaultSelectionCreator: SelectionBuilder<unknown> = (original) =>
   original.elementsNow.map((x) => [true, x]);
 
 /**
- * A {@link SelectionGroupSync} that guarantees an entry per value of
+ * A {@link SelectionBuilder} that guarantees an entry per value of
  * `values`, in order — selected when the original array already contains a
  * matching element (per `key`), unselected (with a fresh control) otherwise.
  * Array elements matching nothing in `values` are appended, selected.
@@ -40,10 +40,10 @@ const defaultSelectionCreator: SelectionGroupSync<unknown> = (original) =>
  * This is the multi-select checklist shape: `values` are the options, the
  * array holds what's checked.
  */
-export function ensureSelectableValues<V>(
+export function selectableValues<V>(
   values: V[],
   key: (v: V) => unknown,
-): SelectionGroupSync<V> {
+): SelectionBuilder<V> {
   return (original, ctx) => {
     const remaining = [...original.elementsNow];
     const fromValues: [boolean, Control<V>, boolean?][] = values.map((x) => {
@@ -72,15 +72,15 @@ export function ensureSelectableValues<V>(
  * ```tsx
  * const selectable = useSelectableArray(
  *   tags,
- *   ensureSelectableValues(ALL_TAGS, (t) => t.id),
+ *   selectableValues(ALL_TAGS, (t) => t.id),
  * );
  * // render rc.getElements(selectable) as checkboxes
  * ```
  */
 export function useSelectableArray<V>(
   control: Control<V[]>,
-  groupSyncer: SelectionGroupSync<V> = defaultSelectionCreator as unknown as SelectionGroupSync<V>,
-  setup?: ControlSetup<SelectionGroup<V>[]>,
+  groupSyncer: SelectionBuilder<V> = defaultSelectionCreator as unknown as SelectionBuilder<V>,
+  setup?: ControlOptions<SelectionGroup<V>[]>,
   reset?: unknown,
 ): Control<SelectionGroup<V>[]> {
   const ctx = useControlContext();
@@ -126,7 +126,7 @@ export function useSelectableArray<V>(
             selectedControl,
             selectedControl.subscribe(syncToOriginal, ControlChange.Value),
           ]);
-          return controlGroup(ctx, { selected: selectedControl, value });
+          return createControlGroup(ctx, { selected: selectedControl, value });
         },
       );
       wc.updateElements(selectable, () => groups);

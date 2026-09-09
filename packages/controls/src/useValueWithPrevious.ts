@@ -13,11 +13,11 @@ import { useControlContext } from "./useControls.js";
  * like any other control:
  *
  * ```tsx
- * const withPrev = usePreviousValue(price);
+ * const withPrev = useValueWithPrevious(price);
  * const { previous, current } = rc.getValue(withPrev);
  * ```
  */
-export function usePreviousValue<V>(
+export function useValueWithPrevious<V>(
   control: Control<V>,
 ): Control<{ previous?: V; current: V }> {
   const ctx = useControlContext();

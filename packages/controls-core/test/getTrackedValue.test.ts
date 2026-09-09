@@ -1,27 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { ControlChange } from "../src/types";
-import { noopReadContext, TrackingReadContext } from "../src/readContextImpl";
+import { untrackedRead, TrackingReadContext } from "../src/readContextImpl";
 import { makeCtx } from "./index";
 
-const rc = noopReadContext;
+const rc = untrackedRead;
 
-describe("getValueRx", () => {
+describe("getTrackedValue", () => {
   it("returns primitive values directly", () => {
     const ctx = makeCtx();
     const c = ctx.newControl("hello");
-    expect(rc.getValueRx(c)).toBe("hello");
+    expect(rc.getTrackedValue(c)).toBe("hello");
   });
 
   it("returns null/undefined directly", () => {
     const ctx = makeCtx();
     const c = ctx.newControl<string | null>(null);
-    expect(rc.getValueRx(c)).toBeNull();
+    expect(rc.getTrackedValue(c)).toBeNull();
   });
 
   it("proxies object field access through child controls", () => {
     const ctx = makeCtx();
     const c = ctx.newControl({ name: "Alice", age: 30 });
-    const proxy = rc.getValueRx(c);
+    const proxy = rc.getTrackedValue(c);
 
     expect(proxy.name).toBe("Alice");
     expect(proxy.age).toBe(30);
@@ -33,7 +33,7 @@ describe("getValueRx", () => {
 
     ctx.update((wc) => wc.setValue(c.fields.name, "Bob"));
 
-    const proxy = rc.getValueRx(c);
+    const proxy = rc.getTrackedValue(c);
     expect(proxy.name).toBe("Bob");
     expect(proxy.age).toBe(30);
   });
@@ -43,7 +43,7 @@ describe("getValueRx", () => {
     const c = ctx.newControl({
       address: { city: "NYC", zip: "10001" },
     });
-    const proxy = rc.getValueRx(c);
+    const proxy = rc.getTrackedValue(c);
 
     expect(proxy.address.city).toBe("NYC");
     expect(proxy.address.zip).toBe("10001");
@@ -52,7 +52,7 @@ describe("getValueRx", () => {
   it("proxies array index access through element controls", () => {
     const ctx = makeCtx();
     const c = ctx.newControl(["a", "b", "c"]);
-    const proxy = rc.getValueRx(c);
+    const proxy = rc.getTrackedValue(c);
 
     expect(proxy.length).toBe(3);
     expect(proxy[0]).toBe("a");
@@ -66,7 +66,7 @@ describe("getValueRx", () => {
       { name: "Alice" },
       { name: "Bob" },
     ]);
-    const proxy = rc.getValueRx(c);
+    const proxy = rc.getTrackedValue(c);
 
     expect(proxy[0].name).toBe("Alice");
     expect(proxy[1].name).toBe("Bob");
@@ -79,7 +79,7 @@ describe("getValueRx", () => {
     const c = ctx.newControl("hello");
     const trc = new TrackingReadContext();
 
-    trc.getValueRx(c);
+    trc.getTrackedValue(c);
 
     expect(trc.tracked.size).toBe(1);
     expect(trc.tracked.get(c as any)).toBe(ControlChange.Value);
@@ -90,7 +90,7 @@ describe("getValueRx", () => {
     const c = ctx.newControl<string | null>(null);
     const trc = new TrackingReadContext();
 
-    trc.getValueRx(c);
+    trc.getTrackedValue(c);
 
     expect(trc.tracked.size).toBe(1);
     expect(trc.tracked.get(c as any)).toBe(ControlChange.Structure);
@@ -101,7 +101,7 @@ describe("getValueRx", () => {
     const c = ctx.newControl({ name: "Alice", age: 30 });
     const trc = new TrackingReadContext();
 
-    const proxy = trc.getValueRx(c);
+    const proxy = trc.getTrackedValue(c);
     // Only access name, not age
     const _ = proxy.name;
 
@@ -121,7 +121,7 @@ describe("getValueRx", () => {
     const c = ctx.newControl({ name: "Alice", age: 30 });
     const trc = new TrackingReadContext();
 
-    const proxy = trc.getValueRx(c);
+    const proxy = trc.getTrackedValue(c);
     const _ = proxy.name; // only access name
 
     const ageControl = c.fields.age;

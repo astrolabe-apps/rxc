@@ -9,7 +9,7 @@ import {
   RenderControl,
   RenderElements,
   RenderOptional,
-  renderOptionally,
+  whenAllDefined,
   useControls,
   type ControlContext,
   type ReadContext,
@@ -270,7 +270,7 @@ describe("RenderOptional", () => {
   });
 });
 
-describe("renderOptionally", () => {
+describe("whenAllDefined", () => {
   it("renders only once every control has a value", () => {
     const a = ctx.newControl<string | null>("a");
     const b = ctx.newControl<number | null>(null);
@@ -279,7 +279,7 @@ describe("renderOptionally", () => {
       const { rendered } = useControls();
       return rendered(
         <RenderControl>
-          {renderOptionally(
+          {whenAllDefined(
             { a, b },
             ({ a, b }) => (
               <span>{`${a}${b}`}</span>

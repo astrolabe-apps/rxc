@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { noopReadContext } from "@rxc/controls-core";
+import { untrackedRead } from "@rxc/controls-core";
 import type { Control, ReadContext } from "@rxc/controls-core";
 import {
   SubscriptionReconciler,
@@ -13,7 +13,7 @@ import { useControlEffect } from "./useControlEffect.js";
 /**
  * Attach a validator to a control for this component's lifetime.
  *
- * The dynamic counterpart of `ControlSetup.validator`, with the same
+ * The dynamic counterpart of `ControlOptions.validator`, with the same
  * publication contract: the error (under `key`) is computed immediately,
  * recomputed when anything the validator read changes, and **re-published on
  * `WriteContext.validate()`** — so an error cleared externally (e.g.
@@ -52,7 +52,7 @@ export function useValidator<V>(
     const run = () => {
       rc.reset();
       // Re-run (and re-publish) on validate() broadcasts, like the
-      // built-in `ControlSetup.validator` subscription (Value | Validate).
+      // built-in `ControlOptions.validator` subscription (Value | Validate).
       rc.trackValidate(control);
       const message = validatorRef.current(rc.getValue(control), rc);
       reconciler.reconcile(rc.tracked);
@@ -65,12 +65,12 @@ export function useValidator<V>(
   const { run, reconciler } = state.current;
 
   useEffect(() => {
-    ctx.reviveTracker(reconciler);
+    ctx.retainTracker(reconciler);
     // Republish: a StrictMode unmount/remount cycle ran the cleanup below,
     // clearing the key, before this second setup.
     run();
     return () => {
-      ctx.markTrackerDead(reconciler);
+      ctx.releaseTracker(reconciler);
       ctx.update((wc) => wc.setError(control, key, null));
     };
     // control/key are fixed at mount by contract.
@@ -131,7 +131,7 @@ export function useAsyncValidator<V>(
           (error) => {
             if (controller.signal.aborted) return;
             // Only publish for the value that was validated.
-            const live = checkRef.current(noopReadContext, control);
+            const live = checkRef.current(untrackedRead, control);
             if (ctx.equals(live, version)) {
               ctx.update((wc) => {
                 wc.setTouched(control, true);

@@ -230,7 +230,7 @@ const PATCH: Record<string, Accessor> = {
   },
   markAsClean: {
     value(this: ControlImpl<any>) {
-      runInWc((wc) => wc.markAsClean(this as CoreControl<any>));
+      runInWc((wc) => wc.markClean(this as CoreControl<any>));
     },
   },
   clearErrors: {

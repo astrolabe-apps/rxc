@@ -105,7 +105,7 @@ describe("useControl", () => {
     expect(c!.valueNow).toBeUndefined();
   });
 
-  it("applies ControlSetup when creating the control", () => {
+  it("applies ControlOptions when creating the control", () => {
     let c: Control<string> | undefined;
 
     function Comp(): Rendered {

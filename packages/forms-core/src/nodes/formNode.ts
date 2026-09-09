@@ -1,7 +1,7 @@
 import {
   type Control,
   type ReadContext,
-  unwrapValueProxy,
+  controlFromValue,
 } from "@rxc/controls-core";
 import {
   type ControlDefinition,
@@ -217,7 +217,7 @@ function findReactiveById(
   id: string,
 ): Control<ControlDefinition[]> | undefined {
   for (const elem of rd.getElements(controls)) {
-    const def = rd.getValueRx(elem);
+    const def = rd.getTrackedValue(elem);
     if (def.id === id)
       return elem.fields.children as Control<ControlDefinition[]>;
     const children = def.children;
@@ -294,13 +294,13 @@ class ReactiveFormNode implements FormNode {
   }
 
   cursor(rd: ReadContext): FormCursor {
-    return new FormCursorImpl(rd.getValueRx(this.definition), this, rd);
+    return new FormCursorImpl(rd.getTrackedValue(this.definition), this, rd);
   }
 }
 
 /**
  * Creates the appropriate {@link FormNode} for a child definition. If the
- * definition is a reactive value proxy (from `getValueRx`), creates a
+ * definition is a reactive value proxy (from `getTrackedValue`), creates a
  * {@link ReactiveFormNode}; otherwise creates a {@link StaticFormNode}.
  */
 function createChildFormNode(
@@ -309,7 +309,7 @@ function createChildFormNode(
   childIndex: number,
   tree: FormTree,
 ): FormNode {
-  const c = unwrapValueProxy(controlOrProxy);
+  const c = controlFromValue(controlOrProxy);
   if (c) return new ReactiveFormNode(c, parentNode, tree);
   return new StaticFormNode(controlOrProxy, childIndex, parentNode, tree);
 }

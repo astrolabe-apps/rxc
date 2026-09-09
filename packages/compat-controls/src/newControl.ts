@@ -4,8 +4,8 @@
  */
 
 import {
-  controlGroup as coreControlGroup,
-  type ControlSetup as CoreControlSetup,
+  createControlGroup as coreControlGroup,
+  type ControlOptions as CoreControlSetup,
   type Control as CoreControl,
 } from "@rxc/controls-core";
 import { getCompatContext } from "./context.js";

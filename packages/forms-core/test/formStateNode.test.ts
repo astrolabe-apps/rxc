@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   type ControlContext,
 } from "@rxc/controls-core";
 import {
@@ -39,7 +39,7 @@ import {
 } from "../src/nodes/formNode";
 import type { FormGlobalOptions } from "../src/types";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 function stringField(name: string): SchemaField {
   return { type: FieldType.String, field: name };

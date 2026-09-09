@@ -4,7 +4,7 @@ import {
   type ReadContext,
   computed,
   effect,
-  noopReadContext,
+  untrackedRead,
   type ControlFields,
 } from "@rxc/controls-core";
 import {
@@ -227,12 +227,12 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   validate(): boolean {
-    for (const child of this.getChildren(noopReadContext)) {
+    for (const child of this.getChildren(untrackedRead)) {
       child.validate();
     }
-    const dn = this.base.fieldsNow.dataNode?.valueNow as DataNode | undefined;
+    const dn = this.base.existingFields.dataNode?.valueNow as DataNode | undefined;
     if (dn) {
-      this.ctx.update((wc) => wc.validate(dn.cursor(noopReadContext).control));
+      this.ctx.update((wc) => wc.validate(dn.cursor(untrackedRead).control));
     }
     return this.base.validNow;
   }
@@ -248,7 +248,7 @@ class FormStateNodeImpl implements FormStateNode {
   }
 
   cleanup(): void {
-    for (const child of this.getChildren(noopReadContext)) {
+    for (const child of this.getChildren(untrackedRead)) {
       child.cleanup();
     }
     for (const fn of this._cleanups) fn();
@@ -472,7 +472,7 @@ function initFormState(
       return { ...legacy, ...explicit };
     };
     const initialData =
-      (base.fieldsNow.dataNode?.valueNow as DataNode | undefined) ?? parent;
+      (base.existingFields.dataNode?.valueNow as DataNode | undefined) ?? parent;
     const cleanups: Array<() => void> = [];
     const variables = rc.getValue(base.fields.nodeOptions).variables;
     const evalDef = createEvaluatedDefinition(
@@ -694,10 +694,10 @@ function initFormState(
 
   // Eagerly initialise children when safe. Nodes with a `childRefId` may
   // introduce recursion, so we only init lazily for those. Reading the
-  // snapshot via `noopReadContext` is intentional — we only care about the
+  // snapshot via `untrackedRead` is intentional — we only care about the
   // structural childRefId at construction time; later childRefId edits
   // would require a different mechanism (not in scope here).
-  if (!impl.unresolved(noopReadContext).childRefId) {
+  if (!impl.unresolved(untrackedRead).childRefId) {
     impl.ensureChildren();
   }
 }

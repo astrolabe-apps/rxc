@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { Control, ControlSetup } from "@rxc/controls";
+import type { Control, ControlOptions } from "@rxc/controls";
 import { useComputed, useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 
 interface FormData {
@@ -84,7 +84,7 @@ function MyForm({ form }: { form: Control<FormData> }): Rendered {
           onClick={() => {
             const value = form.valueNow;
             alert(JSON.stringify(value, null, 2));
-            update((wc) => wc.markAsClean(form));
+            update((wc) => wc.markClean(form));
           }}
         >
           Submit
@@ -123,7 +123,7 @@ const initialData: FormData = {
   email: "",
 };
 
-const formSetup: ControlSetup<FormData> = {
+const formSetup: ControlOptions<FormData> = {
   fields: {
     firstName: {
       validator: (v) => (!v ? "Required" : undefined),

@@ -63,7 +63,7 @@ export function runTransaction(
  * always after any in-flight listener storm.
  */
 export function addAfterChangesCallback(cb: () => void): void {
-  runInWc((wc) => wc.afterChanges(cb));
+  runInWc((wc) => wc.afterFlush(cb));
 }
 
 /**

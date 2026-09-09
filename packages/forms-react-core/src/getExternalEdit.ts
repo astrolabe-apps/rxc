@@ -1,5 +1,5 @@
 import {
-  noopReadContext,
+  untrackedRead,
   type Control,
   type ReadContext,
 } from "@rxc/controls-core";
@@ -160,8 +160,8 @@ export function getExternalEdit(
   // sibling renderers. Two FormStateNodes bound to the same array field
   // resolve to the same `Control` here, so the controller cached on the
   // Control's `meta` is shared between them.
-  const dn = arrayNode.getState(noopReadContext).dataNode;
-  const arrayControl = dn?.cursor(noopReadContext).control as
+  const dn = arrayNode.getState(untrackedRead).dataNode;
+  const arrayControl = dn?.cursor(untrackedRead).control as
     | Control<unknown>
     | undefined;
   const metaHost = (arrayControl?.meta ?? {}) as Record<string, unknown>;
@@ -174,18 +174,18 @@ export function getExternalEdit(
     const sessionControl = ctx.newControl<ExternalEditSession | null>(null);
 
     function getArrayControl(): Control<unknown[]> | undefined {
-      const dn = arrayNode.getState(noopReadContext).dataNode;
+      const dn = arrayNode.getState(untrackedRead).dataNode;
       if (!dn) return undefined;
-      return dn.cursor(noopReadContext).control as Control<unknown[]>;
+      return dn.cursor(untrackedRead).control as Control<unknown[]>;
     }
 
     function getElementSchemaNode() {
       // The array's own SchemaNode is reused for elements — see
       // `dataNode.ts::childElement` which calls
       // `createDataNode(schemaNode, elemControl, node, index)`.
-      const dn = arrayNode.getState(noopReadContext).dataNode;
+      const dn = arrayNode.getState(untrackedRead).dataNode;
       if (!dn) return undefined;
-      return dn.cursor(noopReadContext).schema.node;
+      return dn.cursor(untrackedRead).schema.node;
     }
 
     // Resolve the draft's root FormNode and the definition to root it with.
@@ -208,7 +208,7 @@ export function getExternalEdit(
       }
       const arrayForm = arrayNode.form;
       if (!arrayForm) return undefined;
-      const children = arrayForm.cursor(noopReadContext).children;
+      const children = arrayForm.cursor(untrackedRead).children;
       if (children.length === 1) {
         return { form: children[0].node, def: explicitDef };
       }
@@ -235,7 +235,7 @@ export function getExternalEdit(
     // array's `addActionId`/`addText` ("add"/"Add"); an `edit` session uses
     // "apply"/"Apply".
     function buildActions(mode: "add" | "edit"): ExternalEditAction[] {
-      const arrayDef = arrayNode.getState(noopReadContext).definition;
+      const arrayDef = arrayNode.getState(untrackedRead).definition;
       const arrayRenderOpts = isDataControl(arrayDef)
         ? (arrayDef.renderOptions as
             | { addActionId?: string | null; addText?: string | null }

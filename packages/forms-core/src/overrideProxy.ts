@@ -29,7 +29,7 @@ export type NestedProxyBuilder = (
  * change. On each read the proxy:
  *
  * 1. Checks whether an override control exists for the key (by looking at
- *    `overridesControl.fieldsNow`). If so, reads its value through `rc`;
+ *    `overridesControl.existingFields`). If so, reads its value through `rc`;
  *    when the value is not {@link NoOverride}, it's returned directly.
  * 2. If the key names a non-collection compound with its own overrides
  *    subtree, wraps the base value via the registered nested builder.
@@ -80,7 +80,7 @@ export function createOverrideProxy<A extends object, B extends object>(
   rc: ReadContext,
   nestedBuilders?: Map<string, NestedProxyBuilder>,
 ): A {
-  const overrideFields = overridesControl.fieldsNow as Record<
+  const overrideFields = overridesControl.existingFields as Record<
     string,
     Control<unknown>
   >;

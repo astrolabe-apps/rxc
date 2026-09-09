@@ -1,5 +1,5 @@
 import { ControlChange } from "./types.js";
-import type { ChangeListenerFunc, Subscription, WriteContext } from "./types.js";
+import type { ChangeListener, Subscription, WriteContext } from "./types.js";
 import type { ControlImpl } from "./controlImpl.js";
 
 interface SubscriptionInternal extends Subscription {
@@ -11,7 +11,7 @@ export class Subscriptions {
   mask: ControlChange = 0 as ControlChange;
 
   subscribe(
-    listener: ChangeListenerFunc<any>,
+    listener: ChangeListener<any>,
     current: ControlChange,
     mask: ControlChange,
   ): Subscription {
@@ -77,11 +77,11 @@ class SubscriptionList {
     this.changeState |= change & this.mask;
   }
 
-  add(listener: ChangeListenerFunc<any>, mask: ControlChange): Subscription {
+  add(listener: ChangeListener<any>, mask: ControlChange): Subscription {
     const sub: SubscriptionInternal = {
       list: this,
       mask,
-      listener: listener as ChangeListenerFunc<any>,
+      listener: listener as ChangeListener<any>,
     };
     this.mask |= mask;
     this.subscriptions.push(sub);

@@ -11,7 +11,7 @@ import type {
   RenderElementsProps,
   RenderOptionalProps,
   Rendered,
-  ValuesOfControls,
+  ControlValues,
 } from "./types.js";
 
 /**
@@ -129,13 +129,13 @@ export function RenderOptional<V>({
  *
  * ```tsx
  * <RenderControl>
- *   {renderOptionally({ user, account }, ({ user, account }) => …, <Spinner />)}
+ *   {whenAllDefined({ user, account }, ({ user, account }) => …, <Spinner />)}
  * </RenderControl>
  * ```
  */
-export function renderOptionally<A extends Record<string, Control<any>>>(
+export function whenAllDefined<A extends Record<string, Control<any>>>(
   controls: A,
-  render: (values: ValuesOfControls<A>) => ReactNode,
+  render: (values: ControlValues<A>) => ReactNode,
   elseRender?: ReactNode,
 ): RenderCallback {
   return (rc) => {
@@ -146,7 +146,7 @@ export function renderOptionally<A extends Record<string, Control<any>>>(
       if (value != null) values[key] = value;
       else ready = false;
     }
-    return ready ? render(values as ValuesOfControls<A>) : elseRender;
+    return ready ? render(values as ControlValues<A>) : elseRender;
   };
 }
 

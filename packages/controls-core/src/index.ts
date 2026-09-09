@@ -1,9 +1,9 @@
 // Public API
 export {
   type ControlValidator,
-  type ControlSetup,
+  type ControlOptions,
   ControlChange,
-  type ChangeListenerFunc,
+  type ChangeListener,
   type Subscription,
   type ControlFields,
   type ControlElements,
@@ -21,16 +21,16 @@ export {
 
 export { deepEquals } from "./deepEquals.js";
 
-export { noopReadContext, unwrapValueProxy } from "./readContextImpl.js";
+export { untrackedRead, controlFromValue } from "./readContextImpl.js";
 
-export { type ComputedRef, computed, type EffectRef, effect } from "./computed.js";
+export { type ComputedHandle, computed, type EffectHandle, effect } from "./computed.js";
 
 export {
   ensureMetaValue,
   lookupControl,
   getControlPath,
-  getElementIndex,
+  getElementPosition,
   as,
 } from "./controlUtils.js";
 
-export { controlGroup, setFields } from "./groupControl.js";
+export { createControlGroup, attachFields } from "./groupControl.js";

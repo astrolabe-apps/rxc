@@ -7,23 +7,23 @@ export {
   useComputed,
   ControlContextProvider,
   useControlContext,
-  wrapWithControlsContext,
+  withControlContext,
 } from "./useControls.js";
 
 export { useControl } from "./useControl.js";
-export type { UseControlSetup } from "./useControl.js";
+export type { UseControlOptions } from "./useControl.js";
 
 export { useControlEffect } from "./useControlEffect.js";
 
 export { useValidator, useAsyncValidator } from "./useValidator.js";
 
 export { useControlGroup } from "./useControlGroup.js";
-export { usePreviousValue } from "./usePreviousValue.js";
+export { useValueWithPrevious } from "./useValueWithPrevious.js";
 export {
-  ensureSelectableValues,
+  selectableValues,
   useSelectableArray,
   type SelectionGroup,
-  type SelectionGroupSync,
+  type SelectionBuilder,
 } from "./useSelectableArray.js";
 
 // Binding layer — controls ↔ native form elements
@@ -47,7 +47,7 @@ export {
   RenderControl,
   RenderElements,
   RenderOptional,
-  renderOptionally,
+  whenAllDefined,
 } from "./components.js";
 
 export type {
@@ -58,5 +58,5 @@ export type {
   RenderElementsProps,
   RenderOptionalProps,
   Rendered,
-  ValuesOfControls,
+  ControlValues,
 } from "./types.js";

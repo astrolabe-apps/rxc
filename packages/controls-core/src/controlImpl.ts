@@ -4,8 +4,8 @@ import type {
   Control,
   ControlElements,
   ControlFields,
-  ControlSetup,
-  ChangeListenerFunc,
+  ControlOptions,
+  ChangeListener,
   Subscription,
   WriteContext,
 } from "./types.js";
@@ -32,7 +32,7 @@ export interface ParentLink {
 
 export interface ControlContextInternal {
   equals: (a: unknown, b: unknown) => boolean;
-  newControl: <V>(value: V, setup?: ControlSetup<V>) => Control<V>;
+  newControl: <V>(value: V, setup?: ControlOptions<V>) => Control<V>;
   createChild: (
     value: unknown,
     initialValue: unknown,
@@ -135,20 +135,20 @@ export class ControlImpl<V = unknown> implements Control<V> {
     return this.getOrCreateElements() as ControlElements<V>;
   }
 
-  get fieldsNow(): Record<string, Control<unknown> | undefined> {
+  get existingFields(): Record<string, Control<unknown> | undefined> {
     return (this._fields as Record<string, Control<unknown>>) ?? {};
   }
 
   // ── Subscriptions ─────────────────────────────────────────────
 
   subscribe(
-    listener: ChangeListenerFunc<V>,
+    listener: ChangeListener<V>,
     mask: ControlChange,
   ): Subscription {
     this._subscriptions ??= new Subscriptions();
     const currentChanges = this.getChangeState(mask);
     return this._subscriptions.subscribe(
-      listener as ChangeListenerFunc<any>,
+      listener as ChangeListener<any>,
       currentChanges,
       mask,
     );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createControlContext,
-  noopReadContext,
+  untrackedRead,
   type ControlContext,
 } from "@rxc/controls-core";
 import {
@@ -25,7 +25,7 @@ import {
 import { getExternalEdit } from "@rxc/forms-react-core";
 import { dataGridResolveChildren, DataGridRenderType } from "../src/DataGrid";
 
-const rd = noopReadContext;
+const rd = untrackedRead;
 
 // Match the dispatcher the registry installs: DataGrid → grid resolver,
 // everything else → default. Mirrors `makeResolveChildren` in the

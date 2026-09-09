@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import {
-  noopReadContext,
+  untrackedRead,
   type Control,
   type ControlContext,
   type ReadContext,
@@ -76,7 +76,7 @@ export function useExpression(
       ctx,
       dataNode: node.parent,
       schemaInterface: node.schemaInterface,
-      variables: node.getState(noopReadContext).variables,
+      variables: node.getState(untrackedRead).variables,
       runAsync: (fn) => queueMicrotask(fn),
       addCleanup: (f) => cleanups.push(f),
       returnResult: (r) =>
@@ -140,7 +140,7 @@ export function ensureExpressionResult(
       ctx,
       dataNode: node.parent,
       schemaInterface: node.schemaInterface,
-      variables: node.getState(noopReadContext).variables,
+      variables: node.getState(untrackedRead).variables,
       runAsync: (fn) => queueMicrotask(fn),
       addCleanup: (f) => cleanups.push(f),
       returnResult: (r) =>

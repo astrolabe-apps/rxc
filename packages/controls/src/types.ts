@@ -170,7 +170,7 @@ export interface RenderArrayElementsProps<V> {
   container?: (children: ReactNode, elements: V[]) => ReactElement;
 }
 
-/** The non-null values of a record of controls, as passed to `renderOptionally`. */
-export type ValuesOfControls<A> = {
+/** The non-null values of a record of controls, as passed to `whenAllDefined`. */
+export type ControlValues<A> = {
   [K in keyof A]: NonNullable<ControlValue<A[K]>>;
 };

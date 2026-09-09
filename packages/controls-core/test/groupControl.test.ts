@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { ControlChange } from "../src/types";
-import { controlGroup, setFields } from "../src/groupControl";
+import { createControlGroup, attachFields } from "../src/groupControl";
 import { makeCtx } from "./index";
 
-describe("controlGroup", () => {
+describe("createControlGroup", () => {
   it("composes value and initial value from the children", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
     const age = ctx.newControl(30);
     ctx.update((wc) => wc.setValue(age, 31));
 
-    const group = controlGroup(ctx, { name, age });
+    const group = createControlGroup(ctx, { name, age });
     expect(group.valueNow).toEqual({ name: "alice", age: 31 });
     expect(group.initialValueNow).toEqual({ name: "alice", age: 30 });
     expect(group.dirtyNow).toBe(true);
@@ -19,14 +19,14 @@ describe("controlGroup", () => {
   it("navigates to the original controls as fields", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
-    const group = controlGroup(ctx, { name });
+    const group = createControlGroup(ctx, { name });
     expect(group.fields.name).toBe(name);
   });
 
   it("child writes update the group value and notify", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
-    const group = controlGroup(ctx, { name });
+    const group = createControlGroup(ctx, { name });
 
     let notified = 0;
     group.subscribe(() => notified++, ControlChange.Value);
@@ -40,7 +40,7 @@ describe("controlGroup", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
     const age = ctx.newControl(30);
-    const group = controlGroup(ctx, { name, age });
+    const group = createControlGroup(ctx, { name, age });
 
     ctx.update((wc) => wc.setValue(group, { name: "bob", age: 40 }));
     expect(name.valueNow).toBe("bob");
@@ -52,7 +52,7 @@ describe("controlGroup", () => {
     const arr = ctx.newControl<string[]>(["x"]);
     const elem = arr.elementsNow[0];
 
-    const group = controlGroup(ctx, { value: elem });
+    const group = createControlGroup(ctx, { value: elem });
     ctx.update((wc) => wc.setValue(group, { value: "y" }));
 
     expect(elem.valueNow).toBe("y");
@@ -62,7 +62,7 @@ describe("controlGroup", () => {
   it("aggregates validity from the children", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
-    const group = controlGroup(ctx, { name });
+    const group = createControlGroup(ctx, { name });
     expect(group.validNow).toBe(true);
 
     ctx.update((wc) => wc.setError(name, "default", "bad"));
@@ -73,17 +73,17 @@ describe("controlGroup", () => {
   });
 });
 
-describe("setFields", () => {
+describe("attachFields", () => {
   it("merges new fields over existing ones and notifies", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
-    const group = controlGroup(ctx, { name });
+    const group = createControlGroup(ctx, { name });
 
     let notified = 0;
     group.subscribe(() => notified++, ControlChange.Value);
 
     const age = ctx.newControl(30);
-    ctx.update((wc) => setFields(wc, group, { age }));
+    ctx.update((wc) => attachFields(wc, group, { age }));
 
     expect(group.valueNow).toEqual({ name: "alice", age: 30 });
     expect((group.fields as any).age).toBe(age);
@@ -94,9 +94,9 @@ describe("setFields", () => {
     const ctx = makeCtx();
     const first = ctx.newControl("a");
     const second = ctx.newControl("b");
-    const group = controlGroup(ctx, { name: first });
+    const group = createControlGroup(ctx, { name: first });
 
-    ctx.update((wc) => setFields(wc, group, { name: second }));
+    ctx.update((wc) => attachFields(wc, group, { name: second }));
     expect(group.valueNow).toEqual({ name: "b" });
     expect(group.fields.name).toBe(second);
 
@@ -108,11 +108,11 @@ describe("setFields", () => {
   it("is a no-op when the fields are unchanged", () => {
     const ctx = makeCtx();
     const name = ctx.newControl("alice");
-    const group = controlGroup(ctx, { name });
+    const group = createControlGroup(ctx, { name });
 
     let notified = 0;
     group.subscribe(() => notified++, ControlChange.Value);
-    ctx.update((wc) => setFields(wc, group, { name }));
+    ctx.update((wc) => attachFields(wc, group, { name }));
     expect(notified).toBe(0);
   });
 });
