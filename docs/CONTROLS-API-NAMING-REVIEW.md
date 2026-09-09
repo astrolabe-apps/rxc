@@ -1,6 +1,7 @@
 # `@rxc/controls` API Naming Review
 
-**Status: proposal, nothing implemented.**
+**Status: nothing implemented. The `accept` items below are decided; the `rename` items are still
+a proposal.**
 
 A pre-publish pass over the whole public surface of `@rxc/controls` — which includes all of
 `@rxc/controls-core`, re-exported wholesale — recording what each export does and whether the name
@@ -10,8 +11,51 @@ interfaces that carry most of the day-to-day surface.
 Verdicts are one of:
 
 - **keep** — the name is right as it stands.
-- **consider** — defensible, but a better name exists; churn may not be worth it.
-- **rename** — the name misleads or collides; fix before publishing.
+- **accept** — decided: the suggested name wins. Not yet implemented.
+- **rename** — the name misleads or collides; fix before publishing. Proposed, not yet decided.
+
+## Decisions taken
+
+Reviewed and settled, in the order they were decided. Everything here still needs implementing.
+
+**Accepted — every item that was previously `consider` (17):** `ControlSetup` → `ControlOptions`
+(with `.elems` → `.elements`, `.dontClearError` → `.keepErrors`), `ControlChange.All` → `.AllState`,
+`ChangeListenerFunc` → `ChangeListener`, `computed` → `computeInto`, `ComputedRef` →
+`ComputedHandle`, `EffectRef` → `EffectHandle`, `controlGroup` → `createControlGroup`,
+`getElementIndex` → `getElementPosition`, `markAsClean` → `markClean`, `afterChanges` →
+`afterFlush`, `usePreviousValue` → `useValueWithPrevious`, `ensureSelectableValues` →
+`selectableValues`, `SelectionGroupSync` → `SelectionBuilder`, `FormControlProps` split into
+`{ props, errorText }`, `FormEditState.readonly` → `.readOnly`, `NotDefinedContext` gains a
+`NotDefinedProvider`, `ValuesOfControls` → `ControlValues`.
+
+**Accepted from the judgement calls:** `Control.fieldsNow` → `existingFields` (staying public), and
+`markTrackerDead` / `reviveTracker` → `releaseTracker` / `retainTracker` (also staying public — see
+their sections for why `/internal` was rejected for both).
+
+**Rejected:** `useControlEffect` → `useControlWatch`. It is an effect, triggered by control changes,
+and `effect` in `controls-core` already carries that exact meaning — see "What to leave alone".
+
+**Still open:** the twelve `rename` items, and whether they land in the same pass as the accepted
+ones.
+
+## Also required: a legacy → `@rxc/controls` migration guide
+
+Renaming the surface invalidates the mapping any legacy host would work from, so the rename lands
+with a Rosetta-stone doc for `@react-typed-forms/core` → `@rxc/controls` — the controls-side sibling
+of `docs/MIGRATION-FROM-LEGACY.md`, which covers only the schemas/renderer side.
+
+Not yet scoped. The open question is the audience, and it changes the doc materially:
+
+- **Legacy v4 → `@rxc/controls` direct**, for hosts porting properly rather than bumping to the
+  compat package. Main event is ambient tracking → explicit `rc`/`wc`, on top of the name mapping.
+- **Compat v5 → `@rxc/controls`**, for hosts already on `@react-typed-forms/core@5` who want to drop
+  compat. Same ambient-to-explicit story, but they arrive having already changed nothing but a
+  version number and one provider line.
+- **Both in one doc**, legacy-v4 mapping as the main table plus a section on the compat stepping
+  stone.
+
+Note the compat package means no legacy host is *forced* through any of this, which is what makes
+this a guide rather than a breaking-change notice.
 
 ## What a `ReadContext` actually is
 
@@ -212,9 +256,12 @@ Inside one small options object: `fields` spelled out but `elems` abbreviated, a
 whose double negative (`dontClearError: false`) nobody can read at a glance. Compat's `convertSetup`
 already translates the legacy shape, so both are free.
 
-## Judgement calls worth making now
+## Judgement calls — now made
 
-Higher churn, or no code change at all — the items here need a decision rather than a sed.
+Higher churn, or no code change at all — these needed a decision rather than a sed, and each section
+below now records the one that was taken. All are accepted except two: the `*Context` family
+complaint resolves to a deliberate no-op, and `renderOptionally` → `whenAllDefined` rides with the
+still-open `rename` batch.
 
 ### Three unrelated things are all called `*Context`
 
@@ -288,19 +335,57 @@ In a React-adjacent package, `Ref` reads as `useRef`. They're disposable handles
 called `cleanup()`. `ComputedHandle` / `EffectHandle` with `dispose()`, or a shared `Reaction` type,
 would both be clearer than the status quo.
 
-### `markTrackerDead` / `reviveTracker` are on the public `ControlContext`
+### `markTrackerDead` / `reviveTracker` are named after the implementation
 
-These exist for React StrictMode's discard-and-remount cycle and are named after the
-implementation's lazy sweep. Nothing outside `@rxc/controls` and `forms-react-core` should call
-them. Move them to the `/internal` subpath (where `TrackingReadContext` and
-`SubscriptionReconciler` already live), or at minimum rename to `releaseTracker` / `retainTracker`
-so they read as refcounting rather than necromancy.
+These exist for React StrictMode's discard-and-remount cycle, and they're named after the lazy
+sweep that consumes them rather than what a caller is doing. **Rename to `releaseTracker` /
+`retainTracker`** so they read as refcounting rather than necromancy.
+
+**Moving them to `/internal` was considered and rejected.** Today's four callers are all
+in-workspace (`useControls` ×2 and `useValidator` in `@rxc/controls`, `useComponentTracking` in
+compat), which makes it tempting, and the public signature looks like a tell:
+
+```ts
+markTrackerDead(tracker: { alive: boolean; cleanup(): void }): void;
+```
+
+— structural precisely so the public interface needn't name `SubscriptionReconciler`, which lives in
+`/internal`. But `ComputedRef` and `EffectRef` are public and satisfy that shape exactly, so the
+methods are publicly *reachable and useful*: a consumer hand-rolling a StrictMode-safe hook over
+`computed()` / `effect()` retains the handle on mount and releases it on unmount so React's
+double-invoke doesn't tear down a live computation, which is exactly what `useValidator` does
+internally. That's a supported use, not a leak.
+
+Two things worth knowing before proposing `/internal` for anything else. First, it is a **published
+subpath export**, not a visibility boundary:
+
+```json
+"./internal": { "types": "./lib/internal.d.ts", "default": "./lib/internal.js" }
+```
+
+It ships in the same tarball and any consumer can import from it; the privacy is the comment atop
+`src/internal.ts` plus absence from the main entry point's autocomplete. Real documentation value,
+no enforcement. Second, **an interface member cannot be moved to a subpath at all** — it has to be
+deleted from the interface and re-exposed through the internal implementation handles that already
+live there (`ControlContextInternal` for these, `toImpl(c)` for anything on `Control`). That is an
+API break for the in-workspace callers rather than a re-export, which is why both candidates here
+end up staying public under better names.
 
 ### `Control.fieldsNow` means something different from every other `*Now`
 
 The `Now` suffix means "untracked" everywhere else — `elementsNow` still materializes children.
 `fieldsNow` additionally means "only the ones already materialized", which is why every lookup is
-`| undefined`. Call it `materializedFields` and the suffix stays honest.
+`| undefined`. **Rename to `existingFields`:** the confusion is in the stem, not the suffix, and
+"existing" is the word that justifies the `| undefined`. `fieldsSnapshot` was considered and
+rejected — "snapshot" is what `Now` already conveys, so it distinguishes nothing from `elementsNow`
+and still doesn't warn that a field may be absent. `materializedFields` is accurate (it is the
+doc-comment's own word) but long, and note the length argument is weaker than it looks:
+`existingFieldsNow` is exactly as many characters. Dropping `Now` is right here — there is no
+tracked counterpart to disambiguate from, which is the suffix's only job.
+
+Moving it off the public interface was weighed and dropped: every caller today is in-workspace, but
+compat surfaces it through `getFields`, which is legacy-visible API, and a member cannot be moved to
+a subpath anyway (see the tracker item below). It stays on `Control` under the new name.
 
 While in there: `isNullNow` is the only state snapshot with an `is` prefix (`validNow`, `dirtyNow`,
 `touchedNow` have none) — pick one and apply it to all nine.
@@ -329,7 +414,6 @@ It's a factory returning a `SelectionGroupSync`. `selectableValues(options, key)
 | `controlGroup` | `createControlGroup` | Matches `createControlContext`. |
 | `ValuesOfControls` | `ControlValues` | Reads as a type, not a sentence. |
 | `FormEditState.readonly` | `.readOnly` | The props bag it feeds already uses the DOM spelling; the mismatch is a silent typo waiting to happen. |
-| `useControlEffect` | `useControlWatch` | It's a watch (`compute` + `onChange` + `initial`), not an effect — if we're willing to break the legacy echo. |
 
 ## Full inventory
 
@@ -341,10 +425,10 @@ It's a factory returning a `SelectionGroupSync`. `selectableValues(options, key)
 | `ControlValue<C>` | type | Extracts `V` out of a `Control<V>`. | keep | — |
 | `ControlFields<V>` | type | Object-valued `V` mapped to a record of child controls, with nullability pushed onto each field. | keep | — |
 | `ControlElements<V>` | type | Array-valued `V` mapped to `Control<A>[]`. | keep | — |
-| `ControlSetup<V>` | interface | Creation-time options: `validator`, per-`fields` and per-`elems` setup, `afterCreate`, `meta`, `dontClearError`. | consider | `ControlOptions` (+ `elements`, `keepErrors`) |
+| `ControlSetup<V>` | interface | Creation-time options: `validator`, per-`fields` and per-`elems` setup, `afterCreate`, `meta`, `dontClearError`. | accept | `ControlOptions` (+ `elements`, `keepErrors`) |
 | `ControlValidator<V>` | type | A sync value → message function, or `null` for none. | keep | — |
-| `ControlChange` | enum | Subscription bitmask: `Value`, `InitialValue`, `Valid`, `Dirty`, `Touched`, `Disabled`, `Error`, `Structure`, `Validate`, `All`. | consider | keep the enum; `All` → `AllState` |
-| `ChangeListenerFunc<V>` | type | Subscription callback: `(control, change, wc)`. | consider | `ChangeListener` |
+| `ControlChange` | enum | Subscription bitmask: `Value`, `InitialValue`, `Valid`, `Dirty`, `Touched`, `Disabled`, `Error`, `Structure`, `Validate`, `All`. | accept | keep the enum; `All` → `AllState` |
+| `ChangeListenerFunc<V>` | type | Subscription callback: `(control, change, wc)`. | accept | `ChangeListener` |
 | `Subscription` | type | The handle `subscribe` returns and `unsubscribe` takes. | keep | — |
 | `ControlContext` | interface | Factory and runtime: `newControl`, `update`, `uniqueId` allocation, tracker lifecycle, and the `equals` policy for every control it creates. Holds no controls. | keep | — (`ControlRuntime` if breaking the `*Context` family) |
 | `createControlContext` | function | Builds one, optionally with a custom `equals`. | keep | — (follows the above) |
@@ -354,15 +438,15 @@ It's a factory returning a `SelectionGroupSync`. `selectableValues(options, key)
 | `noopReadContext` | const | A `ReadContext` that returns current values and subscribes to nothing. | **rename** | `untrackedRead` |
 | `unwrapValueProxy` | function | Recovers the `Control` behind a value returned by `getValueRx`. | **rename** | `controlFromValue` |
 | `deepEquals` | function | Structural equality over plain objects/arrays, NaN-aware; the default tree `equals`. | keep | — |
-| `computed` | function | Opens a tracking scope, runs a computation, writes the result into a *target* control, and re-runs when a tracked facet changes. | consider | `computeInto` (or return the control) |
+| `computed` | function | Opens a tracking scope, runs a computation, writes the result into a *target* control, and re-runs when a tracked facet changes. | accept | `computeInto` (or return the control) |
 | `effect` | function | The same scope-plus-reconciler machinery with no target — for side effects, with an optional cleanup return. | keep | — |
-| `ComputedRef` | interface | `computed`'s handle: `replaceCompute`, `cleanup`, `alive`. | consider | `ComputedHandle` |
-| `EffectRef` | interface | `effect`'s handle: `replaceEffect`, `cleanup`, `alive`. | consider | `EffectHandle` |
-| `controlGroup` | function | Builds a parent control from existing child controls — attached, not copied, so values flow both ways. | consider | `createControlGroup` |
+| `ComputedRef` | interface | `computed`'s handle: `replaceCompute`, `cleanup`, `alive`. | accept | `ComputedHandle` |
+| `EffectRef` | interface | `effect`'s handle: `replaceEffect`, `cleanup`, `alive`. | accept | `EffectHandle` |
+| `controlGroup` | function | Builds a parent control from existing child controls — attached, not copied, so values flow both ways. | accept | `createControlGroup` |
 | `setFields` | function | Attaches or replaces fields on a control that may already have subscribers, inside a write batch. | **rename** | `attachFields` |
 | `lookupControl` | function | Walks a `(string \| number)[]` path down to a descendant control. | keep | — |
 | `getControlPath` | function | The inverse: a control's path up to an optional ancestor. | keep | — |
-| `getElementIndex` | function | An element's `{ index, initialIndex }` within a parent array. | consider | `getElementPosition` |
+| `getElementIndex` | function | An element's `{ index, initialIndex }` within a parent array. | accept | `getElementPosition` |
 | `ensureMetaValue` | function | Get-or-create a keyed slot in a control's `meta`, with a control factory handed to the initializer. | keep | — |
 | `as` | function | Unchecked cast of `Control<unknown>` to `Control<V>`. | **rename** | `asControl` |
 
@@ -390,13 +474,13 @@ others merely also return a value. The name is accurate as it stands.
 | `setValueAndInitial` | Write value and baseline independently in one call. | keep | — |
 | `setInitialValue` | Writes **both** value and baseline — a reset, leaving the control clean. | **rename** | `reset` |
 | `setInitialValueOnly` | Moves the baseline alone, so the control becomes dirty if the two now differ. | **rename** | `setInitialValue` |
-| `markAsClean` | Adopts the current value as the baseline. | consider | `markClean` |
+| `markAsClean` | Adopts the current value as the baseline. | accept | `markClean` |
 | `setTouched`, `setDisabled` | Set a flag, cascading to children unless `notChildren`. | keep | — |
 | `setError`, `setErrors`, `clearErrors` | Publish one keyed message, replace the map, or clear it. | keep | — |
 | `validate` | Broadcasts a validate request through the subtree and reports validity. | keep | — |
 | `addElement`, `removeElement`, `updateElements` | Array mutation by value, by index-or-control, or by rebuilding the element list. | keep | — |
 | `setElementIncluded` | Set-valued membership toggle: when the members match the baseline in any order, the baseline itself is written back, so toggling off and on again leaves the control clean. | keep | — |
-| `afterChanges` | Queues a callback to run after the transaction flushes. | consider | `afterFlush` |
+| `afterChanges` | Queues a callback to run after the transaction flushes. | accept | `afterFlush` |
 
 ### `ControlContext` members
 
@@ -405,7 +489,7 @@ others merely also return a value. The name is accurate as it stands.
 | `newControl` | Creates a control in this tree. | keep | — |
 | `update` | Runs a write batch; subscribers fire once at the end. | keep | — |
 | `equals` | The tree's value equality. | keep | — |
-| `markTrackerDead`, `reviveTracker` | StrictMode-safe tracker lifecycle: mark dead for the lazy sweep, or cancel that. | **rename** | move to `/internal`, else `releaseTracker` / `retainTracker` |
+| `markTrackerDead`, `reviveTracker` | StrictMode-safe tracker lifecycle: release a tracker to the lazy sweep, or retain it. Public by design — `ComputedRef`/`EffectRef` satisfy the parameter, so hand-rolled hooks over `computed`/`effect` use them. | **rename** | `releaseTracker` / `retainTracker` |
 
 ### React — the render boundary
 
@@ -419,24 +503,24 @@ others merely also return a value. The name is accurate as it stands.
 | `useControl` | hook | A control owned by this component, created once; `useState`-shaped, with a `use` escape hatch so an optional `control` prop needn't be a conditional hook. | keep | — |
 | `UseControlSetup<V>` | type | `ControlSetup` plus that `use` field. | **rename** | `UseControlOptions` |
 | `useComputed` | hook | A control whose value is derived from other controls, recomputed through its own tracking scope. | keep | — |
-| `useControlEffect` | hook | Watch a computed value; run `onChange` when it actually changes, with configurable mount-time behaviour. Never re-renders the component. | consider | `useControlWatch` |
+| `useControlEffect` | hook | Runs a side effect when a computed value changes, with configurable mount-time behaviour. Never re-renders the component. | keep | — |
 | `useValidator` | hook | Attaches a keyed validator for the component's lifetime; re-publishes on `validate()`, clears its key on unmount. | keep | — |
 | `useAsyncValidator` | hook | Debounced, abortable async validation; stale results dropped, in-flight runs aborted on supersede. | keep | — |
 | `useControlGroup` | hook | One group control over several independently owned controls, re-attaching when a member's identity changes. | keep | — |
-| `usePreviousValue` | hook | A control holding `{ previous, current }` — so it exposes both, not just the previous one. | consider | `useValueWithPrevious` |
+| `usePreviousValue` | hook | A control holding `{ previous, current }` — so it exposes both, not just the previous one. | accept | `useValueWithPrevious` |
 | `useSelectableArray` | hook | Exposes an array control as `{ selected, value }` groups, sharing the value controls with the original array and rewriting it as flags toggle. | keep | — |
-| `ensureSelectableValues` | function | Builds the entry list for the above from a fixed option set — the multi-select checklist shape. | consider | `selectableValues` |
+| `ensureSelectableValues` | function | Builds the entry list for the above from a fixed option set — the multi-select checklist shape. | accept | `selectableValues` |
 | `SelectionGroup<V>` | interface | `{ selected, value }`. | keep | — |
-| `SelectionGroupSync<V>` | type | The entry-list builder signature. | consider | `SelectionBuilder` |
+| `SelectionGroupSync<V>` | type | The entry-list builder signature. | accept | `SelectionBuilder` |
 
 ### React — binding to native inputs
 
 | Export | Kind | What it does | Verdict | Suggested |
 |---|---|---|---|---|
 | `useFormControlProps` | hook | Turns a control into props for an `<input>`/`<select>`/`<textarea>`: value, change, blur-touches, disabled, error text, and a ref that parks the element on `meta.element`. | keep | — |
-| `FormControlProps` | interface | That props bag. `errorText` is not a DOM prop and every caller destructures it out before spreading. | consider | keep the name; split `{ props, errorText }` |
+| `FormControlProps` | interface | That props bag. `errorText` is not a DOM prop and every caller destructures it out before spreading. | accept | keep the name; split `{ props, errorText }` |
 | `FormEditProvider`, `useFormEdit` | component, hook | A presentation lock cascading over a subtree — readonly, or disabled while saving — folded in restriction-only, so it can add a lock but never re-enable a disabled control. | keep | — |
-| `FormEditState` | interface | `{ readonly?, disabled? }`. | consider | `readonly` → `readOnly` |
+| `FormEditState` | interface | `{ readonly?, disabled? }`. | accept | `readonly` → `readOnly` |
 | `Finput`, `Fselect`, `Fcheckbox` | components | Self-subscribing bound inputs: each opens its own render boundary, so typing re-renders only itself, and publishes the control's error as HTML5 custom validity. | **rename** | `ControlInput`, `ControlSelect`, `ControlCheckbox` |
 | `FinputProps`, `FselectProps`, `FcheckboxProps` | types | Native element attributes plus `control` (and `notValue` for the checkbox's inverted mapping). | **rename** | follow the components |
 
@@ -449,26 +533,36 @@ others merely also return a value. The name is accurate as it stands.
 | `RenderOptional` | component | Renders once a control holds a value, handing the callback the narrowed control; subscribes to null-ness alone. | keep | — |
 | `renderOptionally` | function | Returns a render callback that fires only when *every* control in a record is non-null, passing their values as a record. | **rename** | `whenAllDefined` |
 | `RenderArrayElements` | component | The plain-array counterpart — nothing reactive, so no `rc` and no scope; kept for symmetry. | keep | — |
-| `NotDefinedContext` | React context | Subtree-wide fallback for a control with no value, so `notDefined` needn't be passed to every helper. Exported as a raw context object. | consider | add `NotDefinedProvider`, matching FormEdit |
+| `NotDefinedContext` | React context | Subtree-wide fallback for a control with no value, so `notDefined` needn't be passed to every helper. Exported as a raw context object. | accept | add `NotDefinedProvider`, matching FormEdit |
 | `RenderCallback` | type | `(rc) => ReactNode` — the shape every helper callback takes. | keep | — |
 | `RenderControlProps`, `RenderElementsProps`, `RenderOptionalProps`, `RenderArrayElementsProps` | types | Props for the four helpers. | keep | — (follow their components) |
-| `ValuesOfControls<A>` | type | A record of controls mapped to their non-null values, as passed to `renderOptionally`. | consider | `ControlValues` |
+| `ValuesOfControls<A>` | type | A record of controls mapped to their non-null values, as passed to `renderOptionally`. | accept | `ControlValues` |
 
 ## What to leave alone, deliberately
 
 - **`rendered` / `Rendered`.** Distinctive, teachable, and the branded type is the enforcement
   mechanism — a renamed brand is a worse brand.
 - **The `*Now` suffix.** It reads oddly at first and then never again, and it makes "untracked read"
-  impossible to do by accident. Fix `fieldsNow` and the `isNullNow` outlier rather than the
-  convention.
+  impossible to do by accident. Fix `fieldsNow` (→ `existingFields`) and the `isNullNow` outlier
+  rather than the convention.
 - **`ReadContext` and the `rc` parameter.** Threading a read scope explicitly *is* the design, and
   the name states it without claiming a host: render passes, `computed`, `effect`, validators and
   async evaluators all open one. `ReadScope` was weighed and dropped — no gain, and `rc` is spelled
   out across five packages plus `docs/RENDER-BOUNDARY.md`.
+- **`useControlEffect`.** `useControlWatch` was proposed on the grounds that a source-plus-callback
+  pair with an `initial` option is a watch rather than an effect. Rejected: `effect` in
+  `controls-core` is already "a reactive effect that tracks dependencies via ReadContext and re-runs
+  when any dependency changes — for side effects", and this hook is that same primitive with React
+  owning the lifecycle. Renaming it would give the library two words for one concept. The two
+  refinements over bare `effect` — the tracked `compute` is separate from the untracked `onChange`,
+  and `onChange` fires only when the value actually differs per the tree's `equals` — narrow when
+  the effect runs; they don't make it something other than an effect. "Effect" also already means
+  "run a side effect in response to a change" to a React reader.
 - **`setElementIncluded`.** Wordy, but it names the set semantics that make an unchecked-then-
   rechecked checklist come back clean — which is exactly the thing a caller needs to know.
-- **The `/internal` subpath.** Right call, right name; it's where the tracker-lifecycle methods
-  should join `TrackingReadContext` and `SubscriptionReconciler`.
+- **The `/internal` subpath.** Right call, right name for what it holds — but note it is a published
+  export with no enforcement, and it cannot hold an interface member. Neither of the two members
+  proposed for it ends up moving.
 
 ---
 
