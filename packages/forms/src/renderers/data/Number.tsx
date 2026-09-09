@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass, useNumberController } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
@@ -12,7 +12,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * input is surfaced through the field's validators, not by the renderer.
  */
 export function NumberRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useNumberController(rc, node);
   const theme = useHtmlTheme().data;
   if (!c.data) return rendered(null);

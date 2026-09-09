@@ -1,13 +1,13 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { rendererClass, useTabsController } from "@rxc/forms-react-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 export function TabsRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useTabsController(rc, node);
   const tabsTheme = useHtmlTheme().group.tabs;
   const wrapperClass = rendererClass(c.styleClass, tabsTheme.className);

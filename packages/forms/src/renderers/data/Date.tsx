@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass, useDateController } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
@@ -10,7 +10,7 @@ function makeDateRenderer(
   displayName: string,
 ) {
   function DateInputRenderer({ node, id }: DataRendererProps): Rendered {
-    const { rc, rendered } = useControls();
+    const { rc, rendered } = useReactive();
     const c = useDateController(rc, node);
     const dataTheme = useHtmlTheme().data;
     if (!c.data) return rendered(null);

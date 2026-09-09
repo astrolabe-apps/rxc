@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import {
   rendererClass,
@@ -10,7 +10,7 @@ import {
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 export function SelectRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useSelectController(rc, node);
   const selectTheme = useHtmlTheme().data.select;
   if (!c.data) return rendered(null);

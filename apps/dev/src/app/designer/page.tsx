@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import type { Control } from "@rxc/controls";
-import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import {
   buildSchema,
   createDataNode,
@@ -53,7 +53,7 @@ interface StarsRenderOptions {
 }
 
 function StarsRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const { data, definition, disabled, readonly } = node.getState(rc);
   if (!data) return rendered(null);
   const value = (rc.getValue(data) as number | null | undefined) ?? 0;
@@ -119,7 +119,7 @@ interface SelectionState {
 const SelectionContext = createContext<SelectionState | null>(null);
 
 function SelectionAdornmentRender({ node, children }: AdornmentRenderProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const designing = useDesignMode();
   const sel = useContext(SelectionContext);
   if (!designing || !sel) return rendered(<>{children}</>);
@@ -286,7 +286,7 @@ const emptyFormResolver: FormTreeResolver = {
 const controlContext = createControlContext();
 
 function DesignerInner(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const controlContext = useControlContext();
   const [designing, setDesigning] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -407,7 +407,7 @@ function DesignerInner(): Rendered {
 }
 
 function DataJson({ control }: { control: Control<unknown> }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const value = rc.getValue(control);
   return rendered(
     <pre className="overflow-auto rounded bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 p-3 text-xs font-mono whitespace-pre-wrap">

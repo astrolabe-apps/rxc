@@ -6,7 +6,7 @@ import {
   ControlContextProvider,
   createControlContext,
   useAsyncValidator,
-  useControls,
+  useReactive,
   useValidator,
   type Control,
   type ControlContext,
@@ -44,7 +44,7 @@ const required = (v: string) => (v ? null : "required");
 
 describe("useValidator", () => {
   function Required({ control }: { control: Control<string> }): Rendered {
-    const { rendered } = useControls();
+    const { rendered } = useReactive();
     useValidator(control, required);
     return rendered(<span />);
   }
@@ -68,7 +68,7 @@ describe("useValidator", () => {
     const c = ctx.newControl("");
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useValidator(c, required, "req");
       useValidator(c, (v) => (v.length > 3 ? "too long" : null), "len");
       return rendered(<span />);
@@ -86,7 +86,7 @@ describe("useValidator", () => {
     const confirm = ctx.newControl("a");
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useValidator(confirm, (v, rc) =>
         v === rc.getValue(password) ? null : "mismatch",
       );
@@ -139,7 +139,7 @@ describe("useValidator", () => {
     const limit = ctx.newControl(0);
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const max = rc.getValue(limit); // re-renders the component when bumped
       useValidator(c, (v) => (v.length > max ? `over ${max}` : null));
       return rendered(<span />);
@@ -169,7 +169,7 @@ describe("useAsyncValidator", () => {
     const calls: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useAsyncValidator(
         c,
         async (control) => {
@@ -207,7 +207,7 @@ describe("useAsyncValidator", () => {
     const calls: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useAsyncValidator(
         c,
         async (control) => {
@@ -235,7 +235,7 @@ describe("useAsyncValidator", () => {
     let release!: (v: string | null) => void;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useAsyncValidator(
         c,
         (control, signal) =>
@@ -268,7 +268,7 @@ describe("useAsyncValidator", () => {
     const aborted: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useAsyncValidator(
         c,
         (control, signal) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useControlContext, useControls, type Rendered } from "@rxc/controls";
+import { useControlContext, useReactive, type Rendered } from "@rxc/controls";
 import {
   AdornmentPlacement,
   ControlAdornmentType,
@@ -21,7 +21,7 @@ function OptionalAdornmentRender({
   children,
   kind,
 }: AdornmentRenderProps<OptionalAdornmentDef>): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const controlContext = useControlContext();
   const { update } = controlContext;
   const { data } = node.getState(rc);
@@ -99,7 +99,7 @@ function OptionalAdornmentRender({
       ? editCheckbox
       : null;
 
-  // Polarity matches legacy `<Fcheckbox notValue>`: checked = null,
+  // Polarity matches legacy `<ControlCheckbox notValue>`: checked = null,
   // unchecked = has value.
   const nullToggle = allowNull ? (
     <div className={optTheme.nullWrapperClass}>

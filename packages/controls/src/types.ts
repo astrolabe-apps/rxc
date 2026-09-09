@@ -18,7 +18,7 @@ declare const callRendered: unique symbol;
 /**
  * The return type of a component that reads through a `ReadContext`.
  *
- * Only {@link Controls.rendered} can produce a value of this type, so a
+ * Only {@link ReactiveScope.rendered} can produce a value of this type, so a
  * component declared `(props) => Rendered` cannot return raw JSX (or `null`,
  * or a string) without going through the boundary call — which is what turns
  * "forgot to call `rendered(…)`, reactivity silently broken" into a build
@@ -38,14 +38,14 @@ declare const callRendered: unique symbol;
 export type Rendered = ReactElement & { readonly [callRendered]: never };
 
 /**
- * What {@link useControls} hands back.
+ * What {@link useReactive} hands back.
  *
  * `rc` is threaded into every reactive read (`rc.getValue(c)`,
  * `node.getState(rc)`, the `forms-react-core` controllers). `rendered` is
  * called exactly once, at each `return`, and never passed anywhere. `update`
  * is the write side — the ambient `ControlContext`'s own batching call.
  */
-export interface Controls {
+export interface ReactiveScope {
   /** Tracks every read made during this render pass. */
   rc: ReadContext;
   /**
@@ -54,7 +54,7 @@ export interface Controls {
    * reads and writes needs only one hook call:
    *
    * ```tsx
-   * const { rc, rendered, update } = useControls();
+   * const { rc, rendered, update } = useReactive();
    * … onChange={(e) => update((wc) => wc.setValue(data, e.target.value))}
    * ```
    *
@@ -77,7 +77,7 @@ export interface Controls {
 
 // ── Render helpers ──────────────────────────────────────────────────
 //
-// The legacy `@react-typed-forms/core` equivalents (`RenderControl`,
+// The legacy `@react-typed-forms/core` equivalents (`Reactive`,
 // `RenderElements`, …) exist to narrow *subscription scope*, not to render
 // anything: each is a component, so under the old ambient-tracking model the
 // reads inside its callback attributed to it rather than to the caller.
@@ -91,7 +91,7 @@ export interface Controls {
 // The callback returns a plain `ReactNode`: the helper component owns the
 // boundary and closes the pass itself (`rendered(children(rc))` — the argument
 // evaluates first, so every read inside is tracked before reconciling). That
-// makes forgetting the boundary impossible here, unlike a `useControls`
+// makes forgetting the boundary impossible here, unlike a `useReactive`
 // component, where it is only caught by the `Rendered` brand and the dev guard.
 //
 // Always name the parameter `rc`. It then shadows any enclosing `rc`, which
@@ -108,11 +108,11 @@ export interface Controls {
 export type RenderCallback = (rc: ReadContext) => ReactNode;
 
 /**
- * Props for `RenderControl` — the primitive boundary the other helpers are
+ * Props for `Reactive` — the primitive boundary the other helpers are
  * built from. Renders `children` in a subscription scope of its own, so reads
  * made inside it re-render only this boundary and not the calling component.
  */
-export interface RenderControlProps {
+export interface ReactiveProps {
   children: RenderCallback;
 }
 

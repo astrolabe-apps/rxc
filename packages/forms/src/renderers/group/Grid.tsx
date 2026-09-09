@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { GridRendererOptions } from "@rxc/forms-core";
 import { isGroupControl } from "@rxc/forms-core";
 import { rendererClass } from "@rxc/forms-react-core";
@@ -9,7 +9,7 @@ import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 export function GridRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const children = node.getChildren(rc);
   const def = node.getState(rc).definition;
   const gridTheme = useHtmlTheme().group.grid;

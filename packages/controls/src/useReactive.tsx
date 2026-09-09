@@ -9,7 +9,7 @@ import {
   TrackingReadContext,
   setFinalizedReadHook,
 } from "@rxc/controls-core/internal";
-import type { Controls, Rendered } from "./types.js";
+import type { ReactiveScope, Rendered } from "./types.js";
 
 // ── React Context ───────────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ const IS_DEV: boolean =
   typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 
 /**
- * Identify the component that called `useControls`, for the dev warning below.
+ * Identify the component that called `useReactive`, for the dev warning below.
  *
  * Captured **during render**, once per component instance, because that is the
  * only moment the component is on the stack — the warning itself fires from a
@@ -76,8 +76,8 @@ const IS_DEV: boolean =
  * 19's `captureOwnerStack()` does work from an effect, but reports the
  * component's *owner*, not the component, so it can't name the offender.)
  *
- * Frame 0 is `Error`, frame 1 is `useControls`, frame 2 is normally the
- * component. If a consumer wraps `useControls` in a hook of their own, frame 2
+ * Frame 0 is `Error`, frame 1 is `useReactive`, frame 2 is normally the
+ * component. If a consumer wraps `useReactive` in a hook of their own, frame 2
  * is that hook, so scan a few frames for the first PascalCase name — the
  * component naming convention — and fall back to frame 2 verbatim.
  */
@@ -156,12 +156,12 @@ if (IS_DEV) {
   });
 }
 
-// ── useControls ─────────────────────────────────────────────────────
+// ── useReactive ─────────────────────────────────────────────────────
 
 interface Tracker {
   rc: TrackingReadContext;
   reconciler: SubscriptionReconciler;
-  controls: Controls;
+  controls: ReactiveScope;
   didRender: boolean;
   /** Component identity for the dev warning; "" in production. */
   site: string;
@@ -172,7 +172,7 @@ interface Tracker {
  *
  * ```tsx
  * function StarsRenderer({ node, id }: DataRendererProps): Rendered {
- *   const { rc, rendered } = useControls();
+ *   const { rc, rendered } = useReactive();
  *   const c = useTextInputController(rc, node);
  *   if (!c.data) return rendered(null);
  *   return rendered(<input value={c.value} onChange={…} />);
@@ -186,7 +186,7 @@ interface Tracker {
  * `update` comes along for the write side, so a component that reads and
  * writes needs no separate {@link useControlContext} call.
  */
-export function useControls(): Controls {
+export function useReactive(): ReactiveScope {
   const controlContext = useControlContext();
   const [, forceRender] = useState(0);
 

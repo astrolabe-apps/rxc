@@ -6,7 +6,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { FormStateNode } from "@rxc/forms-core";
 import { useFormOptions } from "@rxc/forms-react-core";
 import type { HtmlFormOptions } from "./theme";
@@ -27,7 +27,7 @@ export interface ErrorProps {
 export type ErrorComponent = ComponentType<ErrorProps>;
 
 export function DefaultError({ node, id, all }: ErrorProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { data, touched } = node.getState(rc);
   const theme = useHtmlTheme().error;
   const opts = useFormOptions() as HtmlFormOptions;

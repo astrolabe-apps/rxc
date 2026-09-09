@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   rendererClass,
   useScrollListController,
@@ -24,7 +24,7 @@ const SENTINEL_HEIGHT = 1;
  * `bottomActionId` so the host can fetch the next page.
  */
 export function ScrollListRenderer({ node }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useScrollListController(rc, node);
   const scrollTheme = useHtmlTheme().data.scrollList;
   if (!c.data) return rendered(null);

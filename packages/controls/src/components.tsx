@@ -3,10 +3,10 @@
 import React, { createContext, useContext } from "react";
 import type { ReactElement, ReactNode } from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControls } from "./useControls.js";
+import { useReactive } from "./useReactive.js";
 import type {
   RenderArrayElementsProps,
-  RenderControlProps,
+  ReactiveProps,
   RenderCallback,
   RenderElementsProps,
   RenderOptionalProps,
@@ -22,7 +22,7 @@ import type {
  */
 export const NotDefinedContext = createContext<ReactNode>(null);
 
-// ── RenderControl ───────────────────────────────────────────────────
+// ── Reactive ───────────────────────────────────────────────────
 
 /**
  * Render `children` in a subscription scope of its own.
@@ -33,7 +33,7 @@ export const NotDefinedContext = createContext<ReactNode>(null);
  * inside it and leaves the calling component alone.
  *
  * ```tsx
- * <RenderControl>{(rc) => <span>{rc.getValue(name)}</span>}</RenderControl>
+ * <Reactive>{(rc) => <span>{rc.getValue(name)}</span>}</Reactive>
  * ```
  *
  * Name the parameter `rc` — it then shadows any enclosing `rc`, making it
@@ -44,8 +44,8 @@ export const NotDefinedContext = createContext<ReactNode>(null);
  * value read *before* the callback runs — in the caller's body, then closed
  * over — is tracked by the caller, so wrapping it here isolates nothing.
  */
-export function RenderControl({ children }: RenderControlProps): Rendered {
-  const { rc, rendered } = useControls();
+export function Reactive({ children }: ReactiveProps): Rendered {
+  const { rc, rendered } = useReactive();
   // `children(rc)` is evaluated before `rendered` is applied to its result,
   // so every read it made is tracked by the time the pass is reconciled.
   return rendered(children(rc));
@@ -75,7 +75,7 @@ export function RenderElements<V>({
   empty,
   container = defaultContainer,
 }: RenderElementsProps<V>): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const fallback = useContext(NotDefinedContext);
 
   if (control == null || rc.isNull(control)) {
@@ -86,9 +86,9 @@ export function RenderElements<V>({
   const total = elements.length;
   const rows = total
     ? elements.map((element, index) => (
-        <RenderControl key={element.uniqueId}>
+        <Reactive key={element.uniqueId}>
           {(rc) => children(rc, element, index, total)}
-        </RenderControl>
+        </Reactive>
       ))
     : empty;
   return rendered(container(rows, elements));
@@ -108,7 +108,7 @@ export function RenderOptional<V>({
   children,
   notDefined,
 }: RenderOptionalProps<V>): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const fallback = useContext(NotDefinedContext);
 
   if (control == null || rc.isNull(control)) {
@@ -116,7 +116,7 @@ export function RenderOptional<V>({
   }
   const defined = control as Control<V>;
   return rendered(
-    <RenderControl>{(rc) => children(rc, defined)}</RenderControl>,
+    <Reactive>{(rc) => children(rc, defined)}</Reactive>,
   );
 }
 
@@ -128,9 +128,9 @@ export function RenderOptional<V>({
  * one:
  *
  * ```tsx
- * <RenderControl>
+ * <Reactive>
  *   {whenAllDefined({ user, account }, ({ user, account }) => …, <Spinner />)}
- * </RenderControl>
+ * </Reactive>
  * ```
  */
 export function whenAllDefined<A extends Record<string, Control<any>>>(

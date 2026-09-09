@@ -129,7 +129,7 @@ const META_KEY = "$externalEdit";
  * silently no-ops at begin time (the array Control resolution returns
  * `undefined`).
  *
- * Typical use from a renderer that calls `useControls()`:
+ * Typical use from a renderer that calls `useReactive()`:
  *
  * ```ts
  * const edit = getExternalEdit(arrayNode);

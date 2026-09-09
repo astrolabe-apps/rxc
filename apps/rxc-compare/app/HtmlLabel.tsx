@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import parse from "html-react-parser";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { isDataControl } from "@rxc/forms-core";
 import {
   indexAdornments,
@@ -41,7 +41,7 @@ function htmlParseStrings(n: ReactNode): ReactNode {
 // Group-shaped labels still pick up `theme.label.groupClassName` because
 // the predicate is shared with the default.
 export function HtmlLabel({ node, htmlFor, as: tag, id, children }: LabelProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const def = node.getState(rc).definition;
   const required = isDataControl(def) && !!def.required;
   const theme = useHtmlTheme().label ?? {};

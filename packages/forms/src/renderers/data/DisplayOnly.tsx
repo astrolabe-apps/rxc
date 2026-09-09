@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
@@ -13,7 +13,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * (e.g. accent colours on DataGrid cells) are honoured.
  */
 export function DisplayOnlyRenderer({ node, inline }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { data, field, fieldOptions, definition } = node.getState(rc);
   const dataTheme = useHtmlTheme().data;
   if (!data) return rendered(null);

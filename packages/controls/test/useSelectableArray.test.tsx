@@ -8,7 +8,7 @@ import {
   selectableValues,
   useControlGroup,
   useValueWithPrevious,
-  useControls,
+  useReactive,
   useSelectableArray,
   type Control,
   type ControlContext,
@@ -55,7 +55,7 @@ describe("useSelectableArray", () => {
     let selectable!: Control<SelectionGroup<string>[]>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       selectable = useSelectableArray(arr);
       return rendered(<span />);
     }
@@ -73,7 +73,7 @@ describe("useSelectableArray", () => {
     let selectable!: Control<SelectionGroup<string>[]>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       selectable = useSelectableArray(arr);
       return rendered(<span />);
     }
@@ -94,7 +94,7 @@ describe("useSelectableArray", () => {
     let selectable!: Control<SelectionGroup<string>[]>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       selectable = useSelectableArray(arr);
       return rendered(<span />);
     }
@@ -110,7 +110,7 @@ describe("useSelectableArray", () => {
     let selectable!: Control<SelectionGroup<string>[]>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       selectable = useSelectableArray(
         arr,
         selectableValues(["a", "b", "c"], (v) => v),
@@ -139,7 +139,7 @@ describe("useSelectableArray", () => {
     let selectable!: Control<SelectionGroup<string>[]>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       selectable = useSelectableArray(
         arr,
         selectableValues(["a"], (v) => v),
@@ -159,7 +159,7 @@ describe("useSelectableArray", () => {
     const seen: Control<SelectionGroup<string>[]>[] = [];
 
     function Comp({ reset }: { reset: number }): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       seen.push(useSelectableArray(arr, undefined, undefined, reset));
       return rendered(<span />);
     }
@@ -184,7 +184,7 @@ describe("useSelectableArray", () => {
     let selectable!: Control<SelectionGroup<string>[]>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       selectable = useSelectableArray(arr);
       return rendered(<span />);
     }
@@ -210,7 +210,7 @@ describe("useControlGroup", () => {
     const seen: Control<{ name: string; age: number }>[] = [];
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const group = useControlGroup({ name, age });
       seen.push(group);
       return rendered(<span>{rc.getValue(group).name}</span>);
@@ -231,7 +231,7 @@ describe("useControlGroup", () => {
     let group!: Control<{ field: string }>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       const [which, set] = useState(1);
       setWhich = set;
       group = useControlGroup({ field: which === 1 ? first : second });
@@ -253,7 +253,7 @@ describe("useValueWithPrevious", () => {
     let withPrev!: Control<{ previous?: string; current: string }>;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       withPrev = useValueWithPrevious(c);
       return rendered(<span />);
     }

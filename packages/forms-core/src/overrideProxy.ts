@@ -68,7 +68,7 @@ function warnEscapedRead(propertyKey: string): void {
       `script's override lands, no component will re-render. The proxy ` +
       `was likely passed as a prop and read inside a child component ` +
       `whose own rendered() reconcile had not yet seen the property. ` +
-      `Have the consuming component call useControls() and read through its own ` +
+      `Have the consuming component call useReactive() and read through its own ` +
       `rc (e.g. node.getState(rc).definition.X) instead of the passed-in prop.\n` +
       `Site: ${callerLine.trim()}`,
   );

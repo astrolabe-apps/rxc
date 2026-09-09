@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import {
   clsx,
@@ -23,7 +23,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * The controller resolves each `entry.child`; rendered inside the wrapper.
  */
 export function ChecklistRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useChecklistController(rc, node);
   const checkTheme = useHtmlTheme().data.checkList;
   if (!c.data) return rendered(null);

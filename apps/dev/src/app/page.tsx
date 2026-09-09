@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { Control, ControlOptions } from "@rxc/controls";
-import { useComputed, useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useComputed, useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 
 interface FormData {
   firstName: string;
@@ -14,7 +14,7 @@ function TextInput({ control, label }: {
   control: Control<string>;
   label: string;
 }): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const value = rc.getValue(control);
   const touched = rc.isTouched(control);
   const error = rc.getError(control);
@@ -42,7 +42,7 @@ function TextInput({ control, label }: {
 }
 
 function MyForm({ form }: { form: Control<FormData> }): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const dirty = rc.isDirty(form);
   const valid = rc.isValid(form);
   const fields = form.fields;
@@ -190,7 +190,7 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
 ];
 
 function Home(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const controlContext = useControlContext();
   const formRef = useRef<Control<FormData> | null>(null);
   if (!formRef.current) {

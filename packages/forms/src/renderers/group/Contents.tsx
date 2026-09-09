@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { Field } from "../../Field";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
 
@@ -10,7 +10,7 @@ import type { GroupRendererProps } from "@rxc/forms-react-core";
  * for embedding child fields in a parent's flex/grid flow.
  */
 export function ContentsRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const children = node.getChildren(rc);
   return rendered(
     <>

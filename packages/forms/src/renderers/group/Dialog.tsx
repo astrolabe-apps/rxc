@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { ActionScope, rendererClass, useDisclosure } from "@rxc/forms-react-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
@@ -15,7 +15,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * the native `<dialog>` element and its imperative `showModal()`/`close()`.
  */
 export function DialogRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useDisclosure(rc, node);
   const dialogTheme = useHtmlTheme().group.dialog;
   const dialogRef = useRef<HTMLDialogElement | null>(null);

@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { clsx, rendererClass } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "./useHtmlTheme";
 import type { LayoutComponent, LayoutProps } from "./types";
 
 export function DefaultLayout({ node, label, children, error, inline, className, style }: LayoutProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const def = node.getState(rc).definition;
   const theme = useHtmlTheme().layout;
   // Per-control class on the form definition; theme class from

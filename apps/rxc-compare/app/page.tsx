@@ -2,7 +2,7 @@
 
 import { JSX, useEffect, useRef, useState } from "react";
 import type { Control } from "@rxc/controls";
-import { useControls, useControlContext, type Rendered, ControlContextProvider, createControlContext, effect } from "@rxc/controls";
+import { useReactive, useControlContext, type Rendered, ControlContextProvider, createControlContext, effect } from "@rxc/controls";
 import { ActionScope } from "@rxc/forms";
 import { clientSearchPage, fieldClientSearch } from "@rxc/forms-datagrid";
 import type { SearchOptions } from "@astroapps/searchstate";
@@ -61,7 +61,7 @@ interface FormHostProps {
 }
 
 function FormHost({ def }: FormHostProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const cc = useControlContext();
   const stateRef = useRef<{
     rootControl: Control<Record<string, unknown>>;
@@ -146,7 +146,7 @@ function FormHost({ def }: FormHostProps): Rendered {
 }
 
 function PageInner(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const [formKey, setFormKey] = useState<string>("Fire");
   const def = FormDefinitions[formKey];
 

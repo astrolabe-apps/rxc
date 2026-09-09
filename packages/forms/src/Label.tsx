@@ -7,7 +7,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   DataRenderType,
   isDataControl,
@@ -58,7 +58,7 @@ export function isGroupLabel(def: ControlDefinition): boolean {
 }
 
 export function DefaultLabel({ node, htmlFor, as: tag, id, children }: LabelProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const def = node.getState(rc).definition;
   const required = isDataControl(def) && !!def.required;
   const theme = useHtmlTheme().label;

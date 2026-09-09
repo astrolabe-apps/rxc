@@ -3,7 +3,7 @@
 import type { ChangeEvent } from "react";
 import type { Control } from "@rxc/controls-core";
 import { useFormEdit } from "./FormEditState.js";
-import { useControlContext } from "./useControls.js";
+import { useControlContext } from "./useReactive.js";
 import type { ReadContext } from "@rxc/controls-core";
 
 /**
@@ -34,7 +34,7 @@ export interface FormControlProps<V, E extends HTMLElement> {
  * The cascading {@link FormEditState} is folded in restriction-only: it can
  * add `disabled`/`readOnly`, never re-enable a control that is disabled in
  * its own right. This fold is the single place that merge happens — the
- * `Finput`/`Fselect`/`Fcheckbox` components all consume it from here.
+ * `ControlInput`/`ControlSelect`/`ControlCheckbox` components all consume it from here.
  */
 export function useFormControlProps<V, E extends HTMLElement>(
   rc: ReadContext,

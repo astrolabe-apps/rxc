@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   combineRegistries,
   groupPlugin,
@@ -15,7 +15,7 @@ import { TopLevelGroupValue } from "./formExtensions";
 import { PopoverHelpTextAdornment } from "./adornments/PopoverHelpText";
 
 function TopLevelGroup({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const children = node.getChildren(rc);
   const groupClass = useHtmlTheme().group?.standardClass;
   return rendered(

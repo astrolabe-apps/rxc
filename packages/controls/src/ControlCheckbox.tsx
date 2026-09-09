@@ -2,12 +2,12 @@
 
 import React from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControls } from "./useControls.js";
+import { useReactive } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 import { useFormControlProps } from "./useFormControlProps.js";
 import type { Rendered } from "./types.js";
 
-export type FcheckboxProps = React.InputHTMLAttributes<HTMLInputElement> & {
+export type ControlCheckboxProps = React.InputHTMLAttributes<HTMLInputElement> & {
   control: Control<boolean | undefined | null>;
   type?: "checkbox" | "radio";
   /** Invert the mapping: checked renders/writes `false`. */
@@ -15,17 +15,17 @@ export type FcheckboxProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 /**
- * A checkbox (or radio) bound to a boolean control. See {@link Finput} for
+ * A checkbox (or radio) bound to a boolean control. See {@link ControlInput} for
  * the shared behaviour; a native checkbox ignores `readOnly`, so an ambient
  * `readonly` lock folds into `disabled` instead.
  */
-export function Fcheckbox({
+export function ControlCheckbox({
   control,
   type = "checkbox",
   notValue = false,
   ...others
-}: FcheckboxProps): Rendered {
-  const { rc, rendered, update } = useControls();
+}: ControlCheckboxProps): Rendered {
+  const { rc, rendered, update } = useReactive();
   // Update the HTML5 custom validity whenever the error message changes.
   useControlEffect(
     (rc) => rc.getError(control),

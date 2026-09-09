@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { clsx, rendererClass, useRadioController } from "@rxc/forms-react-core";
 import { Field } from "../../Field";
@@ -21,7 +21,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * underneath the input/label inside the option's wrapper div.
  */
 export function RadioRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useRadioController(rc, node);
   const radioTheme = useHtmlTheme().data.radio;
   if (!c.data) return rendered(null);

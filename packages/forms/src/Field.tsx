@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useId, useMemo } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   ControlDefinitionType,
   isDisplayControl,
@@ -35,7 +35,7 @@ import type { FieldProps } from "./types";
  * wrap the label inside Layout.
  */
 function FieldRender({ node, inline }: FieldProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const state = node.getState(rc);
   const Layout = useLayout();
   const Visibility = useVisibility();

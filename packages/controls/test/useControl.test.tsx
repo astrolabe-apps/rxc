@@ -6,7 +6,7 @@ import {
   ControlContextProvider,
   createControlContext,
   useControl,
-  useControls,
+  useReactive,
   type Control,
   type ControlContext,
   type Rendered,
@@ -45,7 +45,7 @@ describe("useControl", () => {
     const other = ctx.newControl("x");
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const c = useControl("a");
       seen.push(c);
       // Read something else so the component re-renders on demand.
@@ -65,7 +65,7 @@ describe("useControl", () => {
     const other = ctx.newControl("x");
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       useControl(() => {
         calls++;
         return "computed";
@@ -82,7 +82,7 @@ describe("useControl", () => {
     const seen: Control<string>[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       seen.push(useControl("a"));
       return rendered(<span />);
     }
@@ -96,7 +96,7 @@ describe("useControl", () => {
     let c: Control<string | undefined> | undefined;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       c = useControl<string>();
       return rendered(<span />);
     }
@@ -109,7 +109,7 @@ describe("useControl", () => {
     let c: Control<string> | undefined;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       c = useControl("a", { meta: { tag: "hello" } });
       return rendered(<span />);
     }
@@ -122,7 +122,7 @@ describe("useControl", () => {
     let target: Control<string> | undefined;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const c = useControl("a");
       target = c;
       return rendered(<span>{rc.getValue(c)}</span>);
@@ -141,7 +141,7 @@ describe("useControl", () => {
       let seen: Control<string> | undefined;
 
       function Comp({ control }: { control?: Control<string> }): Rendered {
-        const { rendered } = useControls();
+        const { rendered } = useReactive();
         seen = useControl("fallback", { use: control });
         return rendered(<span />);
       }
@@ -155,7 +155,7 @@ describe("useControl", () => {
       let seen: Control<string> | undefined;
 
       function Comp({ control }: { control?: Control<string> }): Rendered {
-        const { rendered } = useControls();
+        const { rendered } = useReactive();
         seen = useControl("fallback", { use: control });
         return rendered(<span />);
       }

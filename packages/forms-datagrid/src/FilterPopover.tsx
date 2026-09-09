@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import type { FieldOption } from "@rxc/forms-core";
 import { clsx } from "@rxc/forms-react-core";
@@ -28,7 +28,7 @@ export interface FilterPopoverProps {
  * Column-filter popover: an `fa-filter` trigger (solid when any value is
  * selected) opening a checkbox list of the column's option values. Ported
  * from the legacy `@astroapps/schemas-datagrid` `FilterPopover`, re-expressed
- * via `useControls()`. Options are resolved by the caller (via the
+ * via `useReactive()`. Options are resolved by the caller (via the
  * SchemaInterface) and passed in, rather than via a `getFilterOptions` hook.
  */
 export function FilterPopover({
@@ -41,7 +41,7 @@ export function FilterPopover({
       clearClass = "",
       disableClear,
     }: FilterPopoverProps): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const baseId = useId();
   const filters = rc.getValue(filtersControl) ?? {};
   const current = (filters[colKey] as unknown[] | undefined) ?? [];

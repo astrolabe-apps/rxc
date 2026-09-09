@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { isDisplayControl, type TextDisplay } from "@rxc/forms-core";
 import { clsx, rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
@@ -10,7 +10,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
 // proxy is bound to `<Field>`'s rc and won't deliver post-reconcile
 // subscriptions on scripted `displayData.text` overrides.
 export function TextDisplayRenderer({ node }: DisplayRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const displayTheme = useHtmlTheme().display;
   const def = node.getState(rc).definition;
   const text = isDisplayControl(def)

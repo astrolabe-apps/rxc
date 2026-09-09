@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   ControlContextProvider,
   createControlContext,
-  Fcheckbox,
-  Finput,
+  ControlCheckbox,
+  ControlInput,
   FormEditProvider,
-  Fselect,
-  useControls,
+  ControlSelect,
+  useReactive,
   useValidator,
   type Control,
   type ControlContext,
@@ -57,10 +57,10 @@ function type(input: HTMLInputElement, text: string) {
 
 const input = () => container.querySelector("input")!;
 
-describe("Finput", () => {
+describe("ControlInput", () => {
   it("renders the value and writes changes back to the control", () => {
     const c = ctx.newControl("a");
-    mount(<Finput control={c} />);
+    mount(<ControlInput control={c} />);
     expect(input().value).toBe("a");
 
     type(input(), "ab");
@@ -74,7 +74,7 @@ describe("Finput", () => {
 
     function Parent() {
       parentRenders++;
-      return <Finput control={c} />;
+      return <ControlInput control={c} />;
     }
 
     mount(<Parent />);
@@ -85,7 +85,7 @@ describe("Finput", () => {
 
   it("marks the control touched on blur", () => {
     const c = ctx.newControl("a");
-    mount(<Finput control={c} />);
+    mount(<ControlInput control={c} />);
     expect(c.touchedNow).toBe(false);
 
     act(() => {
@@ -96,7 +96,7 @@ describe("Finput", () => {
 
   it("reflects the control's disabled state", () => {
     const c = ctx.newControl("a");
-    mount(<Finput control={c} />);
+    mount(<ControlInput control={c} />);
     expect(input().disabled).toBe(false);
 
     act(() => ctx.update((wc) => wc.setDisabled(c, true)));
@@ -107,9 +107,9 @@ describe("Finput", () => {
     const c = ctx.newControl("");
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useValidator(c, (v) => (v ? null : "required"));
-      return rendered(<Finput control={c} />);
+      return rendered(<ControlInput control={c} />);
     }
 
     mount(<Comp />);
@@ -127,7 +127,7 @@ describe("Finput", () => {
 
   it("stores the element on control.meta.element", () => {
     const c = ctx.newControl("a");
-    mount(<Finput control={c} />);
+    mount(<ControlInput control={c} />);
     expect(c.meta.element).toBe(input());
   });
 });
@@ -137,7 +137,7 @@ describe("FormEditState", () => {
     const c = ctx.newControl("a");
     mount(
       <FormEditProvider disabled>
-        <Finput control={c} />
+        <ControlInput control={c} />
       </FormEditProvider>,
     );
     expect(input().disabled).toBe(true);
@@ -148,7 +148,7 @@ describe("FormEditState", () => {
     ctx.update((wc) => wc.setDisabled(c, true));
     mount(
       <FormEditProvider disabled={false}>
-        <Finput control={c} />
+        <ControlInput control={c} />
       </FormEditProvider>,
     );
     expect(input().disabled).toBe(true);
@@ -158,7 +158,7 @@ describe("FormEditState", () => {
     const c = ctx.newControl("a");
     mount(
       <FormEditProvider readonly>
-        <Finput control={c} />
+        <ControlInput control={c} />
       </FormEditProvider>,
     );
     expect(input().readOnly).toBe(true);
@@ -170,10 +170,10 @@ describe("FormEditState", () => {
     const b = ctx.newControl<boolean | undefined>(false);
     mount(
       <FormEditProvider readonly>
-        <Fselect control={s}>
+        <ControlSelect control={s}>
           <option value="a">A</option>
-        </Fselect>
-        <Fcheckbox control={b} />
+        </ControlSelect>
+        <ControlCheckbox control={b} />
       </FormEditProvider>,
     );
     expect(container.querySelector("select")!.disabled).toBe(true);
@@ -181,14 +181,14 @@ describe("FormEditState", () => {
   });
 });
 
-describe("Fselect", () => {
+describe("ControlSelect", () => {
   it("renders the value and writes selection changes", () => {
     const c = ctx.newControl<string | undefined>("b");
     mount(
-      <Fselect control={c}>
+      <ControlSelect control={c}>
         <option value="a">A</option>
         <option value="b">B</option>
-      </Fselect>,
+      </ControlSelect>,
     );
     const select = container.querySelector("select")!;
     expect(select.value).toBe("b");
@@ -205,10 +205,10 @@ describe("Fselect", () => {
   });
 });
 
-describe("Fcheckbox", () => {
+describe("ControlCheckbox", () => {
   it("reflects and toggles a boolean control", () => {
     const c = ctx.newControl<boolean | undefined>(false);
-    mount(<Fcheckbox control={c} />);
+    mount(<ControlCheckbox control={c} />);
     expect(input().checked).toBe(false);
 
     act(() => input().click());
@@ -218,7 +218,7 @@ describe("Fcheckbox", () => {
 
   it("notValue inverts the mapping", () => {
     const c = ctx.newControl<boolean | undefined>(false);
-    mount(<Fcheckbox control={c} notValue />);
+    mount(<ControlCheckbox control={c} notValue />);
     expect(input().checked).toBe(true);
 
     act(() => input().click());
@@ -228,7 +228,7 @@ describe("Fcheckbox", () => {
 
   it("renders as a radio when asked", () => {
     const c = ctx.newControl<boolean | undefined>(false);
-    mount(<Fcheckbox control={c} type="radio" />);
+    mount(<ControlCheckbox control={c} type="radio" />);
     expect(input().type).toBe("radio");
   });
 });

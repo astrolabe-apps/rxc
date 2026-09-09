@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   isDisplayControl,
   type HtmlDisplay,
@@ -13,7 +13,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * data flows through the renderer untouched. Use only with trusted
  * authoring sources.
  *
- * Calls `useControls()` and reads `displayData.html` from
+ * Calls `useReactive()` and reads `displayData.html` from
  * `node.getState(rc).definition` rather than the passed-in `data` prop —
  * `data` is a scripted-proxy bound to the dispatching `<Field>`'s rc,
  * whose reconcile has already happened by the time this renderer's body
@@ -23,7 +23,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * re-render this component when they land.
  */
 export function HtmlDisplayRenderer({ node }: DisplayRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const displayTheme = useHtmlTheme().display;
   const def = node.getState(rc).definition;
   const html = isDisplayControl(def)

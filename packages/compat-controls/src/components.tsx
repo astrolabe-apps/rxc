@@ -18,11 +18,11 @@ import type {
 } from "react";
 import type { Control as CoreControl } from "@rxc/controls-core";
 import {
-  Fcheckbox as RxcFcheckbox,
-  Finput as RxcFinput,
-  Fselect as RxcFselect,
+  ControlCheckbox as RxcFcheckbox,
+  ControlInput as RxcFinput,
+  ControlSelect as RxcFselect,
   RenderArrayElements as RxcRenderArrayElements,
-  RenderControl as RxcRenderControl,
+  Reactive as RxcRenderControl,
   RenderElements as RxcRenderElements,
   RenderOptional as RxcRenderOptional,
 } from "@rxc/controls";

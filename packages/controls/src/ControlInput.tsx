@@ -2,13 +2,13 @@
 
 import React from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControls } from "./useControls.js";
+import { useReactive } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 import { useFormControlProps } from "./useFormControlProps.js";
 import type { Rendered } from "./types.js";
 
 // Only allow strings and numbers
-export type FinputProps<V extends string | number> =
+export type ControlInputProps<V extends string | number> =
   React.InputHTMLAttributes<HTMLInputElement> & {
     control: Control<V>;
   };
@@ -21,11 +21,11 @@ export type FinputProps<V extends string | number> =
  * {@link FormEditState} (restriction-only), publishes the control's error as
  * HTML5 custom validity, and stores the element on `control.meta.element`.
  */
-export function Finput<V extends string | number>({
+export function ControlInput<V extends string | number>({
   control,
   ...props
-}: FinputProps<V>): Rendered {
-  const { rc, rendered } = useControls();
+}: ControlInputProps<V>): Rendered {
+  const { rc, rendered } = useReactive();
   // Update the HTML5 custom validity whenever the error message changes.
   useControlEffect(
     (rc) => rc.getError(control),

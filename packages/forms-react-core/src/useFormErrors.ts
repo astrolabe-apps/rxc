@@ -22,7 +22,7 @@ export interface FormError {
  *
  * Reads through the supplied {@link ReadContext}, so subscribers to the
  * returned list re-run when any reached error or touched state changes.
- * Designed to be called from inside `useControls()` components or
+ * Designed to be called from inside `useReactive()` components or
  * other rc-aware computations.
  *
  * Hidden subtrees (`visible === false`) are skipped — matching legacy

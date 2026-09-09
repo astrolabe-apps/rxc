@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { Control } from "@rxc/controls-core";
 import { dataRef } from "@rxc/forms-core";
 import {
@@ -80,7 +80,7 @@ function createPagerRenderer(
   const nextText = pagerClasses.nextText ?? "Next";
 
   function PagerRenderer({ node }: DataRendererProps): Rendered {
-    const { rc, rendered, update } = useControls();
+    const { rc, rendered, update } = useReactive();
     const designMode = useDesignMode();
     const state = node.getState(rc);
     const search = state.data as Control<SearchOptions> | undefined;

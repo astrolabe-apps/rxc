@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { isDisplayControl, type CustomDisplay } from "@rxc/forms-core";
 import { useFormOptions } from "@rxc/forms-react-core";
 import type { DisplayRendererProps } from "@rxc/forms-react-core";
@@ -14,11 +14,11 @@ import type { DisplayRendererProps } from "@rxc/forms-react-core";
  * `displayData.customId` re-render. The host's custom component still
  * receives `data` so it can read shape-specific fields itself; if those
  * fields are also scripted, the custom component is responsible for
- * routing reads through its own `useControls()` rc the same way (see
+ * routing reads through its own `useReactive()` rc the same way (see
  * `HtmlDisplayRenderer` for the pattern).
  */
 export function CustomDisplayRenderer({ node }: DisplayRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { customDisplays } = useFormOptions();
   const def = node.getState(rc).definition;
   const d = isDisplayControl(def)

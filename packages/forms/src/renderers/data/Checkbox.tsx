@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   rendererClass,
   useCheckboxController,
@@ -36,7 +36,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * the Radio renderer's handling.
  */
 export function CheckboxRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useCheckboxController(rc, node);
   const checkboxTheme = useHtmlTheme().data.checkbox;
   const labelText = resolveLabelText(node, rc);

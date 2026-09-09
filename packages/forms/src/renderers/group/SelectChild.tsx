@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   isGroupControl,
   type SelectChildRenderer as SelectChildRenderOptions,
@@ -10,7 +10,7 @@ import { useExpression } from "@rxc/forms-react-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
 
 export function SelectChildRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const children = node.getChildren(rc);
   const def = node.getState(rc).definition;
   const opts = isGroupControl(def)

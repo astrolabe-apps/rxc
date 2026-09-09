@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   rendererClass,
   useWizardController,
@@ -20,7 +20,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * renderer only owns the chrome.
  */
 export function WizardRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { definition } = node.getState(rc);
   const wiz = useWizardController(rc, node);
   const groupTheme = useHtmlTheme().group;

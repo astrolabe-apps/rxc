@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { DataRenderType, isDataControl } from "@rxc/forms-core";
 import { rendererClass } from "@rxc/forms-react-core";
 import type { LayoutProps } from "@rxc/forms";
@@ -18,7 +18,7 @@ const DISPLAY_ONLY_WRAPPER = "flex flex-row items-center gap-2";
 // `<Label>` (HtmlLabel) and `<Error>` (HtmlError) components, passed to
 // `<Form>` separately.
 export function HtmlLayout({ node, label, error, inline, className, style, children }: LayoutProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const def = node.getState(rc).definition;
   const isDisplayOnly =
     isDataControl(def) &&

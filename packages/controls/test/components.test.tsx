@@ -6,11 +6,11 @@ import {
   createControlContext,
   NotDefinedContext,
   RenderArrayElements,
-  RenderControl,
+  Reactive,
   RenderElements,
   RenderOptional,
   whenAllDefined,
-  useControls,
+  useReactive,
   type ControlContext,
   type ReadContext,
   type Rendered,
@@ -44,22 +44,22 @@ function mount(ui: React.ReactNode) {
   );
 }
 
-describe("RenderControl", () => {
+describe("Reactive", () => {
   it("isolates its reads from the calling component", () => {
     const c = ctx.newControl("a");
     let outer = 0;
     let inner = 0;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       outer++;
       return rendered(
-        <RenderControl>
+        <Reactive>
           {(rc) => {
             inner++;
             return <span>{rc.getValue(c)}</span>;
           }}
-        </RenderControl>,
+        </Reactive>,
       );
     }
 
@@ -78,11 +78,11 @@ describe("RenderControl", () => {
     let outer = 0;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       outer++;
       const value = rc.getValue(c); // read in the caller's scope
       return rendered(
-        <RenderControl>{() => <span>{value}</span>}</RenderControl>,
+        <Reactive>{() => <span>{value}</span>}</Reactive>,
       );
     }
 
@@ -103,7 +103,7 @@ describe("RenderElements", () => {
     const rows: number[] = [0, 0, 0];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderElements
           control={arr}
@@ -137,7 +137,7 @@ describe("RenderElements", () => {
     let list = 0;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderElements
           control={arr}
@@ -163,7 +163,7 @@ describe("RenderElements", () => {
     const arr = ctx.newControl<string[] | null>(null);
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderElements
           control={arr}
@@ -186,7 +186,7 @@ describe("RenderElements", () => {
     const arr = ctx.newControl<string[]>(["a", "b"]);
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderElements
           control={arr}
@@ -210,7 +210,7 @@ describe("RenderOptional", () => {
     const c = ctx.newControl<string | null>(null);
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderOptional control={c} notDefined={<i>loading</i>}>
           {(rc, defined) => <span>{rc.getValue(defined)}</span>}
@@ -229,7 +229,7 @@ describe("RenderOptional", () => {
     const c = ctx.newControl<string | null>(null);
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderOptional control={c}>
           {(rc, defined) => <span>{rc.getValue(defined)}</span>}
@@ -250,7 +250,7 @@ describe("RenderOptional", () => {
     let outer = 0;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
         <RenderOptional control={c}>
           {(rc, defined) => {
@@ -276,9 +276,9 @@ describe("whenAllDefined", () => {
     const b = ctx.newControl<number | null>(null);
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
-        <RenderControl>
+        <Reactive>
           {whenAllDefined(
             { a, b },
             ({ a, b }) => (
@@ -286,7 +286,7 @@ describe("whenAllDefined", () => {
             ),
             <i>waiting</i>,
           )}
-        </RenderControl>,
+        </Reactive>,
       );
     }
 
@@ -334,13 +334,13 @@ describe("wrong-rc dev guard", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       return rendered(
         // Deliberately renamed so the outer `rc` is not shadowed — this is
         // the mistake the guard exists to catch.
-        <RenderControl>
+        <Reactive>
           {(inner: ReadContext) => <span>{rc.getValue(c)}</span>}
-        </RenderControl>,
+        </Reactive>,
       );
     }
 
@@ -358,7 +358,7 @@ describe("wrong-rc dev guard", () => {
     let seen = "";
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       return rendered(
         <button onClick={() => (seen = rc.getValue(c))}>go</button>,
       );
@@ -378,9 +378,9 @@ describe("wrong-rc dev guard", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(
-        <RenderControl>{(rc) => <span>{rc.getValue(c)}</span>}</RenderControl>,
+        <Reactive>{(rc) => <span>{rc.getValue(c)}</span>}</Reactive>,
       );
     }
 

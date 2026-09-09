@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   IconLibrary,
   isDisplayControl,
@@ -50,7 +50,7 @@ export function resolveIcon(
 // See `HtmlDisplayRenderer` for the rationale on reading through an own rc
 // and reading through `node.getState(rc)` rather than the `data` prop.
 export function IconDisplayRenderer({ node }: DisplayRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const displayTheme = useHtmlTheme().display;
   const def = node.getState(rc).definition;
   const d = isDisplayControl(def)

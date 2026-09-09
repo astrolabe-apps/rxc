@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { pickGroupRenderer } from "@rxc/forms-react-core";
 import { useRegistry } from "@rxc/forms-react-core";
 import type { DataRendererProps } from "@rxc/forms-react-core";
@@ -11,7 +11,7 @@ import type { DataRendererProps } from "@rxc/forms-react-core";
  * the legacy data ↔ group ping-pong with this one-way delegation.
  */
 export function CompoundDelegate({ node }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const registry = useRegistry();
   const match = pickGroupRenderer(registry.group, node, rc);
   if (!match) return rendered(null);

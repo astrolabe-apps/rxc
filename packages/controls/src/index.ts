@@ -3,12 +3,12 @@ export * from "@rxc/controls-core";
 
 // React-specific API
 export {
-  useControls,
+  useReactive,
   useComputed,
   ControlContextProvider,
   useControlContext,
   withControlContext,
-} from "./useControls.js";
+} from "./useReactive.js";
 
 export { useControl } from "./useControl.js";
 export type { UseControlOptions } from "./useControl.js";
@@ -36,25 +36,25 @@ export {
   useFormControlProps,
   type FormControlProps,
 } from "./useFormControlProps.js";
-export { Finput, type FinputProps } from "./Finput.js";
-export { Fselect, type FselectProps } from "./Fselect.js";
-export { Fcheckbox, type FcheckboxProps } from "./Fcheckbox.js";
+export { ControlInput, type ControlInputProps } from "./ControlInput.js";
+export { ControlSelect, type ControlSelectProps } from "./ControlSelect.js";
+export { ControlCheckbox, type ControlCheckboxProps } from "./ControlCheckbox.js";
 
 // Render helpers — nested subscription scopes
 export {
   NotDefinedContext,
   RenderArrayElements,
-  RenderControl,
+  Reactive,
   RenderElements,
   RenderOptional,
   whenAllDefined,
 } from "./components.js";
 
 export type {
-  Controls,
+  ReactiveScope,
   RenderArrayElementsProps,
   RenderCallback,
-  RenderControlProps,
+  ReactiveProps,
   RenderElementsProps,
   RenderOptionalProps,
   Rendered,

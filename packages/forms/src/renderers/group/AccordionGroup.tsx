@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { rendererClass, useAccordionSection } from "@rxc/forms-react-core";
 import type { FormStateNode } from "@rxc/forms-core";
 import type { GroupRendererProps } from "@rxc/forms-react-core";
@@ -14,7 +14,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * `@rxc/forms-motion`.
  */
 export function AccordionGroupRenderer({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { definition } = node.getState(rc);
   const accTheme = useHtmlTheme().group.accordion;
   const children = node.getChildren(rc);
@@ -29,7 +29,7 @@ export function AccordionGroupRenderer({ node }: GroupRendererProps): Rendered {
 }
 
 function AccordionSection({ node }: { node: FormStateNode }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useAccordionSection(rc, node);
   const accTheme = useHtmlTheme().group.accordion;
   return rendered(

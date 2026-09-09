@@ -8,7 +8,7 @@ import type {
   ControlOptions,
   Subscription,
 } from "@rxc/controls-core";
-import { useControlContext } from "./useControls.js";
+import { useControlContext } from "./useReactive.js";
 
 /** One entry of a selectable array: the value plus whether it is selected. */
 export interface SelectionGroup<V> {

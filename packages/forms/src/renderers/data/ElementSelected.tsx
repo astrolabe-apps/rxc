@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   rendererClass,
   useElementSelectedController,
@@ -21,7 +21,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * inline like {@link CheckboxRenderer}.
  */
 export function ElementSelectedRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useElementSelectedController(rc, node);
   const dataTheme = useHtmlTheme().data;
   const labelText = resolveLabelText(node, rc);

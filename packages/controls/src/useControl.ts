@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { Control, ControlOptions } from "@rxc/controls-core";
-import { useControlContext } from "./useControls.js";
+import { useControlContext } from "./useReactive.js";
 
 /**
  * Options for {@link useControl} — a {@link ControlOptions} plus the `use`
@@ -34,7 +34,7 @@ export type UseControlOptions<V> = ControlOptions<V> & {
  *
  * ```tsx
  * const name = useControl("");
- * const { rc, rendered } = useControls();
+ * const { rc, rendered } = useReactive();
  * return rendered(<input value={rc.getValue(name)} … />);
  * ```
  *
@@ -42,7 +42,7 @@ export type UseControlOptions<V> = ControlOptions<V> & {
  * changed on a later render has no effect.
  *
  * Creating a control does not subscribe to it. Read through an `rc` from
- * {@link useControls} to re-render on its changes.
+ * {@link useReactive} to re-render on its changes.
  */
 export function useControl<V>(
   initialValue: V | (() => V),

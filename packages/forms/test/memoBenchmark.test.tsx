@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect } from "vitest";
-import { useControls, type Rendered, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useReactive, type Rendered, ControlContextProvider, createControlContext } from "@rxc/controls";
 import { untrackedRead, type Control } from "@rxc/controls-core";
 import {
   ControlDefinitionType,
@@ -50,7 +50,7 @@ let useMemoField = false;
 let tickControl: Control<number>;
 
 function CountingText({ node }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { data } = node.getState(rc);
   renderCounts.field++;
   const v = data ? rc.getValue(data) : null;
@@ -71,7 +71,7 @@ const PlainField: FieldLike =
 // re-render on demand, and (b) renders each child through either the raw
 // Field or the shipped memo(Field), controlled by `useMemoField`.
 function BenchGroup({ node }: GroupRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   rc.getValue(tickControl); // subscribe: toggling tick re-renders this group
   const children = node.getChildren(rc);
   const F = useMemoField ? ShippedField : PlainField;

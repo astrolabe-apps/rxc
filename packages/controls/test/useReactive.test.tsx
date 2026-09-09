@@ -7,10 +7,10 @@ import {
   createControlContext,
   useComputed,
   useControlContext,
-  useControls,
+  useReactive,
   type Control,
   type ControlContext,
-  type Controls,
+  type ReactiveScope,
   type Rendered,
 } from "../src/index";
 
@@ -41,13 +41,13 @@ function mount(ui: React.ReactNode, strict = false) {
   act(() => root.render(strict ? <StrictMode>{tree}</StrictMode> : tree));
 }
 
-describe("useControls — subscription boundary", () => {
+describe("useReactive — subscription boundary", () => {
   it("re-renders when a control read through rc changes", () => {
     const c = ctx.newControl("a");
     let renders = 0;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       renders++;
       return rendered(<span>{rc.getValue(c)}</span>);
     }
@@ -67,7 +67,7 @@ describe("useControls — subscription boundary", () => {
     let renders = 0;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       renders++;
       return rendered(<span>{rc.getValue(read)}</span>);
     }
@@ -86,7 +86,7 @@ describe("useControls — subscription boundary", () => {
     let renders = 0;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       renders++;
       const pick = rc.getValue(which);
       return rendered(<span>{rc.getValue(pick === "a" ? a : b)}</span>);
@@ -113,7 +113,7 @@ describe("useControls — subscription boundary", () => {
     let renders = 0;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       renders++;
       return rendered(<span>{rc.getError(c) ?? "none"}</span>);
     }
@@ -127,7 +127,7 @@ describe("useControls — subscription boundary", () => {
   });
 });
 
-describe("useControls — rendered() is the boundary", () => {
+describe("useReactive — rendered() is the boundary", () => {
   let error: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -142,7 +142,7 @@ describe("useControls — rendered() is the boundary", () => {
     // Deliberately bypasses the boundary — the shape the `Rendered` type
     // prevents at compile time, and the dev guard catches at runtime.
     function Bad(): Rendered {
-      const { rc } = useControls();
+      const { rc } = useReactive();
       renders++;
       return (<span>{rc.getValue(c)}</span>) as unknown as Rendered;
     }
@@ -160,16 +160,16 @@ describe("useControls — rendered() is the boundary", () => {
     const msg = String(error.mock.calls[0]![0]);
     expect(msg).toContain("returned without calling rendered");
     // The component identifies itself — no name argument is passed to
-    // `useControls()`; it's recovered from a one-per-instance stack capture
+    // `useReactive()`; it's recovered from a one-per-instance stack capture
     // taken during render (the warning fires from an effect, where the
     // component's frame is long gone).
     expect(msg).toContain("Bad");
-    expect(msg).toMatch(/useControls\.test\.tsx:\d+/);
+    expect(msg).toMatch(/useReactive\.test\.tsx:\d+/);
   });
 
-  it("names the component even when useControls is wrapped in a custom hook", () => {
+  it("names the component even when useReactive is wrapped in a custom hook", () => {
     function useMyRenderer() {
-      return useControls();
+      return useReactive();
     }
     function WrappedRenderer(): Rendered {
       const { rc } = useMyRenderer();
@@ -185,7 +185,7 @@ describe("useControls — rendered() is the boundary", () => {
 
   it("does not warn when every path calls rendered()", () => {
     function Good(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       return rendered(null);
     }
     mount(<Good />);
@@ -199,7 +199,7 @@ describe("useControls — rendered() is the boundary", () => {
     let lateRead: unknown;
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       renders++;
       const out = rendered(<span>{rc.getValue(tracked)}</span>);
       // Past the boundary: still readable, but must not become a dependency.
@@ -219,11 +219,11 @@ describe("useControls — rendered() is the boundary", () => {
   });
 });
 
-describe("useControls — StrictMode", () => {
+describe("useReactive — StrictMode", () => {
   it("converges under double-invoked renders and effects", () => {
     const c = ctx.newControl(1);
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       return rendered(<span>{rc.getValue(c)}</span>);
     }
 
@@ -244,7 +244,7 @@ describe("useComputed", () => {
     const last = ctx.newControl("Lovelace");
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const full = useComputed(
         (crc) => `${crc.getValue(first)} ${crc.getValue(last)}`,
       );
@@ -259,12 +259,12 @@ describe("useComputed", () => {
   });
 });
 
-describe("useControls — update", () => {
+describe("useReactive — update", () => {
   it("batches writes against the ambient context, so writes need no second hook", () => {
     const c = ctx.newControl("a");
 
     function Comp(): Rendered {
-      const { rc, rendered, update } = useControls();
+      const { rc, rendered, update } = useReactive();
       expect(update).toBe(ctx.update);
       return rendered(
         <button onClick={() => update((wc) => wc.setValue(c, "b"))}>
@@ -281,10 +281,10 @@ describe("useControls — update", () => {
 
   it("tracks a swapped provider rather than freezing at first mount", () => {
     const other = createControlContext();
-    const seen: Array<Controls["update"]> = [];
+    const seen: Array<ReactiveScope["update"]> = [];
 
     function Comp(): Rendered {
-      const { rendered, update } = useControls();
+      const { rendered, update } = useReactive();
       seen.push(update);
       return rendered(null);
     }
@@ -319,7 +319,7 @@ describe("useControlContext", () => {
     const seen: Array<(cb: unknown) => void> = [];
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const { update } = useControlContext();
       seen.push(update as unknown as (cb: unknown) => void);
       return rendered(<span>{rc.getValue(c)}</span>);

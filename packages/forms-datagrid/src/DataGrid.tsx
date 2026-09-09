@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { type Control, effect, type ReadContext } from "@rxc/controls-core";
 import {
   boolField,
@@ -321,7 +321,7 @@ function createDataGridRenderer(classes?: DataGridClasses) {
   const gridClasses: DataGridClasses = { ...defaultDataGridClasses, ...classes };
 
   function DataGridRenderer({ node }: DataRendererProps): Rendered {
-    const { rc, rendered } = useControls();
+    const { rc, rendered } = useReactive();
     const ctx = useControlContext();
     const { update } = ctx;
     const actionHandler = useActionHandler();

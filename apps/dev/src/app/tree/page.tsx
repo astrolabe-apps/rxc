@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { Control } from "@rxc/controls";
-import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import type {
   ControlDefinition,
   FormStateNode,
@@ -80,7 +80,7 @@ function ValueDisplay({ value }: { value: unknown }) {
 // ── Raw control tree inspector ──────────────────────────────────────
 
 function ControlLeafNode({ control, name }: { control: Control<any>; name: string }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const value = rc.getValue(control);
   const dirty = rc.isDirty(control);
   const touched = rc.isTouched(control);
@@ -128,7 +128,7 @@ function ControlBranchNode({
     name,
     defaultExpanded,
   }: { control: Control<any>; name: string; defaultExpanded?: boolean }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const [expanded, setExpanded] = useState(defaultExpanded ?? false);
 
   const value = rc.getValue(control);
@@ -225,7 +225,7 @@ function ControlNodeRenderer({
 // ── FormStateNode tree inspector ────────────────────────────────────
 
 function FormStateLeafNode({ node }: { node: FormStateNode }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const {
     visible,
     disabled,
@@ -293,7 +293,7 @@ function FormStateLeafNode({ node }: { node: FormStateNode }): Rendered {
 }
 
 function FormStateBranchNode({ node, defaultExpanded }: { node: FormStateNode; defaultExpanded?: boolean }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const [expanded, setExpanded] = useState(defaultExpanded ?? true);
 
   const {
@@ -383,7 +383,7 @@ function FormStateNodeRenderer({
     node: FormStateNode;
     defaultExpanded?: boolean;
   }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const children = node.getChildren(rc);
   if (children.length > 0) {
     return rendered(
@@ -466,7 +466,7 @@ const emptyFormResolver: FormTreeResolver = {
 };
 
 function TreePageInner(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const controlContext = useControlContext();
   const stateRef = useRef<{
     rootControl: Control<any>;
@@ -599,7 +599,7 @@ function ValidateButton({
     node: FormStateNode;
     rootControl: Control<any>;
   }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const valid = rc.isValid(rootControl);
   const [validated, setValidated] = useState(false);
 
@@ -633,7 +633,7 @@ function ValidateButton({
 // ── Definition editor ───────────────────────────────────────────────
 
 function DefinitionEditor({ definitionsControl }: { definitionsControl: Control<ControlDefinition[]> }): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const current = rc.getValue(definitionsControl);
   const canonical = JSON.stringify(current, null, 2);
 

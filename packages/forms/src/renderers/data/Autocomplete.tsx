@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import {
   rendererClass,
@@ -16,7 +16,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * full Downshift accessibility (typeahead, virtualization) are still TODO.
  */
 export function AutocompleteRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useAutocompleteController(rc, node);
   const acTheme = useHtmlTheme().data.autocomplete;
   const containerRef = useRef<HTMLDivElement | null>(null);

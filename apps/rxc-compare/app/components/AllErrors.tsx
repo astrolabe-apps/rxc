@@ -1,12 +1,12 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import type { FormStateNode } from "@rxc/forms-core";
 import { useFormErrors } from "@rxc/forms-react-core";
 import { ErrorMessage } from "./ErrorMessage";
 
 export function AllErrors({ node }: { node: FormStateNode }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const errors = useFormErrors(rc, node);
   if (errors.length === 0) return rendered(null);
   return rendered(

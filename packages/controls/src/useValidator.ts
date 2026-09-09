@@ -7,7 +7,7 @@ import {
   SubscriptionReconciler,
   TrackingReadContext,
 } from "@rxc/controls-core/internal";
-import { useControlContext } from "./useControls.js";
+import { useControlContext } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 
 /**

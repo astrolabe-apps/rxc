@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { Field } from "../../Field";
 import type { DataRendererProps } from "@rxc/forms-react-core";
 import { Action, rendererClass, useArrayActions } from "@rxc/forms-react-core";
@@ -25,7 +25,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * `ArrayElementModalHostRenderer`. `ArrayRenderer` does not self-host it.
  */
 export function ArrayRenderer({ node }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useArrayActions(rc, node);
   const arrayTheme = useHtmlTheme().data.array;
   if (!c.data) return rendered(null);

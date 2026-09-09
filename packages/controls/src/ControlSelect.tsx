@@ -2,26 +2,26 @@
 
 import React from "react";
 import type { Control } from "@rxc/controls-core";
-import { useControls } from "./useControls.js";
+import { useReactive } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 import { useFormControlProps } from "./useFormControlProps.js";
 import type { Rendered } from "./types.js";
 
-export type FselectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
+export type ControlSelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   control: Control<string | number | undefined>;
 };
 
 /**
- * A `<select>` bound to a control. See {@link Finput} for the shared
+ * A `<select>` bound to a control. See {@link ControlInput} for the shared
  * behaviour; a native select has no read-only mode, so an ambient `readonly`
  * lock folds into `disabled` instead.
  */
-export function Fselect({
+export function ControlSelect({
   control,
   children,
   ...others
-}: FselectProps): Rendered {
-  const { rc, rendered } = useControls();
+}: ControlSelectProps): Rendered {
+  const { rc, rendered } = useReactive();
   // Update the HTML5 custom validity whenever the error message changes.
   useControlEffect(
     (rc) => rc.getError(control),

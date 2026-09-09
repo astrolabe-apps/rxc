@@ -31,7 +31,7 @@ import {
  * (kept across renders) and registers the evaluator on mount + when
  * `expr` identity changes; cleanup runs on unmount and on swap.
  *
- * Must be called from a `useControls()` render so a `ReadContext` is in
+ * Must be called from a `useReactive()` render so a `ReadContext` is in
  * scope (passed in as the first argument) and a `ControlContext` is
  * available via `useControlContext()`.
  */
@@ -102,7 +102,7 @@ export function useExpression(
  * `metaKey`, so callers must vary the key if the expression identity might
  * change (rare outside design mode).
  *
- * Use this from a `useControls()` render where you need a per-row / per-cell
+ * Use this from a `useReactive()` render where you need a per-row / per-cell
  * expression result without driving a hook (e.g. dynamic numbers of cells
  * in a DataGrid). Cleanup runs when the host node is cleaned up.
  *

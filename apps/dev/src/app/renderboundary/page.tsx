@@ -16,7 +16,7 @@ import {
   ControlContextProvider,
   createControlContext,
   useControlContext,
-  useControls,
+  useReactive,
   type Control,
   type Rendered,
 } from "@rxc/controls";
@@ -105,7 +105,7 @@ interface DemoProps {
 
 /** Correct: every return path goes through `rendered(…)`. */
 function CorrectFieldRender({ counter }: DemoProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const renders = useRef(0);
   renders.current++;
   return rendered(
@@ -127,7 +127,7 @@ function CorrectFieldRender({ counter }: DemoProps): Rendered {
  * below); the runtime guard exists for the cases the type can't reach.
  */
 function BrokenFieldRender({ counter }: DemoProps): Rendered {
-  const { rc } = useControls();
+  const { rc } = useReactive();
   const renders = useRef(0);
   renders.current++;
   return (
@@ -161,7 +161,7 @@ function ConditionalFieldRender({
   counter,
   skipOn,
 }: DemoProps & { skipOn: "even" | "odd" }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const renders = useRef(0);
   renders.current++;
   const value = rc.getValue(counter);
@@ -263,7 +263,7 @@ const TS_ERROR = `error TS2322: Type 'Element' is not assignable to type 'Render
 // ── Page ─────────────────────────────────────────────────────────────
 
 function RenderBoundaryInner(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const ctx = useControlContext();
   const counterRef = useRef<Control<number> | null>(null);
   if (!counterRef.current) counterRef.current = ctx.newControl(1);

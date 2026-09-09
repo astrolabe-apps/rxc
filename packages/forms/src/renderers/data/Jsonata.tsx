@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   ExpressionType,
   isDataControl,
@@ -27,7 +27,7 @@ import {
  * text-only equivalent.
  */
 export function JsonataRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { definition } = node.getState(rc);
   const renderOptions = isDataControl(definition)
     ? (definition.renderOptions as JsonataRenderOptions | undefined)

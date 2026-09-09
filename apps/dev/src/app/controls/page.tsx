@@ -7,7 +7,7 @@
  *
  * The structural difference is reactivity: legacy tracking is ambient (the
  * SWC plugin instruments `.value` reads), while here every reactive read goes
- * through the `rc` from `useControls()` and each component closes its render
+ * through the `rc` from `useReactive()` and each component closes its render
  * pass with `rendered(…)`. Writes batch through the `update` that same call
  * returns (or `useControlContext().update` in the write-only sections).
  *
@@ -22,12 +22,12 @@ import {
   ControlContextProvider,
   createControlContext,
   selectableValues,
-  Fcheckbox,
-  Finput,
+  ControlCheckbox,
+  ControlInput,
   FormEditProvider,
-  Fselect,
+  ControlSelect,
   RenderArrayElements,
-  RenderControl,
+  Reactive,
   RenderElements,
   RenderOptional,
   whenAllDefined,
@@ -37,7 +37,7 @@ import {
   useControlContext,
   useControlEffect,
   useControlGroup,
-  useControls,
+  useReactive,
   useFormControlProps,
   useValueWithPrevious,
   useSelectableArray,
@@ -112,7 +112,7 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// ── 1. useControl + Finput + setup validators ────────────────────────
+// ── 1. useControl + ControlInput + setup validators ────────────────────────
 
 interface BasicForm {
   firstName: string;
@@ -121,7 +121,7 @@ interface BasicForm {
 }
 
 function BasicFormSection(): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const form = useControl<BasicForm>(
     { firstName: "", lastName: "", email: "" },
     {
@@ -138,14 +138,14 @@ function BasicFormSection(): Rendered {
 
   return rendered(
     <Section
-      title="1. useControl + Finput + setup validators"
+      title="1. useControl + ControlInput + setup validators"
       note="ControlOptions field validators, dirty/valid/touched flags, validate(), markClean(), reset to initial value. One update(wc => …) call is the groupedChanges equivalent — writes batch natively."
     >
       <Labeled label="First name">
-        <Finput className={inputClass} control={fields.firstName} />
+        <ControlInput className={inputClass} control={fields.firstName} />
       </Labeled>
       <Labeled label="Last name *">
-        <Finput className={inputClass} control={fields.lastName} />
+        <ControlInput className={inputClass} control={fields.lastName} />
         {rc.isTouched(fields.lastName) && rc.getError(fields.lastName) && (
           <span className="text-xs text-red-600">
             {rc.getError(fields.lastName)}
@@ -153,7 +153,7 @@ function BasicFormSection(): Rendered {
         )}
       </Labeled>
       <Labeled label="Email *">
-        <Finput className={inputClass} type="email" control={fields.email} />
+        <ControlInput className={inputClass} type="email" control={fields.email} />
         {rc.isTouched(fields.email) && rc.getError(fields.email) && (
           <span className="text-xs text-red-600">
             {rc.getError(fields.email)}
@@ -222,7 +222,7 @@ function BasicFormSection(): Rendered {
 // ── 2. useComputed ───────────────────────────────────────────────────
 
 function ComputedSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const first = useControl("Ada");
   const last = useControl("Lovelace");
   const fullName = useComputed((rc) =>
@@ -234,10 +234,10 @@ function ComputedSection(): Rendered {
       note="A Control derived from other controls; the compute reads through its own rc and re-runs when its dependencies change."
     >
       <Labeled label="First">
-        <Finput className={inputClass} control={first} />
+        <ControlInput className={inputClass} control={first} />
       </Labeled>
       <Labeled label="Last">
-        <Finput className={inputClass} control={last} />
+        <ControlInput className={inputClass} control={last} />
       </Labeled>
       <div className="text-sm text-zinc-700">
         Full name: <strong>{rc.getValue(fullName) || "(empty)"}</strong>
@@ -249,7 +249,7 @@ function ComputedSection(): Rendered {
 // ── 3. useControlEffect (+ composed debounce) ────────────────────────
 
 function EffectsSection(): Rendered {
-  const { rendered, update } = useControls();
+  const { rendered, update } = useReactive();
   const watched = useControl("");
   const debounced = useControl("");
   const log = useControl<string[]>([]);
@@ -283,10 +283,10 @@ function EffectsSection(): Rendered {
       note="Side effects on value change — immediate (computed watch) and debounced. No useValueChangeEffect here: the 500ms debounce is composed from useControlEffect."
     >
       <Labeled label="Watched">
-        <Finput className={inputClass} control={watched} />
+        <ControlInput className={inputClass} control={watched} />
       </Labeled>
       <Labeled label="Debounced">
-        <Finput className={inputClass} control={debounced} />
+        <ControlInput className={inputClass} control={debounced} />
       </Labeled>
       <div className="flex items-start gap-2">
         <ul className="max-h-32 min-h-8 grow overflow-y-auto rounded bg-zinc-100 p-2 text-xs text-zinc-700">
@@ -308,7 +308,7 @@ function EffectsSection(): Rendered {
 // ── 4. useValidator + useAsyncValidator ──────────────────────────────
 
 function ValidatorsSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const password = useControl("");
   const confirm = useControl("");
   const username = useControl("");
@@ -340,16 +340,16 @@ function ValidatorsSection(): Rendered {
       note='Dynamic cross-field validator (the validator reads password through its own rc) and a debounced async check ("admin" / "root" are taken).'
     >
       <Labeled label="Password">
-        <Finput className={inputClass} type="password" control={password} />
+        <ControlInput className={inputClass} type="password" control={password} />
       </Labeled>
       <Labeled label="Confirm">
-        <Finput className={inputClass} type="password" control={confirm} />
+        <ControlInput className={inputClass} type="password" control={confirm} />
         {rc.isTouched(confirm) && rc.getError(confirm) && (
           <span className="text-xs text-red-600">{rc.getError(confirm)}</span>
         )}
       </Labeled>
       <Labeled label="Username">
-        <Finput className={inputClass} control={username} />
+        <ControlInput className={inputClass} control={username} />
         {rc.getError(username) && (
           <span className="text-xs text-red-600">{rc.getError(username)}</span>
         )}
@@ -361,7 +361,7 @@ function ValidatorsSection(): Rendered {
 // ── 5. useControlGroup (+ computed pair, no controlValues) ───────────
 
 function GroupSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const city = useControl("Hobart");
   const postcode = useControl("", {
     validator: (v) => (v ? undefined : "Required"),
@@ -377,10 +377,10 @@ function GroupSection(): Rendered {
       note="Two standalone controls attached into one group control — value and validity aggregate. No controlValues helper: the computed reads both controls through its rc."
     >
       <Labeled label="City">
-        <Finput className={inputClass} control={city} />
+        <ControlInput className={inputClass} control={city} />
       </Labeled>
       <Labeled label="Postcode *">
-        <Finput className={inputClass} control={postcode} />
+        <ControlInput className={inputClass} control={postcode} />
       </Labeled>
       <div className="text-sm text-zinc-700">
         Group value:{" "}
@@ -402,7 +402,7 @@ function GroupSection(): Rendered {
 // ── 6. useValueWithPrevious ──────────────────────────────────────────────
 
 function PreviousValueSection(): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   const price = useControl(10);
   const withPrev = useValueWithPrevious(price);
   const { previous, current } = rc.getValue(withPrev);
@@ -442,7 +442,7 @@ function PreviousValueSection(): Rendered {
 const ALL_TAGS = ["red", "green", "blue", "yellow"];
 
 function SelectableSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const tags = useControl<string[]>(["green"]);
   const selectable = useSelectableArray(
     tags,
@@ -458,7 +458,7 @@ function SelectableSection(): Rendered {
         <RenderElements control={selectable}>
           {(rc, entry) => (
             <label className="flex items-center gap-1.5 text-sm text-zinc-700">
-              <Fcheckbox control={entry.fields.selected} />
+              <ControlCheckbox control={entry.fields.selected} />
               {rc.getValue(entry.fields.value)}
             </label>
           )}
@@ -474,10 +474,10 @@ function SelectableSection(): Rendered {
   );
 }
 
-// ── 8. Fselect + Fcheckbox (checkbox / notValue / radio) ─────────────
+// ── 8. ControlSelect + ControlCheckbox (checkbox / notValue / radio) ─────────────
 
 function BoundComponentsSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const flavour = useControl<string | undefined>("vanilla");
   const subscribe = useControl<boolean | undefined>(false);
   const optOut = useControl<boolean | undefined>(false);
@@ -485,35 +485,35 @@ function BoundComponentsSection(): Rendered {
 
   return rendered(
     <Section
-      title="8. Fselect + Fcheckbox"
+      title="8. ControlSelect + ControlCheckbox"
       note="Select binding, plain checkbox, notValue-inverted checkbox, and a boolean radio pair (radio + notValue radio)."
     >
       <Labeled label="Flavour">
-        <Fselect className={inputClass} control={flavour}>
+        <ControlSelect className={inputClass} control={flavour}>
           <option value="vanilla">Vanilla</option>
           <option value="chocolate">Chocolate</option>
           <option value="strawberry">Strawberry</option>
-        </Fselect>
+        </ControlSelect>
         <span className="text-xs text-zinc-500">→ {rc.getValue(flavour)}</span>
       </Labeled>
       <Labeled label="Subscribe">
-        <Fcheckbox control={subscribe} />
+        <ControlCheckbox control={subscribe} />
         <span className="text-xs text-zinc-500">
           → {String(rc.getValue(subscribe))}
         </span>
       </Labeled>
       <Labeled label="Opt out (notValue)">
-        <Fcheckbox control={optOut} notValue />
+        <ControlCheckbox control={optOut} notValue />
         <span className="text-xs text-zinc-500">
           checked writes false → {String(rc.getValue(optOut))}
         </span>
       </Labeled>
       <Labeled label="Approved?">
         <span className="flex items-center gap-1 text-sm">
-          <Fcheckbox type="radio" control={approved} /> yes
+          <ControlCheckbox type="radio" control={approved} /> yes
         </span>
         <span className="flex items-center gap-1 text-sm">
-          <Fcheckbox type="radio" control={approved} notValue /> no
+          <ControlCheckbox type="radio" control={approved} notValue /> no
         </span>
         <span className="text-xs text-zinc-500">
           → {String(rc.getValue(approved))}
@@ -526,7 +526,7 @@ function BoundComponentsSection(): Rendered {
 // ── 9. useFormControlProps ───────────────────────────────────────────
 
 function FormControlPropsSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const nickname = useControl("", {
     validator: (v) => (v ? undefined : "Required"),
   });
@@ -558,7 +558,7 @@ interface Person {
   role: string;
 }
 
-// Deliberately NOT a useControls component: its body makes no reactive reads.
+// Deliberately NOT a useReactive component: its body makes no reactive reads.
 // The render helpers open their own subscription scopes, and the button
 // handlers read snapshots via valueNow — so the section itself never
 // re-renders.
@@ -575,7 +575,7 @@ function RenderHelpersSection() {
   return (
     <Section
       title="10. Render helpers + array ops"
-      note="RenderElements (wc.addElement / removeElement / updateElements), RenderOptional, RenderControl + whenAllDefined, RenderArrayElements. This section component makes no reactive reads itself — each helper is its own subscription scope."
+      note="RenderElements (wc.addElement / removeElement / updateElements), RenderOptional, Reactive + whenAllDefined, RenderArrayElements. This section component makes no reactive reads itself — each helper is its own subscription scope."
     >
       <h3 className="text-sm font-semibold text-zinc-800">
         RenderElements — people
@@ -594,8 +594,8 @@ function RenderHelpersSection() {
             <span className="w-10 text-xs text-zinc-400">
               {i + 1}/{total}
             </span>
-            <Finput className={inputClass} control={person.fields.name} />
-            <Finput className={inputClass} control={person.fields.role} />
+            <ControlInput className={inputClass} control={person.fields.name} />
+            <ControlInput className={inputClass} control={person.fields.role} />
             <button
               className={buttonClass}
               onClick={() => update((wc) => wc.removeElement(people, person))}
@@ -634,7 +634,7 @@ function RenderHelpersSection() {
           control={optional}
           notDefined={<i className="text-sm text-zinc-500">Not set</i>}
         >
-          {(rc, c) => <Finput className={inputClass} control={c} />}
+          {(rc, c) => <ControlInput className={inputClass} control={c} />}
         </RenderOptional>
         <button
           className={buttonClass}
@@ -651,11 +651,11 @@ function RenderHelpersSection() {
       </div>
 
       <h3 className="mt-2 text-sm font-semibold text-zinc-800">
-        RenderControl + whenAllDefined — waits for both
+        Reactive + whenAllDefined — waits for both
       </h3>
       <div className="flex items-center gap-2">
         <span className="text-sm text-zinc-700">
-          <RenderControl>
+          <Reactive>
             {whenAllDefined(
               { user, account },
               ({ user, account }) => (
@@ -665,7 +665,7 @@ function RenderHelpersSection() {
               ),
               <i className="text-zinc-500">waiting for both…</i>,
             )}
-          </RenderControl>
+          </Reactive>
         </span>
         <button
           className={buttonClass}
@@ -708,7 +708,7 @@ function RenderHelpersSection() {
 // ── 11. FormEditProvider ─────────────────────────────────────────────
 
 function FormEditSection(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const lockReadonly = useControl<boolean | undefined>(false);
   const lockDisabled = useControl<boolean | undefined>(false);
   const name = useControl("Grace");
@@ -722,10 +722,10 @@ function FormEditSection(): Rendered {
     >
       <div className="flex gap-4">
         <label className="flex items-center gap-1.5 text-sm text-zinc-700">
-          <Fcheckbox control={lockReadonly} /> readonly
+          <ControlCheckbox control={lockReadonly} /> readonly
         </label>
         <label className="flex items-center gap-1.5 text-sm text-zinc-700">
-          <Fcheckbox control={lockDisabled} /> disabled
+          <ControlCheckbox control={lockDisabled} /> disabled
         </label>
       </div>
       <FormEditProvider
@@ -733,12 +733,12 @@ function FormEditSection(): Rendered {
         disabled={rc.getValue(lockDisabled)}
       >
         <div className="flex items-center gap-3 rounded border border-dashed border-zinc-300 p-3">
-          <Finput className={inputClass} control={name} />
-          <Fselect className={inputClass} control={level}>
+          <ControlInput className={inputClass} control={name} />
+          <ControlSelect className={inputClass} control={level}>
             <option value="one">One</option>
             <option value="two">Two</option>
-          </Fselect>
-          <Fcheckbox control={active} />
+          </ControlSelect>
+          <ControlCheckbox control={active} />
         </div>
       </FormEditProvider>
     </Section>,

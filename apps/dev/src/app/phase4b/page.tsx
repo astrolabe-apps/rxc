@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import type { Control } from "@rxc/controls";
 import {
   accordionAdornment,
@@ -310,7 +310,7 @@ const customRegistry = combineRegistries(
 );
 
 function Phase4bInner(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const controlContext = useControlContext();
   const ref = useRef<{
     rootControl: Control<PageData>;
@@ -432,7 +432,7 @@ function Phase4bInner(): Rendered {
 }
 
 function DataJson({ control }: { control: Control<unknown> }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const value = rc.getValue(control);
   return rendered(
     <pre className="overflow-auto rounded bg-zinc-50 dark:bg-zinc-950 dark:text-zinc-100 p-3 text-xs font-mono whitespace-pre-wrap">

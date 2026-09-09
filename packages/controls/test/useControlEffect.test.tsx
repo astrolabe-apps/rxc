@@ -6,7 +6,7 @@ import {
   ControlContextProvider,
   createControlContext,
   useControlEffect,
-  useControls,
+  useReactive,
   type Control,
   type ControlContext,
   type Rendered,
@@ -45,7 +45,7 @@ describe("useControlEffect", () => {
     const seen: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(c),
         (v) => seen.push(v),
@@ -66,7 +66,7 @@ describe("useControlEffect", () => {
     const seen: boolean[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(c).length > 0,
         (v) => seen.push(v),
@@ -88,7 +88,7 @@ describe("useControlEffect", () => {
     let renders = 0;
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       renders++;
       useControlEffect(
         (rc) => rc.getValue(c),
@@ -107,7 +107,7 @@ describe("useControlEffect", () => {
     const seen: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(c),
         (v) => seen.push(v),
@@ -129,7 +129,7 @@ describe("useControlEffect", () => {
     const changes: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(c),
         (v) => changes.push(v),
@@ -152,7 +152,7 @@ describe("useControlEffect", () => {
     const seen: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(c),
         (v) => seen.push(v),
@@ -174,7 +174,7 @@ describe("useControlEffect", () => {
     const seen: string[] = [];
 
     function Comp(): Rendered {
-      const { rc, rendered } = useControls();
+      const { rc, rendered } = useReactive();
       const g = rc.getValue(gen); // re-renders the component when bumped
       useControlEffect(
         (rc) => rc.getValue(c),
@@ -194,7 +194,7 @@ describe("useControlEffect", () => {
     const seen: string[] = [];
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(c),
         (v) => seen.push(v),
@@ -216,7 +216,7 @@ describe("useControlEffect", () => {
     const mirror = ctx.newControl("");
 
     function Comp(): Rendered {
-      const { rendered } = useControls();
+      const { rendered } = useReactive();
       useControlEffect(
         (rc) => rc.getValue(source),
         (v) => ctx.update((wc) => wc.setValue(mirror, v.toUpperCase())),

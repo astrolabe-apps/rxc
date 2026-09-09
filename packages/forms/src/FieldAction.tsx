@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import { isActionControl, type FormStateNode } from "@rxc/forms-core";
 import {
   Action,
@@ -32,7 +32,7 @@ import { Field } from "./Field";
  * same `ActionRendererProps`.
  */
 export function FieldAction({ node }: { node: FormStateNode }): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const state = node.getState(rc);
   const def = state.definition;
   const action = isActionControl(def) ? def : undefined;

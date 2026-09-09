@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { useControls, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
 import {
   actionControl,
   ActionStyle,
@@ -335,7 +335,7 @@ const formOptions: HtmlFormOptions = {
 };
 
 function ButtonsInner(): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const controlContext = useControlContext();
   const ref = useRef<{
     formRoot: ReturnType<typeof createStaticFormTree>["rootNode"];

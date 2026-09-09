@@ -1,6 +1,6 @@
 "use client";
 
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   isDataControl,
   ValidatorType,
@@ -69,7 +69,7 @@ function getLengthRange(
  * default `ArrayRenderer` to make every collection sortable.
  */
 export function SortableArrayRenderer({ node }: DataRendererProps): Rendered {
-  const { rc, rendered, update } = useControls();
+  const { rc, rendered, update } = useReactive();
   // Above the bail-out below — `useSensors`/`useSensor` are hooks.
   const sensors = useSensors(useSensor(PointerSensor));
 

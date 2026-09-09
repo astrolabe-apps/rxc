@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 import {
   type ArrayElementRenderOptions,
   type FormStateNode,
@@ -72,7 +72,7 @@ function applyValidation(
  * `edit` sessions.
  */
 export function ArrayElementModalHostRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const { definition } = node.getState(rc);
   const arrayTheme = useHtmlTheme().data.array;
   const designMode = useDesignMode();
