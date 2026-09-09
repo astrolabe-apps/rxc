@@ -123,7 +123,7 @@ Reference for the canonical types: `astrolabe-common/forms/core/src/controlDefin
 
 Everything documented in `docs/CONTROL-SEMANTICS.md` is locked:
 - Bidirectional value propagation with cycle prevention
-- WriteContext transactional batching with NotifyFn pattern
+- WriteContext notification batching with NotifyFn pattern (batched notification, not a transaction — writes apply immediately and nothing rolls back)
 - Bitmask-based change detection (ControlChange enum)
 - Lazy child creation (eager for validators)
 - Value equality configured per `ControlContext` and applied to every control it creates

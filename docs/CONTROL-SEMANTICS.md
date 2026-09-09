@@ -188,7 +188,7 @@ Same rules apply: fields get `initialValue[key]` (undefined if not indexable), e
 When a child's error presence changes (had errors -> no errors, or vice versa):
 1. For each parent:
    - If child has errors AND parent already has ChildInvalid: skip (optimization)
-   - Otherwise: set/clear parent's ChildInvalid flag in a transaction
+   - Otherwise: set/clear parent's ChildInvalid flag in a write batch
    - Continue up the tree recursively
 
 ### isValid()

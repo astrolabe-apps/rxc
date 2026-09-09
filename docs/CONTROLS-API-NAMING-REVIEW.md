@@ -300,7 +300,8 @@ still-open `rename` batch.
 ### Three unrelated things are all called `*Context`
 
 `ControlContext` is a factory and runtime, `ReadContext` is a reactive read scope, `WriteContext`
-is a transaction. The shared suffix advertises a family that doesn't exist.
+batches notification for a set of immediate writes. The shared suffix advertises a family that
+doesn't exist.
 
 **Recommendation: leave all three alone** — a no-op item, recorded because the complaint is real
 even though every available fix is worse than the status quo.
@@ -312,7 +313,7 @@ each `useControl` / `newControl` call mints an independent root from it. One con
 trees, so anything along the lines of `ControlTree` would misstate the cardinality. (The repo's own
 wording invites that mistake — see the doc-comments item below.)
 
-What it is, is a runtime: it allocates controls and ids, runs transactions, holds the equality
+What it is, is a runtime: it allocates controls and ids, runs write batches, holds the equality
 policy, and garbage-collects subscription trackers. `ControlRuntime` (with `ControlRuntimeProvider`
 / `useControlRuntime`) would be accurate if breaking the family resemblance is worth the churn —
 but `ControlContext` is the one member of the trio whose name is already honest: it is ambient
@@ -322,7 +323,9 @@ The confusion is caused by the other two borrowing the suffix, and both of those
 `ReadContext` stays because the `rc` convention is load-bearing across every downstream package and
 `docs/RENDER-BOUNDARY.md`.
 
-`WriteContext` stays too, and `Transaction` is the trap worth naming explicitly. It reads beautifully
+`WriteContext` stays too, and `Transaction` is the trap worth naming explicitly — including in
+prose. Describing the type as "a transaction" in passing is the same error as naming it one, and
+this section previously opened by doing exactly that. It reads beautifully
 at the call site — `update(tx => tx.setValue(…))` — and it would be a lie: there is no atomicity, no
 rollback and no nesting (see the section above). A reader who trusts the name would reasonably expect
 an inner `update` to join the outer batch, or a throw to leave the tree untouched; neither holds. If
@@ -443,7 +446,7 @@ It's a factory returning a `SelectionGroupSync`. `selectableValues(options, key)
 |---|---|---|
 | `ChangeListenerFunc` | `ChangeListener` | The `Func` is noise. |
 | `markAsClean` | `markClean` | Shorter, same meaning. |
-| `afterChanges` | `afterFlush` | Runs after the transaction flushes, not after each change. |
+| `afterChanges` | `afterFlush` | Runs after the batch flushes, not after each change. |
 | `getElementIndex` | `getElementPosition` | Returns `{ index, initialIndex }`, not an index. |
 | `controlGroup` | `createControlGroup` | Matches `createControlContext`. |
 | `ValuesOfControls` | `ControlValues` | Reads as a type, not a sentence. |
@@ -514,7 +517,7 @@ others merely also return a value. The name is accurate as it stands.
 | `validate` | Broadcasts a validate request through the subtree and reports validity. | keep | — |
 | `addElement`, `removeElement`, `updateElements` | Array mutation by value, by index-or-control, or by rebuilding the element list. | keep | — |
 | `setElementIncluded` | Set-valued membership toggle: when the members match the baseline in any order, the baseline itself is written back, so toggling off and on again leaves the control clean. | keep | — |
-| `afterChanges` | Queues a callback to run after the transaction flushes. | accept | `afterFlush` |
+| `afterChanges` | Queues a callback to run after the batch flushes. | accept | `afterFlush` |
 
 ### `ControlContext` members
 

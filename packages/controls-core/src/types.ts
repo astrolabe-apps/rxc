@@ -281,7 +281,7 @@ export interface WriteContext {
 /**
  * ControlContext — factory and runtime for controls.
  *
- * Allocates controls and their unique ids, runs write transactions, holds
+ * Allocates controls and their unique ids, runs write batches, holds
  * the equality function every control it creates compares with, and
  * garbage-collects subscription trackers.
  *
