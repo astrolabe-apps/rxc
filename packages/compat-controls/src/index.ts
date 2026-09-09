@@ -111,7 +111,7 @@ export {
   FormEditProvider,
   useFormEdit,
   type FormEditState,
-} from "@rxc/controls";
+} from "./formEdit.js";
 
 // ── React: components ────────────────────────────────────────────────
 export {

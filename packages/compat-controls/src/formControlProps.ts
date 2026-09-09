@@ -52,6 +52,6 @@ export function useFormControlProps<V, E extends HTMLElement>(
   return {
     ...props,
     disabled: props.disabled || !!edit.disabled,
-    readOnly: !!edit.readonly,
+    readOnly: !!edit.readOnly,
   };
 }

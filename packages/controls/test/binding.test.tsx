@@ -157,7 +157,7 @@ describe("FormEditState", () => {
   it("readonly renders a read-only input", () => {
     const c = ctx.newControl("a");
     mount(
-      <FormEditProvider readonly>
+      <FormEditProvider readOnly>
         <ControlInput control={c} />
       </FormEditProvider>,
     );
@@ -169,7 +169,7 @@ describe("FormEditState", () => {
     const s = ctx.newControl<string | undefined>("a");
     const b = ctx.newControl<boolean | undefined>(false);
     mount(
-      <FormEditProvider readonly>
+      <FormEditProvider readOnly>
         <ControlSelect control={s}>
           <option value="a">A</option>
         </ControlSelect>

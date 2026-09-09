@@ -14,7 +14,7 @@ export interface ControlOptions<V> {
   fields?: {
     [K in keyof NonNullable<V>]?: ControlOptions<NonNullable<V>[K]>;
   };
-  elems?: V extends Array<infer X> ? ControlOptions<X> : unknown;
+  elements?: V extends Array<infer X> ? ControlOptions<X> : unknown;
   afterCreate?: (control: Control<V>) => void;
   meta?: Record<string, unknown>;
   dontClearError?: boolean;

@@ -64,7 +64,7 @@ export function useFormControlProps<V, E extends HTMLElement>(
       },
       value: rc.getValue(control),
       disabled: rc.isDisabled(control) || !!edit.disabled,
-      readOnly: !!edit.readonly,
+      readOnly: !!edit.readOnly,
       onBlur: () => ctx.update((wc) => wc.setTouched(control, true)),
       onChange: (e) => ctx.update((wc) => wc.setValue(control, e.target.value)),
     },

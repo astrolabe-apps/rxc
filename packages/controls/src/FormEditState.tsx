@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
  *
  * ```tsx
  * // Whole subtree shown read-only (e.g. a detail view)
- * <FormEditProvider readonly><MyForm /></FormEditProvider>
+ * <FormEditProvider readOnly><MyForm /></FormEditProvider>
  *
  * // Disable the form while a save is in flight
  * <FormEditProvider disabled={saving}><MyForm /></FormEditProvider>
@@ -23,7 +23,7 @@ import type { ReactNode } from "react";
  */
 export interface FormEditState {
   /** Render inputs read-only (value shown, not editable). */
-  readonly?: boolean;
+  readOnly?: boolean;
   /** Force inputs disabled regardless of control state. */
   disabled?: boolean;
 }
@@ -32,12 +32,12 @@ const FormEditContext = createContext<FormEditState>({});
 
 /** Provide a {@link FormEditState} to descendant inputs. */
 export function FormEditProvider({
-  readonly,
+  readOnly,
   disabled,
   children,
 }: FormEditState & { children: ReactNode }) {
   return (
-    <FormEditContext.Provider value={{ readonly, disabled }}>
+    <FormEditContext.Provider value={{ readOnly, disabled }}>
       {children}
     </FormEditContext.Provider>
   );

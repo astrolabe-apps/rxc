@@ -53,9 +53,10 @@ export function convertSetup<V>(
     out.fields = converted as CoreControlSetup<V>["fields"];
   }
   if (elems !== undefined) {
-    out.elems = convertSetup(
+    // Legacy spells this `elems`; the engine now spells it `elements`.
+    out.elements = convertSetup(
       resolveDelayed(elems as DelayedSetup<unknown>),
-    ) as CoreControlSetup<V>["elems"];
+    ) as CoreControlSetup<V>["elements"];
   }
   if (afterCreate) {
     out.afterCreate = (c) => afterCreate(asLegacy(c) as Control<V>);

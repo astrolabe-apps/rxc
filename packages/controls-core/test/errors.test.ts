@@ -79,7 +79,7 @@ describe("errors", () => {
         (strings) => {
           const ctx = makeCtx();
           const parent = ctx.newControl([strings, strings], {
-            elems: { elems: { validator: notEmpty("Not blank") } },
+            elements: { elements: { validator: notEmpty("Not blank") } },
           });
           const changes: ControlChange[] = [];
           parent.subscribe((a, c) => changes.push(c), ControlChange.Valid);

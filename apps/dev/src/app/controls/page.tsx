@@ -729,7 +729,7 @@ function FormEditSection(): Rendered {
         </label>
       </div>
       <FormEditProvider
-        readonly={rc.getValue(lockReadonly)}
+        readOnly={rc.getValue(lockReadonly)}
         disabled={rc.getValue(lockDisabled)}
       >
         <div className="flex items-center gap-3 rounded border border-dashed border-zinc-300 p-3">

@@ -104,7 +104,7 @@ class ControlContextImpl implements ControlContext {
       equals: this.equals,
       newControl: (value, setup?) => this.newControl(value, setup),
       createChild(value, initialValue, flags, fieldKey?) {
-        const fieldSetup = fieldKey ? (setup?.fields as any)?.[fieldKey] : setup?.elems;
+        const fieldSetup = fieldKey ? (setup?.fields as any)?.[fieldKey] : setup?.elements;
         const childCtx = self.buildChildContext(fieldSetup);
         const child = new ControlImpl(value, initialValue, flags, childCtx);
         if (fieldSetup) {
@@ -150,7 +150,7 @@ class ControlContextImpl implements ControlContext {
     }
 
     // 3. Eager element init
-    if (setup.elems) {
+    if (setup.elements) {
       control.getOrCreateElements();
     }
 
