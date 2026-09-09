@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createControlContext, noopReadContext } from "@rxc/controls-core";
+import { TrackingReadContext } from "@rxc/controls-core/internal";
 import {
   createOverrideProxy,
   NoOverride,
@@ -87,5 +88,50 @@ describe("createOverrideProxy", () => {
     expect(ro.type).toBe("Stars");
     expect(ro.maxStars).toBe(7);
     expect(ro.label).toBe("rate");
+  });
+});
+
+/**
+ * The escaped-read guard, pinned in both directions.
+ *
+ * Nothing asserted on this before: `test/setup.ts` *suppresses* the warning,
+ * so a mistake that stops it firing makes the suite quieter, not redder. That
+ * matters because the flag it reads is about to become `isTracking` with its
+ * polarity flipped — keeping the wrong literal kills the guard for every
+ * consumer, and dropping the wrong `!` floods every tracked read instead.
+ * Both mistakes are otherwise invisible.
+ *
+ * `vi.spyOn` wraps the console.warn that setup.ts already replaced, so the
+ * spy sees the call before the filter drops it.
+ */
+describe("createOverrideProxy escaped-read guard", () => {
+  const withOverride = () => {
+    const ctx = makeCtx();
+    const overrides = ctx.newControl<Record<string, unknown>>({});
+    const label = overrides.fields.label;
+    ctx.update((wc) => wc.setValue(label, "scripted"));
+    return { ctx, overrides };
+  };
+
+  it("warns when a scriptable property is read past the tracking window", () => {
+    const { overrides } = withOverride();
+    const proxy = createOverrideProxy({ label: "base" }, overrides, noopReadContext);
+    const warn = vi.spyOn(console, "warn");
+    expect(proxy.label).toBe("scripted");
+    expect(warn).toHaveBeenCalledOnce();
+    expect(String(warn.mock.calls[0][0])).toContain(
+      "Scripted-override proxy read for",
+    );
+    warn.mockRestore();
+  });
+
+  it("stays silent while the reading scope is still tracking", () => {
+    const { overrides } = withOverride();
+    const rc = new TrackingReadContext();
+    const proxy = createOverrideProxy({ label: "base" }, overrides, rc);
+    const warn = vi.spyOn(console, "warn");
+    expect(proxy.label).toBe("scripted");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
