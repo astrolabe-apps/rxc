@@ -35,6 +35,7 @@ export {
 export {
   useFormControlProps,
   type FormControlProps,
+  type FormControlBinding,
 } from "./useFormControlProps.js";
 export { ControlInput, type ControlInputProps } from "./ControlInput.js";
 export { ControlSelect, type ControlSelectProps } from "./ControlSelect.js";

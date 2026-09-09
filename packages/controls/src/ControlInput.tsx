@@ -34,10 +34,11 @@ export function ControlInput<V extends string | number>({
         s ?? "",
       ),
   );
-  const { errorText, value, ref, ...inputProps } = useFormControlProps<
-    V,
-    HTMLInputElement
-  >(rc, control);
+  // `ref` is pulled out and discarded — this component sets its own below,
+  // to attach custom validity as well as the element.
+  const {
+    props: { value, ref, ...inputProps },
+  } = useFormControlProps<V, HTMLInputElement>(rc, control);
   return rendered(
     <input
       {...inputProps}

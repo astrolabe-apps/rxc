@@ -34,11 +34,14 @@ export function ControlCheckbox({
         s ?? "",
       ),
   );
-  const { value, onChange, errorText, readOnly, ref, ...theseProps } =
-    useFormControlProps<boolean | undefined | null, HTMLInputElement>(
-      rc,
-      control,
-    );
+  // `value` becomes `checked`, `onChange` and `ref` are replaced below, and
+  // `readOnly` folds into `disabled` (a checkbox has no readonly).
+  const {
+    props: { value, onChange, readOnly, ref, ...theseProps },
+  } = useFormControlProps<boolean | undefined | null, HTMLInputElement>(
+    rc,
+    control,
+  );
   return rendered(
     <input
       {...theseProps}

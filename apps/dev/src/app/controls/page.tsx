@@ -530,7 +530,7 @@ function FormControlPropsSection(): Rendered {
   const nickname = useControl("", {
     validator: (v) => (v ? undefined : "Required"),
   });
-  const { errorText, ...props } = useFormControlProps<string, HTMLInputElement>(
+  const { props, errorText } = useFormControlProps<string, HTMLInputElement>(
     rc,
     nickname,
   );

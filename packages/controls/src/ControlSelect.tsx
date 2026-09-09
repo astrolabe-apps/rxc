@@ -30,10 +30,14 @@ export function ControlSelect({
         s ?? "",
       ),
   );
-  const { errorText, readOnly, ref, ...theseProps } = useFormControlProps<
-    string | number | undefined,
-    HTMLSelectElement
-  >(rc, control);
+  // `readOnly` folds into `disabled` (a <select> has no readonly), and `ref`
+  // is replaced below.
+  const {
+    props: { readOnly, ref, ...theseProps },
+  } = useFormControlProps<string | number | undefined, HTMLSelectElement>(
+    rc,
+    control,
+  );
   return rendered(
     <select
       {...theseProps}

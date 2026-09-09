@@ -7,9 +7,10 @@ import { useControlContext } from "./useReactive.js";
 import type { ReadContext } from "@rxc/controls-core";
 
 /**
- * The props binding a control to a native form element. Spread onto an
- * `<input>`/`<select>`/`<textarea>` (or pass to a component that accepts
- * them).
+ * The props binding a control to a native form element. Every member is a
+ * real DOM prop, so the whole object spreads onto an
+ * `<input>`/`<select>`/`<textarea>` (or a component that accepts them) with
+ * nothing to pick off first.
  */
 export interface FormControlProps<V, E extends HTMLElement> {
   value: V;
@@ -17,10 +18,22 @@ export interface FormControlProps<V, E extends HTMLElement> {
   onBlur: () => void;
   disabled: boolean;
   readOnly?: boolean;
-  /** The error message, once the control has been touched. Not a DOM prop —
-   * pull it off before spreading. */
-  errorText?: string | null;
   ref: (elem: HTMLElement | null) => void;
+}
+
+/**
+ * What {@link useFormControlProps} returns: the DOM props, and the error
+ * message alongside them rather than mixed in.
+ *
+ * `errorText` was previously a member of `props`, which meant every caller
+ * had to destructure it out before spreading — and a caller that forgot put
+ * an unknown attribute on a DOM element. Keeping it out here makes the
+ * spread safe by construction.
+ */
+export interface FormControlBinding<V, E extends HTMLElement> {
+  props: FormControlProps<V, E>;
+  /** The error message, once the control has been touched. */
+  errorText?: string | null;
 }
 
 /**
@@ -39,20 +52,22 @@ export interface FormControlProps<V, E extends HTMLElement> {
 export function useFormControlProps<V, E extends HTMLElement>(
   rc: ReadContext,
   control: Control<V>,
-): FormControlProps<V, E> {
+): FormControlBinding<V, E> {
   const ctx = useControlContext();
   const edit = useFormEdit();
   const error = rc.getError(control);
   const valid = rc.isValid(control);
   return {
-    ref: (elem) => {
-      control.meta.element = elem;
+    props: {
+      ref: (elem) => {
+        control.meta.element = elem;
+      },
+      value: rc.getValue(control),
+      disabled: rc.isDisabled(control) || !!edit.disabled,
+      readOnly: !!edit.readonly,
+      onBlur: () => ctx.update((wc) => wc.setTouched(control, true)),
+      onChange: (e) => ctx.update((wc) => wc.setValue(control, e.target.value)),
     },
-    value: rc.getValue(control),
-    disabled: rc.isDisabled(control) || !!edit.disabled,
-    readOnly: !!edit.readonly,
     errorText: rc.isTouched(control) && !valid ? error : undefined,
-    onBlur: () => ctx.update((wc) => wc.setTouched(control, true)),
-    onChange: (e) => ctx.update((wc) => wc.setValue(control, e.target.value)),
   };
 }
