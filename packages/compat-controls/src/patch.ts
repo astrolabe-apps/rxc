@@ -195,10 +195,12 @@ const PATCH: Record<string, Accessor> = {
     },
   },
   // Legacy `setInitialValue(v)` is `setValueAndInitial(v, v)` — a reset, not
-  // a baseline move. `wc.setInitialValue` carries the same meaning.
+  // a baseline move, which is what `wc.reset` is called. Do not "fix" this to
+  // `wc.setInitialValue`: that now means the baseline move, and the swap
+  // still compiles.
   setInitialValue: {
     value(this: ControlImpl<any>, v: any) {
-      runInWc((wc) => wc.setInitialValue(this as CoreControl<any>, v));
+      runInWc((wc) => wc.reset(this as CoreControl<any>, v));
     },
   },
   setTouched: {
