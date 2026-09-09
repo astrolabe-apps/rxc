@@ -161,8 +161,9 @@ Degrades safely. After an unwind, `tracked` holds partial reads and `reconciler.
 - **`try`/`catch` fallbacks inside a renderer** are safe by construction: the branded return type
   forces the catch path through `rendered(…)` too.
 
-Accepted wart: `rc.rendering` stays `true` until the next `reset()`, so `isFinalized` reports wrong
-in that window and `overrideProxy`'s escaped-read warning won't fire. Spans throw → next render only.
+Accepted wart: the private `rc.tracking` stays `false` until the next `beginTracking()`, so
+`isTracking` reports wrong in that window and `overrideProxy`'s escaped-read warning won't fire.
+Spans throw → next render only.
 
 ## Nested scopes: the render helpers
 
@@ -218,11 +219,11 @@ current value but subscribes to nothing, so the value silently stops updating.
 **The naming convention prevents it outright: call the parameter `rc`.** It then shadows the
 enclosing `rc`, making the mistake a scoping impossibility rather than a discipline problem.
 
-For code that opts out by renaming, `TrackingReadContext` calls a dev-only `FinalizedReadHook` on
+For code that opts out by renaming, `TrackingReadContext` calls a dev-only `EscapedReadHook` on
 reads that land past `finalize()`. Core does not decide whether any given one is a mistake — most are
-legitimate (event handlers, refs and effects all read finalized contexts on purpose). The adapter
-installs a hook that knows the damning circumstance: **a finalized read while another rc's render
-window is open**, which can only be a captured context, because legitimate finalized reads happen
+legitimate (event handlers, refs and effects all read non-tracking contexts on purpose). The adapter
+installs a hook that knows the damning circumstance: **a non-tracking read while another rc's render
+window is open**, which can only be a captured context, because legitimate non-tracking reads happen
 with no render in progress. `@rxc/controls` tracks the open window in a module-scoped `openRc`, set
 when `useControls` opens the pass and cleared by `rendered(…)` — plus in the post-commit effect, so a
 component that threw before closing its window can't leave it stale.

@@ -16,8 +16,8 @@ export { WriteContextImpl } from "./writeContextImpl.js";
 export {
   TrackingReadContext,
   SubscriptionReconciler,
-  setFinalizedReadHook,
-  type FinalizedReadHook,
+  setEscapedReadHook,
+  type EscapedReadHook,
 } from "./readContextImpl.js";
 
 export { Subscriptions } from "./subscriptions.js";

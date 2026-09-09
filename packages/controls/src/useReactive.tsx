@@ -7,7 +7,7 @@ import type { ComputedHandle } from "@rxc/controls-core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
-  setFinalizedReadHook,
+  setEscapedReadHook,
 } from "@rxc/controls-core/internal";
 import type { ReactiveScope, Rendered } from "./types.js";
 
@@ -151,7 +151,7 @@ function warnWrongRc(): void {
 }
 
 if (IS_DEV) {
-  setFinalizedReadHook((rc) => {
+  setEscapedReadHook((rc) => {
     if (openRc !== null && openRc !== rc) warnWrongRc();
   });
 }

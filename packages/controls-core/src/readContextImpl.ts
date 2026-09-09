@@ -98,37 +98,38 @@ export const untrackedRead: ReadContext = {
     return createValueRxProxy(control, this);
   },
   trackValidate(): void {},
-  // The noop rc is permanently non-tracking; treat it as "always
-  // finalized" so subscribers know reads here are snapshots only.
-  isFinalized: true,
+  // The noop rc never tracks, so every read through it is a snapshot.
+  // Note the value: this is `false`, not `true` — the flag says "is
+  // tracking", not "is finished".
+  isTracking: false,
 };
 
 // ── TrackingReadContext ──────────────────────────────────────────────
 
 /**
- * Notified when a {@link TrackingReadContext} is read after its render window
- * has closed. Such a read returns a current value but registers no dependency,
+ * Notified when a {@link TrackingReadContext} is read after it has stopped
+ * tracking. Such a read returns a current value but registers no dependency,
  * so nothing will re-render when that control later changes.
  *
- * Most finalized reads are perfectly legitimate — event handlers, refs and
+ * Most such reads are perfectly legitimate — event handlers, refs and
  * effects all run after `finalize()` and read current values on purpose — so
  * core deliberately does not decide whether any given one is a mistake. It
  * only reports them. The React adapter installs a hook that knows the one
- * damning circumstance: a finalized rc read *while another rc's render window
- * is open*, which means a callback captured an enclosing component's `rc`
+ * damning circumstance: a non-tracking rc read *while another rc's render
+ * window is open*, which means a callback captured an enclosing component's `rc`
  * instead of using the one it was handed.
  *
  * Dev-only by convention: the adapter installs this behind its `IS_DEV` check,
  * so the branch below stays `null` in production builds. It sits on the
  * already-taken early-return path, so tracked reads pay nothing for it.
  */
-export type FinalizedReadHook = (rc: TrackingReadContext) => void;
+export type EscapedReadHook = (rc: TrackingReadContext) => void;
 
-let finalizedReadHook: FinalizedReadHook | null = null;
+let escapedReadHook: EscapedReadHook | null = null;
 
-/** Install (or clear, with `null`) the {@link FinalizedReadHook}. */
-export function setFinalizedReadHook(hook: FinalizedReadHook | null): void {
-  finalizedReadHook = hook;
+/** Install (or clear, with `null`) the {@link EscapedReadHook}. */
+export function setEscapedReadHook(hook: EscapedReadHook | null): void {
+  escapedReadHook = hook;
 }
 
 export class TrackingReadContext implements ReadContext {
@@ -153,15 +154,15 @@ export class TrackingReadContext implements ReadContext {
    */
   private tracking = true;
 
-  /** Whether this scope has stopped accepting tracked reads. */
-  get isFinalized(): boolean {
-    return !this.tracking;
+  /** Whether this scope is still accepting tracked reads. */
+  get isTracking(): boolean {
+    return this.tracking;
   }
 
   private track(control: Control<any>, change: ControlChange): ControlImpl {
     const c = toImpl(control);
     if (!this.tracking) {
-      finalizedReadHook?.(this);
+      escapedReadHook?.(this);
       return c;
     }
     const existing = this.tracked.get(c);

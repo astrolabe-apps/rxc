@@ -4,9 +4,11 @@
  * Two messages are expected here and carry no signal:
  *
  *  - The scripted-override proxy's escaped-read guard. Tests build proxies
- *    against `untrackedRead`, whose `isFinalized` is permanently true, so
- *    the guard fires on every scriptable property read — it is working as
- *    designed, and no test asserts on it.
+ *    against `untrackedRead`, which never tracks (`isTracking` is
+ *    permanently false), so the guard fires on every scriptable property
+ *    read — it is working as designed. `overrideProxy.test.ts` asserts on it
+ *    directly by spying on console.warn, which sees the call before this
+ *    filter drops it.
  *  - The jsonata parse error, emitted by the test that feeds a deliberately
  *    malformed expression to check it publishes `undefined` rather than
  *    throwing.

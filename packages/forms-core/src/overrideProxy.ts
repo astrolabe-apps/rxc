@@ -107,7 +107,7 @@ export function createOverrideProxy<A extends object, B extends object>(
           return childBase;
         }
         if (Object.hasOwn(overrideFields, p)) {
-          if (rc.isFinalized) warnEscapedRead(p);
+          if (!rc.isTracking) warnEscapedRead(p);
           const nv = rc.getValue(overrideFields[p]);
           if (nv !== NoOverride) return nv;
         }

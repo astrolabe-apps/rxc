@@ -170,22 +170,22 @@ export interface ReadContext {
   getTrackedValue<V>(control: Control<V>): V;
 
   /**
-   * `true` once this scope has stopped accepting tracked reads. Reads
-   * still return current values but register no dependency, so they
-   * cannot trigger a re-run.
+   * `true` while this scope is still accepting tracked reads, so a read
+   * made now registers a dependency and can trigger a re-run. When
+   * `false`, reads still return current values but register nothing.
    *
-   * Only hosts that expose their `rc` to code running after
-   * `reconcile()` close a scope — the React adapter does so in
-   * `rendered(…)`, so a component's `rc` is finalized for the whole
-   * window between renders. Scopes owned by `computeInto`, `effect`,
-   * validators and async evaluators are never closed, so this stays
-   * `false` for their whole life.
+   * Most scopes are tracking for their whole life: `computeInto`,
+   * `effect`, validators and async evaluators own every read they make
+   * and never stop. Only a host that exposes its `rc` to code running
+   * after `reconcile()` closes one — the React adapter does so in
+   * `rendered(…)`, so a component's `rc` stops tracking for the whole
+   * window between renders.
    *
    * Code holding an `rc` whose origin it does not control should check
    * this before relying on a read to be reactive, and either route
    * through its own scope or accept the read as a one-shot snapshot.
    */
-  readonly isFinalized: boolean;
+  readonly isTracking: boolean;
 }
 
 // ── WriteContext ──────────────────────────────────────────────────────

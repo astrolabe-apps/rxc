@@ -5,17 +5,16 @@ import { makeCtx } from "./index";
 /**
  * The tracking-window flag, pinned from both implementations.
  *
- * This exists because the flag is about to be renamed `isFinalized` →
- * `isTracking` with its polarity flipped, and the only consumer
- * (`forms-core`'s escaped-read guard) has its warning suppressed in that
- * package's test setup. A rename that keeps `untrackedRead`'s literal at
- * `true` compiles, type-checks and passes every other test, while silently
- * killing the guard for every noop-rc consumer. Assert the value, not just
- * the name.
+ * The two implementations disagree on the literal — `untrackedRead` is
+ * permanently `false`, a tracking scope starts `true` — which is exactly the
+ * shape a careless edit gets backwards. Its only consumer is `forms-core`'s
+ * escaped-read guard, whose warning that package's test setup suppresses, so
+ * an inverted flag makes the suite quieter rather than redder. Assert the
+ * values, not just the names.
  */
 describe("ReadContext tracking window", () => {
   it("untrackedRead never accepts tracked reads", () => {
-    expect(untrackedRead.isFinalized).toBe(true);
+    expect(untrackedRead.isTracking).toBe(false);
   });
 
   it("a tracking scope accepts reads until it is finalized", () => {
@@ -23,12 +22,12 @@ describe("ReadContext tracking window", () => {
     const c = ctx.newControl("a");
     const rc = new TrackingReadContext();
 
-    expect(rc.isFinalized).toBe(false);
+    expect(rc.isTracking).toBe(true);
     expect(rc.getValue(c)).toBe("a");
     expect(rc.tracked.size).toBe(1);
 
     rc.finalize();
-    expect(rc.isFinalized).toBe(true);
+    expect(rc.isTracking).toBe(false);
 
     // Reads still return current values, but register nothing.
     rc.tracked.clear();
@@ -37,7 +36,7 @@ describe("ReadContext tracking window", () => {
 
     // beginTracking() reopens the window for the next pass.
     rc.beginTracking();
-    expect(rc.isFinalized).toBe(false);
+    expect(rc.isTracking).toBe(true);
     expect(rc.getValue(c)).toBe("a");
     expect(rc.tracked.size).toBe(1);
   });
