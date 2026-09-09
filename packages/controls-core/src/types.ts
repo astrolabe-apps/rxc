@@ -17,7 +17,16 @@ export interface ControlOptions<V> {
   elements?: V extends Array<infer X> ? ControlOptions<X> : unknown;
   afterCreate?: (control: Control<V>) => void;
   meta?: Record<string, unknown>;
-  dontClearError?: boolean;
+  /**
+   * Keep published errors when the value changes, instead of clearing them.
+   *
+   * NOT IMPLEMENTED: nothing reads this. The only thing that sets
+   * `ControlFlags.DontClearError` today is the presence of a `validator` in
+   * this options object, which is why the flag's real behaviour is only ever
+   * seen on validated controls. Passing `keepErrors: true` on its own does
+   * nothing.
+   */
+  keepErrors?: boolean;
 }
 
 // ── Change tracking ──────────────────────────────────────────────────

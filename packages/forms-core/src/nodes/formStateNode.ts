@@ -178,7 +178,8 @@ class FormStateNodeImpl implements FormStateNode {
         busy: false,
         disablerCount: 0,
       },
-      { dontClearError: true },
+      // NOTE: has no effect — see ControlOptions.keepErrors.
+      { keepErrors: true },
     );
     this.base = base;
     base.meta[FORM_STATE_META_KEY] = this;

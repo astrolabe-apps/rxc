@@ -313,7 +313,7 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 
 | Legacy export | Strategy |
 |---|---|
-| `useControl(init, setup&{use}, afterInit?)` | rxc `useControl` + call `afterInit` once on creation. Legacy `ControlSetup` extras (`elems`, `meta`, `afterCreate`, `dontClearError`, `equals`) — new core supports all but `equals`; per-control `equals` is dropped (context-level equality only) and documented |
+| `useControl(init, setup&{use}, afterInit?)` | rxc `useControl` + call `afterInit` once on creation. Legacy `ControlSetup` extras (`elems`, `meta`, `afterCreate`, `dontClearError`, `equals`) — new core supports `elems` (as `elements`), `meta` and `afterCreate`; per-control `equals` is dropped (context-level equality only) and documented; `dontClearError` maps to `keepErrors`, which the engine accepts but does not act on |
 | `useComputed` / `useCalculatedControl` | rxc `useComputed` + `withAmbient` |
 | `useControlEffect(compute, onChange, initial?)` | rxc `useControlEffect` + `withAmbient`; `initial` passes through unchanged |
 | `useValueChangeEffect(c, cb, debounce?, runInitial?)` | rxc `useControlEffect((rc) => rc.getValue(c), …)` + timer (the composition proven on the `/controls` demo) |

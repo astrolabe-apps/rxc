@@ -280,11 +280,9 @@ During init (`attach` / `initControl`), in this order:
 
 ### DontClearError flag
 
-Can be set two ways:
-- Automatically when a validator is configured (see above)
-- Explicitly via `ControlSetup.dontClearError` option
+Set **only** when a validator is configured (see above). When set, value changes (section B step 3) do NOT auto-clear errors. This prevents validators from losing their error state when the value changes — the validator re-runs via its subscription and sets the appropriate error.
 
-When set, value changes (section B step 3) do NOT auto-clear errors. This prevents validators from losing their error state when the value changes — the validator re-runs via its subscription and sets the appropriate error.
+`ControlOptions.keepErrors` (legacy `dontClearError`) is documented as the explicit way to set it, but **nothing reads the option** — `initControl` sets the flag on the validator branch alone. A control created with `keepErrors: true` and no validator still clears its errors on a value change. Pre-existing; the option has never been wired up.
 
 ## K. Validate `[core]`
 

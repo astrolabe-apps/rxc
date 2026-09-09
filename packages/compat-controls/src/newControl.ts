@@ -34,7 +34,8 @@ export function convertSetup<V>(
   setup: ControlSetup<V> | undefined,
 ): CoreControlSetup<V> | undefined {
   if (!setup) return undefined;
-  const { equals, fields, elems, afterCreate, ...rest } = setup;
+  const { equals, fields, elems, afterCreate, dontClearError, ...rest } =
+    setup;
   if (equals && IS_DEV && !warnedEquals) {
     warnedEquals = true;
     // eslint-disable-next-line no-console
@@ -45,6 +46,11 @@ export function convertSetup<V>(
     );
   }
   const out: CoreControlSetup<V> = { ...rest } as CoreControlSetup<V>;
+  // Legacy spells this `dontClearError`; the engine now spells it
+  // `keepErrors`. Mapped explicitly because `rest` goes through an `as` cast,
+  // which suppresses excess-property checking — left in `rest` the old key
+  // would be handed to the engine and silently ignored.
+  if (dontClearError !== undefined) out.keepErrors = dontClearError;
   if (fields) {
     const converted: Record<string, CoreControlSetup<unknown> | undefined> = {};
     for (const [k, v] of Object.entries(fields)) {
