@@ -1008,7 +1008,7 @@ describe("FormStateNode — reactive definition updates", () => {
     // — the subscription must fire when title changes, even though title
     // isn't a scripted or _ScriptNullInit field (which were the only things
     // the scripted-proxy walker originally subscribed to).
-    const { computed: mkComputed } = await import("@rxc/controls-core");
+    const { computeInto: mkComputed } = await import("@rxc/controls-core");
     const fields = [stringField("name")];
     const defs = [dataDef("name", { title: "Original" })];
     const { ctx, formTree, dataNode, defsControl, globals } = makeReactiveEnv(

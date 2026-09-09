@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { Control, ControlChange } from "../src/types";
 import { lookupControl, getControlPath } from "../src/controlUtils";
-import { computed } from "../src/computed";
+import { computeInto } from "../src/computed";
 import { deepEquals } from "../src/deepEquals";
 import { makeCtx, expectChanges } from "./index";
 import { arbitraryParentChild } from "./gen";
@@ -170,7 +170,7 @@ describe("general", () => {
             rc
               .getElements(numberControls)
               .reduce((a: number, b: any) => Math.max(a, rc.getValue(b)), 0);
-          const ref = computed(ctx, resultControl, sum);
+          const ref = computeInto(ctx, resultControl, sum);
           // Same function — replaceCompute should no-op
           ref.replaceCompute(sum);
           expect(sumCalled).toBe(1);
@@ -216,7 +216,7 @@ describe("general", () => {
               .getElements(numberControls)
               .reduce((a: number, b: any) => a + rc.getValue(b), 0);
           const actualSum = numbers1.reduce((a, b) => a + b, 0);
-          const ref = computed(ctx, resultControl, sum);
+          const ref = computeInto(ctx, resultControl, sum);
           expect(resultControl.valueNow).toStrictEqual(actualSum);
           ref.cleanup();
           ctx.update((wc) => wc.setValue(numberControls, newNumbers));

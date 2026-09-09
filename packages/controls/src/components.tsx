@@ -22,6 +22,27 @@ import type {
  */
 export const NotDefinedContext = createContext<ReactNode>(null);
 
+/**
+ * Provide the {@link NotDefinedContext} fallback to a subtree.
+ *
+ * The context object is exported too, for `useContext` in a custom helper,
+ * but prefer this — it matches {@link FormEditProvider} and keeps callers out
+ * of the raw `.Provider`.
+ */
+export function NotDefinedProvider({
+  notDefined,
+  children,
+}: {
+  notDefined: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <NotDefinedContext.Provider value={notDefined}>
+      {children}
+    </NotDefinedContext.Provider>
+  );
+}
+
 // ── Reactive ───────────────────────────────────────────────────
 
 /**

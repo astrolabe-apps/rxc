@@ -135,7 +135,7 @@ export class TrackingReadContext implements ReadContext {
   tracked = new Map<ControlImpl, ControlChange>();
 
   /**
-   * True while this scope is accepting tracked reads — between `reset()`
+   * True while this scope is accepting tracked reads — between `beginTracking()`
    * and `finalize()`. Reads made in that window register dependencies in
    * `tracked`, which a subsequent `reconcile()` turns into live
    * subscriptions.
@@ -147,8 +147,8 @@ export class TrackingReadContext implements ReadContext {
    *
    * Only hosts that hand this scope's `rc` to code running after
    * `reconcile()` close the window — the React adapter does, in
-   * `rendered(…)`. `computed`, `effect`, validators and async evaluators
-   * own every read they make and simply `reset()` before each run, so
+   * `rendered(…)`. `computeInto`, `effect`, validators and async evaluators
+   * own every read they make and simply `beginTracking()` before each run, so
    * their window stays open for the scope's whole life.
    */
   private tracking = true;
@@ -173,7 +173,7 @@ export class TrackingReadContext implements ReadContext {
     return c;
   }
 
-  reset(): void {
+  beginTracking(): void {
     this.tracked.clear();
     this.tracking = true;
   }
@@ -185,7 +185,7 @@ export class TrackingReadContext implements ReadContext {
    * `reconcile()`. The React adapter calls it in `rendered(…)`, because
    * JSX descendants, event handlers and refs all keep reading through
    * the same `rc` once the render pass has closed, and those reads must
-   * not pollute `tracked`. Hosts that own every read (`computed`,
+   * not pollute `tracked`. Hosts that own every read (`computeInto`,
    * `effect`) never need to call it.
    *
    * Reads still return current values afterwards.

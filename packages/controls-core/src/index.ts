@@ -23,14 +23,14 @@ export { deepEquals } from "./deepEquals.js";
 
 export { untrackedRead, controlFromValue } from "./readContextImpl.js";
 
-export { type ComputedHandle, computed, type EffectHandle, effect } from "./computed.js";
+export { type ComputedHandle, computeInto, type EffectHandle, effect } from "./computed.js";
 
 export {
   ensureMetaValue,
   lookupControl,
   getControlPath,
   getElementPosition,
-  as,
+  asControl,
 } from "./controlUtils.js";
 
 export { createControlGroup, attachFields } from "./groupControl.js";

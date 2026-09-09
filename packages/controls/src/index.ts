@@ -43,6 +43,7 @@ export { ControlCheckbox, type ControlCheckboxProps } from "./ControlCheckbox.js
 // Render helpers — nested subscription scopes
 export {
   NotDefinedContext,
+  NotDefinedProvider,
   RenderArrayElements,
   Reactive,
   RenderElements,

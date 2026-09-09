@@ -325,7 +325,7 @@ const jsonataEvalImpl: ExpressionEval<JsonataExpression> = (
     running = true;
     aborter = new AbortController();
     const signal = aborter.signal;
-    rc.reset();
+    rc.beginTracking();
 
     // Optional gate — when disabled, skip the actual evaluation. The
     // `isEnabled` read registers a dependency, so flipping it back

@@ -6,7 +6,7 @@
  */
 
 import {
-  computed,
+  computeInto,
   deepEquals,
   getControlPath as coreGetControlPath,
   attachFields as coreSetFields,
@@ -163,14 +163,14 @@ export function updateComputedValue<V>(
     | { ref: ComputedHandle; compute: () => V }
     | undefined;
   if (existing?.compute === compute) return;
-  const wrapped = (rc: Parameters<Parameters<typeof computed>[2]>[0]) =>
+  const wrapped = (rc: Parameters<Parameters<typeof computeInto>[2]>[0]) =>
     withAmbient(rc, compute);
   if (existing) {
     existing.ref.replaceCompute(wrapped);
     existing.compute = compute;
     return;
   }
-  const ref = computed(getCompatContext(), asCore(control), wrapped);
+  const ref = computeInto(getCompatContext(), asCore(control), wrapped);
   meta[COMPUTED_KEY] = { ref, compute };
   control.addCleanup(() => {
     ref.cleanup();

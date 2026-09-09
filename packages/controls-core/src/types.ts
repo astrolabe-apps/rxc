@@ -115,9 +115,9 @@ export type ControlValue<C> = C extends Control<infer V> ? V : never;
  * Reading through it registers a dependency on the (control, property)
  * pair. This is the library's single reactive read mechanism, not a
  * render-time facility: a React render pass is one of the things that
- * opens a scope, alongside `computed`, `effect`, `useValidator` and the
+ * opens a scope, alongside `computeInto`, `effect`, `useValidator` and the
  * async expression evaluators. All of them share one lifecycle —
- * `reset()`, then tracked reads, then `reconcile(tracked)`, which diffs
+ * `beginTracking()`, then tracked reads, then `reconcile(tracked)`, which diffs
  * the tracked set against the live subscriptions.
  *
  * `untrackedRead` is the non-tracking implementation, for one-shot
@@ -177,7 +177,7 @@ export interface ReadContext {
    * Only hosts that expose their `rc` to code running after
    * `reconcile()` close a scope — the React adapter does so in
    * `rendered(…)`, so a component's `rc` is finalized for the whole
-   * window between renders. Scopes owned by `computed`, `effect`,
+   * window between renders. Scopes owned by `computeInto`, `effect`,
    * validators and async evaluators are never closed, so this stays
    * `false` for their whole life.
    *

@@ -14,7 +14,7 @@ export interface ComputedHandle extends SubscriptionReconciler {
  * - React: use controlContext.releaseTracker/retainTracker for strict mode safety
  * - Call replaceCompute(fn) to swap the compute function and re-run
  */
-export function computed<V>(
+export function computeInto<V>(
   ctx: ControlContext,
   target: Control<V>,
   compute: (rc: ReadContext) => V,
@@ -25,7 +25,7 @@ export function computed<V>(
   let currentCompute: (rc: ReadContext) => V = compute;
 
   function run() {
-    rc.reset();
+    rc.beginTracking();
     const value = currentCompute(rc);
     reconciler.reconcile(rc.tracked);
     ctx.update((wc) => wc.setValue(target, value));
@@ -50,7 +50,7 @@ export interface EffectHandle extends SubscriptionReconciler {
 
 /**
  * Creates a reactive effect that tracks dependencies via ReadContext and
- * re-runs when any dependency changes. Like computed() but for side effects —
+ * re-runs when any dependency changes. Like computeInto() but for side effects —
  * no target control, no return value written.
  *
  * If the effect function returns a cleanup function, it's called before each
@@ -71,7 +71,7 @@ export function effect(
       cleanupFn();
       cleanupFn = undefined;
     }
-    rc.reset();
+    rc.beginTracking();
     cleanupFn = currentFn(rc);
     reconciler.reconcile(rc.tracked);
   }

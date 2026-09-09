@@ -35,8 +35,8 @@ describe("ReadContext tracking window", () => {
     expect(rc.getValue(c)).toBe("a");
     expect(rc.tracked.size).toBe(0);
 
-    // reset() reopens the window for the next pass.
-    rc.reset();
+    // beginTracking() reopens the window for the next pass.
+    rc.beginTracking();
     expect(rc.isFinalized).toBe(false);
     expect(rc.getValue(c)).toBe("a");
     expect(rc.tracked.size).toBe(1);

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
-import { computed } from "@rxc/controls-core";
+import { computeInto } from "@rxc/controls-core";
 import type { ComputedHandle } from "@rxc/controls-core";
 import {
   SubscriptionReconciler,
@@ -227,7 +227,7 @@ export function useReactive(): ReactiveScope {
   tracker.controls.update = controlContext.update;
 
   // Open this render's tracking window.
-  tracker.rc.reset();
+  tracker.rc.beginTracking();
   tracker.didRender = false;
   if (IS_DEV) openRc = tracker.rc;
 
@@ -270,7 +270,7 @@ export function useComputed<V>(compute: (rc: ReadContext) => V): Control<V> {
   );
   if (!ref.current) {
     const control: Control<V> = ctx.newControl<V>(undefined as V);
-    const reconciler = computed(ctx, control, compute);
+    const reconciler = computeInto(ctx, control, compute);
     ref.current = { control, reconciler };
   } else {
     ref.current.reconciler.replaceCompute(compute);

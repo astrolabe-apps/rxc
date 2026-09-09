@@ -3,7 +3,7 @@ import {
   createControlContext,
   untrackedRead,
   effect,
-  as,
+  asControl,
 } from "@rxc/controls-core";
 import type { Control, ReadContext, ControlContext } from "@rxc/controls-core";
 import {
@@ -581,7 +581,7 @@ describe("DataNode reactive", () => {
       const items = node.cursor(rc).childField("items");
       if (!items) return;
       // Count elements by trying indices
-      const elems = rc.getElements(as<unknown[]>(items.control));
+      const elems = rc.getElements(asControl<unknown[]>(items.control));
       elemCount = elems.length;
     });
     expect(elemCount).toBe(2);

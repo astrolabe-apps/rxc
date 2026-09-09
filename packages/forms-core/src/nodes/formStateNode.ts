@@ -2,7 +2,7 @@ import {
   type Control,
   type ControlContext,
   type ReadContext,
-  computed,
+  computeInto,
   effect,
   untrackedRead,
   type ControlFields,
@@ -440,7 +440,7 @@ function initFormState(
   // ── dataNode: resolve the definition's field path against the parent.
   // Reads the definition reactively so changes to `field` / `compoundField`
   // re-trigger path resolution.
-  const dataNodeComputed = computed(ctx, dataNode, (rc) => {
+  const dataNodeComputed = computeInto(ctx, dataNode, (rc) => {
     const def = impl.unresolved(rc);
     const fieldRef = formFieldPath(def);
     if (fieldRef === undefined) return undefined;
@@ -514,7 +514,7 @@ function initFormState(
   // evaluation — see the `_ScriptNullInit` tag in schemaSchemas.ts. The
   // scripted proxy coerces `hidden` to its boolean default when no script
   // is registered, so `null` never flows through in the non-pending case.
-  const visibleComputed = computed(ctx, visible, (rc) => {
+  const visibleComputed = computeInto(ctx, visible, (rc) => {
     const opts = rc.getValue(base.fields.nodeOptions);
     if (opts.forceHidden) return false;
     if (parentNode) {
@@ -539,7 +539,7 @@ function initFormState(
   // no `allowedOptions` this passes through whatever the schemaInterface
   // provides.
   const fieldOptionsControl = base.fields.fieldOptions;
-  const fieldOptionsComputed = computed(ctx, fieldOptionsControl, (rc) => {
+  const fieldOptionsComputed = computeInto(ctx, fieldOptionsControl, (rc) => {
     const dn = rc.getValue(dataNode);
     if (!dn) return undefined;
     const dc = dn.cursor(rc);
@@ -566,7 +566,7 @@ function initFormState(
   impl.addCleanup(() => fieldOptionsComputed.cleanup());
 
   // ── readonly cascade — `readonly` may be scripted, so read through proxy.
-  const readonlyComputed = computed(ctx, readonly, (rc) => {
+  const readonlyComputed = computeInto(ctx, readonly, (rc) => {
     if (parentNode) {
       const pr = rc.getValue(
         (parentNode as FormStateNodeImpl).base.fields.readonly,
@@ -580,7 +580,7 @@ function initFormState(
   impl.addCleanup(() => readonlyComputed.cleanup());
 
   // ── disabled cascade — `disabled` may be scripted, so read through proxy.
-  const disabledComputed = computed(ctx, disabled, (rc) => {
+  const disabledComputed = computeInto(ctx, disabled, (rc) => {
     if (parentNode) {
       const pd = rc.getValue(
         (parentNode as FormStateNodeImpl).base.fields.disabled,

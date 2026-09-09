@@ -1,5 +1,5 @@
 import {
-  as,
+  asControl,
   type Control,
   type ReadContext,
   controlFromValue,

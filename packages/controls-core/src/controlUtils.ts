@@ -65,6 +65,6 @@ export function getElementPosition<V>(
     : undefined;
 }
 
-export function as<V2>(c: Control<unknown>): Control<V2> {
+export function asControl<V2>(c: Control<unknown>): Control<V2> {
   return c as Control<V2>;
 }

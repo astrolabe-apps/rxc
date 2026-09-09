@@ -50,7 +50,7 @@ export function useValidator<V>(
     const rc = new TrackingReadContext();
     const reconciler = new SubscriptionReconciler();
     const run = () => {
-      rc.reset();
+      rc.beginTracking();
       // Re-run (and re-publish) on validate() broadcasts, like the
       // built-in `ControlOptions.validator` subscription (Value | Validate).
       rc.trackValidate(control);

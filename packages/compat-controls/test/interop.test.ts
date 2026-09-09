@@ -2,13 +2,13 @@
  * Interop — the design's goal 2: compat controls and new-API controls are
  * the same objects. Both directions are exercised: a control created through
  * the new explicit API gains the legacy surface via the prototype patch, and
- * a compat-created control drives new-API primitives (`computed`,
+ * a compat-created control drives new-API primitives (`computeInto`,
  * `rc`-tracked reads) through `withAmbient`.
  */
 
 import { describe, expect, it } from "vitest";
 import {
-  computed,
+  computeInto,
   createControlContext,
   effect,
   ControlChange as CoreControlChange,
@@ -46,12 +46,12 @@ describe("interop with the new API", () => {
     expect(core.valueNow).toBe(2);
   });
 
-  it("withAmbient drives a core computed from legacy ambient reads", () => {
+  it("withAmbient drives a core computeInto from legacy ambient reads", () => {
     const ctx = createControlContext();
     const first = newControl("Ada");
     const last = newControl("Lovelace");
     const target = ctx.newControl("");
-    const ref = computed(ctx, target, (rc) =>
+    const ref = computeInto(ctx, target, (rc) =>
       withAmbient(rc, () => `${first.value} ${last.value}`),
     );
     expect(target.valueNow).toBe("Ada Lovelace");
