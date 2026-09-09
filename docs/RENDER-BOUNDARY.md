@@ -8,10 +8,10 @@ the one thing a well-meaning refactor is likely to break.
 ## The contract
 
 ```tsx
-import { useControls, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rxc/controls";
 
 function StarsRenderer({ node, id }: DataRendererProps): Rendered {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   const c = useTextInputController(rc, node);
   const theme = useHtmlTheme();
   if (!c.data) return rendered(null);      // ← every return path
@@ -21,7 +21,7 @@ function StarsRenderer({ node, id }: DataRendererProps): Rendered {
 
 Three rules:
 
-1. **Get `rc` from `useControls()`.** Everything reactive is read through it — `rc.getValue(c)`,
+1. **Get `rc` from `useReactive()`.** Everything reactive is read through it — `rc.getValue(c)`,
    `rc.getError(c)`, `node.getState(rc)`, `node.getChildren(rc)`, and every `forms-react-core`
    controller, which all take `rc` as their first argument.
 2. **Wrap every return in `rendered(…)`.** Reads are only *tracked* during render; `rendered()` is
@@ -33,14 +33,14 @@ Three rules:
 Components are ordinary function components. Hooks go at the top level, `memo`/`forwardRef`/generics
 all work normally, and `react-hooks/rules-of-hooks` analyses them (`rush lint`).
 
-`useControls()` takes no arguments. `rendered(node)` accepts any `ReactNode` — string, number,
+`useReactive()` takes no arguments. `rendered(node)` accepts any `ReactNode` — string, number,
 fragment, array, `null` — and returns it unchanged.
 
-`useControls()` also returns `update` — the ambient `ControlContext`'s write-batching call — so a
+`useReactive()` also returns `update` — the ambient `ControlContext`'s write-batching call — so a
 component that reads *and* writes needs one hook call rather than two:
 
 ```tsx
-const { rc, rendered, update } = useControls();
+const { rc, rendered, update } = useReactive();
 … onChange={(e) => update((wc) => wc.setValue(data, e.target.value))}
 ```
 
@@ -105,7 +105,7 @@ Four details that are load-bearing if you ever touch this type:
 
 Renderer slot types (`DataRenderer`, `GroupRenderer`, `DisplayRenderer`) are deliberately **not**
 branded. The pure-layout renderers (`Flex`, `Grid`, `Inline`, `Standard`, `Contents`) read nothing
-reactively and never call `useControls()`; branding the slot would force them to allocate a tracking
+reactively and never call `useReactive()`; branding the slot would force them to allocate a tracking
 rc and reconciler purely to wrap a return.
 
 ### Backstop: the dev-mode guard
@@ -122,7 +122,7 @@ The component names itself: identity is captured from the stack **during render*
 component instance, because the warning fires from a passive effect where the component's own frame
 is long gone. (React 19's `captureOwnerStack()` works from an effect but reports the component's
 *owner*, so it can't name the offender.) The frame scan skips past any consumer hook wrapping
-`useControls`, taking the first PascalCase frame. De-duplicated by call site, so each offender warns
+`useReactive`, taking the first PascalCase frame. De-duplicated by call site, so each offender warns
 once per page load.
 
 `apps/dev/src/app/renderboundary` demonstrates the failure modes live.
@@ -167,18 +167,18 @@ Spans throw → next render only.
 
 ## Nested scopes: the render helpers
 
-`RenderControl`, `RenderElements`, `RenderOptional` and `renderOptionally` (in `@rxc/controls`) exist
+`Reactive`, `RenderElements`, `RenderOptional` and `whenAllDefined` (in `@rxc/controls`) exist
 to narrow **subscription scope**, not to render anything. They are the ports of the legacy
 `@react-typed-forms/core` helpers, which did the same job by a different mechanism: under ambient
 tracking each was a component, so reads inside its callback attributed to it rather than to the
 caller.
 
-Here the mechanism is explicit. Each helper calls `useControls()` itself and hands its own `rc` to
+Here the mechanism is explicit. Each helper calls `useReactive()` itself and hands its own `rc` to
 the callback:
 
 ```tsx
-export function RenderControl({ children }: RenderControlProps): Rendered {
-  const { rc, rendered } = useControls();
+export function Reactive({ children }: ReactiveProps): Rendered {
+  const { rc, rendered } = useReactive();
   return rendered(children(rc));
 }
 ```
@@ -188,11 +188,11 @@ Two consequences follow from the helper — not the callback — owning the boun
 - **The callback returns a plain `ReactNode`.** It has no `rendered` in hand, so requiring it to
   return `Rendered` would be an uninhabitable type. `children(rc)` is evaluated before `rendered` is
   applied to the result, so every read it made is tracked by the time the pass reconciles.
-- **Forgetting the boundary is impossible** in a callback, unlike a `useControls` component where it
+- **Forgetting the boundary is impossible** in a callback, unlike a `useReactive` component where it
   is only caught by the branded return type and the dev guard.
 
 `RenderElements` subscribes to array *structure* only and wraps each element in its own
-`RenderControl`, keyed by `Control.uniqueId` — allocated per `ControlContext` rather than from a
+`Reactive`, keyed by `Control.uniqueId` — allocated per `ControlContext` rather than from a
 module global, so the key sequence matches across SSR and hydration. A change inside one element
 re-renders that element's scope alone.
 
@@ -203,7 +203,7 @@ closed over is tracked by the *caller*, so the wrapper buys nothing:
 
 ```tsx
 const name = rc.getValue(nameControl);                    // caller subscribes
-<RenderControl>{(rc) => <div>{name}</div>}</RenderControl>  // isolates nothing
+<Reactive>{(rc) => <div>{name}</div>}</Reactive>  // isolates nothing
 ```
 
 This degrades to over-rendering, never to stale UI — the caller re-renders and the subtree follows.
@@ -225,7 +225,7 @@ legitimate (event handlers, refs and effects all read non-tracking contexts on p
 installs a hook that knows the damning circumstance: **a non-tracking read while another rc's render
 window is open**, which can only be a captured context, because legitimate non-tracking reads happen
 with no render in progress. `@rxc/controls` tracks the open window in a module-scoped `openRc`, set
-when `useControls` opens the pass and cleared by `rendered(…)` — plus in the post-commit effect, so a
+when `useReactive` opens the pass and cleared by `rendered(…)` — plus in the post-commit effect, so a
 component that threw before closing its window can't leave it stale.
 
 Windows never overlap: React renders one component at a time, and a parent's `rendered(…)` runs
@@ -249,7 +249,7 @@ could return cached JSX, giving stale UI. This is the flip side of lint coverage
 recognisable as a component, so you can't have one without the other. Lint is on by default in every
 consumer project and the compiler is opt-in with an escape hatch, so we take the lint.
 
-If it ever matters: having `useControls()` return a **fresh `rc` identity per render** invalidates
+If it ever matters: having `useReactive()` return a **fresh `rc` identity per render** invalidates
 the memo blocks that matter, since `rc` is an input to essentially every read. It costs an allocation
 per render and forfeits legitimate memoisation, so `rc` is stable by default and `"use no memo"` is
 the blunt answer.

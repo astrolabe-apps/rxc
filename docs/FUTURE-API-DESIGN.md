@@ -6,6 +6,13 @@ A standalone experimental Next.js project for prototyping and validating a new c
 
 This document captures a proposed future direction for `@astroapps/controls` that removes global variables and makes reactivity and writes explicit.
 
+> **Historical record.** This is the design as proposed, kept for its rationale. Many of the
+> API names below were changed before publishing — `useControls` → `useReactive`,
+> `getValueRx` → `getTrackedValue`, `computed` → `computeInto`, `noopReadContext` →
+> `untrackedRead` and ~30 more. `docs/CONTROLS-API-NAMING-REVIEW.md` has the full mapping and
+> the reasoning; the shipped surface is the source of truth.
+
+
 ## Goals
 
 - **No global variables** — no module-level state, no ambient dependency tracking

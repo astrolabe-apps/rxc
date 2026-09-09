@@ -93,7 +93,7 @@ function LegacyView() {
 
 // migrated — explicit rc, closes its render pass with rendered()
 function MigratedView() {
-  const { rc, rendered } = useControls();
+  const { rc, rendered } = useReactive();
   return rendered(<span>{rc.getValue(shared.fields.count)}</span>);
 }
 ```
@@ -114,7 +114,7 @@ A write through either API updates both.
    would see 3.
 5. **Concurrent rendering** is no safer than it was. The ambient read
    collector is a module global set during render — the same hazard v4 has.
-   Components ported to `useControls()` become fully safe.
+   Components ported to `useReactive()` become fully safe.
 6. **Metrics and freeze-count APIs are no-op stubs**:
    `getControlMetrics`, `getHeavyControls`, `getControlById`,
    `printControlMetrics`, `printHeavyControls`, `ControlMetricsRegistry`,

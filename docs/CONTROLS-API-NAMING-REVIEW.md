@@ -1,6 +1,20 @@
 # `@rxc/controls` API Naming Review
 
-**Status: every verdict is decided. Nothing is implemented.**
+**Status: implemented.** Every `accept` below has landed on the shipped surface; the rationale
+sections are kept as the record of *why*, including the rejected alternatives — they are what stops
+`useRxc`, `fieldsSnapshot` and `useControlWatch` being re-proposed.
+
+Six corrections this document got wrong, found while implementing:
+
+| Claim here | What was true |
+|---|---|
+| `FormEditState.readonly` → `.readOnly` is free | Legacy 4.6 ships `FormEditState` with `readonly`, and compat re-exported rxc's verbatim — so it broke the legacy surface. compat now owns the legacy spelling in a wrapper; an import alias cannot reach a *member*. |
+| `useControls` renames need the dev warning's stack-frame matching kept in lockstep | `captureCallSite` scans frames for the first PascalCase name; it never matched the hook's name. Only a doc comment did. |
+| `WriteContext.reset` collides with the public `ReadContext.reset` | `reset()` is declared only on the internal `TrackingReadContext`, not on the `ReadContext` interface. `beginTracking` was still adopted, for consistency with `isTracking`. |
+| The `FormControlProps` split is "all tsc-caught" | A caller doing `const { errorText, ...props }` still compiles — the rest element silently collects the new `props` key. TypeScript does not excess-check JSX spreads. |
+| `dontClearError` → `keepErrors` is free because compat's `convertSetup` translates it | It does now; it did not. The key rode a `{ ...rest } as CoreControlSetup` cast, which suppresses excess-property checks. Separately, the option is **dead** — nothing reads it. |
+| Four rxc names cross into compat verbatim | True, but the count understates the coupling: compat also declares its own `Control` interface mirroring the engine's, so core *property* renames are not tsc-caught at compat call sites. `getCurrentFields` silently returned `undefined` until a test caught it. |
+
 
 A pre-publish pass over the whole public surface of `@rxc/controls` — which includes all of
 `@rxc/controls-core`, re-exported wholesale — recording what each export does and whether the name

@@ -19,7 +19,7 @@ A control tree is a hierarchy of nodes. Each node holds:
 - `flags` — Touched, Disabled, ChildInvalid, DontClearError
 - `errors` — `Record<string, string>` or undefined
 - `fields` — named children (object controls), lazily created
-- `elems` — indexed children (array controls), lazily created
+- `elements` — indexed children (array controls), lazily created
 - `parents` — back-references: `{ control, key, origKey? }[]`
 
 Children are created lazily on first access. A control may have multiple parents (shared children).
@@ -55,7 +55,7 @@ When a parent's value is set:
 
 `isNull` uses `== null` (loose equality), so both `null` and `undefined` are considered null. Tracked as a Structure change for subscription purposes.
 
-### markAsClean `[core]`
+### markClean `[core]`
 
 Sets `initialValue = value` via the normal initialValue propagation path. This makes `dirty` false for the control and propagates the new initialValue down to existing children.
 
@@ -208,7 +208,7 @@ the patch, not the core.
 
 ### Core batching (`WriteContext`) `[core]`
 
-`WriteContext` owns a `pending: Set<ControlImpl>` and a `NotifyFn` callback. Mutations on `ControlImpl` accept `NotifyFn` — when a mutation causes a change, it calls `notify(this)` to add itself to the pending set. After the callback completes, `WriteContext.flush()` drains the pending set, running listeners. Listeners may cause further mutations (via the same `WriteContext`), adding more controls to the pending set — the drain loop continues until settled. `afterChanges` callbacks run after all listeners have drained.
+`WriteContext` owns a `pending: Set<ControlImpl>` and a `NotifyFn` callback. Mutations on `ControlImpl` accept `NotifyFn` — when a mutation causes a change, it calls `notify(this)` to add itself to the pending set. After the callback completes, `WriteContext.flush()` drains the pending set, running listeners. Listeners may cause further mutations (via the same `WriteContext`), adding more controls to the pending set — the drain loop continues until settled. `afterFlush` callbacks run after all listeners have drained.
 
 No global state. Each `ControlContext.update()` call creates a fresh `WriteContext`.
 
@@ -228,7 +228,7 @@ difference is which `wc` the writer uses:
 - A listener that writes through the `wc` it was handed **joins** the batch: `runListeners(wc)`
   threads it down, so the write lands in the same `pending` set and the outer drain loop picks it
   up. Notification arrives after the listener returns. This is how the built-in
-  `ControlSetup.validator` subscription republishes.
+  `ControlOptions.validator` subscription republishes.
 - Calling `ControlContext.update()` again — from a listener, or from a helper invoked inside an
   outer `update` — creates a **separate** `WriteContext` that flushes to completion inline, part-way
   through the outer flush. Its subscribers are notified before the outer batch finishes, and they
@@ -282,7 +282,7 @@ During init (`attach` / `initControl`), in this order:
 
 Set **only** when a validator is configured (see above). When set, value changes (section B step 3) do NOT auto-clear errors. This prevents validators from losing their error state when the value changes — the validator re-runs via its subscription and sets the appropriate error.
 
-`ControlOptions.keepErrors` (legacy `dontClearError`) is documented as the explicit way to set it, but **nothing reads the option** — `initControl` sets the flag on the validator branch alone. A control created with `keepErrors: true` and no validator still clears its errors on a value change. Pre-existing; the option has never been wired up.
+`ControlOptions.keepErrors` (legacy `keepErrors`) is documented as the explicit way to set it, but **nothing reads the option** — `initControl` sets the flag on the validator branch alone. A control created with `keepErrors: true` and no validator still clears its errors on a value change. Pre-existing; the option has never been wired up.
 
 ## K. Validate `[core]`
 
@@ -323,7 +323,7 @@ function computed<V>(
 
 **Disposal:**
 - Non-React callers: call `reconciler.cleanup()` directly to unsubscribe all
-- React callers: use `controlContext.markTrackerDead(reconciler)` / `reviveTracker(reconciler)` for strict mode safety (same pattern as `controls()` wrapper)
+- React callers: use `controlContext.releaseTracker(reconciler)` / `retainTracker(reconciler)` for strict mode safety (same pattern as `controls()` wrapper)
 
 Built entirely on existing primitives (`TrackingReadContext`, `SubscriptionReconciler`, `ControlContext.update`). No new subscription mechanisms needed.
 
@@ -343,7 +343,7 @@ const MyComponent = controls(function MyComponent({ items }, { rc, useComputed }
 Implementation wraps the core `computed()`:
 1. `useRef` to hold target control + reconciler (created once)
 2. Calls core `computed(ctx, target, compute)` — replaces previous computation
-3. `useEffect` cleanup calls `markTrackerDead(reconciler)`; mount calls `reviveTracker(reconciler)` (strict mode safe)
+3. `useEffect` cleanup calls `releaseTracker(reconciler)`; mount calls `retainTracker(reconciler)` (strict mode safe)
 
 > **Legacy compat (`@react-typed-forms/core`):** `useComputed(compute)` and `updateComputedValue(control, compute)` delegate to core `computed()`, storing the reconciler on `control.meta` for idempotent replacement.
 
@@ -379,7 +379,7 @@ function asyncEffect<V>(
 
 ## L″. Cleanup — candidate for removal
 
-> **Note:** The existing `@react-typed-forms/core` library has `cleanup()` and `addCleanup()` on controls. With the new `computed`/`effect` APIs returning `SubscriptionReconciler` for explicit lifecycle management, and React integration using `markTrackerDead`/`reviveTracker`, control-level cleanup may no longer be needed. The caller owns disposal, not the control.
+> **Note:** The existing `@react-typed-forms/core` library has `cleanup()` and `addCleanup()` on controls. With the new `computed`/`effect` APIs returning `SubscriptionReconciler` for explicit lifecycle management, and React integration using `releaseTracker`/`retainTracker`, control-level cleanup may no longer be needed. The caller owns disposal, not the control.
 
 Previous semantics (for reference):
 - `cleanup()`: run registered cleanup callbacks, then recurse into children that have exactly 1 parent (shared children survive)
@@ -416,14 +416,14 @@ The core library has NO `collectChange` — its `*Now` properties return snapsho
 
 This is the explicit equivalent of `[patch]`'s `collectChange` global — same subscription primitives underneath, but scoped to a single component's tracking read context instead of a module-level variable. The exact implementation mechanism (e.g. a `SubscriptionTracker` class) is TBD.
 
-### `getValueRx` — deep reactive proxy `[core]`
+### `getTrackedValue` — deep reactive proxy `[core]`
 
-`ReadContext.getValueRx(control)` returns the control's value wrapped in a recursive `Proxy` that routes property access through child controls. This gives the same fine-grained reactivity as `[patch]`'s implicit `.value` getters, but through an explicit `ReadContext`:
+`ReadContext.getTrackedValue(control)` returns the control's value wrapped in a recursive `Proxy` that routes property access through child controls. This gives the same fine-grained reactivity as `[patch]`'s implicit `.value` getters, but through an explicit `ReadContext`:
 
 - **null/undefined**: tracks Structure, returns value
 - **Primitives**: tracks Value, returns value
-- **Objects**: tracks Structure on parent, returns Proxy where `proxy[key]` → `getValueRx(control.fields[key])`
-- **Arrays**: tracks Structure on parent, returns Proxy where `proxy[i]` → `getValueRx(control.elements[i])`, `proxy.length` → element count
+- **Objects**: tracks Structure on parent, returns Proxy where `proxy[key]` → `getTrackedValue(control.fields[key])`
+- **Arrays**: tracks Structure on parent, returns Proxy where `proxy[i]` → `getTrackedValue(control.elements[i])`, `proxy.length` → element count
 
 Only accessed properties create subscriptions — `proxy.name` subscribes to `control.fields.name`, but does not subscribe to `control.fields.email`. The proxy is recursive, so `proxy.address.city` traverses `control.fields.address.fields.city`.
 
@@ -468,17 +468,17 @@ Traverses the control tree given an array of path segments. Strings are treated 
 
 Walks the `_parents` chain upward from `control`, collecting each `ParentLink.key`. Stops at the root (no parent) or at `untilParent` if provided. Returns the path segments in root-to-leaf order. Uses `_parents[0]` at each step (first parent link).
 
-### getElementIndex(child, parent?)
+### getElementPosition(child, parent?)
 
-`getElementIndex(child: Control<any>, parent?: Control<any[]>): { index: number; initialIndex: number | undefined } | undefined`
+`getElementPosition(child: Control<any>, parent?: Control<any[]>): { index: number; initialIndex: number | undefined } | undefined`
 
 Returns the current index (`ParentLink.key`) and initial index (`ParentLink.origKey`) of an array element control. If `parent` is provided, finds the link to that specific parent; otherwise uses the first parent link. Returns `undefined` if the control has no parent link (detached).
 
-### controlGroup(fields)
+### createControlGroup(fields)
 
-Creates a parent control from a map of `{ fieldName: Control }`. The parent's value is constructed from the children's values. Uses `setFields` internally.
+Creates a parent control from a map of `{ fieldName: Control }`. The parent's value is constructed from the children's values. Uses `attachFields` internally.
 
-### setFields(control, fields)
+### attachFields(control, fields)
 
 Merges new field controls into an existing control. Detaches all existing fields, attaches the new ones, then reconstructs the parent value and initialValue from the field values via `setValueAndInitial`.
 
@@ -516,13 +516,13 @@ These wrap the core `ControlImpl` mutations with `runTransaction`:
 - `setInitialValue(v)` — **a reset**: defined as `setValueAndInitial(v, v)`, so it
   sets the current value too. Only the `.initialValue = v` property setter moves
   the clean baseline on its own. `WriteContext` mirrors the pair as
-  `setInitialValue` / `setInitialValueOnly`.
+  `setInitialValue` / `setInitialValue`.
 - `setTouched(touched, notChildren?)`
 - `setDisabled(disabled, notChildren?)`
 - `setError(key, error?)`
 - `setErrors(errors?)`
 - `clearErrors()`
-- `markAsClean()`
+- `markClean()`
 
 ### `.current` property
 
@@ -561,7 +561,7 @@ const total = useComputed((rc) => rc.getValue(a) + rc.getValue(b));
 // total is a Control<number> — read it reactively via rc.getValue(total)
 ```
 
-Uses `useRef` internally (React hook rules apply). Strict mode safe via `markTrackerDead`/`reviveTracker`.
+Uses `useRef` internally (React hook rules apply). Strict mode safe via `releaseTracker`/`retainTracker`.
 
 ### Types
 
@@ -572,7 +572,7 @@ Uses `useRef` internally (React hook rules apply). Strict mode safe via `markTra
 
 ### What's NOT here (yet)
 
-Hooks (`useControl`, `useControlEffect`, `useValidator`, etc.), form components (`Finput`, `Fcheckbox`, `Fselect`), and render helpers (`RenderOptional`, `RenderElements`) remain in `@react-typed-forms/core` for now. The `controls()` pattern may enable a better API than hooks in future.
+Hooks (`useControl`, `useControlEffect`, `useValidator`, etc.), form components (`ControlInput`, `ControlCheckbox`, `ControlSelect`), and render helpers (`RenderOptional`, `RenderElements`) remain in `@react-typed-forms/core` for now. The `controls()` pattern may enable a better API than hooks in future.
 
 ## Key Invariants
 

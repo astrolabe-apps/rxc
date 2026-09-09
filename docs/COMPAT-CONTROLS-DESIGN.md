@@ -228,7 +228,7 @@ makes goal 2 (interop) hold for writes.
 
 ### Bridge 3 — the compat ControlContext
 
-Creation needs a context (`newControl`, `controlGroup`, hook-created
+Creation needs a context (`newControl`, `createControlGroup`, hook-created
 controls). Compat owns a singleton:
 
 ```ts
@@ -238,7 +238,7 @@ export function setCompatContext(ctx: ControlContext): void;  // compat-only exp
 ```
 
 - `newControl(value, setup, initialValue?)` → `compatContext.newControl` (+
-  `wc.setInitialValueOnly` when the third arg is given — legacy constructs
+  `wc.setInitialValue` when the third arg is given — legacy constructs
   with `(value, initialValue)`, so the current value is untouched).
 - The React layer (`useControl` etc.) delegates to `@rxc/controls` hooks,
   which resolve their context from `ControlContextProvider`. **Legacy apps
@@ -277,7 +277,7 @@ supertype structurally at runtime, enforced by the patch).
 |---|---|
 | `value` get | collect `Value` → `valueNow` |
 | `value` set | `runInWc(wc.setValue)` |
-| `initialValue` get/set | collect `InitialValue` → `initialValueNow` / `wc.setInitialValueOnly` (the setter moves the clean baseline alone) |
+| `initialValue` get/set | collect `InitialValue` → `initialValueNow` / `wc.setInitialValue` (the setter moves the clean baseline alone) |
 | `error` get/set | collect `Error` → `errorNow` / `wc.setError(c,"default",e)` |
 | `errors` get | collect `Error` → `errorsNow` |
 | `valid` / `dirty` / `touched` / `disabled` / `isNull` get | collect respective bit → `*Now` |
@@ -286,7 +286,7 @@ supertype structurally at runtime, enforced by the patch).
 | `elements` get | collect `Structure` → `elementsNow` (the name is free on core — no override) |
 | `fields` get | already present; legacy collects nothing here — leave untouched |
 | `setValue(cb)` | `runInWc(wc.updateValue)` |
-| `setValueAndInitial` / `setInitialValue` / `markAsClean` / `setTouched` / `setDisabled` / `setError` / `setErrors` / `clearErrors` | corresponding `wc.*` via `runInWc`. Note `setInitialValue(v)` is legacy shorthand for `setValueAndInitial(v, v)` — a **reset**, not a baseline move; `wc.setInitialValue` carries the same meaning, `wc.setInitialValueOnly` is the baseline move |
+| `setValueAndInitial` / `setInitialValue` / `markAsClean` / `setTouched` / `setDisabled` / `setError` / `setErrors` / `clearErrors` | corresponding `wc.*` via `runInWc`. Note the legacy `setInitialValue(v)` is shorthand for `setValueAndInitial(v, v)` — a **reset**, not a baseline move — so it maps to `wc.reset`. `wc.setInitialValue` now means the baseline move, which is what the legacy `initialValue` *setter* does; do not cross the two |
 | `validate()` | `runInWc((wc) => wc.validate(c))` |
 | `isEqual(a,b)` | `toImpl(this)._ctx.equals` |
 | `element` get/set | alias for `meta.element` |
@@ -319,15 +319,15 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 | `useValueChangeEffect(c, cb, debounce?, runInitial?)` | rxc `useControlEffect((rc) => rc.getValue(c), …)` + timer (the composition proven on the `/controls` demo) |
 | `useValidator(c, v, key?)` | rxc `useValidator` with `(value, rc) => withAmbient(rc, () => v(value))` |
 | `useAsyncValidator` | rxc `useAsyncValidator`; legacy `validCheckValue(control)` adapts to `(rc, c) => withAmbient(rc, () => check(c))` |
-| `useControlGroup`, `usePreviousValue`, `useSelectableArray`, `ensureSelectableValues` | re-export rxc versions (signatures already match; `SelectionGroupSync` gained an optional `ctx` param — supertype) |
+| `useControlGroup`, `usePreviousValue`, `useSelectableArray`, `ensureSelectableValues` | re-export rxc versions (signatures already match; rxc's `SelectionBuilder` — legacy's `SelectionGroupSync` — gained an optional `ctx` param, a supertype) |
 | `controlValues(…)` | compat-local: returns `() => …` reading via ambient getters — works inside any `withAmbient`-bridged compute |
 | `useComponentTracking` / `useTrackedComponent` | Bridge 1 (see above) — the load-bearing pair |
 | `useRefState`, `useDebounced` | port verbatim (pure React utilities) |
-| `Finput` / `Fselect` / `Fcheckbox` | re-export rxc versions (same props incl. `notValue`; rxc ones are self-subscribing which legacy's also were via tracking) |
+| `Finput` / `Fselect` / `Fcheckbox` | re-typed wrappers over rxc's `ControlInput` / `ControlSelect` / `ControlCheckbox` (same props incl. `notValue`; rxc ones are self-subscribing, which legacy's also were via tracking) |
 | `formControlProps(c)` | compat-local over ambient getters (legacy: reads collect into the caller's tracker) |
 | `useFormControlProps(c)` | `rxcUseFormControlProps` needs an rc — compat version reads via ambient getters + `useFormEdit()` fold, one page of code |
-| `FormEditProvider` / `useFormEdit` / `FormEditState` | re-export rxc versions (identical shape — verified against 4.6.0) |
-| `RenderControl({children\|render})` | rxc `RenderControl` with `(rc) => withAmbient(rc, cb)` ; accept both prop names |
+| `FormEditProvider` / `useFormEdit` / `FormEditState` | compat-local wrapper (`src/formEdit.tsx`). Was a verbatim re-export, until rxc renamed the flag `readonly` -> `readOnly` (the DOM spelling): 4.6.0 ships `readonly`, so compat owns the legacy spelling and maps it across. An import alias cannot do this — the rename is to a *member* |
+| `RenderControl({children\|render})` | rxc `Reactive` with `(rc) => withAmbient(rc, cb)` ; accept both prop names |
 | `RenderOptional`, `RenderElements`, `RenderArrayElements`, `renderOptionally` | rxc versions, callback adapted: legacy signatures lack the leading `rc` — wrap with `withAmbient` and drop the param |
 | `NotDefinedContext` | legacy declares it as a function returning the context — match whatever 4.6 actually exports (verify at implementation; rxc's is a plain context) |
 

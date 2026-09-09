@@ -603,7 +603,7 @@ interface SchemaInterface {
   compareValue(field, v1, v2): number;
   searchText(field, value): string;
   makeEqualityFunc(field: SchemaNode, element?): EqualityFunc;
-  makeControlSetup(field: SchemaNode, element?): ControlSetup<any>;
+  makeControlSetup(field: SchemaNode, element?): ControlOptions<any>;
 }
 ```
 
@@ -614,7 +614,7 @@ This is an abstract interface — implementations provide type-specific behaviou
 Variables provide contextual data to expressions.
 
 ```typescript
-type VariablesFunc = (changes: ChangeListenerFunc<any>) => Record<string, any>;
+type VariablesFunc = (changes: ChangeListener<any>) => Record<string, any>;
 ```
 
 The function is called with a change listener for dependency tracking. It returns a `Record<string, any>` of variable values. Used by JSONata evaluation to inject contextual values.

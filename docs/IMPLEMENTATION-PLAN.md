@@ -1,5 +1,12 @@
 # Implementation Plan: Clean-room @astroapps/controls and @astroapps/controls-react
 
+
+> **Historical record.** This is the design as proposed, kept for its rationale. Many of the
+> API names below were changed before publishing — `useControls` → `useReactive`,
+> `getValueRx` → `getTrackedValue`, `computed` → `computeInto`, `noopReadContext` →
+> `untrackedRead` and ~30 more. `docs/CONTROLS-API-NAMING-REVIEW.md` has the full mapping and
+> the reasoning; the shipped surface is the source of truth.
+
 ## Context
 
 The `controls-api` project has type specs (`types.ts`, `react-types.ts`) and design docs defining a new controls library with explicit reactivity and no globals. This plan describes how to implement these interfaces so the example `page.tsx` actually works.
