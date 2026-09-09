@@ -56,7 +56,7 @@ baseline: `decoupledLocalDependencies` in `rush.json` makes their `^4.6.0`
 resolve from the registry instead of the workspace, and
 `allowedAlternativeVersions` permits the two ranges to coexist.
 
-The package also re-exports the *new* API (`useControls`, `createControlContext`,
+The package also re-exports the *new* API (`useReactive`, `createControlContext`,
 `ReadContext`, …) under a `@react-typed-forms/core/next` subpath so a
 migrating app can adopt new-style components file-by-file without adding a
 second dependency edge. (Not yet implemented — depending on `@rxc/controls`
@@ -142,9 +142,9 @@ stop():  reconciler.reconcile(tracked), restore prev collector
 `useComponentTracking()` calls `start()` during the hook, returns `stop` —
 the plugin-injected `try { … } finally { stop() }` closes the window at the
 end of the render body, synchronous with render, which is the same law
-`useControls`/`rendered(…)` obeys (see `docs/RENDER-BOUNDARY.md`). Lifecycle
+`useReactive`/`rendered(…)` obeys (see `docs/RENDER-BOUNDARY.md`). Lifecycle
 (alive/dead sweep across StrictMode remounts) goes through the compat
-context's `reviveTracker`/`markTrackerDead`, exactly like `useControls`.
+context's `retainTracker`/`releaseTracker`, exactly like `useReactive`.
 
 Save/restore (rather than set/clear) makes nesting safe: a legacy render
 helper's callback runs under its own collector while the enclosing

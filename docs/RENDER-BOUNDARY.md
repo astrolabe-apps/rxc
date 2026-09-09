@@ -152,7 +152,7 @@ Degrades safely. After an unwind, `tracked` holds partial reads and `reconciler.
 - **Stale, never missing.** `reconcile()` is the only mutator of `subs` and it didn't run, so the
   previous set persists — the over-subscription direction, at worst a spurious re-render.
 - **No leak.** Nothing new was subscribed. An error boundary unmounting the subtree runs the effect
-  teardown → `markTrackerDead` → sweep; a retry calls `reset()` and proceeds clean.
+  teardown → `releaseTracker` → sweep; a retry calls `beginTracking()` and proceeds clean.
 - **Suspense** is the case that actually happens, and it's the same story: the retry re-reads
   everything from scratch before calling `rendered(…)`, so the final state is correct.
 - **Nothing needs `try`/`finally`** — the hook holds no ambient state to restore.

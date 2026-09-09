@@ -583,8 +583,8 @@ Hooks (`useControl`, `useControlEffect`, `useValidator`, etc.), form components 
 3. Child creation is lazy, except fields with validators (eagerly created)
 4. Disabled/Touched inherited at creation + cascade down on set
 5. Validity propagates upward; isValid() lazily recomputes via childrenValid()
-6. Transactions batch listener notifications to outermost boundary
+6. A write batch defers listener notification to its own `flush()`; batches do **not** nest — a `ctx.update()` called from inside a listener opens a separate batch and flushes inline. `[patch]`'s global `runTransaction` did batch to the outermost boundary
 7. ~~Cleanup is conditional on single-parent children~~ (candidate for removal — see section L)
 8. Errors stored as `Record<string, string> | undefined` — never an empty object
 9. `isNull` uses loose equality (`== null`) — both null and undefined are "null"
-10. Transaction errors are caught and logged, never thrown — the drain loop always completes
+10. A throwing listener **propagates** out of `flush()` and aborts the drain — `[core]` has no try/catch there, and `update()` rethrows after flushing what it already wrote (see the write-batching tests). `[patch]` was the one that caught and logged, always completing the drain. Do not "restore" that behaviour in core

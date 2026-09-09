@@ -2,9 +2,19 @@
 
 Reference document for clean-room implementation. Extracted from `@astroapps/forms-core` source.
 
+> **The semantics here are authoritative and settled; the *names* are the legacy ones.** This was
+> extracted from the implementation being ported, and unlike
+> [`CONTROL-SEMANTICS.md`](CONTROL-SEMANTICS.md) it carries no `[core]`/`[patch]` tags to tell the
+> two apart. Some identifiers survived the port unchanged (`FormStateNode`, `getState`,
+> `getChildren`, `SchemaNode`, `FormNode`), others did not — `SchemaDataNode` is `DataNode`,
+> `defaultResolveChildNodes` is `defaultResolveChildren`, and helpers like `getResolvedChildren`,
+> `getChildNodes`, `wireProxies` and `validDataNode` have no rxc counterpart under those names.
+> `packages/forms-core/src` is the source of truth for what anything is called; read this for what
+> it must *do*.
+
 ## Architecture Overview
 
-The forms library sits on top of the `@astroapps/controls` reactive control tree (documented separately in `controls-api/CONTROL-SEMANTICS.md`). It provides schema-driven form state management through three parallel hierarchies that are merged at runtime:
+The forms library sits on top of the `@astroapps/controls` reactive control tree (documented separately in [`CONTROL-SEMANTICS.md`](CONTROL-SEMANTICS.md)). It provides schema-driven form state management through three parallel hierarchies that are merged at runtime:
 
 1. **Schema Layer** — Type structure definitions (`SchemaNode` / `SchemaField`)
 2. **Form Definition Layer** — UI layout and rendering instructions (`FormNode` / `ControlDefinition`)
