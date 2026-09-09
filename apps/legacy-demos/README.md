@@ -1,13 +1,24 @@
-# Legacy ButtonAction demo
+# Legacy reference demos
 
-Mirrors `apps/dev/src/app/buttons/page.tsx` using the legacy
-`@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` stack
-(via the published npm versions). Built for side-by-side visual
-comparison while validating `ButtonAction` parity in `@rxc/forms`.
+Legacy reference renderings via the published `@react-typed-forms/*` stack,
+for side-by-side comparison against the `@rxc/*` port. Each route pairs with
+one in `apps/dev`:
 
-This is a separate Rush project from `apps/dev` because the legacy
-stack is Next 14 / React 18, whereas `apps/dev` is Next 16 / React 19.
-Both apps use Tailwind 4.
+| Route | Pairs with | Validates |
+|---|---|---|
+| `/buttons` | `apps/dev` `/buttons` | `ButtonAction` parity |
+| `/externaledit` | `apps/dev` `/externaledit` | the `editExternal` staged-edit modal |
+| `/controls` | `apps/dev` `/controls` | the `@react-typed-forms/core` hooks/components surface |
+
+Add a page here whenever a new rxc feature needs a legacy baseline that does
+not fit the Fire-form-shaped `apps/legacy-compare`.
+
+This is a separate Rush project from `apps/dev` so it can stay on the
+*published* legacy packages: `rush.json`'s `decoupledLocalDependencies`
+resolves its `@react-typed-forms/core@^4.6.0` from the registry rather than
+the workspace copy (which is v5, the compat package), and
+`allowedAlternativeVersions` lets the two ranges coexist. Both apps run
+Next 15+/React 19 and Tailwind 4.
 
 ## Run
 
@@ -19,14 +30,13 @@ rushx dev
 # → http://localhost:3001
 ```
 
-`apps/dev` defaults to port 3000, so both can run side by side:
-- New: <http://localhost:3000/buttons>
-- Legacy: <http://localhost:3001>
+`apps/dev` defaults to port 3000, so both can run side by side — e.g.
+<http://localhost:3000/buttons> against <http://localhost:3001/buttons>.
 
 ## What's wired up
 
-- `@react-typed-forms/core@^4.5.3`, `@react-typed-forms/schemas@^17.1.2`,
-  `@react-typed-forms/schemas-html@^5.1.1` from the npm registry.
+- `@react-typed-forms/core@^4.6.0`, `@react-typed-forms/schemas@^18.0.0`,
+  `@react-typed-forms/schemas-html@^5.2.1` from the npm registry.
 - Stock theme: `createDefaultRenderers(defaultTailwindTheme)` — no
   per-action styling overrides except the two demonstrative cases in the
   "Per-action styling" section.
@@ -39,7 +49,7 @@ rushx dev
   Material Symbols stylesheet is also loaded so Material rows show as
   glyphs rather than ligature text fallback.
 
-## Sections (mirroring new demo)
+## `/buttons` sections (mirroring the new demo)
 
 1. ActionStyle variants — Button / Secondary / Link / Group
 2. Icon placement — Before / After / ReplaceText / FA
@@ -52,11 +62,11 @@ rushx dev
 ## Workarounds in this app
 
 A couple of friction points showed up integrating the legacy stack
-into a Rush + Next 14 app — both are isolated to this project:
+into a Rush + Next app — both are isolated to this project:
 
 - **`@react-typed-forms/core@4.x` `exports` ordering bug.** The
   published `package.json` lists `default` before `require`, which
-  webpack 5 / Next 14 reject ("Default condition should be last one"),
+  webpack 5 / Next reject ("Default condition should be last one"),
   and Node's resolver also blocks any subpath load. `next.config.mjs`
   works around it by reading the manifest off the resolved symlink and
   aliasing the bare specifier to the real ESM entry on disk.

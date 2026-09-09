@@ -1,5 +1,10 @@
 # Forms-Core Tree Traversal Semantics
 
+> **Legacy reference.** This describes traversal in the *old* `@astroapps/forms-core`, which only
+> the filename currently says. The rxc port replaced this model with persistent handles plus
+> ephemeral cursors — see [`FORM-FUTURE-API-DESIGN.md`](FORM-FUTURE-API-DESIGN.md) for the shipped
+> design and `packages/forms-core/src/nodes` for the code. Kept for the semantics it records.
+
 The system has **three parallel tree structures** that work together to render schema-driven forms:
 
 ## 1. FormNode Tree (UI Definition)

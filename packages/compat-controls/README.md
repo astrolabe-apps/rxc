@@ -6,7 +6,10 @@ explicit-reactivity engine, `@rxc/controls-core` + `@rxc/controls`.
 
 Migrating from v4 is a semver bump plus **one line** at your app root. Your
 imports, your `.value` reads, your `groupedChanges` calls, and the
-`@react-typed-forms/transform` SWC plugin all keep working unchanged.
+`@astroapps/swc-controls-plugin` SWC plugin all keep working unchanged.
+(`@react-typed-forms/transform` was the older *Babel* plugin; either way the
+injected `useComponentTracking()` imports from this package, so no build
+config changes.)
 
 Design: [`docs/COMPAT-CONTROLS-DESIGN.md`](../../docs/COMPAT-CONTROLS-DESIGN.md).
 

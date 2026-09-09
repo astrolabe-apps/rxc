@@ -548,7 +548,10 @@ const registry = combineRegistries(
 
 ## Reference layout
 
-- `docs/CONTROL-SEMANTICS.md` — control tree behavior (unchanged from legacy)
+- `docs/CONTROL-SEMANTICS.md` — control tree behavior. Tagged `[core]` / `[patch]` per section;
+  the semantics carried over, but not identically — see its Key Invariants for where `[core]`
+  deliberately differs (write batches do not nest, a throwing listener propagates instead of
+  being logged, per-control `equals` is gone).
 - `docs/FORM-SEMANTICS.md` — FormStateNode / FormState semantics
 - `docs/legacy/` — frozen reference for the old engine
 - `packages/forms-react-core/src/` — registry, matchers, plugins, hooks

@@ -48,6 +48,15 @@ Reviewed and settled, in the order they were decided. Everything here still need
 `markTrackerDead` / `reviveTracker` → `releaseTracker` / `retainTracker` (also staying public — see
 their sections for why `/internal` was rejected for both).
 
+**Names that shipped but were not in this inventory**, each a consequence of an accepted item:
+`ReadContext.reset` → `beginTracking` (to match `isTracking`, and to keep `reset` unambiguous on the
+write side); `FinalizedReadHook` / `setFinalizedReadHook` → `EscapedReadHook` /
+`setEscapedReadHook` on the `/internal` subpath, following the same flag and the `warnEscapedRead`
+they feed; `FormControlBinding` as the name for the `{ props, errorText }` pair, with
+`FormControlProps` kept for the DOM props exactly as the `FormControlProps` row asked; and
+`linkFields` for the module-local helper in `groupControl.ts` whose name `setFields` → `attachFields`
+took.
+
 **Rejected:** `useControlEffect` → `useControlWatch`. It is an effect, triggered by control changes,
 and `effect` in `controls-core` already carries that exact meaning — see "What to leave alone".
 
