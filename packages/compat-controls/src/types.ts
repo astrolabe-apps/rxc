@@ -12,10 +12,35 @@
  * Reference: `@react-typed-forms/core@4.6.0` type declarations (the last v4).
  */
 
-import { ControlChange } from "@rxc/controls-core";
+import { ControlChange as CoreControlChange } from "@rxc/controls-core";
 import type { Subscription } from "@rxc/controls-core";
 
-export { ControlChange };
+/**
+ * Legacy `ControlChange`, which has an `All` member.
+ *
+ * The engine renamed that member `AllState`, because it omits `Structure`
+ * and `Validate` and so never meant "all" — a subscriber using it is not
+ * told about element insertions. Legacy consumers subscribe with `All` and
+ * persist its value, so v4's spelling has to survive here.
+ *
+ * This package used to re-export the engine's enum by object identity, which
+ * meant any member rename in `@rxc/controls-core` silently changed this
+ * package's published API with nothing in the repo to catch it. Now the
+ * legacy shape is built explicitly: the engine's members (spreading a
+ * numeric enum carries its reverse mapping too), plus `All` and the reverse
+ * entry for 127 restored to their v4 spelling.
+ *
+ * The exported *type* stays the engine's enum type, so masks built here pass
+ * straight into engine APIs and every internal use is unaffected.
+ */
+const LegacyControlChange = {
+  ...CoreControlChange,
+  All: CoreControlChange.AllState,
+  [CoreControlChange.AllState]: "All",
+} as typeof CoreControlChange & { All: CoreControlChange };
+
+export { LegacyControlChange as ControlChange };
+export type ControlChange = CoreControlChange;
 export type { Subscription };
 
 // ── Setup ────────────────────────────────────────────────────────────

@@ -40,7 +40,13 @@ export enum ControlChange {
   Value = 16,
   InitialValue = 32,
   Error = 64,
-  All = Value | Valid | Touched | Disabled | Error | Dirty | InitialValue,
+  /**
+   * Every *state* facet: value, initial value, validity, dirty, touched,
+   * disabled and error. Deliberately **not** everything — it omits
+   * `Structure` and `Validate`, so a subscriber using it will not be told
+   * about element insertions or removals. Hence the name.
+   */
+  AllState = Value | Valid | Touched | Disabled | Error | Dirty | InitialValue,
   Structure = 128,
   Validate = 256,
 }
