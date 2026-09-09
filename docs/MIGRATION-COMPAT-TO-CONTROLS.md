@@ -56,10 +56,16 @@ Two rules that catch people:
 - **Every return path must go through `rendered(…)`**, early returns included. The `Rendered` return
   type makes forgetting a compile error inside your own package; a dev-mode warning covers the cases
   the type cannot reach (test files, anything outside your `tsconfig` include).
-- **Use the `rc` you were handed, never one closed over from an enclosing component.** Reads through
-  a stale `rc` return the right value and register nothing, so the component silently stops
-  re-rendering. The render helpers hand you a fresh `rc` per callback — shadow the outer name and
-  the mistake becomes a scoping impossibility.
+- **Use the `rc` you were handed, never one closed over from an enclosing component.** A read
+  through a stale `rc` does not throw: it returns the current value and registers nothing, so the
+  component stops re-rendering. In dev a guard catches the common shape — reading an enclosing
+  component's `rc` *during* another render pass can only be a captured context, so
+  `@rxc/controls` logs a `console.error` naming the offender (once per call site). It is not
+  foolproof: outside a render pass the same read is indistinguishable from a legitimate untracked
+  one (event handlers, refs and effects all read finalized contexts on purpose), so those stay
+  silent, and the guard is compiled out of production builds entirely. The render helpers hand you
+  a fresh `rc` per callback — name the parameter `rc` so it shadows the outer one, and the mistake
+  becomes a scoping impossibility rather than something to be caught.
 
 ## Step 2 — reads
 
@@ -179,6 +185,11 @@ both, so there is no big-bang cutover. While both are in the tree:
   ambient half work.
 - `withAmbient(rc, fn)` and `ambientToRc` bridge in the other direction — they let ambient-style
   code run inside an explicit `rc`. Useful for a compute function you have not ported yet.
+- **This is the window where a half-ported read is dangerous.** Compat's prototype patch is still
+  installed, so `c.value` inside a component that has moved to `useReactive()` still compiles and
+  still returns the right value — it just subscribes nobody, because the ambient collector is not
+  set during an explicit render pass. Convert a component's reads in the same commit as its
+  boundary. Once compat is gone the compiler catches these for you (see below), but not before.
 
 Component-by-component in leaf-first order works well, since a leaf's reads are its own.
 
@@ -189,8 +200,10 @@ Component-by-component in leaf-first order works well, since a leaf's reads are 
 3. Keep the root `ControlContextProvider`, changing its value from `getCompatContext()` to a
    `createControlContext()` of your own. One per app (or per SSR request — that is what makes
    `uniqueId` sequences reproducible across render and hydration).
-4. Grep for `.value`, `.touched`, `.dirty` and friends on control handles. Anything left is either a
-   `*Now` snapshot (fine) or a read that is no longer subscribing to anything.
+4. Typecheck. Any leftover ambient read is now a compile error, because `@rxc/controls`'s `Control`
+   declares no `.value`, `.touched`, `.dirty`, `.error` or `.elements` — those getters only ever
+   existed as compat's prototype patch, and dropping the dependency takes them with it. The
+   untracked `*Now` snapshots are the ones that legitimately survive.
 
-Step 4 is worth doing properly: an ambient read that survives the migration does not error. It
-returns the current value and quietly never re-renders.
+That last step is the reason to finish rather than sit half-migrated indefinitely: while compat is
+installed, a stale ambient read is silent, and the moment it is gone the compiler finds every one.
