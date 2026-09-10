@@ -266,9 +266,28 @@ const PATCH: Record<string, Accessor> = {
   cleanup: {
     value(this: ControlImpl<any>) {
       const list = this.meta[CLEANUP_KEY] as (() => void)[] | undefined;
-      if (!list) return;
-      delete this.meta[CLEANUP_KEY];
-      list.forEach((fn) => fn());
+      if (list) {
+        delete this.meta[CLEANUP_KEY];
+        list.forEach((fn) => fn());
+      }
+      // Recurse into children, as legacy's `cleanup()` does via
+      // `_logic.withChildren`. Callers clean up a subtree by calling this on
+      // its root — `@astroapps/forms-core` detaches an array element by
+      // calling `cleanup()` on the element's base control, and the effects
+      // and evaluators being torn down are registered on *descendant*
+      // controls. Without the recursion nothing below the root was released.
+      //
+      // Only exclusively-owned children: a control attached to more than one
+      // parent (`attachFields`/`controlGroup`) is shared, so tearing it down
+      // from one parent would pull it out from under the others. Legacy
+      // guards this the same way, with `parents?.length == 1`.
+      // `cleanup` is installed by this patch, so it is not on the core type.
+      const recurse = (c: ControlImpl<any>) => {
+        if (c._parents?.length === 1)
+          (c as unknown as { cleanup(): void }).cleanup();
+      };
+      if (this._fields) for (const k in this._fields) recurse(this._fields[k]);
+      this._elems?.forEach(recurse);
     },
   },
 };

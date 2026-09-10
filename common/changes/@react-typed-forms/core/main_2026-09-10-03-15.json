@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Fix Control.cleanup() only running the callbacks registered on that one control. Legacy recurses into materialized fields and elements (skipping any child attached to more than one parent), and callers rely on it to tear down a whole subtree from its root — @astroapps/forms-core detaches an array element by calling cleanup() on the element's base control while the effects and evaluators being released are registered on descendant controls. Every removed array row leaked them. The early return when the root had no callbacks of its own also skipped the recursion entirely.",
+      "type": "patch",
+      "packageName": "@react-typed-forms/core"
+    }
+  ],
+  "packageName": "@react-typed-forms/core",
+  "email": "doolse@gmail.com"
+}

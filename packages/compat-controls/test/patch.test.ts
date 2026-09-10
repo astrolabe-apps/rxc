@@ -4,6 +4,7 @@ import {
   collectChanges,
   newControl,
   notEmpty,
+  setFields,
 } from "../src/index";
 import type { ChangeListenerFunc, Control } from "../src/index";
 
@@ -169,6 +170,53 @@ describe("prototype patch — getters", () => {
     c.cleanup();
     c.cleanup();
     expect(runs).toBe(1);
+  });
+
+  // Regression: `cleanup()` tears down a *subtree*. Callers clean up a branch
+  // by calling it on that branch's root — `@astroapps/forms-core` detaches an
+  // array element by calling `cleanup()` on the element's base control, while
+  // the effects being released are registered on descendant controls. Without
+  // the recursion every removed array row leaked its evaluators.
+  it("cleanup recurses into fields and elements", () => {
+    const c = newControl<{ a: { deep: string }; list: string[] }>({
+      a: { deep: "x" },
+      list: ["1", "2"],
+    });
+    const ran: string[] = [];
+    // Materialize the children and register a cleanup on each level.
+    c.fields.a.addCleanup(() => ran.push("a"));
+    c.fields.a.fields.deep.addCleanup(() => ran.push("a.deep"));
+    c.fields.list.addCleanup(() => ran.push("list"));
+    c.fields.list.elements[0].addCleanup(() => ran.push("list[0]"));
+    c.fields.list.elements[1].addCleanup(() => ran.push("list[1]"));
+
+    // The root itself has no registered cleanups — it must still recurse.
+    c.cleanup();
+    expect(ran.sort()).toEqual(["a", "a.deep", "list", "list[0]", "list[1]"]);
+
+    // Idempotent, as at a single level.
+    ran.length = 0;
+    c.cleanup();
+    expect(ran).toEqual([]);
+  });
+
+  it("cleanup leaves controls shared with another parent alone", () => {
+    const shared = newControl("s");
+    const owner = newControl<{ own: string }>({ own: "o" });
+    // `setFields` attaches `shared` as a second parent's child.
+    const other = setFields(newControl({}), { shared });
+    setFields(owner, { shared });
+
+    let sharedRuns = 0;
+    let ownRuns = 0;
+    shared.addCleanup(() => sharedRuns++);
+    owner.fields.own.addCleanup(() => ownRuns++);
+
+    owner.cleanup();
+    expect(ownRuns).toBe(1);
+    // Two parents — tearing it down here would pull it out from under `other`.
+    expect(sharedRuns).toBe(0);
+    expect(other.fields.shared.value).toBe("s");
   });
 });
 
