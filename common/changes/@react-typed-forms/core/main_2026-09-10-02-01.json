@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Fix getCurrentFields returning a detached snapshot instead of the control's live field record. It delegated to existingFields, which yields a throwaway {} while _fields is still undefined, so a caller that captured the record before any field was materialized held an object the engine never wrote to. Legacy went through _logic.ensureObject()._fields, which forced the record into existence; getCurrentFields now materializes it the same way. This is what @astroapps/forms-core's createOverrideProxy relies on — without it every nested scripted override (displayData.text, renderOptions.overrideText, groupOptions.columns) silently stopped applying.",
+      "type": "patch",
+      "packageName": "@react-typed-forms/core"
+    }
+  ],
+  "packageName": "@react-typed-forms/core",
+  "email": "doolse@gmail.com"
+}

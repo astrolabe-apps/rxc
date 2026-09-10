@@ -78,11 +78,29 @@ export function withChildren(
 
 // ── Object controls ──────────────────────────────────────────────────
 
-/** The materialized fields of an object control, keyed by name. */
+/**
+ * The materialized fields of an object control, keyed by name.
+ *
+ * Returns the control's **live** `_fields` record, not a snapshot: fields
+ * created after this call show up in the object the caller already holds.
+ * That aliasing is load-bearing. Legacy went through
+ * `_logic.ensureObject()._fields`, whose `ensureObject()` forced the record
+ * into existence, and callers rely on it — `createOverrideProxy` in
+ * `@astroapps/forms-core` captures the record once at construction and then
+ * expects later-created override fields to appear through it.
+ *
+ * Hence the explicit materialization: `existingFields` yields a throwaway
+ * `{}` while `_fields` is still undefined, so a caller capturing that early
+ * would be left holding an object the engine never writes to (every nested
+ * scripted override silently stopped applying).
+ */
 export function getCurrentFields<V extends Record<string, any>>(
   control: Control<V>,
 ): { [K in keyof V]?: Control<V[K]> } {
-  return control.existingFields as { [K in keyof V]?: Control<V[K]> };
+  const impl = toImpl(asCore(control));
+  // Same shape the engine's own lazy creation uses (ControlImpl.getField).
+  impl._fields ??= Object.create(null);
+  return impl._fields as unknown as { [K in keyof V]?: Control<V[K]> };
 }
 
 /**

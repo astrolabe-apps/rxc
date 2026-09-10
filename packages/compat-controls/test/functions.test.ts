@@ -76,6 +76,30 @@ describe("object / group functions", () => {
     expect(Object.keys(getCurrentFields(c))).toEqual(["a"]);
   });
 
+  // Regression: the returned record must be the control's live `_fields`, not
+  // a snapshot. `createOverrideProxy` in @astroapps/forms-core captures it
+  // once at construction and reads through it for the proxy's lifetime, so a
+  // fresh `{}` returned before any field exists left every nested scripted
+  // override permanently invisible.
+  it("getCurrentFields aliases the live field record", () => {
+    const c = newControl<{ a: string; b: string }>({ a: "1", b: "2" });
+    // Captured while the control has no materialized fields at all.
+    const captured = getCurrentFields(c);
+    expect(Object.keys(captured)).toEqual([]);
+
+    void c.fields.a;
+    expect(Object.keys(captured)).toEqual(["a"]);
+    // The exact predicate createOverrideProxy uses.
+    expect(Object.hasOwn(captured, "a")).toBe(true);
+    expect(captured.a!.value).toBe("1");
+
+    void c.fields.b;
+    expect(Object.keys(captured).sort()).toEqual(["a", "b"]);
+
+    // Same record object on every call, so a second capture agrees.
+    expect(getCurrentFields(c)).toBe(captured);
+  });
+
   it("cloneFields shares the original's field controls", () => {
     const c = newControl<{ a: string }>({ a: "1" });
     const fieldA = c.fields.a;
