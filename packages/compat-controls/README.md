@@ -18,10 +18,11 @@ Design: [`docs/COMPAT-CONTROLS-DESIGN.md`](../../docs/COMPAT-CONTROLS-DESIGN.md)
 ```tsx
 import { ControlContextProvider, getCompatContext } from "@react-typed-forms/core";
 
+/** @noTrackControls */
 export default function App({ children }) {
   return (
     <ControlContextProvider value={getCompatContext()}>
-      {children}
+      <AppInner>{children}</AppInner>
     </ControlContextProvider>
   );
 }
@@ -29,6 +30,55 @@ export default function App({ children }) {
 
 There is deliberately **no** no-provider fallback — a missing provider fails
 loudly rather than silently giving you a second control context.
+
+### Where the provider goes
+
+It has to be the outermost thing in your client tree, and it needs a component
+of its own. Two rules, both of which produce the identical error if you get
+them wrong:
+
+```
+useControlContext: no ControlContext found. Wrap your app in <ControlContextProvider>.
+```
+
+**1. Nothing else in that component may call a control hook.** A hook called in
+the *same* component that renders the provider still runs outside it. This is
+easy to miss because the offending call is usually not yours — in a Next root
+layout, `useNextNavigationService` calls `useControl` internally:
+
+```tsx
+// WRONG — useNextNavigationService runs above the provider it is meant to be under
+export default function App({ children }) {
+  const navigation = useNextNavigationService(routes);
+  return (
+    <ControlContextProvider value={getCompatContext()}>
+      <Layout navigation={navigation}>{children}</Layout>
+    </ControlContextProvider>
+  );
+}
+```
+
+Move everything down into a child component; the provider component should
+render the provider and nothing else.
+
+**2. Mark it `@noTrackControls` if you use the tracking plugin.** The SWC and
+Babel plugins inject `useComponentTracking()` at the top of every component
+they transform — including the one rendering the provider, so it runs above it.
+The opt-out comment is honoured by both plugins. The component renders only the
+provider, so it has nothing to track anyway.
+
+If the provider lives in a `.ts` file (a shared HOC, say) rather than `.tsx`,
+`createElement` works, but pass `children` inside the props object —
+`createElement(ControlContextProvider, { value: getCompatContext(), children })`
+— since the three-argument overload does not satisfy the provider's required
+`children` prop.
+
+**Diagnosing it.** The error surfaces at prerender/SSR naming a *page*, and a
+different page on each run, because the real culprit is the shared layout and
+prerender order varies. Don't chase the page. In the minified build the
+throwing frame is `useControlContext` and its caller is `useComponentTracking`;
+find that caller in the built chunk and it will be whichever component wraps
+the provider.
 
 ## Trying it before it is published
 
@@ -118,7 +168,15 @@ A write through either API updates both.
 5. **Concurrent rendering** is no safer than it was. The ambient read
    collector is a module global set during render — the same hazard v4 has.
    Components ported to `useReactive()` become fully safe.
-6. **Metrics and freeze-count APIs are no-op stubs**:
+6. **This package is ESM only; v4 shipped dual.** v4 had `main:
+   lib/index.cjs` and a `require` export condition; v5 has neither. Bundlers
+   (Next, Vite, webpack) and vitest are unaffected, and Node >= 22.12 can
+   `require()` it via require-ESM support. Two things do break: Node 20, and
+   jest running CJS — jest passes `node_modules` through untransformed, so it
+   needs `transformIgnorePatterns: ["/node_modules/(?!(@react-typed-forms|@rxc)/)"]`
+   plus a babel-jest entry for `.js` (ts-jest will not do it; it only handles
+   your own TS).
+7. **Metrics and freeze-count APIs are no-op stubs**:
    `getControlMetrics`, `getHeavyControls`, `getControlById`,
    `printControlMetrics`, `printHeavyControls`, `ControlMetricsRegistry`,
    `unsafeFreezeCountEdit`. They exist so imports resolve, and do nothing.
@@ -126,11 +184,28 @@ A write through either API updates both.
 Timing fidelity is explicitly not a goal — transaction flush order and cleanup
 ticks follow `docs/CONTROL-SEMANTICS.md`, not v4's quirks.
 
-## Not covered
+## The legacy schemas stack
 
-`@react-typed-forms/schemas` does **not** run on this package. Its renderer
-stack reaches the engine through a separate package name
-(`@astroapps/forms-core` → `@astroapps/controls`), so bumping core to v5 swaps
-only the half your own code touches and leaves you with two engines. Legacy
-schemas hosts port directly onto `@rxc/forms` — see
-[`docs/MIGRATION-FROM-LEGACY.md`](../../docs/MIGRATION-FROM-LEGACY.md).
+`@react-typed-forms/schemas` **does** run on this package, with one upstream
+change. The obstacle was never the renderers: it was that the schema layer
+reached the engine under a second package name, so bumping core to v5 would
+leave you with two engines. But `@astroapps/controls` had exactly one consumer
+— `@react-typed-forms/core`, which re-exported it wholesale — so the fix is to
+retire it and point `@astroapps/forms-core` at this package instead. That is a
+pure import-specifier rewrite; the compat surface exports all 20 names it uses.
+
+Nothing else in the stack needs rebuilding. `@react-typed-forms/schemas`,
+`schemas-html`, `@astroapps/schemas-datagrid` and `@astroapps/schemas-editor`
+have **zero** runtime references to `@astroapps/controls` in their published
+builds — the one import in `schemas-html` is type-only and elided — so they
+keep working on their published versions. Four overrides do it: the three from
+`pack-compat.mjs` plus a rebuilt `@astroapps/forms-core`.
+
+Verified on a production app: six Next sites building and statically
+exporting, with one copy of the engine and `@astroapps/controls` absent from
+the install entirely.
+
+This is an alternative to porting onto `@rxc/forms`, not a replacement for it
+— it keeps a legacy host on the legacy renderer set while moving the engine
+underneath. See [`docs/MIGRATION-FROM-LEGACY.md`](../../docs/MIGRATION-FROM-LEGACY.md)
+for the full port.
