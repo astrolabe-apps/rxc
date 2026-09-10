@@ -18,6 +18,7 @@ import {
   useControl,
   useControlEffect,
   useControlGroup,
+  useDebounced,
   usePreviousValue,
   useTrackedComponent,
   useValidator,
@@ -325,5 +326,49 @@ describe("groups / previous", () => {
       price.value = 12;
     });
     expect(text("#out")).toBe("10/12");
+  });
+
+  // Regression: `useDebounced` must return the loose `(...args: any[]) => void`
+  // legacy inferred, not `(...args: Parameters<T>) => void`. The debounced
+  // function is normally handed straight to `useControlEffect`, whose `V` comes
+  // from `compute` — so with precise parameters a `compute` returning `as const`
+  // gives a readonly tuple that `strictFunctionTypes` refuses to pass to a
+  // handler declared with a mutable one. That shape is exactly what broke a
+  // real app on a version bump; it is the *types* here that matter, so keep the
+  // `as const` and the mutable-tuple parameter.
+  it("useDebounced result stays assignable to a mutable-tuple handler", async () => {
+    const a = newControl(1);
+    const b = newControl("x");
+    const seen: [number, string][] = [];
+
+    function handler([n, s]: [number, string]) {
+      seen.push([n, s]);
+    }
+
+    function Comp() {
+      useControlEffect(
+        () => [a.value, b.value] as const,
+        useDebounced(handler, 1),
+      );
+      return <div />;
+    }
+    mount(<Comp />);
+
+    await act(async () => {
+      a.value = 2;
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(seen).toEqual([[2, "x"]]);
+
+    // Bursts collapse to the last value.
+    await act(async () => {
+      a.value = 3;
+      a.value = 4;
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(seen).toEqual([
+      [2, "x"],
+      [4, "x"],
+    ]);
   });
 });

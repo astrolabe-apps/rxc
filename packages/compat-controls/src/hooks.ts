@@ -45,12 +45,23 @@ export function useRefState<A>(init: () => A): [MutableRefObject<A>, boolean] {
   return [ref as MutableRefObject<A>, isInitial];
 }
 
-/** Debounce a callback; pending runs are dropped when superseded, and an
- * in-flight AbortController result is aborted (legacy behavior). */
+/**
+ * Debounce a callback; pending runs are dropped when superseded, and an
+ * in-flight AbortController result is aborted (legacy behavior).
+ *
+ * The return type is deliberately the loose `(...args: any[]) => void` that
+ * legacy inferred, NOT `(...args: Parameters<T>) => void`. Tightening it looks
+ * like a free improvement and is not: the debounced function is typically
+ * handed straight to `useControlEffect`, whose `V` is inferred from `compute`.
+ * With precise parameters, a `compute` returning `as const` yields a readonly
+ * tuple that `strictFunctionTypes` then refuses to pass to a callback declared
+ * with a mutable one — legitimate code that compiled under v4 stops compiling
+ * on a version bump. Found doing exactly that to a real app.
+ */
 export function useDebounced<T extends (...args: any[]) => any>(
   func: T,
   delay: number,
-): (...args: Parameters<T>) => void {
+): (...args: any[]) => void {
   const ref = useRef<
     [T, ReturnType<typeof setTimeout> | undefined, unknown]
   >([func, undefined, undefined]);
