@@ -178,7 +178,9 @@ class FormStateNodeImpl implements FormStateNode {
         busy: false,
         disablerCount: 0,
       },
-      // NOTE: has no effect — see ControlOptions.keepErrors.
+      // Errors are mirrored onto `base` from the data control; they must not
+      // be dropped when `base`'s own value changes (notably when children are
+      // appended after validation has already published).
       { keepErrors: true },
     );
     this.base = base;

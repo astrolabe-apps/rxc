@@ -614,6 +614,41 @@ describe("FormStateNode — Layer 3: validators", () => {
     ).fields.tags;
     expect(tagsControl.elementsNow.length).toBe(3);
   });
+
+  // Regression: the node's `base` control carries the errors mirrored from
+  // its data control, and children are appended to `base` *after* validation
+  // has published. Without `keepErrors` that append cleared the mirrored
+  // error, so a collection over its Length.max reported `valid === true`
+  // while the data control still held the error — the form passed validity
+  // gates with an invalid field. Needs a collection (elements become child
+  // nodes); a scalar never re-writes `base` after publishing.
+  it("a collection over Length.max reports the node invalid, not just the control", () => {
+    const fields: SchemaField[] = [
+      { type: FieldType.String, field: "items", collection: true },
+    ];
+    const lengthMax: LengthValidator = { type: ValidatorType.Length, max: 2 };
+    const defs = [dataDef("items", { validators: [lengthMax] })];
+    const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {
+      items: ["a", "b", "c", "d"],
+    });
+    const root = createFormStateNode(
+      ctx,
+      formTree.rootNode,
+      dataNode,
+      globals,
+    );
+    const [itemsNode] = root.getChildren(rd);
+    const state = itemsNode.getState(rd);
+
+    // The child nodes are what re-write `base` after validation published.
+    expect(itemsNode.getChildren(rd).length).toBe(4);
+
+    const errors = state.data?.errorsNow ?? {};
+    expect(Object.values(errors)[0]).toMatch(/Length must be less than 2/);
+    expect(itemsNode.getState(rd).valid).toBe(false);
+    // Invalidity bubbles to the root, which is what a submit gate reads.
+    expect(root.getState(rd).valid).toBe(false);
+  });
 });
 
 describe("FormStateNode — Layer 4a: scripted proxy", () => {

@@ -180,4 +180,46 @@ describe("errors", () => {
       }),
     );
   });
+
+  // Errors published from outside the control (mirrored from elsewhere, or
+  // set by an async validator) must survive an unrelated value write.
+  // Without `keepErrors` a FormStateNode's `base` control silently dropped
+  // its mirrored validation error the moment its child list was appended to,
+  // leaving the node reporting valid while the data control held an error.
+  it("keepErrors preserves published errors across value writes", () => {
+    const ctx = makeCtx();
+    const kept = ctx.newControl({ a: 1, list: [] as number[] }, { keepErrors: true });
+    const cleared = ctx.newControl({ a: 1, list: [] as number[] });
+
+    for (const c of [kept, cleared]) {
+      ctx.update((wc) => wc.setError(c, "mirrored", "boom"));
+      expect(c.validNow).toStrictEqual(false);
+    }
+
+    // A write to the control's own value, and to a field of it.
+    ctx.update((wc) => wc.setValue(kept, { a: 2, list: [] }));
+    ctx.update((wc) => wc.setValue(cleared, { a: 2, list: [] }));
+    expect(kept.errorsNow).toStrictEqual({ mirrored: "boom" });
+    expect(cleared.errorsNow).toStrictEqual({});
+
+    ctx.update((wc) => wc.setValue(kept.fields.list, [1, 2, 3]));
+    expect(kept.errorsNow).toStrictEqual({ mirrored: "boom" });
+    expect(kept.validNow).toStrictEqual(false);
+
+    // Still explicitly clearable — keepErrors suppresses the implicit clear
+    // on write, not `setError`/`clearErrors`.
+    ctx.update((wc) => wc.setError(kept, "mirrored", null));
+    expect(kept.errorsNow).toStrictEqual({});
+    expect(kept.validNow).toStrictEqual(true);
+  });
+
+  it("a validator implies keepErrors", () => {
+    const ctx = makeCtx();
+    const c = ctx.newControl("", { validator: notEmpty("required") });
+    expect(c.errorNow).toStrictEqual("required");
+    // An unrelated published error survives the validator's own re-run.
+    ctx.update((wc) => wc.setError(c, "other", "extra"));
+    ctx.update((wc) => wc.setValue(c, "filled"));
+    expect(c.errorsNow).toStrictEqual({ other: "extra" });
+  });
 });

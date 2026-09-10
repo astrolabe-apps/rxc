@@ -20,11 +20,15 @@ export interface ControlOptions<V> {
   /**
    * Keep published errors when the value changes, instead of clearing them.
    *
-   * NOT IMPLEMENTED: nothing reads this. The only thing that sets
-   * `ControlFlags.DontClearError` today is the presence of a `validator` in
-   * this options object, which is why the flag's real behaviour is only ever
-   * seen on validated controls. Passing `keepErrors: true` on its own does
-   * nothing.
+   * Errors are normally cleared on every value write, on the assumption that
+   * a new value invalidates the old verdict. That is wrong for a control
+   * whose errors are published from somewhere else — mirrored from another
+   * control, or set by an async validator — where an unrelated value write
+   * would silently drop a still-valid error.
+   *
+   * Supplying a `validator` implies this (the validator owns the "default"
+   * error key and re-runs on every value change, so clearing would be
+   * redundant); set it explicitly for the externally-published case.
    */
   keepErrors?: boolean;
 }

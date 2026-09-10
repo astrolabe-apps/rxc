@@ -117,6 +117,9 @@ class ControlContextImpl implements ControlContext {
   }
 
   private initControl(control: ControlImpl, setup: ControlOptions<any>): void {
+    // 0. Errors published from outside this control survive value writes.
+    if (setup.keepErrors) control._flags |= ControlFlags.DontClearError;
+
     // 1. Validator
     if (setup.validator !== undefined) {
       const v = setup.validator;
