@@ -45,6 +45,8 @@ import {
   useValidator,
   useComponentTracking,
   useValueChangeEffect,
+  type Control,
+  type ControlSetup,
 } from "@react-typed-forms/core";
 
 // ── tracked(): what the legacy SWC plugin injects into every component ─
@@ -690,6 +692,104 @@ const FormEditSection = tracked(function FormEditSection() {
 
 // ── Page ─────────────────────────────────────────────────────────────
 
+
+// ── 12. Recursive ControlSetup ───────────────────────────────────────
+
+/**
+ * A setup that refers to itself, via the `DelayedSetup` thunk legacy provides
+ * for exactly this. Tree-shaped data is the usual reason: a help tree, a nav
+ * tree, a folder tree. Converting these thunks eagerly is non-terminating,
+ * which is how it shipped until a real app's help tree blew the stack on first
+ * render — nested setups now convert lazily, one level per access.
+ *
+ * The `title` validator is the visible proof that the setup reaches the whole
+ * tree, not just the root: blank any title at any depth and the root goes
+ * invalid, because that leaf got the recursive setup too.
+ */
+interface TreeNode {
+  title: string;
+  children: TreeNode[] | null;
+}
+
+const treeSetup: ControlSetup<TreeNode> = {
+  fields: {
+    title: { validator: notEmpty("Required") },
+    children: { elems: () => treeSetup },
+  },
+};
+
+const TreeBranch = tracked(function TreeBranch({
+  node,
+  depth,
+  onRemove,
+}: {
+  node: Control<TreeNode>;
+  depth: number;
+  onRemove?: () => void;
+}) {
+  const children = node.fields.children;
+  return (
+    <div className={depth > 0 ? "border-l border-zinc-200 pl-4" : undefined}>
+      <div className="flex items-center gap-2 py-1">
+        <span className="w-10 shrink-0 text-xs text-zinc-400">d{depth}</span>
+        <Finput className={inputClass} control={node.fields.title} />
+        <button
+          className={buttonClass}
+          onClick={() => addElement(children, { title: "", children: [] })}
+        >
+          Add child
+        </button>
+        {onRemove && (
+          <button className={buttonClass} onClick={onRemove}>
+            Remove
+          </button>
+        )}
+      </div>
+      <RenderElements control={children}>
+        {(child) => (
+          <TreeBranch
+            node={child}
+            depth={depth + 1}
+            onRemove={() => removeElement(children, child)}
+          />
+        )}
+      </RenderElements>
+    </div>
+  );
+});
+
+
+const RecursiveSetupSection = tracked(function RecursiveSetupSection() {
+  const tree = useControl<TreeNode>(
+    {
+      title: "Help",
+      children: [
+        {
+          title: "Getting started",
+          children: [{ title: "Installing", children: [] }],
+        },
+        { title: "Reference", children: [] },
+      ],
+    },
+    treeSetup,
+  );
+
+  return (
+    <Section
+      title="12. Recursive ControlSetup"
+      note="A self-referential setup (fields.children.elems = () => treeSetup) — legacy's DelayedSetup idiom for tree shapes. Nested setups convert lazily, so this terminates."
+    >
+      <StateChips dirty={tree.dirty} valid={tree.valid} />
+      <TreeBranch node={tree} depth={0} />
+      <p className="text-xs text-zinc-500">
+        Clear any title — at any depth — and the root turns invalid: that leaf
+        got the recursive setup&apos;s <code>notEmpty</code> validator too.
+        Add a child and the new element gets it as well.
+      </p>
+    </Section>
+  );
+});
+
 export default function CompatKitchenSink() {
   return (
     <ControlContextProvider value={getCompatContext()}>
@@ -736,6 +836,7 @@ function PageBody() {
         <FormControlPropsSection />
         <RenderHelpersSection />
         <FormEditSection />
+        <RecursiveSetupSection />
       </main>
     </div>
   );
