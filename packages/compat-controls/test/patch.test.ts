@@ -6,7 +6,11 @@ import {
   notEmpty,
   setFields,
 } from "../src/index";
-import type { ChangeListenerFunc, Control } from "../src/index";
+import type {
+  ChangeListenerFunc,
+  Control,
+  ControlSetup,
+} from "../src/index";
 
 interface Person {
   name: string;
@@ -273,5 +277,77 @@ describe("prototype patch — ambient collection", () => {
     // Window closed — reads outside collect nothing
     void c.value;
     expect(outer.reads.length).toBe(2);
+  });
+});
+
+describe("recursive ControlSetup", () => {
+  // Regression: legacy's `DelayedSetup` thunk exists precisely so a setup can
+  // refer to itself — a tree node whose children are the same shape. Converting
+  // those thunks eagerly walked the setup forever and blew the stack before the
+  // page could render. Nested setups now convert lazily, one level per access.
+  interface Node {
+    title: string;
+    children: Node[] | null;
+  }
+  const treeSetup: ControlSetup<Node> = {
+    fields: { children: { elems: () => treeSetup } },
+  };
+
+  it("a self-referential setup converts without recursing", () => {
+    const c = newControl<Node>(
+      {
+        title: "root",
+        children: [
+          { title: "a", children: [{ title: "a1", children: null }] },
+          { title: "b", children: null },
+        ],
+      },
+      treeSetup,
+    );
+    expect(c.fields.title.value).toBe("root");
+  });
+
+  it("the setup still applies at every level of the tree", () => {
+    // `meta` rides along on the recursive setup, so finding it on a
+    // grandchild element proves the setup was applied, not just skipped.
+    const marked: ControlSetup<Node> = {
+      meta: { depthMarker: true },
+      fields: { children: { elems: () => marked } },
+    };
+    const c = newControl<Node>(
+      {
+        title: "root",
+        children: [{ title: "a", children: [{ title: "a1", children: null }] }],
+      },
+      marked,
+    );
+
+    const child = c.fields.children.elements[0];
+    expect(child.meta.depthMarker).toBe(true);
+    const grandchild = child.fields.children.elements[0];
+    expect(grandchild.fields.title.value).toBe("a1");
+    expect(grandchild.meta.depthMarker).toBe(true);
+  });
+
+  it("descends on demand rather than up front", () => {
+    let resolved = 0;
+    const counted: ControlSetup<Node> = {
+      fields: {
+        children: {
+          elems: () => {
+            resolved++;
+            return counted;
+          },
+        },
+      },
+    };
+    const c = newControl<Node>(
+      { title: "root", children: [{ title: "a", children: null }] },
+      counted,
+    );
+    // Creating the control must not walk the setup tree at all.
+    expect(resolved).toBe(0);
+    void c.fields.children.elements[0];
+    expect(resolved).toBeGreaterThan(0);
   });
 });
