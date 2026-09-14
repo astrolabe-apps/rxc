@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext } from "react";
 import type { ReactElement, ReactNode } from "react";
-import type { Control } from "@rxc/controls-core";
+import type { Control } from "@rx-controls/core";
 import { useReactive } from "./useReactive.js";
 import type {
   RenderArrayElementsProps,

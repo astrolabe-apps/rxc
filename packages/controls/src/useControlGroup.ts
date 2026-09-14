@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { createControlGroup, attachFields } from "@rxc/controls-core";
-import type { Control, ControlValue } from "@rxc/controls-core";
+import { createControlGroup, attachFields } from "@rx-controls/core";
+import type { Control, ControlValue } from "@rx-controls/core";
 import { useControlContext } from "./useReactive.js";
 
 /**

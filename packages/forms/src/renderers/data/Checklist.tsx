@@ -1,12 +1,12 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { DataRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { DataRendererProps } from "@rx-controls/forms-react-core";
 import {
   clsx,
   rendererClass,
   useChecklistController,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

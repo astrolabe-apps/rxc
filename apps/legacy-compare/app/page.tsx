@@ -21,7 +21,7 @@ import { useFormTypeRenderer } from "./renderer";
 import { SchemaMap } from "./schemas";
 
 // Field-based client search identical to the rxc compare app's
-// `fieldClientSearch` (@rxc/forms-datagrid) so both apps compute the same
+// `fieldClientSearch` (@rx-controls/forms-datagrid) so both apps compute the same
 // filtered/sorted/paged rows from the same seed.
 function makeFieldClient(
   searchableFields: string[] | undefined,

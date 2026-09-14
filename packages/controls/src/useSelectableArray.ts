@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ControlChange, createControlGroup } from "@rxc/controls-core";
+import { ControlChange, createControlGroup } from "@rx-controls/core";
 import type {
   Control,
   ControlContext,
   ControlOptions,
   Subscription,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import { useControlContext } from "./useReactive.js";
 
 /** One entry of a selectable array: the value plus whether it is selected. */

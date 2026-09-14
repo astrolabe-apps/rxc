@@ -2,7 +2,7 @@ import {
   untrackedRead,
   type Control,
   type ReadContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   ControlDefinitionType,
   createDataNode,
@@ -13,7 +13,7 @@ import {
   type DataNode,
   type FormNode,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type { ActionRendererProps } from "./types";
 
 /**

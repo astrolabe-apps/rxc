@@ -1,4 +1,4 @@
-import type { Control, ReadContext } from "@rxc/controls-core";
+import type { Control, ReadContext } from "@rx-controls/core";
 
 /**
  * Sentinel held in override controls before a script has produced a value.
@@ -62,7 +62,7 @@ function warnEscapedRead(propertyKey: string): void {
   warnedSites.add(key);
   // eslint-disable-next-line no-console
   console.warn(
-    `[@rxc/forms-core] Scripted-override proxy read for ".${propertyKey}" ` +
+    `[@rx-controls/forms-core] Scripted-override proxy read for ".${propertyKey}" ` +
       `happened after its owning rc was finalized. The read returned the ` +
       `current value but did NOT register a subscription — when the ` +
       `script's override lands, no component will re-render. The proxy ` +

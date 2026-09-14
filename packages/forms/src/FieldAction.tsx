@@ -1,12 +1,12 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import { isActionControl, type FormStateNode } from "@rxc/forms-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { isActionControl, type FormStateNode } from "@rx-controls/forms-core";
 import {
   Action,
   useActionHandler,
   useAsyncAction,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { Field } from "./Field";
 
 /**

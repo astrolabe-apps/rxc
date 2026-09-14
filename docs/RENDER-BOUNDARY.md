@@ -1,6 +1,6 @@
 # The Render Boundary
 
-Authoritative reference for how a React component gets reactive reads in `@rxc/*`. **These
+Authoritative reference for how a React component gets reactive reads in `@rx-controls/*`. **These
 semantics are settled and must be preserved** — in particular the invariant in
 [Why reconcile must stay in the render body](#why-reconcile-must-stay-in-the-render-body), which is
 the one thing a well-meaning refactor is likely to break.
@@ -8,7 +8,7 @@ the one thing a well-meaning refactor is likely to break.
 ## The contract
 
 ```tsx
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 
 function StarsRenderer({ node, id }: DataRendererProps): Rendered {
   const { rc, rendered } = useReactive();
@@ -115,7 +115,7 @@ For anything the type can't reach — components that don't annotate a return ty
 `rendered(…)` calls during the port):
 
 ```
-[@rxc/controls] TextfieldRenderer (/…/Textfield.tsx:9:32) returned without calling rendered(…). …
+[@rx-controls/react] TextfieldRenderer (/…/Textfield.tsx:9:32) returned without calling rendered(…). …
 ```
 
 The component names itself: identity is captured from the stack **during render**, once per
@@ -167,7 +167,7 @@ Spans throw → next render only.
 
 ## Nested scopes: the render helpers
 
-`Reactive`, `RenderElements`, `RenderOptional` and `whenAllDefined` (in `@rxc/controls`) exist
+`Reactive`, `RenderElements`, `RenderOptional` and `whenAllDefined` (in `@rx-controls/react`) exist
 to narrow **subscription scope**, not to render anything. They are the ports of the legacy
 `@react-typed-forms/core` helpers, which did the same job by a different mechanism: under ambient
 tracking each was a component, so reads inside its callback attributed to it rather than to the
@@ -224,7 +224,7 @@ reads that land past `finalize()`. Core does not decide whether any given one is
 legitimate (event handlers, refs and effects all read non-tracking contexts on purpose). The adapter
 installs a hook that knows the damning circumstance: **a non-tracking read while another rc's render
 window is open**, which can only be a captured context, because legitimate non-tracking reads happen
-with no render in progress. `@rxc/controls` tracks the open window in a module-scoped `openRc`, set
+with no render in progress. `@rx-controls/react` tracks the open window in a module-scoped `openRc`, set
 when `useReactive` opens the pass and cleared by `rendered(…)` — plus in the post-commit effect, so a
 component that threw before closing its window can't leave it stale.
 

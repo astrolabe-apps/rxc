@@ -1,10 +1,10 @@
 "use client";
 
 import { useId } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { Control } from "@rxc/controls-core";
-import type { FieldOption } from "@rxc/forms-core";
-import { clsx } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { Control } from "@rx-controls/core";
+import type { FieldOption } from "@rx-controls/forms-core";
+import { clsx } from "@rx-controls/forms-react-core";
 import { setFilterValue, type SearchFilters } from "@astroapps/searchstate";
 import { Popover } from "./Popover";
 

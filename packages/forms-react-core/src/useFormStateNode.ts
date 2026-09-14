@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { ControlContext } from "@rxc/controls-core";
+import type { ControlContext } from "@rx-controls/core";
 import {
   createFormStateNode,
   defaultResolveChildren,
@@ -10,7 +10,7 @@ import {
   type FormGlobalOptions,
   type FormNode,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import { collectExtraRenderOptionFields } from "./plugins";
 import type { FormRegistry } from "./registry";
 import type { UseFormStateNodeOptions } from "./types";
@@ -41,7 +41,7 @@ interface NodeCacheKey {
  * validation, or coordinate with external UI).
  *
  * The headless layer requires `options.registry` to be supplied
- * explicitly — platform packages (`@rxc/forms`, `@rxc/forms-native`)
+ * explicitly — platform packages (`@rx-controls/forms`, `@rx-controls/forms-native`)
  * wrap this with their own helper that defaults to a platform
  * `defaultRegistry()`.
  *

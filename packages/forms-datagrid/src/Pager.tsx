@@ -1,8 +1,8 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { Control } from "@rxc/controls-core";
-import { dataRef } from "@rxc/forms-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { Control } from "@rx-controls/core";
+import { dataRef } from "@rx-controls/forms-core";
 import {
   Action,
   dataPlugin,
@@ -10,7 +10,7 @@ import {
   type FormRegistry,
   rendererClass,
   useDesignMode,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import type { SearchOptions } from "@astroapps/searchstate";
 
 /** `renderOptions.type` discriminator for the Pager renderer. */

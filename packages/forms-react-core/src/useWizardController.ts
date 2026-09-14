@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type { Control, ReadContext } from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
+import type { Control, ReadContext } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import {
   GroupRenderType,
   isGroupControl,
   type FormStateNode,
   type WizardRenderOptions,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 export interface WizardStepInfo {
   /** 0-based step index over visible-only steps. Hidden steps reuse the

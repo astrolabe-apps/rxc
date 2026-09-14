@@ -1,8 +1,8 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import { isDisplayControl, type TextDisplay } from "@rxc/forms-core";
-import { clsx, rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { isDisplayControl, type TextDisplay } from "@rx-controls/forms-core";
+import { clsx, rendererClass, type DisplayRendererProps } from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 // See `HtmlDisplayRenderer` for the rationale on reading through `node`

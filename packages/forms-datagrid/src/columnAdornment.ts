@@ -10,8 +10,8 @@ import {
   type RenderOptions,
   SchemaTags,
   stringField,
-} from "@rxc/forms-core";
-import { rendererClass } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import { rendererClass } from "@rx-controls/forms-react-core";
 import type { ColumnHeader } from "@astroapps/datagrid";
 
 /**

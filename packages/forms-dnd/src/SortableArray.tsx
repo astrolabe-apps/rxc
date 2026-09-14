@@ -1,16 +1,16 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   isDataControl,
   ValidatorType,
   type LengthValidator,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   rendererClass,
   type DataRendererProps,
-} from "@rxc/forms-react-core";
-import { Field } from "@rxc/forms";
+} from "@rx-controls/forms-react-core";
+import { Field } from "@rx-controls/forms";
 import {
   DndContext,
   type DragEndEvent,
@@ -60,7 +60,7 @@ function getLengthRange(
 
 /**
  * Reorderable array renderer. Same shape as `ArrayRenderer` from
- * `@rxc/forms` but each row exposes a drag handle and
+ * `@rx-controls/forms` but each row exposes a drag handle and
  * `@dnd-kit/sortable` reorders the underlying array control via
  * `wc.updateElements`.
  *

@@ -8,8 +8,8 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Control } from "@rxc/controls";
-import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import type { Control } from "@rx-controls/react";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rx-controls/react";
 import {
   buildSchema,
   createDataNode,
@@ -28,8 +28,8 @@ import {
   type GroupedControlsDefinition,
   type SchemaField,
   type SchemaTreeResolver,
-} from "@rxc/forms-core";
-import { FieldType } from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
+import { FieldType } from "@rx-controls/forms-core";
 import {
   ActionScope,
   type AdornmentRegistration,
@@ -43,7 +43,7 @@ import {
   useDesignMode,
   useFormStateNode,
   type VisibilityProps,
-} from "@rxc/forms";
+} from "@rx-controls/forms";
 
 // ── Custom data plugin: Stars rating ─────────────────────────────────
 

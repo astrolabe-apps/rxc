@@ -6,12 +6,12 @@ import {
   IconLibrary,
   type AccordionAdornment as AccordionAdornmentDef,
   type IconReference,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type {
   AdornmentRegistration,
   AdornmentRenderProps,
-} from "@rxc/forms-react-core";
-import { clsx } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
+import { clsx } from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../useHtmlTheme";
 import { resolveIcon } from "../renderers/display/Icon";
 

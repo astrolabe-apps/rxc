@@ -316,7 +316,7 @@ export interface ControlContext {
   update(cb: (wc: WriteContext) => void): void;
 
   // Note: tracking ReadContext instances are not created here — hosts
-  // construct `TrackingReadContext` from `@rxc/controls-core/internal`
+  // construct `TrackingReadContext` from `@rx-controls/core/internal`
   // and pair it with a `SubscriptionReconciler` themselves.
 
   /** Mark a tracker as dead (alive=false); cleanup is deferred via lazy sweep */
@@ -334,7 +334,7 @@ export interface ControlContext {
  *
  * - `TrackingReadContext` records (control, ControlChange) pairs as they are
  *   read, and a `SubscriptionReconciler` turns that set into live
- *   subscriptions. Both are exported from `@rxc/controls-core/internal`, for
+ *   subscriptions. Both are exported from `@rx-controls/core/internal`, for
  *   sibling packages that host a reactive scope of their own.
  *
  * - `untrackedRead` returns snapshot values (the `*Now` properties) without

@@ -6,9 +6,9 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { FormStateNode } from "@rxc/forms-core";
-import { useFormOptions } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { FormStateNode } from "@rx-controls/forms-core";
+import { useFormOptions } from "@rx-controls/forms-react-core";
 import type { HtmlFormOptions } from "./theme";
 import { useHtmlTheme } from "./useHtmlTheme";
 

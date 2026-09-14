@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import type { Control, ControlOptions } from "@rxc/controls";
-import { useComputed, useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import type { Control, ControlOptions } from "@rx-controls/react";
+import { useComputed, useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rx-controls/react";
 
 interface FormData {
   firstName: string;
@@ -141,7 +141,7 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     href: "/controls",
     label: "/controls",
     description:
-      "@rxc/controls kitchen sink — legacy core surface ported, pair with localhost:3001/controls",
+      "@rx-controls/react kitchen sink — legacy core surface ported, pair with localhost:3001/controls",
   },
   {
     href: "/compat",

@@ -11,7 +11,7 @@ export interface MotionVisibilityProps {
 const DEFAULT_TRANSITION: Transition = { duration: 0.2 };
 
 /**
- * Cross-fade Visibility — replaces `<DefaultVisibility>` from `@rxc/forms`.
+ * Cross-fade Visibility — replaces `<DefaultVisibility>` from `@rx-controls/forms`.
  *
  * Wraps children in `<AnimatePresence>` + `<motion.div>` so toggling
  * `visible` produces a cross-fade rather than a hard mount/unmount.

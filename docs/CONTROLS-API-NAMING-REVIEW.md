@@ -1,4 +1,4 @@
-# `@rxc/controls` API Naming Review
+# `@rx-controls/react` API Naming Review
 
 **Status: implemented.** Every `accept` below has landed on the shipped surface; the rationale
 sections are kept as the record of *why*, including the rejected alternatives — they are what stops
@@ -16,8 +16,8 @@ Six corrections this document got wrong, found while implementing:
 | Four rxc names cross into compat verbatim | True, but the count understates the coupling: compat also declares its own `Control` interface mirroring the engine's, so core *property* renames are not tsc-caught at compat call sites. `getCurrentFields` silently returned `undefined` until a test caught it. |
 
 
-A pre-publish pass over the whole public surface of `@rxc/controls` — which includes all of
-`@rxc/controls-core`, re-exported wholesale — recording what each export does and whether the name
+A pre-publish pass over the whole public surface of `@rx-controls/react` — which includes all of
+`@rx-controls/core`, re-exported wholesale — recording what each export does and whether the name
 should change before the first published version. 69 top-level names, plus the members of the four
 interfaces that carry most of the day-to-day surface.
 
@@ -75,17 +75,17 @@ worse — see its section.
 **Nothing is implemented.** The whole surface change is one pre-publish break, to land with the
 migration guide below.
 
-## Also required: a legacy → `@rxc/controls` migration guide
+## Also required: a legacy → `@rx-controls/react` migration guide
 
 Renaming the surface invalidates the mapping any legacy host would work from, so the rename lands
-with a Rosetta-stone doc for `@react-typed-forms/core` → `@rxc/controls` — the controls-side sibling
+with a Rosetta-stone doc for `@react-typed-forms/core` → `@rx-controls/react` — the controls-side sibling
 of `docs/MIGRATION-FROM-LEGACY.md`, which covers only the schemas/renderer side.
 
 Not yet scoped. The open question is the audience, and it changes the doc materially:
 
-- **Legacy v4 → `@rxc/controls` direct**, for hosts porting properly rather than bumping to the
+- **Legacy v4 → `@rx-controls/react` direct**, for hosts porting properly rather than bumping to the
   compat package. Main event is ambient tracking → explicit `rc`/`wc`, on top of the name mapping.
-- **Compat v5 → `@rxc/controls`**, for hosts already on `@react-typed-forms/core@5` who want to drop
+- **Compat v5 → `@rx-controls/react`**, for hosts already on `@react-typed-forms/core@5` who want to drop
   compat. Same ambient-to-explicit story, but they arrive having already changed nothing but a
   version number and one provider line.
 - **Both in one doc**, legacy-v4 mapping as the main table plus a section on the compat stepping
@@ -100,7 +100,7 @@ Several verdicts below turn on this, and it is easy to get wrong: `ReadContext` 
 read scope for the whole library, not a render-time dependency tracker. A React render is only one
 of the things that opens one.
 
-There is one implementation, `TrackingReadContext` (exported from `@rxc/controls-core/internal`),
+There is one implementation, `TrackingReadContext` (exported from `@rx-controls/core/internal`),
 and five callers construct one directly:
 
 | Caller | Opens a scope for | Re-runs when |
@@ -162,7 +162,7 @@ rejected**, not for churn but because it would be inaccurate.
 ## The compat constraint is smaller than it looks
 
 `packages/compat-controls` (published as `@react-typed-forms/core@5`) already imports almost
-everything from `@rxc/controls` **under an alias** — `useControl as rxcUseControl`,
+everything from `@rx-controls/react` **under an alias** — `useControl as rxcUseControl`,
 `Finput as RxcFinput`, and so on — and reimplements a few things itself (its `NotDefinedContext` is
 a legacy lazy-singleton factory, unrelated to the context rxc exports). Renaming an aliased import
 is a one-line edit per name.
@@ -172,8 +172,8 @@ added at that boundary:
 
 ```ts
 // packages/compat-controls/src/index.ts
-export { ControlContextProvider } from "@rxc/controls";
-export { FormEditProvider, useFormEdit, type FormEditState } from "@rxc/controls";
+export { ControlContextProvider } from "@rx-controls/react";
+export { FormEditProvider, useFormEdit, type FormEditState } from "@rx-controls/react";
 ```
 
 One genuine pin: compat re-exports the `ControlChange` enum straight from core, so its *member*
@@ -182,7 +182,7 @@ vocabulary — `Finput`, `useControlEffect`, `setInitialValue`, `controlGroup` �
 compat's own adapter layer and stays published under the legacy package name no matter what the new
 library calls it.
 
-**Legacy familiarity is therefore not a reason to keep a name in `@rxc/*`.**
+**Legacy familiarity is therefore not a reason to keep a name in `@rx-controls/*`.**
 
 ## Rename before publishing — all accepted
 
@@ -402,7 +402,7 @@ sweep that consumes them rather than what a caller is doing. **Rename to `releas
 `retainTracker`** so they read as refcounting rather than necromancy.
 
 **Moving them to `/internal` was considered and rejected.** Today's four callers are all
-in-workspace (`useControls` ×2 and `useValidator` in `@rxc/controls`, `useComponentTracking` in
+in-workspace (`useControls` ×2 and `useValidator` in `@rx-controls/react`, `useComponentTracking` in
 compat), which makes it tempting, and the public signature looks like a tell:
 
 ```ts
@@ -628,4 +628,4 @@ others merely also return a value. The name is accurate as it stands.
 
 Compiled from `packages/controls/src/index.ts`, `packages/controls-core/src/index.ts`, and the
 declared interfaces in `packages/controls-core/src/types.ts`. Compat coupling checked against every
-`@rxc/controls` import in `packages/compat-controls/src`.
+`@rx-controls/react` import in `packages/compat-controls/src`.

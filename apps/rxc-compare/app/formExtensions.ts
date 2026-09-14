@@ -1,4 +1,4 @@
-import { buildSchema, stringField, ControlAdornmentType } from "@rxc/forms-core";
+import { buildSchema, stringField, ControlAdornmentType } from "@rx-controls/forms-core";
 
 // String constants for custom renderType / adornmentType values referenced in Fire.json.
 // In the new lib these are not separate registration kinds — they're just the matcher's

@@ -1,14 +1,14 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   IconLibrary,
   isDisplayControl,
   type IconDisplay,
   type IconReference,
-} from "@rxc/forms-core";
-import type { DisplayRendererProps } from "@rxc/forms-react-core";
-import { clsx, rendererClass } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import type { DisplayRendererProps } from "@rx-controls/forms-react-core";
+import { clsx, rendererClass } from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 export interface ResolvedIcon {

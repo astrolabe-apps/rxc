@@ -374,7 +374,7 @@ A renderer or extension can replace `defaultDataProps` via `ControlRenderOptions
 
 ## Settled semantics worth preserving
 
-The `@rxc/forms` redesign should keep these invariants:
+The `@rx-controls/forms` redesign should keep these invariants:
 
 1. **Renderer registration is the only extension surface.** Adding a new render type means appending a registration, not subclassing or patching.
 2. **Dispatch is by simple flag combinations** — `schemaType`, `renderType`, `collection`, `options`, `match`, `actionType`, `adornmentType`, `labelType`. No back-references between renderers.

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { untrackedRead } from "@rxc/controls-core";
-import type { Control, ReadContext } from "@rxc/controls-core";
+import { untrackedRead } from "@rx-controls/core";
+import type { Control, ReadContext } from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
-} from "@rxc/controls-core/internal";
+} from "@rx-controls/core/internal";
 import { useControlContext } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 

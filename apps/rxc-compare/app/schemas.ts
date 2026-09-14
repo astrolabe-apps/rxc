@@ -125,7 +125,7 @@ import {
   defaultValueForFields,
   applyDefaultValues,
   makeCompoundField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 export interface FireRegistrationForm {
   startDate: string;

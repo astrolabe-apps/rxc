@@ -1,10 +1,10 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import type { Control } from "@rxc/controls-core";
+import type { Control } from "@rx-controls/core";
 import { useFormEdit } from "./FormEditState.js";
 import { useControlContext } from "./useReactive.js";
-import type { ReadContext } from "@rxc/controls-core";
+import type { ReadContext } from "@rx-controls/core";
 
 /**
  * The props binding a control to a native form element. Every member is a

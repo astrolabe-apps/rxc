@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
-import type { Control } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rx-controls/react";
+import type { Control } from "@rx-controls/react";
 import {
   accordionAdornment,
   AdornmentPlacement,
@@ -44,11 +44,11 @@ import {
   type GroupedControlsDefinition,
   type SchemaField,
   type SchemaTreeResolver,
-} from "@rxc/forms-core";
-import { Form, useFormStateNode } from "@rxc/forms";
-import type { HtmlFormOptions } from "@rxc/forms";
+} from "@rx-controls/forms-core";
+import { Form, useFormStateNode } from "@rx-controls/forms";
+import type { HtmlFormOptions } from "@rx-controls/forms";
 import type { ComponentType } from "react";
-import type { DisplayData } from "@rxc/forms-core";
+import type { DisplayData } from "@rx-controls/forms-core";
 
 // ── Schema ───────────────────────────────────────────────────────────
 

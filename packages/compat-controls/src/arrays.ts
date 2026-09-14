@@ -3,9 +3,9 @@
  * transaction (Bridge 2). Signatures match `@astroapps/controls@1.4.2`.
  */
 
-import type { Control as CoreControl } from "@rxc/controls-core";
-import { getElementPosition as coreGetElementIndex } from "@rxc/controls-core";
-import { toImpl } from "@rxc/controls-core/internal";
+import type { Control as CoreControl } from "@rx-controls/core";
+import { getElementPosition as coreGetElementIndex } from "@rx-controls/core";
+import { toImpl } from "@rx-controls/core/internal";
 import { runInWc } from "./transactions.js";
 import { asLegacy } from "./patch.js";
 import type { Control } from "./types.js";

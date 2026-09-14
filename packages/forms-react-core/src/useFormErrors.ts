@@ -1,5 +1,5 @@
-import type { ReadContext } from "@rxc/controls-core";
-import type { FormStateNode } from "@rxc/forms-core";
+import type { ReadContext } from "@rx-controls/core";
+import type { FormStateNode } from "@rx-controls/forms-core";
 
 export interface FormError {
   /** The descendant node that owns the error. */

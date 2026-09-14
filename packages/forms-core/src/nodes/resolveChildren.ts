@@ -1,4 +1,4 @@
-import { type Control, type ReadContext } from "@rxc/controls-core";
+import { type Control, type ReadContext } from "@rx-controls/core";
 import {
   ControlDefinitionType,
   type DataControlDefinition,

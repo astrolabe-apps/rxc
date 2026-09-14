@@ -1,5 +1,5 @@
-// Re-export all of @rxc/controls-core for single-import convenience
-export * from "@rxc/controls-core";
+// Re-export all of @rx-controls/core for single-import convenience
+export * from "@rx-controls/core";
 
 // React-specific API
 export {

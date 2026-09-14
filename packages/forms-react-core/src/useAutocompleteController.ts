@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Control, ReadContext } from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
-import type { FieldOption, FormStateNode } from "@rxc/forms-core";
+import type { Control, ReadContext } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
+import type { FieldOption, FormStateNode } from "@rx-controls/forms-core";
 
 /**
  * Platform-agnostic controller for the single-select combobox. Owns the

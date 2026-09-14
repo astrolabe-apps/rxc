@@ -12,7 +12,7 @@ import {
   createControlContext,
   effect,
   ControlChange as CoreControlChange,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   asCore,
   asLegacy,

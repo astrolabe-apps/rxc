@@ -9,8 +9,8 @@
  * exactly the observable behavior of legacy's global freeze counter.
  */
 
-import type { WriteContext } from "@rxc/controls-core";
-import { WriteContextImpl } from "@rxc/controls-core/internal";
+import type { WriteContext } from "@rx-controls/core";
+import { WriteContextImpl } from "@rx-controls/core/internal";
 
 let currentWc: WriteContextImpl | null = null;
 

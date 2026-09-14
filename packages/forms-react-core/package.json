@@ -1,5 +1,5 @@
 {
-  "name": "@rxc/forms-react-core",
+  "name": "@rx-controls/forms-react-core",
   "version": "0.1.0",
   "type": "module",
   "main": "./lib/index.js",
@@ -16,9 +16,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rxc/controls-core": "workspace:*",
-    "@rxc/controls": "workspace:*",
-    "@rxc/forms-core": "workspace:*"
+    "@rx-controls/core": "workspace:*",
+    "@rx-controls/react": "workspace:*",
+    "@rx-controls/forms-core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18 || ^19"

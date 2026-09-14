@@ -1,10 +1,10 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { GridRendererOptions } from "@rxc/forms-core";
-import { isGroupControl } from "@rxc/forms-core";
-import { rendererClass } from "@rxc/forms-react-core";
-import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { GridRendererOptions } from "@rx-controls/forms-core";
+import { isGroupControl } from "@rx-controls/forms-core";
+import { rendererClass } from "@rx-controls/forms-react-core";
+import type { GroupRendererProps } from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

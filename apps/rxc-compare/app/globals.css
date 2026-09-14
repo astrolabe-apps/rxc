@@ -10,7 +10,7 @@
 @import "tailwindcss/theme.css" layer(theme);
 
 /* Tailwind v4 only scans the consuming app by default; classes baked into
- * @rxc/forms's renderer source need to be registered explicitly so they
+ * @rx-controls/forms's renderer source need to be registered explicitly so they
  * are emitted into the generated stylesheet. */
 @source "../../../packages/forms/src/**/*.{ts,tsx}";
 @source "../../../packages/forms-datagrid/src/**/*.{ts,tsx}";

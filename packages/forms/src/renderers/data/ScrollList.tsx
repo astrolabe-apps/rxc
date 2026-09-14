@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   rendererClass,
   useScrollListController,
   type DataRendererProps,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

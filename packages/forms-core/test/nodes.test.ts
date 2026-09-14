@@ -4,8 +4,8 @@ import {
   untrackedRead,
   effect,
   asControl,
-} from "@rxc/controls-core";
-import type { Control, ReadContext, ControlContext } from "@rxc/controls-core";
+} from "@rx-controls/core";
+import type { Control, ReadContext, ControlContext } from "@rx-controls/core";
 import {
   type SchemaField,
   type CompoundField,

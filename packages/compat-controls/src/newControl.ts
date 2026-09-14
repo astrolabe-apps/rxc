@@ -7,7 +7,7 @@ import {
   createControlGroup as coreControlGroup,
   type ControlOptions as CoreControlSetup,
   type Control as CoreControl,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import { getCompatContext } from "./context.js";
 import { runInWc } from "./transactions.js";
 import { asLegacy } from "./patch.js";

@@ -1,12 +1,12 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   rendererClass,
   useCheckboxController,
   resolveLabelText,
-} from "@rxc/forms-react-core";
-import type { DataRendererProps } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
+import type { DataRendererProps } from "@rx-controls/forms-react-core";
 import { useLabel } from "../../Label";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
@@ -18,7 +18,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * explicit `renderOptions.type` and no options array, and registered
  * for the explicit `DataRenderType.Checkbox`. Hosts that want a
  * different default for Bool fields can register their own renderer
- * via `matchBoolField` (exported from `@rxc/forms`) before
+ * via `matchBoolField` (exported from `@rx-controls/forms`) before
  * `defaultRegistry()`.
  *
  * Registered with `hidesLabel: true` so `<Field>` skips its external

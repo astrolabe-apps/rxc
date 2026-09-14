@@ -8,7 +8,7 @@
  * that scope to exactly the parts it touched.
  */
 
-import { ControlChange } from "@rxc/controls-core";
+import { ControlChange } from "@rx-controls/core";
 import { collectChange } from "./ambient.js";
 import type { ChangeListenerFunc, Control } from "./types.js";
 

@@ -1,14 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
-import { computeInto } from "@rxc/controls-core";
-import type { ComputedHandle } from "@rxc/controls-core";
+import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
+import { computeInto } from "@rx-controls/core";
+import type { ComputedHandle } from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
   setEscapedReadHook,
-} from "@rxc/controls-core/internal";
+} from "@rx-controls/core/internal";
 import type { ReactiveScope, Rendered } from "./types.js";
 
 // ── React Context ───────────────────────────────────────────────────
@@ -101,7 +101,7 @@ function warnMissingRendered(site: string): void {
   warnedSites.add(site);
   // eslint-disable-next-line no-console
   console.error(
-    `[@rxc/controls] ${site} returned without calling rendered(…). ` +
+    `[@rx-controls/react] ${site} returned without calling rendered(…). ` +
       `Everything it read through \`rc\` was tracked but never subscribed, so ` +
       `this component will not re-render when those controls change. Wrap ` +
       `EVERY return path — including early returns like ` +
@@ -141,7 +141,7 @@ function warnWrongRc(): void {
   warnedSites.add(site);
   // eslint-disable-next-line no-console
   console.error(
-    `[@rxc/controls] ${site} read through a ReadContext belonging to an ` +
+    `[@rx-controls/react] ${site} read through a ReadContext belonging to an ` +
       `enclosing component, whose render pass has already closed. The read ` +
       `returned a current value but subscribed to nothing, so this will not ` +
       `re-render when that control changes. Use the \`rc\` the callback was ` +

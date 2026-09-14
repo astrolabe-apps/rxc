@@ -1,15 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Control, ReadContext } from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
+import type { Control, ReadContext } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import {
   isDataControl,
   type ControlDefinition,
   type ElementSelectedRenderOptions,
   type FieldOption,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   mapChildrenByOptionValue,
   stringToValue,

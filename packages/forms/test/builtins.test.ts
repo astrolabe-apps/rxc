@@ -13,13 +13,13 @@ import {
   type GroupedControlsDefinition,
   type SchemaField,
   type TextfieldRenderOptions,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import { defaultRegistry } from "../src/builtins";
 import {
   pickDataRenderer,
   pickDisplayRenderer,
   pickGroupRenderer,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 
 /** Renderer identity: plain function components expose `.name`;
  *  `memo()`-wrapped ones only carry `displayName`. */

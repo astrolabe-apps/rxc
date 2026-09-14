@@ -7,19 +7,19 @@ import {
   type ReactNode,
 } from "react";
 import parse from "html-react-parser";
-import { useReactive, type Rendered } from "@rxc/controls";
-import { isDataControl } from "@rxc/forms-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { isDataControl } from "@rx-controls/forms-core";
 import {
   indexAdornments,
   rendererClass,
   useRegistry,
   wrapAdornments,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import {
   isGroupLabel,
   useHtmlTheme,
   type LabelProps,
-} from "@rxc/forms";
+} from "@rx-controls/forms";
 
 function looksLikeHtml(s: string): boolean {
   return s.indexOf("<") !== -1 && s.indexOf(">") !== -1;

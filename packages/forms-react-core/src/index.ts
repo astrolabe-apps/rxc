@@ -1,7 +1,7 @@
-// Public API for @rxc/forms-react-core
+// Public API for @rx-controls/forms-react-core
 //
 // Headless registration machinery + hooks. Platform packages
-// (@rxc/forms for web, @rxc/forms-native for React Native) supply the
+// (@rx-controls/forms for web, @rx-controls/forms-native for React Native) supply the
 // concrete <Field>, <Form>, <Layout>, <Visibility>, <Label>, <Error>
 // and the renderer/adornment registrations.
 

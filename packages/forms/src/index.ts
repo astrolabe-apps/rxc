@@ -1,12 +1,12 @@
-// Public API for @rxc/forms (HTML platform package)
+// Public API for @rx-controls/forms (HTML platform package)
 //
-// Re-exports the headless surface from @rxc/forms-react-core, then adds
+// Re-exports the headless surface from @rx-controls/forms-react-core, then adds
 // HTML-specific components (Field/Form/DefaultLabel/DefaultError/Layout/Visibility),
 // HTML renderers + adornments, and the HTML defaultRegistry.
 
 // ── Headless surface ─────────────────────────────────────────────────
 
-export * from "@rxc/forms-react-core";
+export * from "@rx-controls/forms-react-core";
 
 // ── HTML components ──────────────────────────────────────────────────
 

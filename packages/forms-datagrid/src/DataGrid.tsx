@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
-import { type Control, effect, type ReadContext } from "@rxc/controls-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { type Control, effect, type ReadContext } from "@rx-controls/core";
 import {
   boolField,
   buildSchema,
@@ -22,7 +22,7 @@ import {
   type RenderOptions,
   stringField,
   ValidatorType,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   Action,
   combineRegistries,
@@ -33,9 +33,9 @@ import {
   rendererClass,
   useActionHandler,
   getExternalEdit,
-} from "@rxc/forms-react-core";
-import { useControlContext } from "@rxc/controls";
-import { Field } from "@rxc/forms";
+} from "@rx-controls/forms-react-core";
+import { useControlContext } from "@rx-controls/react";
+import { Field } from "@rx-controls/forms";
 import {
   type ColumnDefInit,
   columnDefinitions,

@@ -1,6 +1,6 @@
-# Migrating from `@react-typed-forms/schemas` to `@rxc/forms`
+# Migrating from `@react-typed-forms/schemas` to `@rx-controls/forms`
 
-A Rosetta stone for porting a host (or a custom renderer set) from the legacy `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` packages onto `@rxc/forms` + `@rxc/forms-react-core`.
+A Rosetta stone for porting a host (or a custom renderer set) from the legacy `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` packages onto `@rx-controls/forms` + `@rx-controls/forms-react-core`.
 
 This doc maps **legacy concept → new equivalent** and calls out where the port is mechanical, where it requires translation, and where there's no equivalent and the host needs to redesign.
 
@@ -9,15 +9,15 @@ For background on *why* the redesign turned out the way it did, see `docs/legacy
 ## Package mapping
 
 ```
-@react-typed-forms/core             → @rxc/controls + @rxc/controls-core
-@react-typed-forms/schemas          → @rxc/forms-core (data model)
-                                      @rxc/forms-react-core (dispatch + hooks)
-@react-typed-forms/schemas-html     → @rxc/forms (HTML renderers + chrome)
-                                      @rxc/forms-motion (animated visibility / accordion — opt-in)
-                                      @rxc/forms-dnd (sortable arrays — opt-in)
+@react-typed-forms/core             → @rx-controls/react + @rx-controls/core
+@react-typed-forms/schemas          → @rx-controls/forms-core (data model)
+                                      @rx-controls/forms-react-core (dispatch + hooks)
+@react-typed-forms/schemas-html     → @rx-controls/forms (HTML renderers + chrome)
+                                      @rx-controls/forms-motion (animated visibility / accordion — opt-in)
+                                      @rx-controls/forms-dnd (sortable arrays — opt-in)
 ```
 
-`@rxc/forms` re-exports `@rxc/forms-react-core` so consumers import from `@rxc/forms` only. The split exists so a future `@rxc/forms-native` (or `@rxc/forms-mui`) can sit on the same headless layer.
+`@rx-controls/forms` re-exports `@rx-controls/forms-react-core` so consumers import from `@rx-controls/forms` only. The split exists so a future `@rx-controls/forms-native` (or `@rx-controls/forms-mui`) can sit on the same headless layer.
 
 For the *controls* layer, `@react-typed-forms/core@5` — the compat package at `packages/compat-controls`, published under the legacy name — is a drop-in upgrade for v4 consumers (see `docs/COMPAT-CONTROLS-DESIGN.md`). For the schemas/renderer layer there is deliberately no compat package — this doc's direct port is the migration path.
 
@@ -27,7 +27,7 @@ For the *controls* layer, `@react-typed-forms/core@5` — the compat package at 
 |---|---|---|
 | `<RenderForm form={…} data={…} renderer={…} options={…} />` | `<Form node={…} registry={…} options={…} />` | `Form` no longer builds the `FormStateNode`. Build it once with `useFormStateNode(controlContext, formNode, dataNode, { registry, … })` and pass it in. |
 | `<RenderFormNode node={…} renderer={…} options={…} />` | `<Field node={…} />` | `Field` reads the registry from context (`<RegistryProvider>` set up by `<Form>`). Layout/Visibility/designMode can be overridden per-Field. |
-| `createFormStateNode(form, data, globals, options)` (engine) | `createFormStateNode(controlContext, form, dataNode, globals)` (`@rxc/forms-core`) | Now requires an explicit `ControlContext`. The `useFormStateNode` hook handles this for you. |
+| `createFormStateNode(form, data, globals, options)` (engine) | `createFormStateNode(controlContext, form, dataNode, globals)` (`@rx-controls/forms-core`) | Now requires an explicit `ControlContext`. The `useFormStateNode` hook handles this for you. |
 
 The new flow is:
 
@@ -61,8 +61,8 @@ The legacy engine has nine `RendererRegistration` kinds and one `extraRenderers`
 Combining registries:
 
 ```tsx
-import { combineRegistries } from "@rxc/forms-react-core";
-import { defaultRegistry } from "@rxc/forms";
+import { combineRegistries } from "@rx-controls/forms-react-core";
+import { defaultRegistry } from "@rx-controls/forms";
 
 const registry = combineRegistries(
   myCustomRegistry,        // matchers here run first — same as legacy "custom wins"
@@ -183,7 +183,7 @@ combineRegistries(
 );
 ```
 
-`@rxc/forms-dnd`'s `SortableArrayRenderer` is exactly this — a drop-in replacement for the default `ArrayRenderer` that consumes `@dnd-kit/sortable`.
+`@rx-controls/forms-dnd`'s `SortableArrayRenderer` is exactly this — a drop-in replacement for the default `ArrayRenderer` that consumes `@dnd-kit/sortable`.
 
 The new array renderer mutates the underlying control directly (`wc.addElement`/`wc.removeElement`) instead of going through an `ArrayRendererProps.add/remove` indirection.
 
@@ -272,11 +272,11 @@ New `<Visibility>` receives a single `visible: boolean | null` prop. The animati
 ```tsx
 // Legacy: animated unmount required custom Visibility logic
 // New: use Framer Motion (or your favourite) directly:
-import { FadeVisibility } from "@rxc/forms-motion";
+import { FadeVisibility } from "@rx-controls/forms-motion";
 <Form visibility={FadeVisibility} … />
 ```
 
-`@rxc/forms-motion` ships `FadeVisibility`, `SlideVisibility`, and a height-animated `MotionAccordionAdornment` (replaces the native-`<details>` Accordion).
+`@rx-controls/forms-motion` ships `FadeVisibility`, `SlideVisibility`, and a height-animated `MotionAccordionAdornment` (replaces the native-`<details>` Accordion).
 
 `visible === null` (pending — async script not yet resolved) is rendered as hidden by `DefaultVisibility`. Hosts that want a loading skeleton swap the component.
 
@@ -383,7 +383,7 @@ New: renderers emit DOM directly. Host customisation goes through `HtmlFormOptio
 
 Per-control class on the form definition (`styleClass`, `labelClass`, `labelTextClass`, `layoutClass`, `textClass`) is layered on top — same merging rules as legacy `astrolabe-common/util.ts`. Prefix a class with `"@ "` to opt out of merging and override.
 
-For React Native or MUI, the boundary line is **does it emit DOM?**. `@rxc/forms-react-core` is DOM-free — a separate `@rxc/forms-native` or `@rxc/forms-mui` package would supply its own `<Field>`/`<Layout>`/renderers/adornments on top of the same headless dispatch.
+For React Native or MUI, the boundary line is **does it emit DOM?**. `@rx-controls/forms-react-core` is DOM-free — a separate `@rx-controls/forms-native` or `@rx-controls/forms-mui` package would supply its own `<Field>`/`<Layout>`/renderers/adornments on top of the same headless dispatch.
 
 ## Compound-field rewrite
 
@@ -395,9 +395,9 @@ If your host had a custom `compoundField` group renderer, port it as a custom da
 
 ## Scripted proxy / dynamic options
 
-Legacy `evalDynamic` + `dynamic[]` arrays on a definition → automatically converted by `buildLegacyScripts` (in `@rxc/forms-core`) into the `$scripts` bucket the new scripted-proxy reads. **No host changes needed** — JSON definitions with legacy `dynamic` entries are still understood.
+Legacy `evalDynamic` + `dynamic[]` arrays on a definition → automatically converted by `buildLegacyScripts` (in `@rx-controls/forms-core`) into the `$scripts` bucket the new scripted-proxy reads. **No host changes needed** — JSON definitions with legacy `dynamic` entries are still understood.
 
-The scripted-proxy walker now drives off `ControlDefinitionSchema` (`@rxc/forms-core/json/schemaSchemas.ts`) plus per-render-type extensions registered via `dataPlugin({ schema: … })`. There is no longer a per-renderer hardcoded `SCRIPTABLE_FIELDS` table.
+The scripted-proxy walker now drives off `ControlDefinitionSchema` (`@rx-controls/forms-core/json/schemaSchemas.ts`) plus per-render-type extensions registered via `dataPlugin({ schema: … })`. There is no longer a per-renderer hardcoded `SCRIPTABLE_FIELDS` table.
 
 ## Settled invariants — what carried over unchanged
 
@@ -438,7 +438,7 @@ These legacy invariants are preserved:
 - **`controlDefinitionSchema` discovery at runtime.** Legacy merged extensions at `createFormRenderer` time — fixed for the lifetime of the renderer. The new engine reads `registry.schemaExtensions` from React context, so editor hosts that mutate the registry at runtime get reactive schema discovery for free.
 - **`FormRenderer.html.Input` etc.** Hosts that wrapped legacy primitives for ARIA injection or styling now need to provide a custom renderer for each affected control type. There is no shared DOM-primitive slot.
 - **Multi-error display.** Default `<Error>` shows the first error. Pass `<Error all>` per-call, or `<Form options={{ showAllErrors: true }}>` form-wide. No "summary panel" component is shipped — read `state.errors` (or `rc.getErrors(data)`) directly for that.
-- **Reorder for arrays.** Default `ArrayRenderer` is reorder-free. `@rxc/forms-dnd`'s `SortableArrayRenderer` adds reorder; install via `combineRegistries({ data: [matchCollection(SortableArrayRenderer)] }, defaultRegistry())`.
+- **Reorder for arrays.** Default `ArrayRenderer` is reorder-free. `@rx-controls/forms-dnd`'s `SortableArrayRenderer` adds reorder; install via `combineRegistries({ data: [matchCollection(SortableArrayRenderer)] }, defaultRegistry())`.
 - **`OptionalAdornment` multi-value mode.** Legacy's `OptionalEditRenderer` accepted a `renderMultiValues` callback driven by `getAllValues(dataControl)` — when N controls were bound to the same field (bulk edit), the inactive state showed "Differing values" (or a host-supplied summary) instead of the field. The new port has no equivalent of `getAllValues` (controls-core doesn't model fan-out from one `Control` to many backing controls), but the adornment exposes `theme.adornment.optional.customRender` — hosts get the resolved data control, the editing toggle, current `isNull`/`isEditing`/`shouldDisable`, the wrapped field, and the `defaultBody` the adornment would render. Hosts that maintain their own bulk-edit projection (e.g. a `Control<unknown[]>` of distinct values stored in `meta`) read it inside `customRender` and decide whether to render `defaultBody` or a "Differing values" summary. Known consumer: `hvams.roadmanager.server`'s `internalForm/useInternalFormRenderer.tsx`.
 
 ## Worked examples
@@ -468,10 +468,10 @@ const renderer = createFormRenderer([PercentRenderer], defaultRenderers);
 New:
 
 ```tsx
-import { controls } from "@rxc/controls";
-import { dataPlugin, type DataRendererProps } from "@rxc/forms-react-core";
-import { combineRegistries } from "@rxc/forms-react-core";
-import { defaultRegistry } from "@rxc/forms";
+import { controls } from "@rx-controls/react";
+import { dataPlugin, type DataRendererProps } from "@rx-controls/forms-react-core";
+import { combineRegistries } from "@rx-controls/forms-react-core";
+import { defaultRegistry } from "@rx-controls/forms";
 
 const PercentRenderer = controls<DataRendererProps>(
   ({ node, id }, { rc, update }) => {
@@ -527,7 +527,7 @@ const HighlightAdornment = createAdornmentRenderer({
 New:
 
 ```tsx
-import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rx-controls/forms-react-core";
 
 interface HighlightAdornmentDef { type: "Highlight" }
 

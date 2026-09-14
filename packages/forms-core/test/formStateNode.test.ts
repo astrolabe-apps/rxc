@@ -3,7 +3,7 @@ import {
   createControlContext,
   untrackedRead,
   type ControlContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type SchemaField,
   type CompoundField,
@@ -523,7 +523,7 @@ describe("FormStateNode — Layer 3: validators", () => {
     expect(nameNode.getState(rd).valid).toBe(false);
     ctx.update((wc) =>
       wc.setValue(
-        (dataControl as unknown as { fields: { name: import("@rxc/controls-core").Control<string> } }).fields.name,
+        (dataControl as unknown as { fields: { name: import("@rx-controls/core").Control<string> } }).fields.name,
         "Jo",
       ),
     );
@@ -609,7 +609,7 @@ describe("FormStateNode — Layer 3: validators", () => {
     void root.getChildren(rd);
     const tagsControl = (
       dataControl as unknown as {
-        fields: { tags: import("@rxc/controls-core").Control<unknown[]> };
+        fields: { tags: import("@rx-controls/core").Control<unknown[]> };
       }
     ).fields.tags;
     expect(tagsControl.elementsNow.length).toBe(3);
@@ -690,7 +690,7 @@ describe("FormStateNode — Layer 4a: scripted proxy", () => {
         (
           dataControl as unknown as {
             fields: {
-              kind: import("@rxc/controls-core").Control<string>;
+              kind: import("@rx-controls/core").Control<string>;
             };
           }
         ).fields.kind,
@@ -735,7 +735,7 @@ describe("FormStateNode — Layer 4a: scripted proxy", () => {
         (
           dataControl as unknown as {
             fields: {
-              kind: import("@rxc/controls-core").Control<string>;
+              kind: import("@rx-controls/core").Control<string>;
             };
           }
         ).fields.kind,
@@ -782,7 +782,7 @@ describe("FormStateNode — Layer 4a: scripted proxy", () => {
         (
           dataControl as unknown as {
             fields: {
-              locked: import("@rxc/controls-core").Control<boolean>;
+              locked: import("@rx-controls/core").Control<boolean>;
             };
           }
         ).fields.locked,
@@ -859,7 +859,7 @@ describe("FormStateNode — Layer 4a: scripted proxy", () => {
       wc.setValue(
         (
           dataControl as unknown as {
-            fields: { a: import("@rxc/controls-core").Control<string> };
+            fields: { a: import("@rx-controls/core").Control<string> };
           }
         ).fields.a,
         "anything",
@@ -1043,7 +1043,7 @@ describe("FormStateNode — reactive definition updates", () => {
     // — the subscription must fire when title changes, even though title
     // isn't a scripted or _ScriptNullInit field (which were the only things
     // the scripted-proxy walker originally subscribed to).
-    const { computeInto: mkComputed } = await import("@rxc/controls-core");
+    const { computeInto: mkComputed } = await import("@rx-controls/core");
     const fields = [stringField("name")];
     const defs = [dataDef("name", { title: "Original" })];
     const { ctx, formTree, dataNode, defsControl, globals } = makeReactiveEnv(
@@ -1107,7 +1107,7 @@ describe("FormStateNode — reactive definition updates", () => {
       wc.setValue(
         (
           dataControl as unknown as {
-            fields: { kind: import("@rxc/controls-core").Control<string> };
+            fields: { kind: import("@rx-controls/core").Control<string> };
           }
         ).fields.kind,
         "show",
@@ -1155,7 +1155,7 @@ describe("FormStateNode — reactive definition updates", () => {
       wc.setValue(
         (
           dataControl as unknown as {
-            fields: { kind: import("@rxc/controls-core").Control<string> };
+            fields: { kind: import("@rx-controls/core").Control<string> };
           }
         ).fields.kind,
         "hide-it",

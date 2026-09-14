@@ -3,7 +3,7 @@ import {
   createControlContext,
   untrackedRead,
   type ControlContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type ChildResolverFunc,
   ControlDefinitionType,
@@ -18,7 +18,7 @@ import {
   FieldType,
   type FormGlobalOptions,
   type SchemaField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   computeGroupRowSpans,
   dataGridResolveChildren,
@@ -26,7 +26,7 @@ import {
   getDataGridLengthRange,
   stableGroupByKey,
 } from "../src/DataGrid";
-import { ValidatorType } from "@rxc/forms-core";
+import { ValidatorType } from "@rx-controls/forms-core";
 import { ColumnOptionsType } from "../src/columnAdornment";
 
 const rd = untrackedRead;

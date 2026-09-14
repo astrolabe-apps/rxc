@@ -6,7 +6,7 @@ import {
   effect,
   untrackedRead,
   type ControlFields,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type ControlAdornment,
   ControlAdornmentType,

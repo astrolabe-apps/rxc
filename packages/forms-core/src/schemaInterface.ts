@@ -1,4 +1,4 @@
-import type { Control } from "@rxc/controls-core";
+import type { Control } from "@rx-controls/core";
 import {
   FieldType,
   type FieldOption,

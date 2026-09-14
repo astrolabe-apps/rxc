@@ -2,12 +2,12 @@
 
 The v5 major of `@react-typed-forms/core`: the legacy v4 surface (including
 its re-exported `@astroapps/controls`) reimplemented on top of
-`@rxc/controls-core` + `@rxc/controls`, published under the legacy package
+`@rx-controls/core` + `@rx-controls/react`, published under the legacy package
 name. Existing legacy consumers keep their source unchanged — ambient
 `.value` reads, global transactions, the SWC tracking plugin — while running
 on the new explicit-reactivity engine. (Repo folder:
 `packages/compat-controls`; designed under the working name
-`@rxc/compat-controls`.)
+`@rx-controls/compat-controls`.)
 
 Reference legacy version: `@react-typed-forms/core@4.6.0` /
 `@astroapps/controls@1.4.2`. The compat surface targets that release
@@ -20,9 +20,9 @@ Reference legacy version: `@react-typed-forms/core@4.6.0` /
    beyond the one-line root provider.
 2. **Interoperable**: compat controls and new-API controls are the *same*
    objects. A control created via compat `newControl()` can be read through a
-   new-API `rc`, passed to `@rxc/controls` components, and vice versa. This is
+   new-API `rc`, passed to `@rx-controls/react` components, and vice versa. This is
    what makes incremental migration possible: convert one component at a time.
-3. **Contained**: every global lives in the compat package. `@rxc/controls-core`
+3. **Contained**: every global lives in the compat package. `@rx-controls/core`
    stays global-free; no changes to core semantics.
 
 ### Non-goals
@@ -59,7 +59,7 @@ resolve from the registry instead of the workspace, and
 The package also re-exports the *new* API (`useReactive`, `createControlContext`,
 `ReadContext`, …) under a `@react-typed-forms/core/next` subpath so a
 migrating app can adopt new-style components file-by-file without adding a
-second dependency edge. (Not yet implemented — depending on `@rxc/controls`
+second dependency edge. (Not yet implemented — depending on `@rx-controls/react`
 directly works too.)
 
 > The legacy SWC plugin (`@astroapps/swc-controls-plugin`) injects
@@ -104,7 +104,7 @@ Key enabling facts (verified against current source):
   the name was deliberately freed up (renamed to `elementsNow`) so compat can
   define legacy `elements` without overriding anything.
 - `ControlImpl`, `toImpl`, `WriteContextImpl`, `SubscriptionReconciler` are
-  all available via `@rxc/controls-core/internal`, whose stated audience is
+  all available via `@rx-controls/core/internal`, whose stated audience is
   exactly the compat packages.
 
 ### Bridge 1 — ambient reads (`collectChange`)
@@ -153,7 +153,7 @@ component's window is conceptually open, mirroring how legacy behaved.
 **The rc bridge** — the one non-obvious trick in the design. Several legacy
 APIs take an ambient-reading closure (`useComputed(() => …)`,
 `useControlEffect(compute, …)`, validator functions, render-helper callbacks)
-that compat wants to delegate to the corresponding `@rxc/controls` hook, which
+that compat wants to delegate to the corresponding `@rx-controls/react` hook, which
 hands the closure an `rc` and tracks reads through it. The bridge converts
 ambient reads into rc reads by installing a collector that *re-reads the same
 facet through the rc*, which registers exactly that dependency:
@@ -178,7 +178,7 @@ export function withAmbient<A>(rc: ReadContext, fn: () => A): A {
 ```
 
 With `withAmbient`, every closure-taking legacy hook is a one-line adapter
-over its `@rxc/controls` counterpart:
+over its `@rx-controls/react` counterpart:
 
 ```ts
 export function useComputed<V>(compute: () => V): Control<V> {
@@ -240,12 +240,12 @@ export function setCompatContext(ctx: ControlContext): void;  // compat-only exp
 - `newControl(value, setup, initialValue?)` → `compatContext.newControl` (+
   `wc.setInitialValue` when the third arg is given — legacy constructs
   with `(value, initialValue)`, so the current value is untouched).
-- The React layer (`useControl` etc.) delegates to `@rxc/controls` hooks,
+- The React layer (`useControl` etc.) delegates to `@rx-controls/react` hooks,
   which resolve their context from `ControlContextProvider`. **Legacy apps
   add one line at the root**:
   `<ControlContextProvider value={getCompatContext()}>` (both names exported
   from this package). This is a deliberate, explicit migration step — no
-  no-provider fallback exists, so `@rxc/controls` stays free of ambient
+  no-provider fallback exists, so `@rx-controls/react` stays free of ambient
   context globals. Using `getCompatContext()` as the value keeps
   module-level `newControl()` controls and hook-created controls in one
   context (one uniqueId sequence, one equality).
@@ -263,7 +263,7 @@ request/root, or mount a `ControlContextProvider`. Document, don't solve.
 ## Patching Control
 
 Runtime: `Object.defineProperty` on `ControlImpl.prototype` (from
-`@rxc/controls-core/internal`), applied once at compat module load. Every
+`@rx-controls/core/internal`), applied once at compat module load. Every
 control in the process — whoever created it — gains the legacy members, which
 is precisely what interop requires. The patch is additive except where noted.
 
@@ -308,7 +308,7 @@ member.
 
 ## The React layer
 
-Thin adapters over `@rxc/controls`, using `withAmbient` for closures and the
+Thin adapters over `@rx-controls/react`, using `withAmbient` for closures and the
 provider-or-singleton context fallback. Signature deltas are all mechanical:
 
 | Legacy export | Strategy |
@@ -374,7 +374,7 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
    pages. (No SWC plugin in the dev app: the page relies on
    `useComponentTracking` injected manually or a `useTrackedComponent`
    wrapper — which doubles as the test for that pair.)
-2. **Port the `@rxc/controls` test suites' assertions** against the compat
+2. **Port the `@rx-controls/react` test suites' assertions** against the compat
    surface where signatures overlap (binding layer, selectable array,
    validators, render helpers) — same behaviors through the legacy API.
 3. **Unit-test the bridges directly**: collector nesting (save/restore),
@@ -421,14 +421,14 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 
 1. ~~**Package export shape**~~ — resolved beyond the original question: the
    package *is* `@react-typed-forms/core@5.0.0`, not a stub or alias target.
-   (The `@rxc/compat-controls` working name survives only as the repo folder
+   (The `@rx-controls/compat-controls` working name survives only as the repo folder
    `packages/compat-controls`.)
 2. **`NotDefinedContext`'s odd legacy typing** (function returning a context)
    — match the 4.6 runtime export exactly; check whether any consumer calls
    it vs uses it as a context.
 3. ~~**`useControlContext` fallback vs require-provider**~~ — resolved:
    provider required. A `setControlContextFallback` seam was prototyped in
-   `@rxc/controls` and removed — the one-line root
+   `@rx-controls/react` and removed — the one-line root
    `<ControlContextProvider value={getCompatContext()}>` is an acceptable
    migration step and keeps the React adapter free of module-global context
    state.

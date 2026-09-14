@@ -1,8 +1,8 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { DataRendererProps } from "@rxc/forms-react-core";
-import { rendererClass, useNumberController } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { DataRendererProps } from "@rx-controls/forms-react-core";
+import { rendererClass, useNumberController } from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**

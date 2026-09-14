@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormOptions } from "@rxc/forms-react-core";
+import { useFormOptions } from "@rx-controls/forms-react-core";
 import type {
   HtmlFormOptions,
   HtmlFormTheme,

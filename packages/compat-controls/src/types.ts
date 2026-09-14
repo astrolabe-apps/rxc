@@ -2,7 +2,7 @@
  * @react-typed-forms/core v5 — the legacy v4 type surface, re-declared
  * over the new engine.
  *
- * The runtime objects are `@rxc/controls-core` `ControlImpl`s with the legacy
+ * The runtime objects are `@rx-controls/core` `ControlImpl`s with the legacy
  * members added by the prototype patch (see `patch.ts`); these types are the
  * static face of that patch. `Control<V>` here deliberately includes the new
  * core's snapshot surface (`valueNow`, …) as well, so a compat-typed control
@@ -12,8 +12,8 @@
  * Reference: `@react-typed-forms/core@4.6.0` type declarations (the last v4).
  */
 
-import { ControlChange as CoreControlChange } from "@rxc/controls-core";
-import type { Subscription } from "@rxc/controls-core";
+import { ControlChange as CoreControlChange } from "@rx-controls/core";
+import type { Subscription } from "@rx-controls/core";
 
 /**
  * Legacy `ControlChange`, which has an `All` member.
@@ -24,7 +24,7 @@ import type { Subscription } from "@rxc/controls-core";
  * persist its value, so v4's spelling has to survive here.
  *
  * This package used to re-export the engine's enum by object identity, which
- * meant any member rename in `@rxc/controls-core` silently changed this
+ * meant any member rename in `@rx-controls/core` silently changed this
  * package's published API with nothing in the repo to catch it. Now the
  * legacy shape is built explicitly: the engine's members (spreading a
  * numeric enum carries its reverse mapping too), plus `All` and the reverse

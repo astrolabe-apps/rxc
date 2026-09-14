@@ -3,7 +3,7 @@
 /**
  * Legacy `FormEditState`, which spells the read-only flag `readonly`.
  *
- * `@rxc/controls` spells it `readOnly` — the DOM spelling, matching the prop
+ * `@rx-controls/react` spells it `readOnly` — the DOM spelling, matching the prop
  * bag it feeds — so this package cannot simply re-export the trio any more.
  * Legacy consumers write `<FormEditProvider readonly>`, and that has to keep
  * working, so compat owns the legacy spelling here and maps it across. Same
@@ -16,7 +16,7 @@ import type { ReactNode } from "react";
 import {
   FormEditProvider as RxcFormEditProvider,
   useFormEdit as rxcUseFormEdit,
-} from "@rxc/controls";
+} from "@rx-controls/react";
 
 /**
  * Presentation overrides that cascade to form inputs via React context,

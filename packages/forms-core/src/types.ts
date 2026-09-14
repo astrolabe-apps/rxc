@@ -4,7 +4,7 @@ import {
   type FieldOption,
   type SchemaField,
 } from "./json";
-import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
+import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
 import type { SchemaInterface } from "./schemaInterface";
 
 export interface CleanupScope {
@@ -71,7 +71,7 @@ export interface FormGlobalOptions {
    * Extra `SchemaField` entries to append when the scripted-proxy walker
    * descends into the `renderOptions` compound. Plugin authors register
    * scriptable options for custom render types (e.g. `maxStars`); the
-   * renderer (`@rxc/forms`) collects these from the registry's plugins
+   * renderer (`@rx-controls/forms`) collects these from the registry's plugins
    * and passes them through here.
    */
   extraRenderOptionFields?: SchemaField[];

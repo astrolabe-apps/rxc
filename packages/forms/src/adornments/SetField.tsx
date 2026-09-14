@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   ControlAdornmentType,
   type SetFieldAdornment as SetFieldAdornmentDef,
-} from "@rxc/forms-core";
-import type { AdornmentRegistration, AdornmentRenderProps } from "@rxc/forms-react-core";
-import { useExpression } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import type { AdornmentRegistration, AdornmentRenderProps } from "@rx-controls/forms-react-core";
+import { useExpression } from "@rx-controls/forms-react-core";
 
 /**
  * Evaluates an expression against the parent data context and writes the

@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
-import type { Control } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rx-controls/react";
+import type { Control } from "@rx-controls/react";
 import {
   accordionAdornment,
   actionControl,
@@ -35,7 +35,7 @@ import {
   type GroupedControlsDefinition,
   type SchemaField,
   type SchemaTreeResolver,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   ActionScope,
   combineRegistries,
@@ -47,10 +47,10 @@ import {
   useFormStateNode,
   type ActionHandler,
   type HtmlFormOptions,
-} from "@rxc/forms";
-import { SlideVisibility } from "@rxc/forms-motion";
-import { MotionAccordionAdornment } from "@rxc/forms-motion";
-import { SortableArrayRenderer } from "@rxc/forms-dnd";
+} from "@rx-controls/forms";
+import { SlideVisibility } from "@rx-controls/forms-motion";
+import { MotionAccordionAdornment } from "@rx-controls/forms-motion";
+import { SortableArrayRenderer } from "@rx-controls/forms-dnd";
 
 // ── Schema ───────────────────────────────────────────────────────────
 
@@ -404,9 +404,9 @@ function Phase4bInner(): Rendered {
           Phase 4b renderers + add-on packages. Form-wide{" "}
           <code>showAllErrors</code> renders every error attached to a field.
           Visibility uses <code>SlideVisibility</code> from
-          <code>@rxc/forms-motion</code>; the per-field accordion uses
+          <code>@rx-controls/forms-motion</code>; the per-field accordion uses
           <code>MotionAccordionAdornment</code>; the reorderable list uses{" "}
-          <code>SortableArrayRenderer</code> from <code>@rxc/forms-dnd</code>.
+          <code>SortableArrayRenderer</code> from <code>@rx-controls/forms-dnd</code>.
         </p>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="rounded-lg bg-white dark:bg-zinc-900 p-6 shadow">

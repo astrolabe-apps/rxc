@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { FormStateNode } from "@rxc/forms-core";
+import type { FormStateNode } from "@rx-controls/forms-core";
 import { runAsyncAction } from "../src/useAsyncAction";
 
 function fakeNode() {

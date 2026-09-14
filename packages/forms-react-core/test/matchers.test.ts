@@ -11,7 +11,7 @@ import {
   type FormStateNode,
   type GroupedControlsDefinition,
   type SchemaField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   matchAll,
   matchAny,

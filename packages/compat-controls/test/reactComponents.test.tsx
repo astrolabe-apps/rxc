@@ -102,7 +102,7 @@ describe("F-components", () => {
   });
 
   it("useFormEdit reports the legacy `readonly` key", () => {
-    // @rxc/controls spells this `readOnly`; compat maps it back, because a
+    // @rx-controls/react spells this `readOnly`; compat maps it back, because a
     // legacy consumer reads `edit.readonly`. Nothing else asserts the key
     // name -- the fold test below goes straight to the DOM prop, which is
     // spelled readOnly on both sides and so would not notice.

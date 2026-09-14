@@ -1,6 +1,6 @@
 "use client";
 
-import type { Control } from "@rxc/controls-core";
+import type { Control } from "@rx-controls/core";
 import { useControl } from "./useControl.js";
 import { useControlEffect } from "./useControlEffect.js";
 import { useControlContext } from "./useReactive.js";

@@ -14,10 +14,10 @@
  * load so a future core member can't be silently shadowed.
  */
 
-import { ControlChange } from "@rxc/controls-core";
-import { ControlImpl, toImpl } from "@rxc/controls-core/internal";
-import { lookupControl as coreLookupControl } from "@rxc/controls-core";
-import type { Control as CoreControl } from "@rxc/controls-core";
+import { ControlChange } from "@rx-controls/core";
+import { ControlImpl, toImpl } from "@rx-controls/core/internal";
+import { lookupControl as coreLookupControl } from "@rx-controls/core";
+import type { Control as CoreControl } from "@rx-controls/core";
 import { collectChange } from "./ambient.js";
 import { runInWc } from "./transactions.js";
 import type { Control, ControlProperties } from "./types.js";

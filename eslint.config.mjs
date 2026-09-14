@@ -2,7 +2,7 @@
 // resolves eslint + plugins from the `lint` autoinstaller
 // (common/autoinstallers/lint) rather than from every package's devDeps.
 //
-// Deliberately narrow: the point is the React hooks rules. `@rxc/*` renderers
+// Deliberately narrow: the point is the React hooks rules. `@rx-controls/*` renderers
 // are ordinary function components that call `useControls()` (see
 // docs/RENDER-BOUNDARY.md), which is exactly the shape
 // `rules-of-hooks` can analyse — under the old `controls()` HOC every hook

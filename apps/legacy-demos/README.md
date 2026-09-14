@@ -1,7 +1,7 @@
 # Legacy reference demos
 
 Legacy reference renderings via the published `@react-typed-forms/*` stack,
-for side-by-side comparison against the `@rxc/*` port. Each route pairs with
+for side-by-side comparison against the `@rx-controls/*` port. Each route pairs with
 one in `apps/dev`:
 
 | Route | Pairs with | Validates |

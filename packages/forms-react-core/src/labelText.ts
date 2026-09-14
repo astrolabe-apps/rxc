@@ -1,9 +1,9 @@
-import type { ReadContext } from "@rxc/controls-core";
+import type { ReadContext } from "@rx-controls/core";
 import {
   isDataControl,
   isGroupControl,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 /**
  * Resolve the label text for a node, or `null` to suppress the label.

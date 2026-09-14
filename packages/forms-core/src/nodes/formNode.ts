@@ -2,7 +2,7 @@ import {
   type Control,
   type ReadContext,
   controlFromValue,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type ControlDefinition,
   ControlDefinitionType,

@@ -12,8 +12,8 @@
  * request/root (or mount a `ControlContextProvider` once Phase B lands).
  */
 
-import { createControlContext } from "@rxc/controls-core";
-import type { ControlContext } from "@rxc/controls-core";
+import { createControlContext } from "@rx-controls/core";
+import type { ControlContext } from "@rx-controls/core";
 
 let compatContext: ControlContext = createControlContext();
 

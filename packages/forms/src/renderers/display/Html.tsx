@@ -1,11 +1,11 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   isDisplayControl,
   type HtmlDisplay,
-} from "@rxc/forms-core";
-import { clsx, rendererClass, type DisplayRendererProps } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import { clsx, rendererClass, type DisplayRendererProps } from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**

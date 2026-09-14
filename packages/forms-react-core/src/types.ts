@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import type {
   ControlContext,
   ReadContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import type {
   ActionStyle,
   ControlDisableType,
@@ -13,7 +13,7 @@ import type {
   IconPlacement,
   IconReference,
   SchemaInterface,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 // ── Renderer component types ─────────────────────────────────────────
 
@@ -127,7 +127,7 @@ export interface FormOptions {
 
 export interface UseFormStateNodeOptions {
   /** Registry providing matchers + schema extensions + child resolvers.
-   * Required at this layer — platform packages (`@rxc/forms`) wrap this
+   * Required at this layer — platform packages (`@rx-controls/forms`) wrap this
    * with their own `useFormStateNode` that defaults to a platform
    * `defaultRegistry()`. */
   registry: import("./registry").FormRegistry;

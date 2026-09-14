@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rx-controls/react";
 import {
   actionControl,
   ActionStyle,
@@ -23,14 +23,14 @@ import {
   type GroupedControlsDefinition,
   type SchemaField,
   type SchemaTreeResolver,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   ActionScope,
   Form,
   useFormStateNode,
   type ActionHandler,
   type HtmlFormOptions,
-} from "@rxc/forms";
+} from "@rx-controls/forms";
 
 // ── Schema (empty — actions don't bind to data) ─────────────────────
 

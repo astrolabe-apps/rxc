@@ -2,7 +2,7 @@
 
 /**
  * Kitchen-sink port of the legacy @react-typed-forms/core demo onto
- * @rxc/controls. Pair with localhost:3001/controls in the legacy-demos app —
+ * @rx-controls/react. Pair with localhost:3001/controls in the legacy-demos app —
  * the sections mirror it one-for-one.
  *
  * The structural difference is reactivity: legacy tracking is ambient (the
@@ -43,7 +43,7 @@ import {
   useSelectableArray,
   useValidator,
   type Rendered,
-} from "@rxc/controls";
+} from "@rx-controls/react";
 
 // ── Shared chrome (identical classes to the legacy page) ────────────
 
@@ -260,7 +260,7 @@ function EffectsSection(): Rendered {
       update((wc) => wc.addElement(log, `useControlEffect: watched → "${v}"`)),
   );
 
-  // @rxc/controls has no useValueChangeEffect — the debounce composes from
+  // @rx-controls/react has no useValueChangeEffect — the debounce composes from
   // useControlEffect + a timer, which is all the legacy hook was.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useControlEffect(
@@ -756,11 +756,11 @@ export default function Page() {
         <main className="mx-auto flex max-w-3xl flex-col gap-6">
           <header className="rounded-lg bg-white p-6 shadow">
             <h1 className="text-2xl font-bold text-zinc-900">
-              @rxc/controls kitchen sink
+              @rx-controls/react kitchen sink
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
               The legacy <code>@react-typed-forms/core</code> demo ported to
-              explicit-reactivity <code>@rxc/controls</code>. Pair with{" "}
+              explicit-reactivity <code>@rx-controls/react</code>. Pair with{" "}
               <a
                 className="text-blue-600 hover:underline"
                 href="http://localhost:3001/controls"

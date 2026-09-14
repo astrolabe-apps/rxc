@@ -3,7 +3,7 @@ import {
   type ControlContext,
   effect,
   type ReadContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type ControlDefinition,
   DateComparison,

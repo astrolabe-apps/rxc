@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The legacy hook surface — thin adapters over `@rxc/controls`.
+ * The legacy hook surface — thin adapters over `@rx-controls/react`.
  *
  * Two systematic translations:
  * - legacy no-arg closures (`useComputed(() => …)`) become rc-taking
@@ -16,7 +16,7 @@
 
 import { useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
-import type { Control as CoreControl } from "@rxc/controls-core";
+import type { Control as CoreControl } from "@rx-controls/core";
 import {
   selectableValues as rxcEnsureSelectableValues,
   useAsyncValidator as rxcUseAsyncValidator,
@@ -28,7 +28,7 @@ import {
   useSelectableArray as rxcUseSelectableArray,
   useValidator as rxcUseValidator,
   type SelectionBuilder as RxcSelectionGroupSync,
-} from "@rxc/controls";
+} from "@rx-controls/react";
 import { withAmbient } from "./ambient.js";
 import { convertSetup } from "./newControl.js";
 import { asCore, asLegacy } from "./patch.js";

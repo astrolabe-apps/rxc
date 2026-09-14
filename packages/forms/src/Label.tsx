@@ -7,21 +7,21 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   DataRenderType,
   isDataControl,
   isGroupControl,
   type ControlDefinition,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   clsx,
   indexAdornments,
   rendererClass,
   useRegistry,
   wrapAdornments,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "./useHtmlTheme";
 
 export type LabelTag = "label" | "legend" | "span" | "div";

@@ -16,7 +16,7 @@ import {
   createControlContext,
   untrackedRead,
   type ControlContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   ControlDefinitionType,
   createDataNode,
@@ -34,8 +34,8 @@ import {
   isDataControl,
   type ArrayRenderOptions,
   type SchemaField,
-} from "@rxc/forms-core";
-import { getExternalEdit } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import { getExternalEdit } from "@rx-controls/forms-react-core";
 
 const rd = untrackedRead;
 

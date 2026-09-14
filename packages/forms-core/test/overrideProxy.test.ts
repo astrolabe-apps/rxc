@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createControlContext, untrackedRead } from "@rxc/controls-core";
-import { TrackingReadContext } from "@rxc/controls-core/internal";
+import { createControlContext, untrackedRead } from "@rx-controls/core";
+import { TrackingReadContext } from "@rx-controls/core/internal";
 import {
   createOverrideProxy,
   NoOverride,
@@ -54,7 +54,7 @@ describe("createOverrideProxy", () => {
     // but its own value remains the partial Record { maxStars: 7 }.
     const renderOptionsOverride = overrides.fields[
       "renderOptions"
-    ] as unknown as import("@rxc/controls-core").Control<
+    ] as unknown as import("@rx-controls/core").Control<
       Record<string, unknown>
     >;
     const maxStarsField = renderOptionsOverride.fields.maxStars;

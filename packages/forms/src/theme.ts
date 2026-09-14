@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import type { Control } from "@rxc/controls-core";
+import type { Control } from "@rx-controls/core";
 import type {
   FormStateNode,
   IconPlacement,
   IconReference,
-} from "@rxc/forms-core";
-import type { FormOptions } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import type { FormOptions } from "@rx-controls/forms-react-core";
 
 /**
  * HTML theme — global class names + small behavior knobs threaded

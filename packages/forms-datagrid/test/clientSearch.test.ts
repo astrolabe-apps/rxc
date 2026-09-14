@@ -9,7 +9,7 @@ import {
   defaultSchemaInterface,
   FieldType,
   type SchemaField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 type Row = { id: string; status: string; name: string };
 

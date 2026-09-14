@@ -4,11 +4,11 @@ import {
   effect,
   untrackedRead,
   type ReadContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
-} from "@rxc/controls-core/internal";
+} from "@rx-controls/core/internal";
 import jsonata from "jsonata";
 import {
   type DataExpression,

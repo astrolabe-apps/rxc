@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   type ArrayElementRenderOptions,
   type FormStateNode,
   isDataControl,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   Action,
   rendererClass,
@@ -15,7 +15,7 @@ import {
   type ActionRendererProps,
   type DataRendererProps,
   type ExternalEditAction,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

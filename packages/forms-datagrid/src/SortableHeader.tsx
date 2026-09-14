@@ -1,8 +1,8 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { Control } from "@rxc/controls-core";
-import { clsx } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { Control } from "@rx-controls/core";
+import { clsx } from "@rx-controls/forms-react-core";
 import { findSortField, rotateSort } from "@astroapps/searchstate";
 
 export interface SortableHeaderProps {

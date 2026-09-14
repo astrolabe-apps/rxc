@@ -8,7 +8,7 @@ import {
   isCompoundField,
   type SchemaField,
   type SchemaInterface,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 export interface FieldClientSearchOptions<T> {
   /**

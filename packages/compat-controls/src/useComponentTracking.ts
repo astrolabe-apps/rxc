@@ -17,14 +17,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FC } from "react";
-import { ControlChange } from "@rxc/controls-core";
+import { ControlChange } from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   toImpl,
   type ControlImpl,
-} from "@rxc/controls-core/internal";
-import type { Control as CoreControl } from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
+} from "@rx-controls/core/internal";
+import type { Control as CoreControl } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import { collectChange, setChangeCollector } from "./ambient.js";
 import type { ChangeListenerFunc } from "./types.js";
 

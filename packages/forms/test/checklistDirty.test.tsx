@@ -2,8 +2,8 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect } from "vitest";
-import { ControlContextProvider, createControlContext } from "@rxc/controls";
-import { untrackedRead, type Control } from "@rxc/controls-core";
+import { ControlContextProvider, createControlContext } from "@rx-controls/react";
+import { untrackedRead, type Control } from "@rx-controls/core";
 import {
   ControlDefinitionType,
   DataRenderType,
@@ -18,8 +18,8 @@ import {
   type ControlDefinition,
   type FormGlobalOptions,
   type SchemaField,
-} from "@rxc/forms-core";
-import { Form } from "@rxc/forms";
+} from "@rx-controls/forms-core";
+import { Form } from "@rx-controls/forms";
 
 (
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }

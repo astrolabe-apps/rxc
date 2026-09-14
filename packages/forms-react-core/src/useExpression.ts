@@ -6,8 +6,8 @@ import {
   type Control,
   type ControlContext,
   type ReadContext,
-} from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
+} from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import {
   ExpressionType,
   defaultEvaluators,
@@ -16,7 +16,7 @@ import {
   type ExpressionEvalContext,
   type FormStateNode,
   type NotExpression,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 /**
  * Read the value produced by an `EntityExpression` against a node's data

@@ -7,11 +7,11 @@ import {
   AdornmentPlacement,
   ControlAdornmentType,
   type HelpTextAdornment as HelpTextAdornmentDef,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type {
   AdornmentRegistration,
   AdornmentRenderProps,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import type { ExtendedHelpText } from "../formExtensions";
 
 type Extended = HelpTextAdornmentDef & Partial<ExtendedHelpText>;

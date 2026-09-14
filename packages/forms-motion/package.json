@@ -1,5 +1,5 @@
 {
-  "name": "@rxc/forms-motion",
+  "name": "@rx-controls/forms-motion",
   "version": "0.1.0",
   "type": "module",
   "main": "./lib/index.js",
@@ -14,11 +14,11 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@rxc/controls": "workspace:*",
-    "@rxc/controls-core": "workspace:*",
-    "@rxc/forms": "workspace:*",
-    "@rxc/forms-core": "workspace:*",
-    "@rxc/forms-react-core": "workspace:*"
+    "@rx-controls/react": "workspace:*",
+    "@rx-controls/core": "workspace:*",
+    "@rx-controls/forms": "workspace:*",
+    "@rx-controls/forms-core": "workspace:*",
+    "@rx-controls/forms-react-core": "workspace:*"
   },
   "peerDependencies": {
     "framer-motion": "^11 || ^12",

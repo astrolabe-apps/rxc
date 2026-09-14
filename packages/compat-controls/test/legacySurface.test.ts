@@ -10,7 +10,7 @@ import { ControlChange } from "../src/index";
  * v5 must keep both. The reason this needs a test at all: compat currently
  * re-exports *core's* enum by object identity
  * (`packages/compat-controls/src/types.ts`), so any change to a member name
- * in `@rxc/controls-core` silently changes this package's published surface.
+ * in `@rx-controls/core` silently changes this package's published surface.
  * `All` is the live case — core is renaming it `AllState`, and because
  * nothing in this repo references `ControlChange.All`, tsc, lint and every
  * other test stay silent while it disappears from the legacy API.

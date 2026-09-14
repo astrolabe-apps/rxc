@@ -1,7 +1,7 @@
-# Migrating off `@react-typed-forms/core@5` onto `@rxc/controls`
+# Migrating off `@react-typed-forms/core@5` onto `@rx-controls/react`
 
 For a host already running the compat package (`@react-typed-forms/core@5`) that wants to drop it
-and use `@rxc/controls` directly.
+and use `@rx-controls/react` directly.
 
 **If you are still on v4, this is not your document.** Getting to v5 is a version bump plus one root
 provider line — see [`packages/compat-controls/README.md`](../packages/compat-controls/README.md),
@@ -20,7 +20,7 @@ collector happened to be pointed at.
 Three ambient bridges, documented in [`COMPAT-CONTROLS-DESIGN.md`](COMPAT-CONTROLS-DESIGN.md).
 Migrating means replacing each with the explicit thing it stands in for:
 
-| Bridge | Compat | `@rxc/controls` |
+| Bridge | Compat | `@rx-controls/react` |
 |---|---|---|
 | **Reads** — a module-global `collectChange` that patched getters report to, so `c.value` subscribes whoever is rendering | `useComponentTracking()` (what the SWC plugin injects), `collectChanges`, `setChangeCollector` | A `ReadContext` (`rc`) threaded explicitly. `rc.getValue(c)` registers the dependency; the render pass closes with `rendered(…)` |
 | **Writes** — a module-global `currentWc` that every setter funnels into | `c.value = x`, `groupedChanges`, `runTransaction`, `runInWc` | `update((wc) => …)`, from `useReactive()` or `useControlContext()` |
@@ -44,7 +44,7 @@ function CountView() {
   }
 }
 
-// @rxc/controls: explicit.
+// @rx-controls/react: explicit.
 function CountView() {
   const { rc, rendered } = useReactive();
   return rendered(<span>{rc.getValue(shared.fields.count)}</span>);
@@ -60,7 +60,7 @@ Two rules that catch people:
   through a stale `rc` does not throw: it returns the current value and registers nothing, so the
   component stops re-rendering. In dev a guard catches the common shape — reading an enclosing
   component's `rc` *during* another render pass can only be a captured context, so
-  `@rxc/controls` logs a `console.error` naming the offender (once per call site). It is not
+  `@rx-controls/react` logs a `console.error` naming the offender (once per call site). It is not
   foolproof: outside a render pass the same read is indistinguishable from a legitimate untracked
   one (event handlers, refs and effects all read finalized contexts on purpose), so those stay
   silent, and the guard is compiled out of production builds entirely. The render helpers hand you
@@ -72,7 +72,7 @@ Two rules that catch people:
 Every patched getter becomes a call on `rc`. The control handle itself is unchanged, so only the
 read site moves.
 
-| Compat | `@rxc/controls` |
+| Compat | `@rx-controls/react` |
 |---|---|
 | `c.value` | `rc.getValue(c)` |
 | `c.initialValue` | `rc.getInitialValue(c)` |
@@ -93,7 +93,7 @@ for these in event handlers and callbacks, where there is nothing to subscribe.
 Mutation moves off the control and onto a `WriteContext` inside `update`. Get `update` from
 `useReactive()` in a component, or `useControlContext().update` anywhere else.
 
-| Compat | `@rxc/controls` |
+| Compat | `@rx-controls/react` |
 |---|---|
 | `c.value = x` | `update((wc) => wc.setValue(c, x))` |
 | `c.setValue((v) => …)` | `update((wc) => wc.updateValue(c, (v) => …))` |
@@ -130,7 +130,7 @@ Most hooks keep their names and gain an `rc` where they need one.
 
 **Renamed:**
 
-| Compat | `@rxc/controls` |
+| Compat | `@rx-controls/react` |
 |---|---|
 | `Finput` / `Fselect` / `Fcheckbox` | `ControlInput` / `ControlSelect` / `ControlCheckbox` |
 | `RenderControl` | `Reactive` — it takes no control, and never did |
@@ -159,13 +159,13 @@ is what `effect` means in this library too.
 Plan for these before starting; there is no drop-in.
 
 - **`createAsyncEffect` / `AsyncEffect`** — abort-and-supersede async effects. Not in
-  `@rxc/controls`: `CONTROL-SEMANTICS.md` section L′ specifies an `asyncEffect`, but it was never
+  `@rx-controls/react`: `CONTROL-SEMANTICS.md` section L′ specifies an `asyncEffect`, but it was never
   implemented. Compose `effect` with your own `AbortController` (`forms-core`'s jsonata evaluator is
   a worked example), or keep these call sites on compat.
 - **`notEmpty`** — a one-line validator helper. Inline it.
 - **`controlValues(…)`** — read the controls directly through `rc` in your compute function.
 - **`SubscriptionTracker`** — the explicit equivalent is a `ReadContext` plus a
-  `SubscriptionReconciler` from `@rxc/controls-core/internal`, which is not public API. If you are
+  `SubscriptionReconciler` from `@rx-controls/core/internal`, which is not public API. If you are
   using this, say so before migrating.
 - **The metrics and freeze-count APIs** — `getControlMetrics`, `getHeavyControls`,
   `getControlById`, `printControlMetrics`, `printHeavyControls`, `ControlMetricsRegistry`,
@@ -196,11 +196,11 @@ Component-by-component in leaf-first order works well, since a leaf's reads are 
 ## When you are done
 
 1. Remove the SWC plugin (`@astroapps/swc-controls-plugin`) from your build config.
-2. Drop `@react-typed-forms/core` from `package.json`; add `@rxc/controls`.
+2. Drop `@react-typed-forms/core` from `package.json`; add `@rx-controls/react`.
 3. Keep the root `ControlContextProvider`, changing its value from `getCompatContext()` to a
    `createControlContext()` of your own. One per app (or per SSR request — that is what makes
    `uniqueId` sequences reproducible across render and hydration).
-4. Typecheck. Any leftover ambient read is now a compile error, because `@rxc/controls`'s `Control`
+4. Typecheck. Any leftover ambient read is now a compile error, because `@rx-controls/react`'s `Control`
    declares no `.value`, `.touched`, `.dirty`, `.error` or `.elements` — those getters only ever
    existed as compat's prototype patch, and dropping the dependency takes them with it. The
    untracked `*Now` snapshots are the ones that legitimately survive.

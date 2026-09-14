@@ -1,8 +1,8 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import { Field } from "../../Field";
-import type { GroupRendererProps } from "@rxc/forms-react-core";
+import type { GroupRendererProps } from "@rx-controls/forms-react-core";
 
 /**
  * Transparent passthrough — renders children with no wrapping element.

@@ -1,6 +1,6 @@
 /**
  * @react-typed-forms/core v5 — the legacy v4 (`@react-typed-forms/core` /
- * `@astroapps/controls`) surface reimplemented on `@rxc/controls-core`.
+ * `@astroapps/controls`) surface reimplemented on `@rx-controls/core`.
  * Published under the legacy package name, so migrating is a semver-major
  * bump plus the provider line below. Lives in the rxc repo as
  * `packages/compat-controls`; design in `docs/COMPAT-CONTROLS-DESIGN.md`.
@@ -79,7 +79,7 @@ export { useComponentTracking, useTrackedComponent } from "./useComponentTrackin
 
 // The one-line root wrap for legacy apps:
 // <ControlContextProvider value={getCompatContext()}>
-export { ControlContextProvider } from "@rxc/controls";
+export { ControlContextProvider } from "@rx-controls/react";
 
 // ── React: hooks ─────────────────────────────────────────────────────
 export {

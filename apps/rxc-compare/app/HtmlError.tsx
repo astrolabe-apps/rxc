@@ -1,7 +1,7 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import type { ErrorProps } from "@rxc/forms";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { ErrorProps } from "@rx-controls/forms";
 import { ErrorMessage } from "./components/ErrorMessage";
 
 export function HtmlError({ node, id }: ErrorProps): Rendered {

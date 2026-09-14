@@ -7,17 +7,17 @@
   "ensureConsistentVersions": true,
   "projects": [
     {
-      "packageName": "@rxc/controls-core",
+      "packageName": "@rx-controls/core",
       "projectFolder": "packages/controls-core",
       "shouldPublish": true
     },
     {
-      "packageName": "@rxc/controls",
+      "packageName": "@rx-controls/react",
       "projectFolder": "packages/controls",
       "shouldPublish": true
     },
     {
-      "packageName": "@rxc/forms-core",
+      "packageName": "@rx-controls/forms-core",
       "projectFolder": "packages/forms-core",
       // Not published yet: the trial publish is scoped to the control engine +
       // the compat package. `rush publish --include-all` is all-or-nothing
@@ -26,7 +26,7 @@
       "shouldPublish": false
     },
     {
-      "packageName": "@rxc/forms-react-core",
+      "packageName": "@rx-controls/forms-react-core",
       "projectFolder": "packages/forms-react-core",
       // Not published yet: the trial publish is scoped to the control engine +
       // the compat package. `rush publish --include-all` is all-or-nothing
@@ -35,7 +35,7 @@
       "shouldPublish": false
     },
     {
-      "packageName": "@rxc/forms",
+      "packageName": "@rx-controls/forms",
       "projectFolder": "packages/forms",
       // Not published yet: the trial publish is scoped to the control engine +
       // the compat package. `rush publish --include-all` is all-or-nothing
@@ -44,7 +44,7 @@
       "shouldPublish": false
     },
     {
-      "packageName": "@rxc/forms-motion",
+      "packageName": "@rx-controls/forms-motion",
       "projectFolder": "packages/forms-motion",
       // Not published yet: the trial publish is scoped to the control engine +
       // the compat package. `rush publish --include-all` is all-or-nothing
@@ -53,7 +53,7 @@
       "shouldPublish": false
     },
     {
-      "packageName": "@rxc/forms-dnd",
+      "packageName": "@rx-controls/forms-dnd",
       "projectFolder": "packages/forms-dnd",
       // Not published yet: the trial publish is scoped to the control engine +
       // the compat package. `rush publish --include-all` is all-or-nothing
@@ -62,7 +62,7 @@
       "shouldPublish": false
     },
     {
-      "packageName": "@rxc/forms-datagrid",
+      "packageName": "@rx-controls/forms-datagrid",
       "projectFolder": "packages/forms-datagrid",
       // Not published yet: the trial publish is scoped to the control engine +
       // the compat package. `rush publish --include-all` is all-or-nothing

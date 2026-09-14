@@ -1,9 +1,9 @@
-import type { ReadContext } from "@rxc/controls-core";
+import type { ReadContext } from "@rx-controls/core";
 import type {
   ChildResolverFunc,
   DisplayData,
   FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type { AdornmentRegistration } from "./Adornment";
 import type {
   ActionMatch,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import type { Control, ControlOptions } from "@rxc/controls-core";
+import type { Control, ControlOptions } from "@rx-controls/core";
 import { useControlContext } from "./useReactive.js";
 
 /**

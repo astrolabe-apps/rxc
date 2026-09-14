@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { Control } from "@rxc/controls-core";
+import type { Control } from "@rx-controls/core";
 import { useReactive } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 import { useFormControlProps } from "./useFormControlProps.js";

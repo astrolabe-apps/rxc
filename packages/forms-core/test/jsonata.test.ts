@@ -4,7 +4,7 @@ import {
   untrackedRead,
   type Control,
   type ControlContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type SchemaField,
   FieldType,

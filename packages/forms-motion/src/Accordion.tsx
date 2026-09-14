@@ -7,13 +7,13 @@ import {
   IconLibrary,
   type AccordionAdornment as AccordionAdornmentDef,
   type IconReference,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type {
   AdornmentRegistration,
   AdornmentRenderProps,
-} from "@rxc/forms-react-core";
-import { clsx } from "@rxc/forms-react-core";
-import { resolveIcon, useHtmlTheme } from "@rxc/forms";
+} from "@rx-controls/forms-react-core";
+import { clsx } from "@rx-controls/forms-react-core";
+import { resolveIcon, useHtmlTheme } from "@rx-controls/forms";
 
 const DEFAULT_BUTTON = "flex items-center gap-2 my-2 w-fit";
 const DEFAULT_TITLE = "cursor-pointer";
@@ -27,7 +27,7 @@ const DEFAULT_ICON_CLOSED: IconReference = {
 };
 
 /**
- * Animated alternative to `@rxc/forms`'s default Accordion. Same chrome
+ * Animated alternative to `@rx-controls/forms`'s default Accordion. Same chrome
  * (button + chevron + revealed content region, theme-driven), but the
  * content reveal uses `<AnimatePresence>` for a height/opacity transition.
  */

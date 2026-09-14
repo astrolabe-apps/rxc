@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ActionStyle, IconPlacement } from "@rxc/forms-core";
-import type { ActionRendererProps } from "@rxc/forms-react-core";
-import { rendererClass } from "@rxc/forms-react-core";
+import { ActionStyle, IconPlacement } from "@rx-controls/forms-core";
+import type { ActionRendererProps } from "@rx-controls/forms-react-core";
+import { rendererClass } from "@rx-controls/forms-react-core";
 import { resolveIcon } from "../display/Icon";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

@@ -1,18 +1,18 @@
 "use client";
 
-import type { ControlContext } from "@rxc/controls-core";
+import type { ControlContext } from "@rx-controls/core";
 import type {
   DataNode,
   FormNode,
   FormStateNode,
-} from "@rxc/forms-core";
-import { useFormStateNode as useFormStateNodeCore } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import { useFormStateNode as useFormStateNodeCore } from "@rx-controls/forms-react-core";
 import { defaultRegistry } from "./builtins";
 import type { UseFormStateNodeOptions } from "./types";
 
 /**
  * Build the root FormStateNode for a form. Thin wrapper over the
- * headless `@rxc/forms-react-core` helper that supplies the HTML
+ * headless `@rx-controls/forms-react-core` helper that supplies the HTML
  * `defaultRegistry()` when `options.registry` is omitted.
  */
 export function useFormStateNode(

@@ -1,8 +1,8 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import { rendererClass, useTabsController } from "@rxc/forms-react-core";
-import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { rendererClass, useTabsController } from "@rx-controls/forms-react-core";
+import type { GroupRendererProps } from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

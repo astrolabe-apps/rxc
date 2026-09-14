@@ -4,11 +4,11 @@ import {
   AdornmentPlacement,
   ControlAdornmentType,
   type IconAdornment as IconAdornmentDef,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type {
   AdornmentRegistration,
   AdornmentRenderProps,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { resolveIcon } from "../renderers/display/Icon";
 
 function IconAdornmentRender({

@@ -1,5 +1,5 @@
 /**
- * `@rxc/controls` — public types for the React adapter.
+ * `@rx-controls/react` — public types for the React adapter.
  *
  * See `docs/RENDER-BOUNDARY.md` for why the render boundary is an
  * explicit `rendered(…)` call rather than an HOC.
@@ -11,7 +11,7 @@ import type {
   ControlValue,
   ReadContext,
   WriteContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 
 declare const callRendered: unique symbol;
 

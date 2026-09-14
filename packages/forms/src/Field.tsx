@@ -1,11 +1,11 @@
 "use client";
 
 import { memo, useId, useMemo } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   ControlDefinitionType,
   isDisplayControl,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   indexAdornments,
   pickDataRenderer,
@@ -14,7 +14,7 @@ import {
   resolveLabelText,
   useRegistry,
   wrapAdornments,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { FieldAction } from "./FieldAction";
 import { useLayout } from "./Layout";
 import { useVisibility } from "./Visibility";
@@ -100,7 +100,7 @@ function FieldRender({ node, inline }: FieldProps): Rendered {
     // a silent null.
     // eslint-disable-next-line no-console
     console.warn(
-      `[@rxc/forms] No renderer matched for ${def.type} node`,
+      `[@rx-controls/forms] No renderer matched for ${def.type} node`,
       def,
     );
     return rendered(null);

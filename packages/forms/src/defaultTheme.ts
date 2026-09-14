@@ -1,4 +1,4 @@
-import { IconLibrary, IconPlacement } from "@rxc/forms-core";
+import { IconLibrary, IconPlacement } from "@rx-controls/forms-core";
 import type { DeepPartial, HtmlFormTheme } from "./theme";
 
 /**

@@ -1,5 +1,5 @@
-import type { ReadContext } from "@rxc/controls-core";
-import { FieldType, type FormStateNode } from "@rxc/forms-core";
+import type { ReadContext } from "@rx-controls/core";
+import { FieldType, type FormStateNode } from "@rx-controls/forms-core";
 
 /**
  * Platform-agnostic value coercion shared by the options renderers

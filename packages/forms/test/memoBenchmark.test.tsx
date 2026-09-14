@@ -2,8 +2,8 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect } from "vitest";
-import { useReactive, type Rendered, ControlContextProvider, createControlContext } from "@rxc/controls";
-import { untrackedRead, type Control } from "@rxc/controls-core";
+import { useReactive, type Rendered, ControlContextProvider, createControlContext } from "@rx-controls/react";
+import { untrackedRead, type Control } from "@rx-controls/core";
 import {
   ControlDefinitionType,
   FieldType,
@@ -18,7 +18,7 @@ import {
   type FormGlobalOptions,
   type FormStateNode,
   type SchemaField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   Form,
   Field,
@@ -28,7 +28,7 @@ import {
   groupPlugin,
   type DataRendererProps,
   type GroupRendererProps,
-} from "@rxc/forms";
+} from "@rx-controls/forms";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;

@@ -4,7 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 import type {
   ControlAdornment,
   FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 export type AdornmentKind = "label" | "control" | "field";
 

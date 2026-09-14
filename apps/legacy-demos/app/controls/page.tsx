@@ -4,7 +4,7 @@
  * Kitchen-sink demo of the @react-typed-forms/core surface (hooks +
  * components), rendered with the published legacy package. Pair with
  * localhost:3000/controls in the dev app, which mirrors this page
- * section-for-section via @rxc/controls.
+ * section-for-section via @rx-controls/react.
  *
  * Reactivity here is ambient: the @astroapps/swc-controls-plugin wraps every
  * component so plain `.value` reads subscribe automatically.
@@ -685,7 +685,7 @@ export default function ControlsKitchenSink() {
             >
               localhost:3000/controls
             </a>{" "}
-            — the same page ported to <code>@rxc/controls</code>.
+            — the same page ported to <code>@rx-controls/react</code>.
           </p>
         </header>
         <BasicFormSection />

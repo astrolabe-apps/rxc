@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useControlContext, useReactive, type Rendered } from "@rxc/controls";
+import { useControlContext, useReactive, type Rendered } from "@rx-controls/react";
 import {
   AdornmentPlacement,
   ControlAdornmentType,
   type OptionalAdornment as OptionalAdornmentDef,
-} from "@rxc/forms-core";
-import type { Control } from "@rxc/controls-core";
+} from "@rx-controls/forms-core";
+import type { Control } from "@rx-controls/core";
 import type {
   AdornmentRegistration,
   AdornmentRenderProps,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../useHtmlTheme";
 
 

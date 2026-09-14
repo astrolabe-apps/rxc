@@ -1,4 +1,4 @@
-import type { Control, ControlContext, ReadContext } from "@rxc/controls-core";
+import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
 import {
   type CompoundField,
   coerceForFieldType,

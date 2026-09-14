@@ -9,7 +9,7 @@ import {
   type FormState,
   type FormStateNode,
   type SchemaField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   actionPlugin,
   collectExtraRenderOptionFields,

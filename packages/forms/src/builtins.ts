@@ -6,8 +6,8 @@ import {
   isDataControl,
   type FormStateNode,
   type TextfieldRenderOptions,
-} from "@rxc/forms-core";
-import type { ReadContext } from "@rxc/controls-core";
+} from "@rx-controls/forms-core";
+import type { ReadContext } from "@rx-controls/core";
 import {
   combineRegistries,
   matchAll,
@@ -23,7 +23,7 @@ import {
   type DataMatcher,
   type DataRenderer,
   type FormRegistry,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 
 // Data renderers
 import { TextfieldRenderer } from "./renderers/data/Textfield";
@@ -155,7 +155,7 @@ function matchDisplayOnly(component: typeof DisplayOnlyRenderer): DataMatcher {
   };
 }
 
-/** Default registry for `@rxc/forms`. */
+/** Default registry for `@rx-controls/forms`. */
 export function defaultRegistry(): FormRegistry {
   return combineRegistries({
     data: [

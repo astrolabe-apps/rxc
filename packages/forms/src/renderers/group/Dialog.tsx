@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
-import { ActionScope, rendererClass, useDisclosure } from "@rxc/forms-react-core";
-import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { ActionScope, rendererClass, useDisclosure } from "@rx-controls/forms-react-core";
+import type { GroupRendererProps } from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 

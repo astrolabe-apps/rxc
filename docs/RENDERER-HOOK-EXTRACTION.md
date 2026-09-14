@@ -1,7 +1,7 @@
 # Renderer Hook Extraction Audit
 
-Goal: move every **platform-agnostic** renderer controller out of `@rxc/forms` (HTML) into
-hooks in `@rxc/forms-react-core`, so `@rxc/forms-native` can reuse the exact behaviour and only
+Goal: move every **platform-agnostic** renderer controller out of `@rx-controls/forms` (HTML) into
+hooks in `@rx-controls/forms-react-core`, so `@rx-controls/forms-native` can reuse the exact behaviour and only
 swap emitted elements + styling. Contract: hooks take `(node, rc, …)`, return **values + handlers
 only** — never `ReactNode`, never class strings, never DOM element types / input `type` / aria.
 React state (`useState`) is allowed (it's React, not DOM); browser APIs (IntersectionObserver,
@@ -59,11 +59,11 @@ The three per-widget controllers (`useSelectController` etc.) compose these + wi
 ## Sequencing
 
 **Phase 1 — shared primitives + text/number/date + options widgets** ✅ **DONE.** Shipped in
-`@rxc/forms-react-core`: `optionCoerce.ts` (`valueToString` / `stringToValue` /
+`@rx-controls/forms-react-core`: `optionCoerce.ts` (`valueToString` / `stringToValue` /
 `mapChildrenByOptionValue` — pure), `useInputControllers.ts` (`useTextInputController` [Textfield +
 Multiline], `useNumberController`, `useDateController`), `useOptionControllers.ts`
 (`useSelectController`, `useRadioController`, `useChecklistController`, `useCheckboxController`,
-`useElementSelectedController`). All eight HTML renderers in `@rxc/forms` rewritten to thin views —
+`useElementSelectedController`). All eight HTML renderers in `@rx-controls/forms` rewritten to thin views —
 they call `node.getState(rc)` only through the controller (which surfaces `data` for the null-bail
 and `styleClass` for `rendererClass` composition); DOM element + theme + `rendererClass` stay in the
 renderer. Contract settled: `(rc, node)`, writes via `useControlContext().update` (matches
@@ -77,7 +77,7 @@ in `optionCoerce.ts`; option grouping and array-membership toggle live inside th
 controllers (`useSelectController` / `useChecklistController`) rather than as separate shared hooks —
 no cross-widget sharing justified the extra indirection.
 
-**Phase 2 — stateful groups + collections** ✅ **DONE.** Shipped in `@rxc/forms-react-core`:
+**Phase 2 — stateful groups + collections** ✅ **DONE.** Shipped in `@rx-controls/forms-react-core`:
 `useAutocompleteController.ts` (open/query state machine, option filter, select/blur handlers — the
 click-outside listener + container ref stay in the HTML renderer), `useCollectionControllers.ts`
 (`useArrayActions` — length range + add/edit/remove `ActionRendererProps` with dispatch-then-fallback
@@ -91,9 +91,9 @@ views. Full build green; forms-react-core (61) + forms (45) + datagrid (31) test
 Layout-only renderers (Flex / Grid / Inline / Standard / Contents) and the `AccordionGroup` wrapper
 were left as-is — no state to extract.
 
-**Phase 3 — spike `@rxc/forms-native`** with one renderer (Textfield → RN `TextInput`) end-to-end to
+**Phase 3 — spike `@rx-controls/forms-native`** with one renderer (Textfield → RN `TextInput`) end-to-end to
 validate the boundary before porting the rest. Optional: `useSelectChildIndex`. All the platform-
 agnostic controllers now exist, so a native platform package can be built purely as a new view layer.
 
 Each extraction: create hook in `packages/forms-react-core/src/`, export from `index.ts`, rewrite the
-`@rxc/forms` renderer to call it (DOM + theme only), keep tests green. No behaviour change — pure move.
+`@rx-controls/forms` renderer to call it (DOM + theme only), keep tests green. No behaviour change — pure move.

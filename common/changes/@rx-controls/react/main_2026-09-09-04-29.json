@@ -3,9 +3,9 @@
     {
       "comment": "Rename the pre-publish public surface per docs/CONTROLS-API-NAMING-REVIEW.md: useControls -> useReactive, RenderControl -> Reactive, Finput/Fselect/Fcheckbox -> ControlInput/ControlSelect/ControlCheckbox, computed -> computeInto, as -> asControl, noopReadContext -> untrackedRead, getValueRx -> getTrackedValue, isFinalized -> isTracking (polarity flipped), setInitialValue -> reset with setInitialValueOnly taking its place, ControlSetup -> ControlOptions (elems -> elements, dontClearError -> keepErrors), ControlChange.All -> AllState, and ~20 more. useFormControlProps now returns { props, errorText }. See docs/MIGRATION-COMPAT-TO-CONTROLS.md.",
       "type": "minor",
-      "packageName": "@rxc/forms-core"
+      "packageName": "@rx-controls/react"
     }
   ],
-  "packageName": "@rxc/forms-core",
+  "packageName": "@rx-controls/react",
   "email": "doolse@gmail.com"
 }

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Legacy components: the F-components re-exported from `@rxc/controls`
+ * Legacy components: the F-components re-exported from `@rx-controls/react`
  * (self-subscribing, same props) and the render helpers adapted from the
  * rc-taking rxc versions back to the legacy callback signatures via
  * `withAmbient`.
@@ -16,7 +16,7 @@ import type {
   ReactNode,
   SelectHTMLAttributes,
 } from "react";
-import type { Control as CoreControl } from "@rxc/controls-core";
+import type { Control as CoreControl } from "@rx-controls/core";
 import {
   ControlCheckbox as RxcFcheckbox,
   ControlInput as RxcFinput,
@@ -25,7 +25,7 @@ import {
   Reactive as RxcRenderControl,
   RenderElements as RxcRenderElements,
   RenderOptional as RxcRenderOptional,
-} from "@rxc/controls";
+} from "@rx-controls/react";
 import { withAmbient } from "./ambient.js";
 import { asLegacy } from "./patch.js";
 import type { Control, ControlValue } from "./types.js";

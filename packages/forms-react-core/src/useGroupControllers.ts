@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { ReadContext } from "@rxc/controls-core";
+import type { ReadContext } from "@rx-controls/core";
 import {
   isGroupControl,
   type DialogRenderOptions,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 /**
  * Platform-agnostic open/active-state controllers for the stateful group

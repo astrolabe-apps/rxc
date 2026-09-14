@@ -3,7 +3,7 @@ import {
   createControlContext,
   untrackedRead,
   type ControlContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   type ChildResolverFunc,
   ControlDefinitionType,
@@ -21,8 +21,8 @@ import {
   type GroupedControlsDefinition,
   GroupRenderType,
   type SchemaField,
-} from "@rxc/forms-core";
-import { getExternalEdit } from "@rxc/forms-react-core";
+} from "@rx-controls/forms-core";
+import { getExternalEdit } from "@rx-controls/forms-react-core";
 import { dataGridResolveChildren, DataGridRenderType } from "../src/DataGrid";
 
 const rd = untrackedRead;

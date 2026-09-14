@@ -1,9 +1,9 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import { DataRenderType, isDataControl } from "@rxc/forms-core";
-import { rendererClass } from "@rxc/forms-react-core";
-import type { LayoutProps } from "@rxc/forms";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { DataRenderType, isDataControl } from "@rx-controls/forms-core";
+import { rendererClass } from "@rx-controls/forms-react-core";
+import type { LayoutProps } from "@rx-controls/forms";
 
 // Legacy `defaultTailwindTheme.displayOnlyClass`. The legacy data renderer
 // pushed this onto the control's layout wrapper (`ControlLayoutProps`) for

@@ -1,9 +1,9 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import { isDisplayControl, type CustomDisplay } from "@rxc/forms-core";
-import { useFormOptions } from "@rxc/forms-react-core";
-import type { DisplayRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { isDisplayControl, type CustomDisplay } from "@rx-controls/forms-core";
+import { useFormOptions } from "@rx-controls/forms-react-core";
+import type { DisplayRendererProps } from "@rx-controls/forms-react-core";
 
 /**
  * Custom display dispatch. Looks up the registered component for the

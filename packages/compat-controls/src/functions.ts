@@ -12,8 +12,8 @@ import {
   attachFields as coreSetFields,
   type ComputedHandle,
   type Control as CoreControl,
-} from "@rxc/controls-core";
-import { ControlImpl, toImpl } from "@rxc/controls-core/internal";
+} from "@rx-controls/core";
+import { ControlImpl, toImpl } from "@rx-controls/core/internal";
 import { withAmbient } from "./ambient.js";
 import { getCompatContext } from "./context.js";
 import { newControl } from "./newControl.js";

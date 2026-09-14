@@ -1,15 +1,15 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   combineRegistries,
   groupPlugin,
   type AnyAdornmentRegistration,
   type FormRegistry,
   type GroupRendererProps,
-} from "@rxc/forms-react-core";
-import { defaultRegistry, Field, useHtmlTheme } from "@rxc/forms";
-import { dataGridRegistry, type DataGridClasses } from "@rxc/forms-datagrid";
+} from "@rx-controls/forms-react-core";
+import { defaultRegistry, Field, useHtmlTheme } from "@rx-controls/forms";
+import { dataGridRegistry, type DataGridClasses } from "@rx-controls/forms-datagrid";
 import { AllErrors } from "./components/AllErrors";
 import { TopLevelGroupValue } from "./formExtensions";
 import { PopoverHelpTextAdornment } from "./adornments/PopoverHelpText";

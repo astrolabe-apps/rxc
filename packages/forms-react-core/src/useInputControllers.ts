@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import type { Control, ReadContext } from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
+import type { Control, ReadContext } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import {
   FieldType,
   type FormStateNode,
   type TextfieldRenderOptions,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 
 /**
  * Platform-agnostic controllers for the free-text / numeric / temporal
  * data renderers. Each returns the value string, resolved cascade flags,
  * error state, and the change/blur handlers — no DOM element choice, no
- * theme classes. The HTML renderers in `@rxc/forms` (and a future
- * `@rxc/forms-native`) wrap these with their own input element + styling.
+ * theme classes. The HTML renderers in `@rx-controls/forms` (and a future
+ * `@rx-controls/forms-native`) wrap these with their own input element + styling.
  *
  * Contract: `(rc, node)`, writes go through `useControlContext().update`
  * (mirrors `useWizardController`). `data` is surfaced so the renderer can

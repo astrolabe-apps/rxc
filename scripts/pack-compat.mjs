@@ -12,17 +12,17 @@
  *
  * The build step is scoped to those same projects rather than being a bare
  * `rush build`, so it builds exactly what ends up in the tarballs and doesn't
- * spend time on the apps or the `@rxc/forms*` packages, none of which are
+ * spend time on the apps or the `@rx-controls/forms*` packages, none of which are
  * packed (they carry `shouldPublish: false`).
  *
  * What this script adds is the last step: writing an `overrides.json` for the
  * three packages a legacy `@react-typed-forms/core` consumer needs. Listing
  * the tarballs as ordinary dependencies is NOT enough — the compat tarball's
- * own manifest asks for `@rxc/controls-core@<version>`, which the package
+ * own manifest asks for `@rx-controls/core@<version>`, which the package
  * manager then tries to fetch from the registry and fails on. Overrides force
  * every reference, direct and transitive, onto the local tarballs.
  *
- * That also keeps exactly ONE copy of `@rxc/controls-core` in the consuming
+ * That also keeps exactly ONE copy of `@rx-controls/core` in the consuming
  * process, which the compat layer requires: `compat-controls/src/patch.ts`
  * mutates `ControlImpl.prototype`, so a second copy of the engine would leave
  * half the app's controls unpatched and break interop with migrated

@@ -1,18 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   ExpressionType,
   isDataControl,
   type JsonataExpression,
   type JsonataRenderOptions,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   rendererClass,
   useExpression,
   type DataRendererProps,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 
 /**
  * Render a Jsonata expression result as HTML.

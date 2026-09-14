@@ -1,9 +1,9 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
-import { rendererClass, useAccordionSection } from "@rxc/forms-react-core";
-import type { FormStateNode } from "@rxc/forms-core";
-import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { rendererClass, useAccordionSection } from "@rx-controls/forms-react-core";
+import type { FormStateNode } from "@rx-controls/forms-core";
+import type { GroupRendererProps } from "@rx-controls/forms-react-core";
 import { Field } from "../../Field";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
@@ -11,7 +11,7 @@ import { useHtmlTheme } from "../../useHtmlTheme";
  * Accordion group: each child becomes a `<details>` section. Uses native
  * `<details>`/`<summary>` — semantic, accessible. Per-section open state
  * lives in {@link useAccordionSection}; the animated variant is provided by
- * `@rxc/forms-motion`.
+ * `@rx-controls/forms-motion`.
  */
 export function AccordionGroupRenderer({ node }: GroupRendererProps): Rendered {
   const { rc, rendered } = useReactive();

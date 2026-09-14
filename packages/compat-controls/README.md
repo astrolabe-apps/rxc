@@ -2,7 +2,7 @@
 
 The v5 major of `@react-typed-forms/core`: the legacy v4 surface (including
 its re-exported `@astroapps/controls`) reimplemented on top of the new
-explicit-reactivity engine, `@rxc/controls-core` + `@rxc/controls`.
+explicit-reactivity engine, `@rx-controls/core` + `@rx-controls/react`.
 
 Migrating from v4 is a semver bump plus **one line** at your app root. Your
 imports, your `.value` reads, your `groupedChanges` calls, and the
@@ -100,8 +100,8 @@ In the consuming project, add those to **`pnpm.overrides`** (or, in a Rush repo,
 {
   "pnpm": {
     "overrides": {
-      "@rxc/controls-core": "file:/some/vendor/dir/rxc-controls-core-0.1.0.tgz",
-      "@rxc/controls": "file:/some/vendor/dir/rxc-controls-0.1.0.tgz",
+      "@rx-controls/core": "file:/some/vendor/dir/rxc-controls-core-0.1.0.tgz",
+      "@rx-controls/react": "file:/some/vendor/dir/rxc-controls-0.1.0.tgz",
       "@react-typed-forms/core": "file:/some/vendor/dir/react-typed-forms-core-5.0.0.tgz"
     }
   }
@@ -110,7 +110,7 @@ In the consuming project, add those to **`pnpm.overrides`** (or, in a Rush repo,
 
 **Overrides, not plain dependencies.** Listing the tarballs as ordinary
 `dependencies` is not enough: the compat tarball's own manifest asks for
-`@rxc/controls-core@0.1.0`, which the package manager will then try to fetch
+`@rx-controls/core@0.1.0`, which the package manager will then try to fetch
 from the registry and fail with a 404. Overrides force every reference —
 direct and transitive — onto the same tarball.
 
@@ -118,10 +118,10 @@ direct and transitive — onto the same tarball.
 
 `src/patch.ts` mutates `ControlImpl.prototype` so that *every* control in the
 process carries both the legacy and the new surface. That only holds if there
-is exactly **one** copy of `@rxc/controls-core` loaded.
+is exactly **one** copy of `@rx-controls/core` loaded.
 
 If the engine were inlined into this package, a project that also imports
-`@rxc/*` directly would end up with two `ControlImpl` classes: the patch would
+`@rx-controls/*` directly would end up with two `ControlImpl` classes: the patch would
 land on one, the project's own controls would use the other, and the two would
 stop interoperating. Since interoperating is the whole point — it is what lets
 you migrate one component at a time — the packages stay separate and the
@@ -205,7 +205,7 @@ Verified on a production app: six Next sites building and statically
 exporting, with one copy of the engine and `@astroapps/controls` absent from
 the install entirely.
 
-This is an alternative to porting onto `@rxc/forms`, not a replacement for it
+This is an alternative to porting onto `@rx-controls/forms`, not a replacement for it
 — it keeps a legacy host on the legacy renderer set while moving the engine
 underneath. See [`docs/MIGRATION-FROM-LEGACY.md`](../../docs/MIGRATION-FROM-LEGACY.md)
 for the full port.

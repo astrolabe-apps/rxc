@@ -1,12 +1,12 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   rendererClass,
   useElementSelectedController,
   resolveLabelText,
   type DataRendererProps,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "../../useHtmlTheme";
 
 /**

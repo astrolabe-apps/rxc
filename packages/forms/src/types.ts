@@ -1,6 +1,6 @@
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import type { FormStateNode, SchemaInterface } from "@rxc/forms-core";
-import type { FormRegistry } from "@rxc/forms-react-core";
+import type { FormStateNode, SchemaInterface } from "@rx-controls/forms-core";
+import type { FormRegistry } from "@rx-controls/forms-react-core";
 import type { HtmlFormOptions } from "./theme";
 import type { LabelComponent } from "./Label";
 import type { ErrorComponent } from "./Error";

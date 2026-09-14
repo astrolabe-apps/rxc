@@ -1,9 +1,9 @@
-// Public API for @rxc/forms-datagrid
+// Public API for @rx-controls/forms-datagrid
 //
-// Schema-driven DataGrid + Pager renderers that augment `@rxc/forms`. Apps
+// Schema-driven DataGrid + Pager renderers that augment `@rx-controls/forms`. Apps
 // that don't render `renderOptions.type === "DataGrid"` / `"Pager"` controls
 // need not import this package — its `@astroapps/datagrid` dependency is not
-// pulled in by `@rxc/forms`.
+// pulled in by `@rx-controls/forms`.
 //
 // Scope: renders columns + rows from the bound array, with column
 // filter/sort header controls (driven by a sibling `SearchOptions` control),

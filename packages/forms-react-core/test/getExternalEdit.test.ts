@@ -3,7 +3,7 @@ import {
   createControlContext,
   untrackedRead,
   type ControlContext,
-} from "@rxc/controls-core";
+} from "@rx-controls/core";
 import {
   ControlDefinitionType,
   createDataNode,
@@ -17,9 +17,9 @@ import {
   type FormGlobalOptions,
   type FormStateNode,
   type SchemaField,
-} from "@rxc/forms-core";
-import { createFormTreeResolver } from "@rxc/forms-core";
-import { createSchemaTreeResolver } from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
+import { createFormTreeResolver } from "@rx-controls/forms-core";
+import { createSchemaTreeResolver } from "@rx-controls/forms-core";
 import { getExternalEdit } from "../src/getExternalEdit";
 
 const rd = untrackedRead;
@@ -334,7 +334,7 @@ describe("getExternalEdit", () => {
         collection: true,
         children: [stringField("name")],
       },
-    ] as Array<import("@rxc/forms-core").SchemaField>;
+    ] as Array<import("@rx-controls/forms-core").SchemaField>;
     const defs: ControlDefinition[] = [
       {
         type: ControlDefinitionType.Data,

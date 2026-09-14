@@ -10,8 +10,8 @@
  * re-run to once per transaction exactly as legacy did.
  */
 
-import { ControlChange } from "@rxc/controls-core";
-import type { Subscription } from "@rxc/controls-core";
+import { ControlChange } from "@rx-controls/core";
+import type { Subscription } from "@rx-controls/core";
 import { collectChanges } from "./ambient.js";
 import { createCleanupScope } from "./functions.js";
 import { addAfterChangesCallback } from "./transactions.js";

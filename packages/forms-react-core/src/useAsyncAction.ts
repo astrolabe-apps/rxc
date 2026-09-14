@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import {
   ControlDisableType,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type { ActionHandler } from "./ActionScope";
 
 /**
@@ -37,7 +37,7 @@ export function runAsyncAction(
     result = handler(actionId, actionData);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("[@rxc/forms-react-core] action threw", err);
+    console.error("[@rx-controls/forms-react-core] action threw", err);
     return;
   }
   if (result instanceof Promise) {
@@ -49,7 +49,7 @@ export function runAsyncAction(
     result
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.error("[@rxc/forms-react-core] action rejected", err);
+        console.error("[@rx-controls/forms-react-core] action rejected", err);
       })
       .finally(() => {
         node.setBusy(false);

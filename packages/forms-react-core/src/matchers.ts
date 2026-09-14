@@ -1,4 +1,4 @@
-import type { ReadContext } from "@rxc/controls-core";
+import type { ReadContext } from "@rx-controls/core";
 import {
   getGroupRendererOptions,
   isDataControl,
@@ -7,7 +7,7 @@ import {
   isActionControl,
   type DisplayData,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import type {
   ActionMatcher,
   DataMatcher,

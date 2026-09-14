@@ -8,7 +8,7 @@
  */
 
 import type { ChangeEvent } from "react";
-import { useFormEdit } from "@rxc/controls";
+import { useFormEdit } from "@rx-controls/react";
 import type { Control } from "./types.js";
 
 export interface FormControlProps<V, E extends HTMLElement> {

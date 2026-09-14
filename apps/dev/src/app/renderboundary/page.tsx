@@ -19,7 +19,7 @@ import {
   useReactive,
   type Control,
   type Rendered,
-} from "@rxc/controls";
+} from "@rx-controls/react";
 
 const controlContext = createControlContext();
 
@@ -36,7 +36,7 @@ if (typeof window !== "undefined") {
   const original = console.error;
   console.error = (...args: unknown[]) => {
     const first = String(args[0] ?? "");
-    if (first.startsWith("[@rxc/controls]")) {
+    if (first.startsWith("[@rx-controls/react]")) {
       captured.push(first);
       onCapture?.();
     }
@@ -58,7 +58,7 @@ function CapturedWarnings() {
   return (
     <div>
       <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Anything <code>@rxc/controls</code> wrote to <code>console.error</code>,
+        Anything <code>@rx-controls/react</code> wrote to <code>console.error</code>,
         mirrored here so you don&apos;t need devtools open:
       </p>
       {captured.length === 0 ? (
@@ -196,7 +196,7 @@ function ConditionalFieldRender({
 }
 
 // `memo` so a parent re-render can't drag these along — only their own
-// subscriptions may re-render them. This mirrors `memo(Field)` in `@rxc/forms`,
+// subscriptions may re-render them. This mirrors `memo(Field)` in `@rx-controls/forms`,
 // and without it the parent's own reactivity would mask the whole failure.
 const CorrectField = memo(CorrectFieldRender);
 const BrokenField = memo(BrokenFieldRender);

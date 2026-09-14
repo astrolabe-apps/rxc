@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rxc/controls";
-import type { Control } from "@rxc/controls";
+import { useReactive, type Rendered, useControlContext, ControlContextProvider, createControlContext } from "@rx-controls/react";
+import type { Control } from "@rx-controls/react";
 import {
   accordionGroupOptions,
   actionControl,
@@ -25,13 +25,13 @@ import {
   type GroupedControlsDefinition,
   type SchemaField,
   type SchemaTreeResolver,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   ActionScope,
   Form,
   useFormStateNode,
   type ActionHandler,
-} from "@rxc/forms";
+} from "@rx-controls/forms";
 
 // ── Schema ───────────────────────────────────────────────────────────
 

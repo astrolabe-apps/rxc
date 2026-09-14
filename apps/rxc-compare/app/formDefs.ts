@@ -1,4 +1,4 @@
-import { FieldType, type SchemaField } from "@rxc/forms-core";
+import { FieldType, type SchemaField } from "@rx-controls/forms-core";
 import FireJson from "./formDefs/Fire.json";
 import RWVPJson from "./formDefs/RWVPVerificationWizard.json";
 import MrsDemeritsJson from "./formDefs/MrsDemeritsSummary.json";

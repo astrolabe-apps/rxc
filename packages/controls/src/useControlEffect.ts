@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ControlChange } from "@rxc/controls-core";
-import type { ReadContext } from "@rxc/controls-core";
+import { ControlChange } from "@rx-controls/core";
+import type { ReadContext } from "@rx-controls/core";
 import { useComputed } from "./useReactive.js";
 
 /**

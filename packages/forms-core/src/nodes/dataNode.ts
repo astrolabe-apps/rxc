@@ -1,4 +1,4 @@
-import type { Control, ReadContext } from "@rxc/controls-core";
+import type { Control, ReadContext } from "@rx-controls/core";
 import { isCompoundField } from "../json";
 import type { SchemaNode, DataNode, DataCursor } from "../types";
 

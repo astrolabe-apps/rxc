@@ -1,10 +1,10 @@
 "use client";
 
 import { JSX, useEffect, useRef, useState } from "react";
-import type { Control } from "@rxc/controls";
-import { useReactive, useControlContext, type Rendered, ControlContextProvider, createControlContext, effect } from "@rxc/controls";
-import { ActionScope } from "@rxc/forms";
-import { clientSearchPage, fieldClientSearch } from "@rxc/forms-datagrid";
+import type { Control } from "@rx-controls/react";
+import { useReactive, useControlContext, type Rendered, ControlContextProvider, createControlContext, effect } from "@rx-controls/react";
+import { ActionScope } from "@rx-controls/forms";
+import { clientSearchPage, fieldClientSearch } from "@rx-controls/forms-datagrid";
 import type { SearchOptions } from "@astroapps/searchstate";
 import {
   createDataNode,
@@ -16,8 +16,8 @@ import {
   type FormNode,
   type FormTreeResolver,
   type SchemaField,
-} from "@rxc/forms-core";
-import { Form, useFormStateNode, type FormRegistry } from "@rxc/forms";
+} from "@rx-controls/forms-core";
+import { Form, useFormStateNode, type FormRegistry } from "@rx-controls/forms";
 import { SchemaMap } from "./schemas";
 import { createRegistry } from "./registry";
 import { HtmlLayout } from "./HtmlLayout";

@@ -1,5 +1,5 @@
 {
-  "name": "@rxc/controls",
+  "name": "@rx-controls/react",
   "version": "0.1.0",
   "type": "module",
   "files": [
@@ -21,7 +21,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rxc/controls-core": "workspace:*"
+    "@rx-controls/core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18 || ^19"

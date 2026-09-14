@@ -2,7 +2,7 @@ import type {
   ChildResolverFunc,
   DisplayData,
   SchemaField,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import {
   matchActionId,
   matchDisplayDataType,
@@ -25,7 +25,7 @@ import type {
 
 /**
  * Editor-side plugin metadata. Carried opaquely through the renderer's
- * registry so a future `@rxc/forms-editor` package can iterate plugins
+ * registry so a future `@rx-controls/forms-editor` package can iterate plugins
  * to populate its tools palette and properties panels. Renderer engine
  * never reads this — it's just plumbing for the editor.
  */

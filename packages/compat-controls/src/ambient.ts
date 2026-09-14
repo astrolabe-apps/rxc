@@ -8,8 +8,8 @@
  * remains global-free.
  */
 
-import { ControlChange } from "@rxc/controls-core";
-import type { Control as CoreControl, ReadContext } from "@rxc/controls-core";
+import { ControlChange } from "@rx-controls/core";
+import type { Control as CoreControl, ReadContext } from "@rx-controls/core";
 import type { ChangeListenerFunc } from "./types.js";
 
 /**

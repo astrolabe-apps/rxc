@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { useReactive, type Rendered } from "@rxc/controls";
-import { clsx, rendererClass } from "@rxc/forms-react-core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { clsx, rendererClass } from "@rx-controls/forms-react-core";
 import { useHtmlTheme } from "./useHtmlTheme";
 import type { LayoutComponent, LayoutProps } from "./types";
 

@@ -6,7 +6,7 @@
  * kitchen-sink page (legacy-demos /controls, port 3001) with its imports
  * UNCHANGED — the only edit is the one-time ControlContextProvider wrap at
  * the root. Same sections, same ambient `.value` reads, same legacy
- * mutation style, now running on the @rxc/controls-core engine. Pair with
+ * mutation style, now running on the @rx-controls/core engine. Pair with
  * :3001/controls (published v4) and /controls (rxc-native port).
  *
  * The dev app doesn't run the legacy SWC tracking plugin, so the `tracked()`

@@ -5,7 +5,7 @@ import {
   OptionsProvider,
   RegistryProvider,
   type FormRegistry,
-} from "@rxc/forms-react-core";
+} from "@rx-controls/forms-react-core";
 import { Field } from "./Field";
 import { LayoutProvider, DefaultLayout } from "./Layout";
 import { VisibilityProvider, DefaultVisibility } from "./Visibility";

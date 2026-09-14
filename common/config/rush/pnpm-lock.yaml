@@ -24,22 +24,22 @@ importers:
       '@react-typed-forms/core':
         specifier: workspace:*
         version: link:../../packages/compat-controls
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../../packages/controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../../packages/controls-core
-      '@rxc/forms':
+      '@rx-controls/forms':
         specifier: workspace:*
         version: link:../../packages/forms
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../../packages/forms-core
-      '@rxc/forms-dnd':
+      '@rx-controls/forms-dnd':
         specifier: workspace:*
         version: link:../../packages/forms-dnd
-      '@rxc/forms-motion':
+      '@rx-controls/forms-motion':
         specifier: workspace:*
         version: link:../../packages/forms-motion
       framer-motion:
@@ -204,22 +204,22 @@ importers:
       '@radix-ui/react-popover':
         specifier: ^1.1.6
         version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../../packages/controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../../packages/controls-core
-      '@rxc/forms':
+      '@rx-controls/forms':
         specifier: workspace:*
         version: link:../../packages/forms
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../../packages/forms-core
-      '@rxc/forms-datagrid':
+      '@rx-controls/forms-datagrid':
         specifier: workspace:*
         version: link:../../packages/forms-datagrid
-      '@rxc/forms-react-core':
+      '@rx-controls/forms-react-core':
         specifier: workspace:*
         version: link:../../packages/forms-react-core
       clsx:
@@ -262,10 +262,10 @@ importers:
 
   ../../packages/compat-controls:
     dependencies:
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
     devDependencies:
@@ -293,7 +293,7 @@ importers:
 
   ../../packages/controls:
     dependencies:
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
     devDependencies:
@@ -336,16 +336,16 @@ importers:
 
   ../../packages/forms:
     dependencies:
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../forms-core
-      '@rxc/forms-react-core':
+      '@rx-controls/forms-react-core':
         specifier: workspace:*
         version: link:../forms-react-core
     devDependencies:
@@ -373,7 +373,7 @@ importers:
 
   ../../packages/forms-core:
     dependencies:
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
       jsonata:
@@ -404,19 +404,19 @@ importers:
       '@radix-ui/react-popover':
         specifier: ^1.1.6
         version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
-      '@rxc/forms':
+      '@rx-controls/forms':
         specifier: workspace:*
         version: link:../forms
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../forms-core
-      '@rxc/forms-react-core':
+      '@rx-controls/forms-react-core':
         specifier: workspace:*
         version: link:../forms-react-core
     devDependencies:
@@ -435,19 +435,19 @@ importers:
 
   ../../packages/forms-dnd:
     dependencies:
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
-      '@rxc/forms':
+      '@rx-controls/forms':
         specifier: workspace:*
         version: link:../forms
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../forms-core
-      '@rxc/forms-react-core':
+      '@rx-controls/forms-react-core':
         specifier: workspace:*
         version: link:../forms-react-core
     devDependencies:
@@ -475,19 +475,19 @@ importers:
 
   ../../packages/forms-motion:
     dependencies:
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
-      '@rxc/forms':
+      '@rx-controls/forms':
         specifier: workspace:*
         version: link:../forms
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../forms-core
-      '@rxc/forms-react-core':
+      '@rx-controls/forms-react-core':
         specifier: workspace:*
         version: link:../forms-react-core
     devDependencies:
@@ -509,13 +509,13 @@ importers:
 
   ../../packages/forms-react-core:
     dependencies:
-      '@rxc/controls':
+      '@rx-controls/react':
         specifier: workspace:*
         version: link:../controls
-      '@rxc/controls-core':
+      '@rx-controls/core':
         specifier: workspace:*
         version: link:../controls-core
-      '@rxc/forms-core':
+      '@rx-controls/forms-core':
         specifier: workspace:*
         version: link:../forms-core
     devDependencies:

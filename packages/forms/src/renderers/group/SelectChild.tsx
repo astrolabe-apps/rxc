@@ -1,13 +1,13 @@
 "use client";
 
-import { useReactive, type Rendered } from "@rxc/controls";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   isGroupControl,
   type SelectChildRenderer as SelectChildRenderOptions,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import { Field } from "../../Field";
-import { useExpression } from "@rxc/forms-react-core";
-import type { GroupRendererProps } from "@rxc/forms-react-core";
+import { useExpression } from "@rx-controls/forms-react-core";
+import type { GroupRendererProps } from "@rx-controls/forms-react-core";
 
 export function SelectChildRenderer({ node }: GroupRendererProps): Rendered {
   const { rc, rendered } = useReactive();

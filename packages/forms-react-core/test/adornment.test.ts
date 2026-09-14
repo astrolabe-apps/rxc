@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isValidElement, type ReactNode } from "react";
-import type { FormStateNode } from "@rxc/forms-core";
+import type { FormStateNode } from "@rx-controls/forms-core";
 import {
   indexAdornments,
   wrapAdornments,

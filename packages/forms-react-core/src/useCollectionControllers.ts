@@ -1,7 +1,7 @@
 "use client";
 
-import type { Control, ReadContext } from "@rxc/controls-core";
-import { useControlContext } from "@rxc/controls";
+import type { Control, ReadContext } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import {
   type ArrayRenderOptions,
   isDataControl,
@@ -9,7 +9,7 @@ import {
   type ScrollListRenderOptions,
   ValidatorType,
   type FormStateNode,
-} from "@rxc/forms-core";
+} from "@rx-controls/forms-core";
 import { useActionHandler } from "./ActionScope";
 import { getExternalEdit } from "./getExternalEdit";
 import type { ActionRendererProps } from "./types";

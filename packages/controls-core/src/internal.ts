@@ -1,4 +1,4 @@
-// Internal API — for use by @rxc/controls, @rxc/compat-* packages only.
+// Internal API — for use by @rx-controls/react, @rx-controls/compat-* packages only.
 // Not part of the public API contract.
 
 export {
