@@ -23,6 +23,7 @@ import {
   newControl,
   renderOptionally,
   useComponentTracking,
+  useComputed,
   useFormControlProps,
   useFormEdit,
 } from "../src/index";
@@ -254,5 +255,58 @@ describe("render helpers (legacy callback signatures)", () => {
     expect(
       [...container.querySelectorAll(".row")].map((r) => r.textContent),
     ).toEqual(["0:x", "1:y"]);
+  });
+});
+
+describe("RenderArrayElements ambient tracking (radio-renderer shape)", () => {
+  // Reproduces @react-typed-forms/schemas-html HtmlCheckButtons: the children
+  // callback calls useComputed(...) and reads .value, exactly as the radio
+  // renderer does to derive `checked`. v4 wrapped each element in a tracked
+  // RenderControl, so those reads re-rendered the element.
+  it("re-renders an element when a control read inside the callback changes", () => {
+    const selected = newControl("a");
+    const options = ["a", "b"];
+
+    function Radios() {
+      const stop = useComponentTracking();
+      try {
+        return (
+          <RenderArrayElements array={options}>
+            {(o) => {
+              // rules-of-hooks cannot see through the callback, but the hook is
+              // legal here: RenderArrayElements gives each element its own
+              // RenderControl component, which is precisely what this test
+              // asserts. The legacy HtmlCheckButtons relies on the same thing.
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              const checked = useComputed(() => selected.value === o).value;
+              return (
+                <input
+                  type="radio"
+                  data-opt={o}
+                  checked={checked}
+                  readOnly
+                />
+              );
+            }}
+          </RenderArrayElements>
+        );
+      } finally {
+        stop();
+      }
+    }
+
+    mount(<Radios />);
+    const radio = (o: string) =>
+      container.querySelector<HTMLInputElement>(`input[data-opt="${o}"]`)!;
+
+    expect(radio("a").checked).toBe(true);
+    expect(radio("b").checked).toBe(false);
+
+    act(() => {
+      selected.value = "b";
+    });
+
+    expect(radio("a").checked).toBe(false);
+    expect(radio("b").checked).toBe(true);
   });
 });

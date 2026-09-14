@@ -154,16 +154,32 @@ export interface RenderArrayElementsProps<V> {
   container?: (children: ReactNode, elements: V[]) => ReactElement;
 }
 
-/** Plain-array counterpart — nothing reactive, kept for symmetry. */
+/**
+ * Plain-array counterpart of {@link RenderElements}.
+ *
+ * The array itself is inert, but the callback is not: legacy code reads
+ * controls ambiently inside it (and may call hooks such as `useComputed`),
+ * so each element gets its own {@link RenderControl} scope. v4 did exactly
+ * this — it mapped every element through a keyed `RenderControl` — and the
+ * scope is load-bearing twice over. Without it the callback runs inline in
+ * this component's render, where no tracking window is open: its reads
+ * subscribe nothing and the element never re-renders (the schemas-html radio
+ * renderer derives `checked` this way, so checked radios render unchecked
+ * while the underlying control updates fine). It also keeps hooks called in
+ * the callback owned by a per-element component, so a change in array length
+ * cannot shift this component's hook order.
+ */
 export function RenderArrayElements<V>(
   props: RenderArrayElementsProps<V>,
 ): ReactElement {
   const ndc = useContext(NotDefinedContext());
+  const { children, ...rest } = props;
   return (
-    <RxcRenderArrayElements
-      {...props}
-      notDefined={props.notDefined ?? ndc}
-    />
+    <RxcRenderArrayElements {...rest} notDefined={props.notDefined ?? ndc}>
+      {(element, index, total) => (
+        <RenderControl>{() => children(element, index, total)}</RenderControl>
+      )}
+    </RxcRenderArrayElements>
   );
 }
 
