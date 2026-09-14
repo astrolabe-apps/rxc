@@ -19,32 +19,56 @@
     {
       "packageName": "@rxc/forms-core",
       "projectFolder": "packages/forms-core",
-      "shouldPublish": true
+      // Not published yet: the trial publish is scoped to the control engine +
+      // the compat package. `rush publish --include-all` is all-or-nothing
+      // (--version-policy only narrows it, and --prerelease-name is ignored
+      // when --include-all is passed), so shouldPublish is the gate.
+      "shouldPublish": false
     },
     {
       "packageName": "@rxc/forms-react-core",
       "projectFolder": "packages/forms-react-core",
-      "shouldPublish": true
+      // Not published yet: the trial publish is scoped to the control engine +
+      // the compat package. `rush publish --include-all` is all-or-nothing
+      // (--version-policy only narrows it, and --prerelease-name is ignored
+      // when --include-all is passed), so shouldPublish is the gate.
+      "shouldPublish": false
     },
     {
       "packageName": "@rxc/forms",
       "projectFolder": "packages/forms",
-      "shouldPublish": true
+      // Not published yet: the trial publish is scoped to the control engine +
+      // the compat package. `rush publish --include-all` is all-or-nothing
+      // (--version-policy only narrows it, and --prerelease-name is ignored
+      // when --include-all is passed), so shouldPublish is the gate.
+      "shouldPublish": false
     },
     {
       "packageName": "@rxc/forms-motion",
       "projectFolder": "packages/forms-motion",
-      "shouldPublish": true
+      // Not published yet: the trial publish is scoped to the control engine +
+      // the compat package. `rush publish --include-all` is all-or-nothing
+      // (--version-policy only narrows it, and --prerelease-name is ignored
+      // when --include-all is passed), so shouldPublish is the gate.
+      "shouldPublish": false
     },
     {
       "packageName": "@rxc/forms-dnd",
       "projectFolder": "packages/forms-dnd",
-      "shouldPublish": true
+      // Not published yet: the trial publish is scoped to the control engine +
+      // the compat package. `rush publish --include-all` is all-or-nothing
+      // (--version-policy only narrows it, and --prerelease-name is ignored
+      // when --include-all is passed), so shouldPublish is the gate.
+      "shouldPublish": false
     },
     {
       "packageName": "@rxc/forms-datagrid",
       "projectFolder": "packages/forms-datagrid",
-      "shouldPublish": true
+      // Not published yet: the trial publish is scoped to the control engine +
+      // the compat package. `rush publish --include-all` is all-or-nothing
+      // (--version-policy only narrows it, and --prerelease-name is ignored
+      // when --include-all is passed), so shouldPublish is the gate.
+      "shouldPublish": false
     },
     {
       "packageName": "@react-typed-forms/core",

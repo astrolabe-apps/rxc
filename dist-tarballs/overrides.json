@@ -1,6 +1,5 @@
 {
   "@rxc/controls-core": "file:/home/doolse/astrolabe/rxc/dist-tarballs/rxc-controls-core-0.1.0.tgz",
   "@rxc/controls": "file:/home/doolse/astrolabe/rxc/dist-tarballs/rxc-controls-0.1.0.tgz",
-  "@react-typed-forms/core": "file:/home/doolse/astrolabe/rxc/dist-tarballs/react-typed-forms-core-5.0.0.tgz",
-  "@astroapps/forms-core": "file:/home/doolse/astrolabe/rxc/dist-tarballs/astroapps-forms-core-3.0.0.tgz"
+  "@react-typed-forms/core": "file:/home/doolse/astrolabe/rxc/dist-tarballs/react-typed-forms-core-5.0.0-alpha.1.tgz"
 }
