@@ -8,12 +8,12 @@
   "projects": [
     {
       "packageName": "@rx-controls/core",
-      "projectFolder": "packages/controls-core",
+      "projectFolder": "packages/core",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/react",
-      "projectFolder": "packages/controls",
+      "projectFolder": "packages/react",
       "shouldPublish": true
     },
     {

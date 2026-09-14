@@ -41,7 +41,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const rush = path.join(repoRoot, "common/scripts/install-run-rush.js");
 
 /** The packages a legacy `@react-typed-forms/core` consumer must override. */
-const COMPAT_STACK = ["controls-core", "controls", "compat-controls"];
+const COMPAT_STACK = ["core", "react", "compat-controls"];
 
 function parseArgs(argv) {
   const args = { out: path.join(repoRoot, "dist-tarballs"), build: true };

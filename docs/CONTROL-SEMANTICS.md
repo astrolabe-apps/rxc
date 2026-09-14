@@ -238,7 +238,7 @@ The practical consequence is that batching is not compositional: factoring write
 that calls `update` itself splits one notification storm into two. Helpers meant to be composed
 should take a `wc` parameter rather than reaching for `ControlContext.update`.
 
-Covered by `packages/controls-core/test/writeBatch.test.ts`.
+Covered by `packages/core/test/writeBatch.test.ts`.
 
 ### Global batching (`runTransaction` / `groupedChanges`) `[patch]`
 

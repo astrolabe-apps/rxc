@@ -105,10 +105,10 @@ and five callers construct one directly:
 
 | Caller | Opens a scope for | Re-runs when |
 |---|---|---|
-| `useControls` — `packages/controls/src/useControls.tsx` | a component's render pass | a tracked facet changes → `forceRender` |
+| `useControls` — `packages/react/src/useControls.tsx` | a component's render pass | a tracked facet changes → `forceRender` |
 | `computed` — `controls-core/src/computed.ts` | a derived value written into a target control | a tracked facet changes → recompute |
 | `effect` — `controls-core/src/computed.ts` | a side effect with optional cleanup | a tracked facet changes → re-run |
-| `useValidator` — `packages/controls/src/useValidator.ts` | a validator, including cross-field reads | a tracked facet changes, or `validate()` broadcasts |
+| `useValidator` — `packages/react/src/useValidator.ts` | a validator, including cross-field reads | a tracked facet changes, or `validate()` broadcasts |
 | `jsonataEval` — `forms-core/src/evalExpression.ts` | an async expression evaluated across `await` | a tracked facet changes → abort and re-run |
 
 All five share one lifecycle:
@@ -626,6 +626,6 @@ others merely also return a value. The name is accurate as it stands.
 
 ---
 
-Compiled from `packages/controls/src/index.ts`, `packages/controls-core/src/index.ts`, and the
-declared interfaces in `packages/controls-core/src/types.ts`. Compat coupling checked against every
+Compiled from `packages/react/src/index.ts`, `packages/core/src/index.ts`, and the
+declared interfaces in `packages/core/src/types.ts`. Compat coupling checked against every
 `@rx-controls/react` import in `packages/compat-controls/src`.

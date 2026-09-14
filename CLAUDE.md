@@ -8,8 +8,8 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 
 | Package | Dir | Purpose |
 |---|---|---|
-| `@rx-controls/core` | `packages/controls-core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
-| `@rx-controls/react` | `packages/controls` | React adapter: `useReactive()` hook (rc + the `rendered()` render boundary), `useControl`, `useComputed`, `useControlEffect`, `useValidator`/`useAsyncValidator`, `useControlGroup`, `useValueWithPrevious`, `useSelectableArray`/`selectableValues`, the binding layer (`useFormControlProps`, `ControlInput`/`ControlSelect`/`ControlCheckbox`, `FormEditState`/`FormEditProvider`/`useFormEdit`), `ControlContextProvider`, and the nested-scope render helpers (`RenderControl`, `RenderElements`, `RenderOptional`, `whenAllDefined`, `RenderArrayElements`, `NotDefinedContext`). Re-exports all of controls-core. |
+| `@rx-controls/core` | `packages/core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
+| `@rx-controls/react` | `packages/react` | React adapter: `useReactive()` hook (rc + the `rendered()` render boundary), `useControl`, `useComputed`, `useControlEffect`, `useValidator`/`useAsyncValidator`, `useControlGroup`, `useValueWithPrevious`, `useSelectableArray`/`selectableValues`, the binding layer (`useFormControlProps`, `ControlInput`/`ControlSelect`/`ControlCheckbox`, `FormEditState`/`FormEditProvider`/`useFormEdit`), `ControlContextProvider`, and the nested-scope render helpers (`RenderControl`, `RenderElements`, `RenderOptional`, `whenAllDefined`, `RenderArrayElements`, `NotDefinedContext`). Re-exports all of controls-core. |
 | `@rx-controls/forms-core` | `packages/forms-core` | Full canonical schema types + persistent SchemaNode/DataNode/FormNode handles, cursor-based reactive traversal, FormStateNode, validators, jsonata, scripted-proxy. |
 | `@rx-controls/forms-react-core` | `packages/forms-react-core` | Headless React forms layer: registry, matchers, dispatch helpers, adornment composition, plugin builders, contexts (Registry/Options/ActionScope/DesignMode), hooks (useFormStateNode/useExpression/useAsyncAction/useFormErrors) plus the non-hook `resolveLabelText`, and the `getExternalEdit` staged-edit controller accessor (a memoized get-or-create on the array Control's meta — deliberately **not** a `use*` hook). Also exports `<Action>` (the only "component" — a one-liner over `pickActionRenderer`). No DOM-emitting components — platform packages provide those. |
 | `@rx-controls/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rx-controls/forms` only. |
@@ -331,7 +331,7 @@ React-19-only API — the full set of React imports is `createContext`, `memo`, 
 Verified against React 18.3.1 / `@types/react` 18.3.31: the `@rx-controls/react` suite (12 tests) passes
 unchanged, and the `Rendered` brand still typechecks — including its negative cases, which matters
 because `ReactNode`'s union differs between the two `@types/react` majors. To re-check after touching
-`@rx-controls/react`, copy `packages/controls/{src,test}` into a scratch project pinned to React 18,
+`@rx-controls/react`, copy `packages/react/{src,test}` into a scratch project pinned to React 18,
 symlink `@rx-controls/core`, and run `tsc --noEmit` + `vitest`. (The tests' `import { act } from
 "react"` needs 18.3+; the shipped source does not.)
 
