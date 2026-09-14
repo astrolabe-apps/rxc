@@ -140,14 +140,40 @@ FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
 ### Open for redesign
 
 - Public API naming and surface
-- Rendering architecture (`@rx-controls/forms`) — the existing `FormRenderer` interface is being replaced
+- **Rendering architecture (`@rx-controls/forms`) — genuinely unsettled, and may be redesigned again.** Phase 4 replaced the legacy `FormRenderer` interface, but that is not the end state. This is why the forms packages are unpublished (see "Publishing posture" below): don't treat the renderer surface as settled, and don't let anything outside this repo depend on it.
 - Component composition patterns (labels, layouts, adornments, visibility)
 - How form context flows to renderers (context vs props)
 - Editor-mode reactive proxies for `SchemaField`/`ControlDefinition` (how `trackedValue` adapts to explicit `ReadContext`)
 
+### Publishing posture
+
+Only three packages are published, gated by `shouldPublish` in `rush.json`:
+
+| Published | Not published |
+|---|---|
+| `@rx-controls/core` | `@rx-controls/forms-core` |
+| `@rx-controls/react` | `@rx-controls/forms-react-core` |
+| `@react-typed-forms/core` (the compat package) | `@rx-controls/forms`, `-motion`, `-dnd`, `-datagrid` |
+
+**The forms packages are deliberately unpublished and will stay that way for a
+while — the renderer layer may well be redesigned again.** The control engine
+underneath it is stable and is what the compat package needs, so it ships; the
+renderer set on top is still moving. Anything that pins a forms package is
+pinning a moving target, and a redesign would be a breaking change to a
+published API rather than an internal refactor.
+
+Flip the flags back when that settles. Nothing else reads them except
+`scripts/pack-compat.mjs`, which derives its build/pack scope from them.
+
+`rush publish --include-all` is all-or-nothing — `--version-policy` only
+narrows within it, and `--prerelease-name` is silently ignored when it is
+passed — so `shouldPublish` is the only gate. Versions are therefore set by
+hand, and `--tag` is mandatory (npm publishes to `latest` regardless of age,
+prerelease or not).
+
 ### No deprecations — `@rx-controls/*` is pre-release
 
-The `@rx-controls/*` packages haven't been published. Don't add `@deprecated` aliases, "legacy" re-exports, backwards-compat shims, or rename-with-pointer transitions when refactoring the public surface. Just change the name / shape and update every call site. The dedicated compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`) exists for legacy core consumers — that's the only place compat shims belong. (Legacy `@react-typed-forms/schemas` consumers either port directly via `docs/MIGRATION-FROM-LEGACY.md`, or keep the legacy renderer set and swap only the engine — see "Legacy schemas on the compat engine" below. A schemas compat *package* was considered and rejected.)
+`@rx-controls/core` and `@rx-controls/react` publish as 0.x, alongside the compat package as a `5.0.0-alpha` prerelease; the forms packages aren't published at all (see "Publishing posture" above). Either way the surface is still open — 0.x and `-alpha` both say so. Don't add `@deprecated` aliases, "legacy" re-exports, backwards-compat shims, or rename-with-pointer transitions when refactoring the public surface. Just change the name / shape and update every call site. The dedicated compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`) exists for legacy core consumers — that's the only place compat shims belong. (Legacy `@react-typed-forms/schemas` consumers either port directly via `docs/MIGRATION-FROM-LEGACY.md`, or keep the legacy renderer set and swap only the engine — see "Legacy schemas on the compat engine" below. A schemas compat *package* was considered and rejected.)
 
 ### Legacy semantics only — no extensions (current goal)
 
