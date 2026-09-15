@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { Component, StrictMode, useEffect, type ReactNode } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,6 +39,17 @@ function mount(ui: React.ReactNode, strict = false) {
     <ControlContextProvider value={ctx}>{ui}</ControlContextProvider>
   );
   act(() => root.render(strict ? <StrictMode>{tree}</StrictMode> : tree));
+}
+
+/** Catches a render-time throw so an abandoned render can be observed. */
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? <span>caught</span> : this.props.children;
+  }
 }
 
 describe("useReactive — subscription boundary", () => {
@@ -256,6 +267,115 @@ describe("useComputed", () => {
 
     act(() => ctx.update((wc) => wc.setValue(last, "Byron")));
     expect(container.textContent).toBe("Ada Byron");
+  });
+
+  it("does not re-render when a dependency moves but the result does not", () => {
+    const n = ctx.newControl(1);
+    let renders = 0;
+
+    function Comp(): Rendered {
+      const { rc, rendered } = useReactive();
+      renders++;
+      const positive = useComputed((crc) => crc.getValue(n) > 0);
+      return rendered(<span>{String(rc.getValue(positive))}</span>);
+    }
+
+    mount(<Comp />);
+    expect(renders).toBe(1);
+
+    // The component subscribes to the *result*, not to `n`. This is the only
+    // reason the hook allocates a control instead of calling `compute(rc)`
+    // inline, so it is worth pinning.
+    act(() => ctx.update((wc) => wc.setValue(n, 5)));
+    expect(renders).toBe(1);
+
+    act(() => ctx.update((wc) => wc.setValue(n, -1)));
+    expect(renders).toBe(2);
+    expect(container.textContent).toBe("false");
+  });
+
+  it("a render that never commits leaves nothing tracking", () => {
+    const n = ctx.newControl(1);
+    let computes = 0;
+
+    function Boom(): Rendered {
+      useReactive();
+      useComputed((crc) => {
+        computes++;
+        return crc.getValue(n) * 2;
+      });
+      throw new Error("abandon this render");
+    }
+
+    // React logs the caught error; stderr fails `rush test`.
+    const realError = console.error;
+    console.error = () => {};
+    try {
+      mount(
+        <Boundary>
+          <Boom />
+        </Boundary>,
+      );
+    } finally {
+      console.error = realError;
+    }
+    expect(container.textContent).toBe("caught");
+
+    // Tracking starts at commit, so there is no orphan left subscribed to `n`
+    // and recomputing forever with no component to show the result to.
+    const abandoned = computes;
+    act(() => ctx.update((wc) => wc.setValue(n, 2)));
+    expect(computes).toBe(abandoned);
+  });
+
+  it("stops computing as soon as it unmounts", () => {
+    const n = ctx.newControl(1);
+    let computes = 0;
+
+    function Comp(): Rendered {
+      const { rc, rendered } = useReactive();
+      const doubled = useComputed((crc) => {
+        computes++;
+        return crc.getValue(n) * 2;
+      });
+      return rendered(<span>{rc.getValue(doubled)}</span>);
+    }
+
+    mount(<Comp />);
+    act(() => root.render(<ControlContextProvider value={ctx} />));
+
+    // Cleanup is deterministic — nothing waits on the five-second sweep,
+    // because nothing was created during a render.
+    const unmounted = computes;
+    act(() => ctx.update((wc) => wc.setValue(n, 2)));
+    expect(computes).toBe(unmounted);
+  });
+
+  it("reflects a dependency written by a descendant mounting under it", () => {
+    const n = ctx.newControl(1);
+
+    function Child(): null {
+      // React commits child-first, so this runs before the parent's computed
+      // starts tracking — the window the commit-time run exists to close.
+      useEffect(() => {
+        ctx.update((wc) => wc.setValue(n, 99));
+      }, []);
+      return null;
+    }
+
+    function Parent(): Rendered {
+      const { rc, rendered } = useReactive();
+      const doubled = useComputed((crc) => crc.getValue(n) * 2);
+      return rendered(
+        <>
+          <span>{rc.getValue(doubled)}</span>
+          <Child />
+        </>,
+      );
+    }
+
+    mount(<Parent />);
+    expect(container.textContent).toBe("198");
   });
 });
 

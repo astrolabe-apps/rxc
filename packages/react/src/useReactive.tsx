@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
-import { computeInto } from "@rx-controls/core";
+import { computeInto, untrackedRead } from "@rx-controls/core";
 import type { ComputedHandle } from "@rx-controls/core";
 import {
   SubscriptionReconciler,
@@ -336,8 +336,17 @@ export function useReactive(): ReactiveScope {
   tracker.didRender = false;
   openRc = tracker.rc;
 
-  // Alive/dead lifecycle. Stable deps — mount/unmount only, so an abandoned
-  // render's subscriptions are swept rather than left live.
+  // Alive/dead lifecycle. Stable deps, so this is mount/unmount only.
+  //
+  // Note what it does *not* cover: a render that reconciles and then never
+  // commits (React abandoning a concurrent pass, a sibling throwing) never
+  // runs this effect, so `releaseTracker` is never called and the sweep — which
+  // only ever looks at trackers that were released — cannot collect it. Those
+  // subscriptions stay on their controls for the life of the tree. They are
+  // inert (`forceRender` on a fiber that never mounted does nothing), so the
+  // cost is memory, not renders or CPU. `useComputed` avoids the same trap by
+  // not subscribing until commit; this one cannot, because `rendered(…)` has to
+  // reconcile during render — see docs/RENDER-BOUNDARY.md.
   useEffect(() => {
     controlContext.retainTracker(tracker.reconciler);
     return () => {
@@ -368,31 +377,91 @@ export function useReactive(): ReactiveScope {
 // ── useComputed ─────────────────────────────────────────────────────
 
 /**
+ * Everything the hook owns across renders. One object in a ref, so the commit
+ * effect can close over it once and still start from the freshest `compute`
+ * the component rendered with.
+ */
+interface Derived<V> {
+  control: Control<V>;
+  /** Latest `compute`, reassigned every render. */
+  compute: (rc: ReadContext) => V;
+  /** Live only between the commit effect below and its cleanup. */
+  handle: ComputedHandle | undefined;
+}
+
+/**
  * A `Control` whose value is derived from other controls.
  *
  * The computation re-runs whenever anything it read through its own `rc`
  * changes. Read the result through your component's `rc` to re-render on it.
+ *
+ * ```tsx
+ * const full = useComputed((crc) => `${crc.getValue(first)} ${crc.getValue(last)}`);
+ * return rendered(<span>{rc.getValue(full)}</span>);
+ * ```
+ *
+ * ## What the control buys you
+ *
+ * Reading `compute(rc)` inline with the component's own `rc` would give the
+ * same value — and re-render on every dependency change. The derived control
+ * is a **filter**: the component subscribes to the result, so a dependency
+ * that moves without moving the result costs no render at all. That is the
+ * whole point of the hook, and the reason it cannot collapse into a plain
+ * function call.
+ *
+ * ## `compute` re-runs every render unless you memoize it
+ *
+ * Same rule as {@link useControlEffect}: an inline arrow has a new identity
+ * every render, which re-runs it, which is what lets it close over props the
+ * reactive graph cannot observe. The cost is that a dependency change computes
+ * twice — once when the tracker notices, once in the re-render that follows.
+ * `useCallback` opts out and is worth it for an expensive computation, with
+ * the usual caveat that wrong deps leave you reading stale props.
  */
 export function useComputed<V>(compute: (rc: ReadContext) => V): Control<V> {
   const ctx = useControlContext();
-  const ref = useRef<{ control: Control<V>; reconciler: ComputedHandle } | null>(
-    null,
-  );
-  if (!ref.current) {
-    const control: Control<V> = ctx.newControl<V>(undefined as V);
-    const reconciler = computeInto(ctx, control, compute);
-    ref.current = { control, reconciler };
-  } else {
-    ref.current.reconciler.replaceCompute(compute);
-  }
-  const { reconciler } = ref.current;
 
-  useEffect(() => {
-    ctx.retainTracker(reconciler);
-    return () => ctx.releaseTracker(reconciler);
-  }, [ctx, reconciler]);
+  const ref = useRef<Derived<V> | null>(null);
+  ref.current ??= {
+    control: ctx.newControl<V>(undefined as V),
+    compute,
+    handle: undefined,
+  };
+  const s = ref.current;
+  s.compute = compute;
 
-  return ref.current.control;
+  // The value has to be right for *this* render — the caller reads it on the
+  // next line, so unlike a side-effect hook nothing here can wait for a
+  // commit. Before the commit effect below has run there is no tracker to ask,
+  // so compute untracked and write; after it, the tracker owns the value and a
+  // new `compute` identity re-runs it.
+  if (s.handle) s.handle.replaceCompute(compute);
+  else ctx.update((wc) => wc.setValue(s.control, compute(untrackedRead)));
+
+  // Tracking starts at commit, not during render. A render that never commits
+  // — React abandoning a concurrent pass, a sibling throwing, a suspend — then
+  // leaves behind an unreferenced control and nothing else, rather than a live
+  // subscription on every control the computation touched, recomputing forever
+  // with no component to show it to.
+  //
+  // `computeInto` runs the computation as it subscribes, which is also what
+  // closes the render→commit window: a descendant's layout effect runs before
+  // this one (React commits child-first) and may have written a dependency
+  // since the render body read it.
+  //
+  // A layout effect rather than a passive one, so the value is settled before
+  // paint; `useCommitEffect` falls back to `useEffect` on the server, where
+  // there is nothing to subscribe to and the untracked value above is final.
+  useCommitEffect(() => {
+    const handle = computeInto(ctx, s.control, s.compute);
+    s.handle = handle;
+    return () => {
+      s.handle = undefined;
+      handle.cleanup();
+    };
+  }, [ctx, s]);
+
+  return s.control;
 }
 
 // ── withControlContext ─────────────────────────────────────────

@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "`useComputed` starts tracking at commit rather than during render, so a render that never commits (React abandoning a concurrent pass, a sibling throwing, a suspend) no longer leaves a live subscription on every control the computation read — an orphan that kept recomputing forever with no component to show the result to, and that nothing ever collected: it was never passed to `releaseTracker`, and the sweep only looks at trackers that were. Cleanup on unmount is now deterministic for the same reason. Costs one extra computation per mount, which is also what closes the render->commit window: a descendant's layout effect runs before this one and may have written a dependency since the render body read it.",
+      "type": "patch",
+      "packageName": "@rx-controls/react"
+    }
+  ],
+  "packageName": "@rx-controls/react",
+  "email": "doolse@gmail.com"
+}
