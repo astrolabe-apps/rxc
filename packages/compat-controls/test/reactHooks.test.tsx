@@ -262,6 +262,59 @@ describe("effects", () => {
     });
     expect(seen).toEqual([7]);
   });
+
+  /**
+   * v4 applied `debounce` with `useDebounced`, which owns a `useRef` and
+   * registers no cleanup, so a pending call outlived the component. Keep it
+   * that way: these effects stage work on the last edit (autosave, a
+   * validation round-trip) into controls that outlive the component, and a
+   * subtree disappearing inside the debounce window is exactly when losing it
+   * hurts. Found as a silent regression in a real app, where a validation POST
+   * simply never happened.
+   */
+  it("useValueChangeEffect fires a pending debounced call after unmount", async () => {
+    const c = newControl("");
+    const seen: string[] = [];
+    function Comp() {
+      useValueChangeEffect(c, (v) => seen.push(v), 20);
+      return null;
+    }
+    mount(<Comp />);
+    act(() => {
+      c.value = "a";
+    });
+    act(() => root.render(null));
+    await act(() => sleep(60));
+    expect(seen).toEqual(["a"]);
+  });
+
+  /**
+   * React runs effects child-first, so a descendant writing the watched
+   * control at mount lands before this hook's own subscription effect. The
+   * value is still delivered: nothing may be absorbed unobserved.
+   */
+  it("useValueChangeEffect sees a descendant's mount-time write", async () => {
+    const c = newControl<{ make: string }>({ make: "" });
+    const seen: string[] = [];
+    function Child() {
+      React.useEffect(() => {
+        c.fields.make.value = "Toyota";
+      }, []);
+      return null;
+    }
+    function Comp() {
+      useValueChangeEffect(c, (v) => seen.push(v.make));
+      return <Child />;
+    }
+    await act(async () => {
+      root.render(
+        <ControlContextProvider value={getCompatContext()}>
+          <Comp />
+        </ControlContextProvider>,
+      );
+    });
+    expect(seen).toEqual(["Toyota"]);
+  });
 });
 
 describe("validators", () => {

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useLayoutEffect } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -230,5 +230,152 @@ describe("useControlEffect", () => {
 
     act(() => ctx.update((wc) => wc.setValue(source, "b")));
     expect(mirror.valueNow).toBe("B");
+  });
+
+  /**
+   * The computed backing this hook recomputes whether or not anyone is
+   * subscribed, and nothing replays what it absorbed. Since the subscription
+   * is established in a passive effect, every write that lands between the
+   * creating render and that effect used to be swallowed permanently — the
+   * hook then looked like a live subscription that delivered nothing.
+   *
+   * React runs effects child-first, so a descendant writing a watched control
+   * at mount sits squarely in that window; so does a layout effect, and so
+   * does a write from a render body.
+   */
+  describe("changes absorbed before the subscription exists", () => {
+    it("delivers a descendant effect's mount write", async () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+
+      function Child() {
+        useEffect(() => {
+          ctx.update((wc) => wc.setValue(c, "b"));
+        }, []);
+        return <span />;
+      }
+      function Comp(): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c),
+          (v) => seen.push(v),
+        );
+        return rendered(<Child />);
+      }
+
+      await act(async () => {
+        root.render(
+          <ControlContextProvider value={ctx}>
+            <Comp />
+          </ControlContextProvider>,
+        );
+      });
+      expect(seen).toEqual(["b"]);
+    });
+
+    it("delivers a layout effect's mount write", async () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+
+      function Comp(): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c),
+          (v) => seen.push(v),
+        );
+        useLayoutEffect(() => {
+          ctx.update((wc) => wc.setValue(c, "b"));
+        }, []);
+        return rendered(<span />);
+      }
+
+      await act(async () => {
+        root.render(
+          <ControlContextProvider value={ctx}>
+            <Comp />
+          </ControlContextProvider>,
+        );
+      });
+      expect(seen).toEqual(["b"]);
+    });
+
+    it("fires the catch-up once, not on every later subscribe", () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+
+      function Child() {
+        useEffect(() => {
+          ctx.update((wc) => wc.setValue(c, "b"));
+        }, []);
+        return <span />;
+      }
+      function Comp(): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c),
+          (v) => seen.push(v),
+        );
+        return rendered(<Child />);
+      }
+
+      // StrictMode unsubscribes and resubscribes; the catch-up must not
+      // mistake its own already-delivered value for a missed change.
+      mount(<Comp />, true);
+      expect(seen).toEqual(["b"]);
+
+      act(() => ctx.update((wc) => wc.setValue(c, "c")));
+      expect(seen).toEqual(["b", "c"]);
+    });
+
+    it("stays silent when nothing moved", () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+
+      function Comp(): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c),
+          (v) => seen.push(v),
+        );
+        return rendered(<span />);
+      }
+
+      mount(<Comp />);
+      expect(seen).toEqual([]);
+      mount(<Comp />, true);
+      expect(seen).toEqual([]);
+    });
+
+    it("does not double up with an `initial` call", async () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+
+      function Child() {
+        useEffect(() => {
+          ctx.update((wc) => wc.setValue(c, "b"));
+        }, []);
+        return <span />;
+      }
+      function Comp(): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c),
+          (v) => seen.push(v),
+          true,
+        );
+        return rendered(<Child />);
+      }
+
+      await act(async () => {
+        root.render(
+          <ControlContextProvider value={ctx}>
+            <Comp />
+          </ControlContextProvider>,
+        );
+      });
+      // The initial call already reported the post-write value; the catch-up
+      // must not report it again.
+      expect(seen).toEqual(["b"]);
+    });
   });
 });

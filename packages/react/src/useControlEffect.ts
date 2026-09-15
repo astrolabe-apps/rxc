@@ -71,18 +71,39 @@ export function useControlEffect<V>(
   // once per real mount rather than once per effect invocation.
   const didInitial = useRef(false);
 
+  // The last value this hook has accounted for, seeded during the render that
+  // creates the computed — see the catch-up below for why that matters. The
+  // effect re-reads the same box, which is only ever assigned once.
+  const lastSeenRef = useRef<{ v: V } | null>(null);
+  lastSeenRef.current ??= { v: result.valueNow };
+
   useEffect(() => {
+    const lastSeen = (lastSeenRef.current ??= { v: result.valueNow });
+    const deliver = () => {
+      lastSeen.v = result.valueNow;
+      onChangeRef.current(result.valueNow);
+    };
     if (!didInitial.current) {
       didInitial.current = true;
       const init = initialRef.current;
       const fn =
         typeof init === "function" ? init : init ? onChangeRef.current : null;
-      fn?.(result.valueNow);
+      if (fn) {
+        lastSeen.v = result.valueNow;
+        fn(result.valueNow);
+      }
     }
-    const sub = result.subscribe(
-      () => onChangeRef.current(result.valueNow),
-      ControlChange.Value,
-    );
+    const sub = result.subscribe(deliver, ControlChange.Value);
+    // The computed recomputes whether or not anyone is subscribed, so a write
+    // landing between the render that created it and this effect is absorbed
+    // with nobody to tell — and nothing ever replays it. That window is not
+    // theoretical: React runs effects child-first, so any descendant effect
+    // writing a watched control at mount falls inside it, as does a write from
+    // a layout effect or a render body. Comparing against the value we last
+    // accounted for closes it, and costs a reference check otherwise: the
+    // computed's target only takes a new reference when `setValue` decided the
+    // value actually changed, so `!==` is exactly "a change was published".
+    if (lastSeen.v !== result.valueNow) deliver();
     return () => result.unsubscribe(sub);
   }, [result]);
 }

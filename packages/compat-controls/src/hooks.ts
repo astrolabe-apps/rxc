@@ -14,7 +14,7 @@
  * else the compat singleton (see `reactContext.ts`).
  */
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { MutableRefObject } from "react";
 import type { Control as CoreControl } from "@rx-controls/core";
 import {
@@ -128,6 +128,19 @@ export function useControlEffect<V>(
   rxcUseControlEffect((rc) => withAmbient(rc, compute), onChange, initial);
 }
 
+/**
+ * Debounced side effect on a control's value.
+ *
+ * A pending debounced call deliberately survives unmount, because v4 did:
+ * there `debounce` was applied by {@link useDebounced}, which owns only a
+ * `useRef` and registers no cleanup. Cancelling on unmount reads like the
+ * tidier choice and is a behaviour change — a form that stages work on the
+ * last edit (autosave, a validation round-trip) loses it whenever the
+ * component goes away inside the debounce window, which is exactly when the
+ * work matters most. The callbacks such effects drive normally write controls
+ * that outlive the component, so firing late is meaningful, not a leak into a
+ * dead tree.
+ */
 export function useValueChangeEffect<V>(
   control: Control<V>,
   changeEffect: (value: V) => void,
@@ -154,13 +167,6 @@ export function useValueChangeEffect<V>(
       }
     },
     runInitial ? true : undefined,
-  );
-
-  useEffect(
-    () => () => {
-      if (state.current.timer) clearTimeout(state.current.timer);
-    },
-    [],
   );
 }
 

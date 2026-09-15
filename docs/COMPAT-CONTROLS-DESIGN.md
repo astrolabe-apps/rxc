@@ -316,7 +316,7 @@ provider-or-singleton context fallback. Signature deltas are all mechanical:
 | `useControl(init, setup&{use}, afterInit?)` | rxc `useControl` + call `afterInit` once on creation. Legacy `ControlSetup` extras (`elems`, `meta`, `afterCreate`, `dontClearError`, `equals`) — new core supports `elems` (as `elements`), `meta` and `afterCreate`; per-control `equals` is dropped (context-level equality only) and documented; `dontClearError` maps to `keepErrors`, which the engine accepts but does not act on |
 | `useComputed` / `useCalculatedControl` | rxc `useComputed` + `withAmbient` |
 | `useControlEffect(compute, onChange, initial?)` | rxc `useControlEffect` + `withAmbient`; `initial` passes through unchanged |
-| `useValueChangeEffect(c, cb, debounce?, runInitial?)` | rxc `useControlEffect((rc) => rc.getValue(c), …)` + timer (the composition proven on the `/controls` demo) |
+| `useValueChangeEffect(c, cb, debounce?, runInitial?)` | rxc `useControlEffect((rc) => rc.getValue(c), …)` + timer (the composition proven on the `/controls` demo). The timer is deliberately **not** cancelled on unmount, because v4's `useDebounced` owned only a `useRef` and registered no cleanup — see the hook's doc comment |
 | `useValidator(c, v, key?)` | rxc `useValidator` with `(value, rc) => withAmbient(rc, () => v(value))` |
 | `useAsyncValidator` | rxc `useAsyncValidator`; legacy `validCheckValue(control)` adapts to `(rc, c) => withAmbient(rc, () => check(c))` |
 | `useControlGroup`, `usePreviousValue`, `useSelectableArray`, `ensureSelectableValues` | re-export rxc versions (signatures already match; rxc's `SelectionBuilder` — legacy's `SelectionGroupSync` — gained an optional `ctx` param, a supertype) |
