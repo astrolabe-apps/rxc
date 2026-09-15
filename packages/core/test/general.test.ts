@@ -3,7 +3,6 @@ import fc from "fast-check";
 import { Control, ControlChange } from "../src/types";
 import { lookupControl, getControlPath } from "../src/controlUtils";
 import { computeInto } from "../src/computed";
-import { deepEquals } from "../src/deepEquals";
 import { makeCtx, expectChanges } from "./index";
 import { arbitraryParentChild } from "./gen";
 
@@ -153,8 +152,18 @@ describe("general", () => {
         (numbers1, numbers2) => {
           const ctx = makeCtx();
           const changes: ControlChange[] = [];
+          // `changes` records notifications on `resultControl`, which holds
+          // the *result* of the computation — so the expected notification
+          // follows whether the RESULT changed, never whether the input
+          // arrays differ. [0] and [] are different arrays with the same
+          // sum, and predicting a change from the inputs made this property
+          // fail on roughly 8% of seeds.
+          const initial = -1;
+          const sum1 = numbers1.reduce((a, b) => a + b, 0);
+          const sum2 = numbers2.reduce((a, b) => a + b, 0);
+          const max2 = numbers2.reduce((a, b) => Math.max(a, b), 0);
           const numberControls = ctx.newControl(numbers1);
-          const resultControl = ctx.newControl(-1);
+          const resultControl = ctx.newControl(initial);
           resultControl.subscribe(
             (a, c) => changes.push(c),
             ControlChange.Value,
@@ -174,22 +183,14 @@ describe("general", () => {
           // Same function — replaceCompute should no-op
           ref.replaceCompute(sum);
           expect(sumCalled).toBe(1);
-          expectChanges(changes, [ControlChange.Value]);
-          expect(resultControl.valueNow).toStrictEqual(
-            numbers1.reduce((a, b) => a + b, 0),
-          );
+          expectChanges(changes, sum1 === initial ? [] : [ControlChange.Value]);
+          expect(resultControl.valueNow).toStrictEqual(sum1);
           ctx.update((wc) => wc.setValue(numberControls, numbers2));
-          expectChanges(
-            changes,
-            deepEquals(numbers1, numbers2) ? [] : [ControlChange.Value],
-          );
-          expect(resultControl.valueNow).toStrictEqual(
-            numbers2.reduce((a, b) => a + b, 0),
-          );
+          expectChanges(changes, sum2 === sum1 ? [] : [ControlChange.Value]);
+          expect(resultControl.valueNow).toStrictEqual(sum2);
           ref.replaceCompute(max);
-          expect(resultControl.valueNow).toStrictEqual(
-            numbers2.reduce((a, b) => Math.max(a, b), 0),
-          );
+          expect(resultControl.valueNow).toStrictEqual(max2);
+          expectChanges(changes, max2 === sum2 ? [] : [ControlChange.Value]);
           ref.cleanup();
         },
       ),
