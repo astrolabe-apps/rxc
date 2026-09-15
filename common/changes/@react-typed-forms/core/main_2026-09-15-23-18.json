@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Pick up the rebuilt `useControlEffect` from `@rx-controls/react` 0.2.2. No source change in this package — it bumps because it is the version consumers install and its engine dependencies are `workspace:*`, rewritten to exact versions at publish time, so alpha.5's manifest would keep serving react 0.2.1 however often it were republished.",
+      "type": "patch",
+      "packageName": "@react-typed-forms/core"
+    }
+  ],
+  "packageName": "@react-typed-forms/core",
+  "email": "doolse@gmail.com"
+}

@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Rebuild `useControlEffect` on a bare core `effect()`, dropping the computed control behind it. The contract is unchanged — when the computed value changes per `ControlContext.equals`, `onChange` runs once, eventually, with the latest value — but three cases that each had their own machinery now collapse into one comparison against the value `onChange` was last told about: an ordinary dependency change, a write landing in the render->mount window, and a write landing while the tracker is dead, which the previous implementation did not handle at all. Gone with the computed: a `ctx.update` write-and-flush per dependency change, the `lastSeen` identity catch-up, and `retainTracker`/`releaseTracker` — nothing is created during render any more, so an abandoned render allocates nothing instead of leaking a subscription until the sweep. Per-render recompute is retained (an inline `compute` still sees moved props; `useCallback` is still the opt-out), with one behaviour change: that re-run now delivers in the commit phase rather than from the render body.",
+      "type": "patch",
+      "packageName": "@rx-controls/react"
+    }
+  ],
+  "packageName": "@rx-controls/react",
+  "email": "doolse@gmail.com"
+}

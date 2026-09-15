@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Add `EffectHandle.rerun()` — run the effect body again now, re-tracking its dependencies. `replaceEffect` already covered swapping the function itself; this covers the same function needing to see fresh surroundings, which is what a host closing over state the reactive graph cannot observe (React props, a callback identity) needs. Additive only; nothing existing changed.",
+      "type": "patch",
+      "packageName": "@rx-controls/core"
+    }
+  ],
+  "packageName": "@rx-controls/core",
+  "email": "doolse@gmail.com"
+}
