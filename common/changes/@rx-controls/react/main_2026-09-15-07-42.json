@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Support calling `update` from useReactive() while the render window is open — the \"adjust derived state while rendering\" shape. The write already applied; notification is now routed so that only the writer is told during the render phase (same fiber, so React's render-phase update: output discarded, component re-invoked at once, no intervening commit), while any component that has already committed is deferred out of the render phase and delivered in the commit phase before paint, with a microtask backstop for a render that never commits. Previously the latter produced React's \"Cannot update a component while rendering a different component\" and a separate scheduled pass. Such writes must converge, which ordinary derived writes do with no guard since setValueImpl bails on ControlContext.equals — under the default deepEquals that covers freshly-allocated object and array literals too. openRc is now maintained in production, not only under IS_DEV for the wrong-rc guard, and rendered() drops its own tracker from the deferred queue since it just read current values.",
+      "type": "minor",
+      "packageName": "@rx-controls/react"
+    }
+  ],
+  "packageName": "@rx-controls/react",
+  "email": "doolse@gmail.com"
+}
