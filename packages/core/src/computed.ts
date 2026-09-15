@@ -46,6 +46,16 @@ export function computeInto<V>(
 
 export interface EffectHandle extends SubscriptionReconciler {
   replaceEffect(newFn: (rc: ReadContext) => (() => void) | void): void;
+  /**
+   * Run the effect again now, re-tracking its dependencies.
+   *
+   * For hosts whose effect body closes over state the reactive graph knows
+   * nothing about — React props, a callback identity — so a change there has
+   * to be pushed in rather than observed. `replaceEffect` covers the case
+   * where the function itself is swapped; this covers the case where the same
+   * function needs to see fresh surroundings.
+   */
+  rerun(): void;
 }
 
 /**
@@ -82,6 +92,8 @@ export function effect(
       run();
     }
   };
+
+  reconciler.rerun = run;
 
   const origCleanup = reconciler.cleanup.bind(reconciler);
   reconciler.cleanup = () => {

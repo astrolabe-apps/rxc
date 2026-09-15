@@ -9,6 +9,7 @@ import {
   useReactive,
   type Control,
   type ControlContext,
+  type ReadContext,
   type Rendered,
 } from "../src/index";
 
@@ -376,6 +377,137 @@ describe("useControlEffect", () => {
       // The initial call already reported the post-write value; the catch-up
       // must not report it again.
       expect(seen).toEqual(["b"]);
+    });
+  });
+
+  /**
+   * The hook is a bare core `effect` — no intermediate control — so change
+   * detection is an explicit `ControlContext.equals` call rather than a side
+   * effect of `setValue` deciding a write mattered, and the dependency set is
+   * refreshed by re-running `compute` rather than by a computed control.
+   */
+  describe("without an intermediate control", () => {
+    it("compares with the context's equality, not identity", () => {
+      // Case-insensitive: "A" and "a" are the same value to this tree.
+      const custom = createControlContext({
+        equals: (a, b) =>
+          typeof a === "string" && typeof b === "string"
+            ? a.toLowerCase() === b.toLowerCase()
+            : a === b,
+      });
+      const c = custom.newControl("a");
+      const seen: string[] = [];
+
+      function Comp(): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c),
+          (v) => seen.push(v),
+        );
+        return rendered(<span />);
+      }
+
+      act(() =>
+        root.render(
+          <ControlContextProvider value={custom}>
+            <Comp />
+          </ControlContextProvider>,
+        ),
+      );
+
+      act(() => custom.update((wc) => wc.setValue(c, "A")));
+      expect(seen).toEqual([]);
+
+      act(() => custom.update((wc) => wc.setValue(c, "b")));
+      expect(seen).toEqual(["b"]);
+    });
+
+    it("re-runs a stable compute only when a dependency changes", () => {
+      const c = ctx.newControl("a");
+      const other = ctx.newControl(0);
+      let computes = 0;
+      const compute = (rc: ReadContext) => {
+        computes++;
+        return rc.getValue(c);
+      };
+
+      function Comp(): Rendered {
+        const { rc, rendered } = useReactive();
+        // Re-renders this component without touching the watched control.
+        rc.getValue(other);
+        useControlEffect(compute, () => {});
+        return rendered(<span />);
+      }
+
+      mount(<Comp />);
+      const afterMount = computes;
+
+      act(() => ctx.update((wc) => wc.setValue(other, 1)));
+      expect(computes).toBe(afterMount);
+
+      act(() => ctx.update((wc) => wc.setValue(c, "b")));
+      expect(computes).toBe(afterMount + 1);
+    });
+
+    /**
+     * The counterpart: an inline `compute` has a new identity every render,
+     * which is what lets it close over props the reactive graph cannot see.
+     * Nothing covered this before, and it is behaviour consumers rely on.
+     */
+    it("re-runs an inline compute so it sees moved props", () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+
+      function Comp({ suffix }: { suffix: string }): Rendered {
+        const { rendered } = useReactive();
+        useControlEffect(
+          (rc) => rc.getValue(c) + suffix,
+          (v) => seen.push(v),
+        );
+        return rendered(<span />);
+      }
+
+      mount(<Comp suffix="!" />);
+      expect(seen).toEqual([]);
+
+      // Only the prop moves — no control changes at all.
+      mount(<Comp suffix="?" />);
+      expect(seen).toEqual(["a?"]);
+
+      act(() => ctx.update((wc) => wc.setValue(c, "b")));
+      expect(seen).toEqual(["a?", "b?"]);
+    });
+
+    /**
+     * That re-run lands in the commit phase, not the render body. The previous
+     * implementation swapped the compute during render, so `onChange` could
+     * fire while the component was still rendering.
+     */
+    it("delivers a prop-driven re-run after the render body, not during it", () => {
+      const c = ctx.newControl("a");
+      const seen: string[] = [];
+      let renderingWhenDelivered: boolean | null = null;
+      let rendering = false;
+
+      function Comp({ suffix }: { suffix: string }): Rendered {
+        const { rendered } = useReactive();
+        rendering = true;
+        useControlEffect(
+          (rc) => rc.getValue(c) + suffix,
+          (v) => {
+            renderingWhenDelivered ??= rendering;
+            seen.push(v);
+          },
+        );
+        const out = rendered(<span />);
+        rendering = false;
+        return out;
+      }
+
+      mount(<Comp suffix="!" />);
+      mount(<Comp suffix="?" />);
+      expect(seen).toEqual(["a?"]);
+      expect(renderingWhenDelivered).toBe(false);
     });
   });
 });

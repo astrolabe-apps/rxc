@@ -1,18 +1,42 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ControlChange } from "@rx-controls/core";
-import type { ReadContext } from "@rx-controls/core";
-import { useComputed } from "./useReactive.js";
+import { effect, untrackedRead } from "@rx-controls/core";
+import type { EffectHandle, ReadContext } from "@rx-controls/core";
+import { useControlContext } from "./useReactive.js";
+
+/**
+ * Everything the hook owns across renders. One object in a ref, so the effect
+ * body can close over it once and still see the freshest `compute` /
+ * `onChange` the component rendered with.
+ */
+interface Watch<V> {
+  /** Latest `compute`, reassigned every render. */
+  compute: (rc: ReadContext) => V;
+  /** Latest `onChange`, reassigned every render — never a stale closure. */
+  onChange: (value: V) => void;
+  /** Mount-time semantics, captured once; changing it later has no meaning. */
+  initial: ((value: V) => void) | boolean | undefined;
+  /**
+   * The value `onChange` was last told about — the whole ledger this hook
+   * keeps. Every question it has to answer ("was that a change?", "did I miss
+   * one while I wasn't subscribed?") is this one comparison.
+   */
+  last: V;
+  /** Survives StrictMode's unmount/remount, so `initial` fires once per real
+   * mount rather than once per effect invocation. */
+  didInitial: boolean;
+  /** Live only between the effect below and its cleanup. */
+  handle: EffectHandle | undefined;
+}
 
 /**
  * Run a side effect when a computed value changes.
  *
- * `compute` reads through its **own** `rc` (like {@link useComputed}, which
- * this is built on), so the values it depends on do not re-render the
- * component — the only consequence of a change is `onChange` running. Reading
- * the same controls through the component's `rc` as well is fine; the two
- * subscriptions are independent.
+ * `compute` reads through its **own** `rc`, so the values it depends on do not
+ * re-render the component — the only consequence of a change is `onChange`
+ * running. Reading the same controls through the component's `rc` as well is
+ * fine; the two subscriptions are independent.
  *
  * ```tsx
  * useControlEffect(
@@ -21,10 +45,13 @@ import { useComputed } from "./useReactive.js";
  * );
  * ```
  *
- * `onChange` fires only when the computed value actually *changes* per the
- * tree's equality (`ControlContext.equals`) — recomputations that produce an
- * equal value are silent. It always receives the latest `onChange` passed to
- * the hook, so closures over current props/state are safe.
+ * The contract: when the computed value changes per the tree's equality
+ * (`ControlContext.equals`, `deepEquals` by default), `onChange` runs **once,
+ * eventually, with the latest value**, and does not run again until another
+ * such change. "Eventually" is deliberately loose — a change may be delivered
+ * inline with the write that caused it or from a commit effect, whichever the
+ * situation calls for. `onChange` always receives the latest callback passed
+ * to the hook, so closures over current props/state are safe.
  *
  * ## This is a side-effect hook, not a derivation hook
  *
@@ -38,6 +65,16 @@ import { useComputed } from "./useReactive.js";
  * first paint and there is no window in which it is stale. Where the derived
  * value has to live in a control something else also writes, write it from a
  * render body (`update` from {@link useReactive}) or from a core `effect`.
+ *
+ * ## `compute` re-runs every render unless you memoize it
+ *
+ * A `compute` may close over things the reactive graph cannot observe — props,
+ * component state — so a new `compute` identity re-runs it. An inline arrow
+ * has a new identity every render, which is what makes those reads work.
+ *
+ * Wrapping `compute` in `useCallback` opts out: it then re-runs only when a
+ * tracked control changes. Worth doing for an expensive compute, with the
+ * usual caveat that wrong deps leave you reading stale props.
  *
  * ## `getElements` registers a dependency on structure, not contents
  *
@@ -58,52 +95,74 @@ export function useControlEffect<V>(
   onChange: (value: V) => void,
   initial?: ((value: V) => void) | boolean,
 ): void {
-  const result = useComputed(compute);
+  const ctx = useControlContext();
 
-  // Always call the latest callback — never a stale closure from the render
-  // that happened to create the subscription.
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const ref = useRef<Watch<V> | null>(null);
+  ref.current ??= {
+    compute,
+    onChange,
+    initial,
+    didInitial: false,
+    handle: undefined,
+    // Seeded from render-time state, untracked: nothing is subscribed until
+    // the effect below mounts. This is what makes a write landing in the
+    // render→mount window a change rather than a missed one — the effect's
+    // first run compares against it like any other run.
+    last: compute(untrackedRead),
+  };
+  const s = ref.current;
+  // The freshest closures, always. Reading them costs nothing and re-runs
+  // nothing; re-running is the next effect's decision.
+  s.compute = compute;
+  s.onChange = onChange;
 
-  // `initial` is mount-time semantics; changing it later has no meaning.
-  const initialRef = useRef(initial);
-  // Persists across StrictMode's unmount/remount, so the initial call fires
-  // once per real mount rather than once per effect invocation.
-  const didInitial = useRef(false);
-
-  // The last value this hook has accounted for, seeded during the render that
-  // creates the computed — see the catch-up below for why that matters. The
-  // effect re-reads the same box, which is only ever assigned once.
-  const lastSeenRef = useRef<{ v: V } | null>(null);
-  lastSeenRef.current ??= { v: result.valueNow };
+  // A new `compute` identity means its captured closure moved (props, state),
+  // which the reactive graph has no way to observe. Re-run so both the watched
+  // value and the tracked dependency set follow.
+  //
+  // Declared *before* the effect below, and that ordering is load-bearing:
+  // React runs every cleanup, then every effect, in hook order. On mount
+  // `s.handle` does not exist yet so this no-ops — the effect's own first run
+  // already used the current compute. When `ctx` changes, the effect's cleanup
+  // has cleared `s.handle` before this runs, so it no-ops there too and the
+  // recreated effect does the comparison instead.
+  useEffect(() => {
+    s.handle?.rerun();
+    // `compute` identity is deliberately the only trigger. Listing `s.handle`
+    // would re-run this whenever the effect below is recreated, which is
+    // exactly the case the ordering above already covers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compute]);
 
   useEffect(() => {
-    const lastSeen = (lastSeenRef.current ??= { v: result.valueNow });
-    const deliver = () => {
-      lastSeen.v = result.valueNow;
-      onChangeRef.current(result.valueNow);
-    };
-    if (!didInitial.current) {
-      didInitial.current = true;
-      const init = initialRef.current;
-      const fn =
-        typeof init === "function" ? init : init ? onChangeRef.current : null;
-      if (fn) {
-        lastSeen.v = result.valueNow;
-        fn(result.valueNow);
+    let first = true;
+    const handle = effect(ctx, (rc) => {
+      const value = s.compute(rc);
+      if (first) {
+        first = false;
+        // The mount-time call, once per real mount. It reports the live value,
+        // so a change absorbed in the render→mount window is accounted for
+        // rather than reported a second time by the comparison below.
+        if (!s.didInitial) {
+          s.didInitial = true;
+          const init = s.initial;
+          const fn =
+            typeof init === "function" ? init : init ? s.onChange : null;
+          if (fn) {
+            s.last = value;
+            fn(value);
+            return;
+          }
+        }
       }
-    }
-    const sub = result.subscribe(deliver, ControlChange.Value);
-    // The computed recomputes whether or not anyone is subscribed, so a write
-    // landing between the render that created it and this effect is absorbed
-    // with nobody to tell — and nothing ever replays it. That window is not
-    // theoretical: React runs effects child-first, so any descendant effect
-    // writing a watched control at mount falls inside it, as does a write from
-    // a layout effect or a render body. Comparing against the value we last
-    // accounted for closes it, and costs a reference check otherwise: the
-    // computed's target only takes a new reference when `setValue` decided the
-    // value actually changed, so `!==` is exactly "a change was published".
-    if (lastSeen.v !== result.valueNow) deliver();
-    return () => result.unsubscribe(sub);
-  }, [result]);
+      if (ctx.equals(value, s.last)) return;
+      s.last = value;
+      s.onChange(value);
+    });
+    s.handle = handle;
+    return () => {
+      s.handle = undefined;
+      handle.cleanup();
+    };
+  }, [ctx, s]);
 }
