@@ -18,6 +18,14 @@
       "safeForSimultaneousRushProcesses": true,
       "autoinstallerName": "lint",
       "shellCommand": "eslint packages apps"
+    },
+    {
+      "commandKind": "global",
+      "name": "publish-alpha",
+      "summary": "Publish all packages to npm",
+      "description": "Runs rush publish --include-all --publish --tag alpha with XDG_CONFIG_HOME preserved so browser authentication works correctly",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --publish --tag alpha",
+      "safeForSimultaneousRushProcesses": true
     }
   ],
   "parameters": []
