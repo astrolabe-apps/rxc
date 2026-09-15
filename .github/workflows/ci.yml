@@ -26,4 +26,4 @@ jobs:
       - name: Rush lint
         run: node common/scripts/install-run-rush.js lint
       - name: Rush rebuild
-        run: node common/scripts/install-run-rush.js rebuild --verbose --production
+        run: node common/scripts/install-run-rush.js rebuild --verbose
