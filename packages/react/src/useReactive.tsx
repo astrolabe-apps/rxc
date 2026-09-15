@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
 import { computeInto } from "@rx-controls/core";
 import type { ComputedHandle } from "@rx-controls/core";
@@ -117,6 +124,9 @@ function warnMissingRendered(site: string): void {
  * Only one can be open at a time: React renders one component at a time, and
  * a parent's `rendered(…)` runs before any of its children begin, so windows
  * never overlap.
+ *
+ * Maintained in production as well as dev — the deferred-notification policy
+ * below reads it, not just the wrong-rc guard.
  */
 let openRc: TrackingReadContext | null = null;
 
@@ -156,6 +166,87 @@ if (IS_DEV) {
   });
 }
 
+// ── Deferred notification ───────────────────────────────────────────
+//
+// Writing controls from a render body is supported (it is the Case-B
+// "adjust derived state during render" shape). The write applies
+// immediately, so the rest of the writer's body and every descendant that
+// has yet to render sees the new value with no further ceremony.
+//
+// Notification is the part that needs care, and it splits in two:
+//
+//   * **The writer itself.** Its own subscriptions are live from its second
+//     render onwards (`reconcile()` only runs at `rendered(…)`, so the
+//     previous pass's set is still in place while the body runs), so the
+//     flush calls its `forceRender`. That lands on the *currently rendering*
+//     fiber, which is React's blessed render-phase update: React discards the
+//     output and re-invokes the component immediately, with no intervening
+//     commit. Exactly the cost React charges for its own
+//     `if (items !== prev) setState(…)`, and a write that fails to converge
+//     trips "Too many re-renders" — which is the correct diagnostic. Left
+//     alone deliberately.
+//
+//   * **Everybody else.** A component that has already committed gets
+//     `forceRender` called on a *different* fiber mid-render, which React
+//     rejects with "Cannot update a component while rendering a different
+//     component" and then services as a separate scheduled pass. That is the
+//     one genuine problem, and it is what the queue below fixes: such a
+//     notification is held until the render phase is over, then delivered in
+//     the commit phase (before paint), with a microtask backstop. See
+//     `deferRender` for why it is drained from two places.
+//
+// Only notification moves. Values are never staged.
+
+const deferred = new Set<Tracker>();
+let drainScheduled = false;
+
+function drainDeferred(): void {
+  drainScheduled = false;
+  if (deferred.size === 0) return;
+  // Snapshot: a render triggered here can enqueue further trackers, which
+  // belong to the next drain rather than this one.
+  const pending = [...deferred];
+  deferred.clear();
+  for (const t of pending) t.forceRender();
+}
+
+/**
+ * Queue `tracker` for a re-render once the render phase is over.
+ *
+ * Drained from two places, in this order of preference:
+ *
+ *  1. **The commit phase**, by the layout effect `useReactive` already
+ *     registers per component. This is the path that normally runs: it is
+ *     after DOM mutation but before paint, so the deferred component never
+ *     shows a stale frame, and it sits inside React's own work — which keeps
+ *     it inside a synchronous `act()` in tests rather than producing "an
+ *     update … was not wrapped in act(...)".
+ *  2. **A microtask**, as the backstop for a render that never commits
+ *     (an abandoned concurrent render, a throw). Without it those
+ *     notifications would strand and the observer would stay stale
+ *     indefinitely. It normally finds the queue already empty and does
+ *     nothing. Draining from a microtask is legal: React's "during render"
+ *     check keys off the fiber being rendered *synchronously*, which is
+ *     never the case in a microtask.
+ */
+function deferRender(tracker: Tracker): void {
+  deferred.add(tracker);
+  if (drainScheduled) return;
+  drainScheduled = true;
+  queueMicrotask(drainDeferred);
+}
+
+/**
+ * `useLayoutEffect` on the client, `useEffect` on the server.
+ *
+ * React warns that layout effects do nothing during SSR, and in this repo
+ * anything on stderr fails `rush test`. Neither of this effect's jobs
+ * matters on the server: nothing has committed, so there is nothing queued
+ * to drain, and `openRc` is overwritten by the next `beginTracking()`.
+ */
+const useCommitEffect =
+  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+
 // ── useReactive ─────────────────────────────────────────────────────
 
 interface Tracker {
@@ -163,6 +254,9 @@ interface Tracker {
   reconciler: SubscriptionReconciler;
   controls: ReactiveScope;
   didRender: boolean;
+  /** Stable re-render trigger — `useState`'s setter is stable for the
+   * component's life, so the queue can hold this across renders. */
+  forceRender: () => void;
   /** Component identity for the dev warning; "" in production. */
   site: string;
 }
@@ -194,11 +288,11 @@ export function useReactive(): ReactiveScope {
   if (!ref.current) {
     const rc = new TrackingReadContext();
     const reconciler = new SubscriptionReconciler();
-    reconciler.setListener(() => forceRender((c) => c + 1));
     const tracker: Tracker = {
       rc,
       reconciler,
       didRender: false,
+      forceRender: () => forceRender((c) => c + 1),
       site: IS_DEV ? captureCallSite() : "",
       controls: {
         rc,
@@ -216,11 +310,22 @@ export function useReactive(): ReactiveScope {
           // handlers, refs, escaped proxies) still return current values but
           // no longer register dependencies that nothing would reconcile.
           rc.finalize();
-          if (IS_DEV && openRc === rc) openRc = null;
+          // This pass read current values, so any re-render queued for us
+          // while an ancestor was rendering is now redundant. Covers the
+          // common case: an ancestor writes during its render and we render
+          // afterwards in the same pass.
+          deferred.delete(tracker);
+          if (openRc === rc) openRc = null;
           return node as unknown as Rendered;
         },
       },
     };
+    // Installed here rather than at construction because it closes over
+    // `tracker`. See "Deferred notification" above for the two branches.
+    reconciler.setListener(() => {
+      if (openRc !== null && openRc !== rc) deferRender(tracker);
+      else tracker.forceRender();
+    });
     ref.current = tracker;
   }
   const tracker = ref.current;
@@ -229,7 +334,7 @@ export function useReactive(): ReactiveScope {
   // Open this render's tracking window.
   tracker.rc.beginTracking();
   tracker.didRender = false;
-  if (IS_DEV) openRc = tracker.rc;
+  openRc = tracker.rc;
 
   // Alive/dead lifecycle. Stable deps — mount/unmount only, so an abandoned
   // render's subscriptions are swept rather than left live.
@@ -240,16 +345,21 @@ export function useReactive(): ReactiveScope {
     };
   }, [controlContext, tracker]);
 
-  // Guard: runs after every commit. A component that threw never commits its
-  // effects, so this cannot cry wolf on a caught error.
-  useEffect(() => {
+  // Runs after every commit, before paint. A component that threw never
+  // commits its effects, so the guard below cannot cry wolf on a caught
+  // error.
+  useCommitEffect(() => {
+    // Primary drain for render-phase writes — see "Deferred notification".
+    // Cheap when empty, which is the overwhelmingly common case.
+    drainDeferred();
     if (!tracker.didRender) warnMissingRendered(tracker.site);
     // A component that threw (or returned without `rendered(…)`) never closed
-    // its window, which would leave `openRc` stale and make the next
-    // legitimate handler read look like a captured context. Effects run after
-    // commit, when no render is in progress, so clearing here is always safe
-    // and bounds the staleness to a single pass.
-    if (IS_DEV) openRc = null;
+    // its window, which would leave `openRc` stale — making the next
+    // legitimate handler read look like a captured context, and deferring
+    // notifications that should have fired at once. This runs after commit,
+    // when no render is in progress, so clearing here is always safe and
+    // bounds the staleness to a single pass.
+    openRc = null;
   });
 
   return tracker.controls;

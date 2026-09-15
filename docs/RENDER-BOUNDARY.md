@@ -231,6 +231,68 @@ component that threw before closing its window can't leave it stale.
 Windows never overlap: React renders one component at a time, and a parent's `rendered(…)` runs
 before any of its children begin.
 
+## Writing from a render body
+
+`update` from `useReactive()` may be called while the render window is open — the "adjust derived
+state while rendering" shape, the analogue of React's own guarded render-phase `setState`. The
+**write applies immediately**; only *notification* is policed, and it splits in two.
+
+**The writer itself is notified immediately, on purpose.** Its subscriptions are live from its
+second render onwards: `reconcile()` only runs at `rendered(…)`, so the previous pass's set is still
+in place while the body runs. The flush therefore calls its own `forceRender`, which lands on the
+fiber React is currently rendering — React's blessed render-phase update. React discards the output
+and re-invokes the component at once, with no intervening commit, so the pass costs two invocations
+and commits the correct one. That is exactly the price React charges for `if (items !== prev)
+setState(…)`.
+
+The one requirement is that the write **converges** — that second pass must not produce a different
+value again:
+
+```tsx
+const { rc, rendered, update } = useReactive();
+const s = rc.getValue(src);
+update((wc) => wc.setValue(derived, s * 10));   // converges: 2 passes, then settles
+return rendered(<span>{rc.getValue(derived)}</span>);
+```
+
+Ordinary derived writes converge on their own, with no guard. `setValueImpl` bails on
+`ControlContext.equals` before it touches a subscription, and the default is `deepEquals`, so the
+second pass writes an equal value, notifies nobody, and stops. Measured: `s * 10`, a fresh
+`{ n: s }` object literal and a fresh `[s, s]` array literal all settle in two passes — identical to
+writing the same thing behind an `if (rc.getValue(derived) !== next)`, which is therefore optional
+rather than required.
+
+What does not converge is a value that genuinely differs every pass — `updateValue(c, n => n + 1)`,
+`Date.now()`, a random. Those re-render until React stops them with "Too many re-renders", which is
+the correct diagnostic and the same one plain React gives for an unguarded render-phase `setState`.
+Note the dependence on equality: a `ControlContext` constructed with a reference-based `equals` puts
+fresh object and array literals into the non-converging category too.
+
+Non-convergence does **not** show up at mount. `reconcile()` has not run yet, so the write notifies
+nobody and there is nothing to re-render — the component mounts clean and only blows up on its
+*second* render, once the first pass's subscriptions are live. Same asymmetry as the conditional
+`rendered(…)` case below: a bug whose visibility depends on which render you are on.
+
+**Everybody else is deferred.** A component that has already committed would otherwise get
+`forceRender` on a *different* fiber mid-render, which React rejects with "Cannot update a component
+while rendering a different component" and then services as a separate scheduled pass. So the
+adapter routes those notifications into a queue instead, keyed on `openRc` (maintained in
+production for this reason, not just for the wrong-rc guard), and drains it:
+
+1. in the **commit phase**, from the layout effect `useReactive` already registers — after DOM
+   mutation, before paint, so no stale frame is shown, and inside React's own work, so a synchronous
+   `act()` in tests still sees it;
+2. from a **microtask** as the backstop, for a render that never commits (abandoned concurrent
+   render, a throw). Without it those notifications would strand and the observer would stay stale
+   indefinitely. It normally finds the queue already empty.
+
+`rendered(…)` removes its own tracker from the queue: a component that rendered after the write
+already read current values, so a queued re-render would be waste. That covers the common
+ancestor-writes-then-descendant-renders case for free.
+
+Descendants need nothing either way — they have not rendered yet, so they read the new value as they
+go. Nothing is ever staged: `update` has no transactional behaviour here that it lacks elsewhere.
+
 ## A subtlety worth knowing
 
 Whether a missed `rendered(…)` on a *conditional* path is visible depends on which path the

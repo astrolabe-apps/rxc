@@ -62,6 +62,28 @@ export interface ReactiveScope {
    * reading inside `cb` (via the `WriteContext`) never subscribes. Anything
    * else off the context (`newControl`, tracker lifecycle) still comes from
    * `useControlContext()`.
+   *
+   * **Calling this from the render body is supported** — the "adjust derived
+   * state while rendering" shape, the analogue of React's render-phase
+   * `setState`. The write applies at once, so the rest of the body and every
+   * descendant yet to render sees it.
+   *
+   * The write must **converge**: the component re-renders once to observe
+   * it, and that pass must not produce a different value again. Writing a
+   * plain derived value converges on its own — `setValue` bails on
+   * `ControlContext.equals` before it touches a subscription, and the
+   * default `deepEquals` means even a freshly-allocated object or array
+   * literal settles on the second pass. An explicit
+   * `if (rc.getValue(d) !== next)` is therefore optional (it costs the same
+   * two passes either way). What does not converge is a value that genuinely
+   * differs every pass — a counter, `Date.now()`, a random — and React stops
+   * that with "Too many re-renders", exactly as it would an unguarded
+   * render-phase `setState`. A `ControlContext` built with a
+   * reference-equality `equals` puts fresh literals in that category too.
+   *
+   * Notification to components that have already committed is deferred out
+   * of the render phase automatically — see "Writing from a render body" in
+   * `docs/RENDER-BOUNDARY.md`.
    */
   update: (cb: (wc: WriteContext) => void) => void;
   /**

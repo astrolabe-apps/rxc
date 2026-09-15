@@ -26,6 +26,27 @@ import { useComputed } from "./useReactive.js";
  * equal value are silent. It always receives the latest `onChange` passed to
  * the hook, so closures over current props/state are safe.
  *
+ * ## This is a side-effect hook, not a derivation hook
+ *
+ * The guarantee is that `onChange` runs with the new value — **not when**.
+ * Batching, an enclosing write that is still open, and coalescing all move
+ * the moment legitimately, so nothing should be built on the timing. Use it
+ * for things that genuinely are effects: saving, fetching, navigating.
+ *
+ * To *derive* a value, derive it rather than observing-and-writing —
+ * {@link useComputed} runs during render, so the result is ready before the
+ * first paint and there is no window in which it is stale. Where the derived
+ * value has to live in a control something else also writes, write it from a
+ * render body (`update` from {@link useReactive}) or from a core `effect`.
+ *
+ * ## `getElements` registers a dependency on structure, not contents
+ *
+ * A compute that reads `rc.getElements(c)` depends on the element list, so
+ * replacing an array with a **same-length** array changes no element
+ * identities and re-runs nothing at all. Read the values —
+ * `rc.getElements(c).map((e) => rc.getValue(e))` — to depend on contents.
+ * (`@react-typed-forms/core@4` behaved the same way.)
+ *
  * @param compute Computes the watched value; reads through `rc` are tracked.
  * @param onChange Runs with the new value after it changes.
  * @param initial Controls the mount-time call: a function is called once with
