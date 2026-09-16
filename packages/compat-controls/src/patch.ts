@@ -323,15 +323,37 @@ export function ensurePatched(): void {
 
 ensurePatched();
 
-/** View a core control through the legacy surface. Purely a cast — the
- * prototype patch means every control already has both APIs. */
+/**
+ * View a core control through the legacy surface.
+ *
+ * Purely a cast, with no runtime component — the prototype patch above
+ * applies to `ControlImpl` itself, so *every* control in the process carries
+ * both APIs regardless of which `ControlContext` minted it, and the legacy
+ * mutators funnel through a context-free `WriteContextImpl`. This direction
+ * needs a cast only because a core `Control<V>` declares none of the legacy
+ * members; the opposite direction is structurally assignable and needs
+ * nothing (see `types.ts`).
+ *
+ * **Reads through the returned control are collected ambiently**, like every
+ * other legacy read: they register a dependency only inside
+ * `useComponentTracking` / `collectChanges` / `withAmbient`. Reading one from
+ * an `@rx-controls/react` `useReactive()` body subscribes to *nothing* and
+ * the component will not re-render — pass the control to `rc.getValue(…)`
+ * there instead, which it is already assignable to.
+ */
 export function asLegacy<V>(c: CoreControl<V>): Control<V> {
   return c as unknown as Control<V>;
 }
 
-/** View a legacy-typed control through the new core surface. */
+/**
+ * View a legacy-typed control through the new core surface.
+ *
+ * Now redundant for ordinary call sites — a compat `Control<V>` is assignable
+ * to a core `Control<V>` directly. Kept for generic positions where the
+ * relation can't be inferred, and as the explicit spelling of intent.
+ */
 export function asCore<V>(c: Control<V>): CoreControl<V> {
-  return c as unknown as CoreControl<V>;
+  return c;
 }
 
 export { toImpl };

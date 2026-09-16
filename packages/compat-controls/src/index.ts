@@ -32,6 +32,7 @@ export {
   type ControlValue,
   type DelayedSetup,
   type FieldsUndefined,
+  type SubscribeListener,
   type Subscription,
   type Value,
 } from "./types.js";

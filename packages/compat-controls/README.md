@@ -153,6 +153,45 @@ function MigratedView() {
 
 A write through either API updates both.
 
+### Passing controls across the boundary
+
+`shared` above is a compat `Control<V>`, and `MigratedView` hands it straight
+to `rc.getValue` — no cast, no wrapper. That is the supported direction: a
+compat `Control<V>` **is** a core `Control<V>` as far as TypeScript is
+concerned, so your existing controls flow into `@rx-controls/react` hooks,
+`rc`/`wc` methods and `@rx-controls/forms` unchanged. Migrate a component,
+keep the controls.
+
+The reverse — a control created by `@rx-controls/core`'s `newControl` used
+through the legacy API — needs `asLegacy`, because a core `Control<V>`
+declares none of the legacy members:
+
+```tsx
+import { asLegacy } from "@react-typed-forms/core";
+
+asLegacy(coreControl).fields.name.value = "Ada";
+```
+
+That is a type assertion with no runtime component: the prototype patch gives
+*every* control in the process both surfaces, whichever `ControlContext`
+created it.
+
+**One trap.** Legacy reads are collected *ambiently* — they register a
+dependency only inside `useComponentTracking` (what the SWC plugin injects),
+`collectChanges`, or `withAmbient`. So this silently never re-renders:
+
+```tsx
+function Broken() {
+  const { rc, rendered } = useReactive();
+  //                       ↓ ambient read, no collector installed → subscribes to nothing
+  return rendered(<span>{asLegacy(coreControl).fields.count.value}</span>);
+}
+```
+
+There is no warning; the component just goes stale. Inside a `useReactive()`
+body, read through the `rc` instead — it accepts the control directly, so
+there was never a reason to reach for `asLegacy` there in the first place.
+
 ## Known divergences from v4
 
 1. **Per-control `equals` in `ControlSetup` is dropped.** The new engine has

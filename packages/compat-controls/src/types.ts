@@ -7,13 +7,22 @@
  * static face of that patch. `Control<V>` here deliberately includes the new
  * core's snapshot surface (`valueNow`, …) as well, so a compat-typed control
  * is assignable wherever a core `Control<V>` is expected — same objects,
- * both APIs.
+ * both APIs. That assignability is load-bearing for incremental migration
+ * (a legacy app hands its controls straight to `@rx-controls/react` hooks
+ * and `@rx-controls/forms`) and is pinned by `test/assignability.test-d.ts`;
+ * the members below have to keep matching core's, `subscribe`'s listener
+ * arity included (see {@link SubscribeListener}).
+ *
+ * The reverse — a core `Control<V>` in a legacy-typed position — cannot hold
+ * structurally, since core declares none of the legacy members. It *is*
+ * runtime-sound, because the patch applies to every control in the process;
+ * `asLegacy` in `patch.ts` is the cast for it.
  *
  * Reference: `@react-typed-forms/core@4.6.0` type declarations (the last v4).
  */
 
 import { ControlChange as CoreControlChange } from "@rx-controls/core";
-import type { Subscription } from "@rx-controls/core";
+import type { Subscription, WriteContext } from "@rx-controls/core";
 
 /**
  * Legacy `ControlChange`, which has an `All` member.
@@ -73,10 +82,34 @@ export interface ControlSetup<V, M = object> {
 // ── Change tracking ──────────────────────────────────────────────────
 
 /** Legacy two-arg listener. The engine invokes listeners with a third `wc`
- * argument; two-arg legacy listeners simply ignore it. */
+ * argument; two-arg legacy listeners simply ignore it.
+ *
+ * This is the shape compat's own machinery *calls* (the ambient collector,
+ * `SubscriptionTracker`, `trackedValue`), which has no `wc` to hand over.
+ * {@link SubscribeListener} is the shape `subscribe` *accepts*. */
 export type ChangeListenerFunc<V> = (
   control: Control<V>,
   change: ControlChange,
+) => void;
+
+/**
+ * The listener type {@link Control.subscribe} accepts.
+ *
+ * Declared with the engine's full three-argument arity, which is what keeps
+ * a compat `Control<V>` assignable to a core `Control<V>` — a two-argument
+ * `subscribe` parameter makes the two method signatures incompatible in
+ * both directions ("target signature provides too few arguments"), and
+ * because `fields`, `elementsNow` and `existingFields` recurse back into
+ * `Control`, that single mismatch propagates through the whole type.
+ *
+ * Legacy call sites are unaffected: a two-argument callback (including a
+ * {@link ChangeListenerFunc} value) is assignable to a three-parameter
+ * signature.
+ */
+export type SubscribeListener<V> = (
+  control: Control<V>,
+  change: ControlChange,
+  wc: WriteContext,
 ) => void;
 
 // ── Field/Element type helpers (legacy-identical) ────────────────────
@@ -127,7 +160,7 @@ export interface CleanupScopeImpl extends CleanupScope {
 
 export interface Control<V> extends ControlProperties<V>, CleanupScopeImpl {
   uniqueId: number;
-  subscribe(listener: ChangeListenerFunc<V>, mask: ControlChange): Subscription;
+  subscribe(listener: SubscribeListener<V>, mask: ControlChange): Subscription;
   unsubscribe(subscription: Subscription): void;
   isEqual: (v1: unknown, v2: unknown) => boolean;
   /** Untracked snapshot view — reads collect nothing. */

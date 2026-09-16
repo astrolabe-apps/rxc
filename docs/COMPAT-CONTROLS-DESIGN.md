@@ -20,8 +20,10 @@ Reference legacy version: `@react-typed-forms/core@4.6.0` /
    beyond the one-line root provider.
 2. **Interoperable**: compat controls and new-API controls are the *same*
    objects. A control created via compat `newControl()` can be read through a
-   new-API `rc`, passed to `@rx-controls/react` components, and vice versa. This is
-   what makes incremental migration possible: convert one component at a time.
+   new-API `rc` and passed to `@rx-controls/react` components with no cast —
+   that direction is assignable outright. The reverse needs `asLegacy`, which
+   is a cast with no runtime component (see "Patching Control"). This is what
+   makes incremental migration possible: convert one component at a time.
 3. **Contained**: every global lives in the compat package. `@rx-controls/core`
    stays global-free; no changes to core semantics.
 
@@ -270,8 +272,43 @@ is precisely what interop requires. The patch is additive except where noted.
 Types: a monkey-patch is invisible to TypeScript, so compat exports **its own
 `Control<V>` interface** — the new core members plus the legacy members —
 and casts at the boundaries. All compat functions/hooks/components are typed
-against it. New-core `Control`s flow in freely (the compat type is a
-supertype structurally at runtime, enforced by the patch).
+against it.
+
+The two directions are not symmetric, and the asymmetry is the whole of the
+incremental-migration story:
+
+- **compat → core holds structurally.** A compat `Control<V>` declares core's
+  entire surface, so it is assignable to a core `Control<V>` with no cast and
+  passes into `rc.getValue`, `wc.setValue`, `@rx-controls/react` hooks and
+  `@rx-controls/forms` unchanged. This is the direction a migrating app
+  actually uses — its controls stay compat-created while components convert
+  one at a time. `asCore` remains exported as an explicit spelling of intent
+  (and for generic positions that can't infer the relation), but it is now a
+  plain return, not a cast — which makes the build itself prove the relation
+  for an unresolved type parameter.
+
+  It is **fragile in a non-local way**: `fields`, `elementsNow` and
+  `existingFields` all recurse back into `Control`, so a single member that
+  stops matching core's declaration breaks assignability for the entire type,
+  and the reported error points at the recursion rather than the culprit. The
+  one that bit was `subscribe` — see the table below. Pinned by
+  `packages/compat-controls/test/assignability.test-d.ts`, which `rushx build`
+  typechecks via `tsconfig.typecheck.json` (a type-only file with no runtime
+  half; vitest's glob excludes it, and enabling vitest's own `typecheck` is
+  not an option here because its experimental banner goes to stderr, which
+  `rush test` escalates to a failure).
+
+- **core → compat cannot hold structurally**, since core declares none of the
+  legacy members — but it *is* sound at runtime, because the patch applies to
+  `ControlImpl` itself and the legacy mutators funnel through a context-free
+  `WriteContextImpl`. `asLegacy(c)` is the cast for it, with no runtime
+  component. The caveat to remember is reactivity, not correctness: reads
+  through a cast control are collected **ambiently**, so they register a
+  dependency only inside `useComponentTracking` / `collectChanges` /
+  `withAmbient`. Reading one from an `@rx-controls/react` `useReactive()` body
+  subscribes to nothing and the component silently never re-renders — pass
+  the control to `rc.getValue(…)` there instead, which it is already
+  assignable to.
 
 | Legacy member | Implementation |
 |---|---|
@@ -292,7 +329,7 @@ supertype structurally at runtime, enforced by the patch).
 | `element` get/set | alias for `meta.element` |
 | `lookupControl(path)` | core `lookupControl` |
 | `as<V2>()` | `return this` — type-level widening cast (`V extends V2 ? Control<V2> : never`), identical to legacy |
-| `meta`, `uniqueId`, `subscribe`, `unsubscribe` | already present and signature-compatible — untouched |
+| `meta`, `uniqueId`, `subscribe`, `unsubscribe` | already present — untouched. **`subscribe`'s declared listener type must keep core's three-argument arity** (`SubscribeListener`, not the two-argument `ChangeListenerFunc` compat's own collector machinery uses): a two-argument parameter makes the two `subscribe` signatures incompatible in both directions, which through the `fields`/`existingFields` recursion breaks compat → core assignability for the whole type. Legacy call sites are unaffected — a two-argument callback is assignable to a three-parameter signature |
 | `addCleanup(fn)` / `cleanup()` (CleanupScope) | compat-local: list on `meta[$cleanup]`; `cleanup()` drains it. `cleanupControl`/`createCleanupScope`/`addCleanup` free functions ride the same list |
 
 Collisions audit: **zero overrides.** Every patched member is either absent
