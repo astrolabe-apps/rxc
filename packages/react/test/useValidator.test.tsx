@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { Component, StrictMode, type ReactNode } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +41,17 @@ function mount(ui: React.ReactNode, strict = false) {
 }
 
 const required = (v: string) => (v ? null : "required");
+
+/** Catches a render-time throw so an abandoned render can be observed. */
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? <span>caught</span> : this.props.children;
+  }
+}
 
 describe("useValidator", () => {
   function Required({ control }: { control: Control<string> }): Rendered {
@@ -122,6 +133,104 @@ describe("useValidator", () => {
     act(() => root.render(null));
     expect(c.errorNow).toBeNull();
     expect(c.validNow).toBe(true);
+  });
+
+  it("publishes nothing from a render that never commits", () => {
+    const c = ctx.newControl("");
+    let runs = 0;
+
+    function Boom(): Rendered {
+      useReactive();
+      useValidator(c, (v) => {
+        runs++;
+        return required(v);
+      });
+      throw new Error("abandon this render");
+    }
+
+    // React logs the caught error; stderr fails `rush test`.
+    const realError = console.error;
+    console.error = () => {};
+    try {
+      mount(
+        <Boundary>
+          <Boom />
+        </Boundary>,
+      );
+    } finally {
+      console.error = realError;
+    }
+    expect(container.textContent).toBe("caught");
+
+    // Nothing committed, so nothing was published — and there is no orphan
+    // tracker left to republish it. Running during render used to leave this
+    // control permanently invalid, re-asserted by a component that never
+    // mounted and had no cleanup to clear the key.
+    expect(runs).toBe(0);
+    expect(c.errorNow).toBeNull();
+    expect(c.validNow).toBe(true);
+
+    act(() => ctx.update((wc) => wc.setValue(c, "x")));
+    act(() => ctx.update((wc) => wc.setValue(c, "")));
+    expect(c.errorNow).toBeNull();
+    expect(c.validNow).toBe(true);
+  });
+
+  it("re-points when the key changes, clearing the old one", () => {
+    const c = ctx.newControl("");
+
+    function Comp({ errorKey }: { errorKey: string }): Rendered {
+      const { rendered } = useReactive();
+      useValidator(c, required, errorKey);
+      return rendered(<span />);
+    }
+
+    mount(<Comp errorKey="a" />);
+    expect(c.errorsNow).toEqual({ a: "required" });
+
+    mount(<Comp errorKey="b" />);
+    expect(c.errorsNow).toEqual({ b: "required" });
+  });
+
+  it("re-points when the control changes, clearing the old one", () => {
+    const first = ctx.newControl("");
+    const second = ctx.newControl("");
+
+    function Comp({ control }: { control: Control<string> }): Rendered {
+      const { rendered } = useReactive();
+      useValidator(control, required);
+      return rendered(<span />);
+    }
+
+    mount(<Comp control={first} />);
+    expect(first.errorNow).toBe("required");
+    expect(second.errorNow).toBeNull();
+
+    mount(<Comp control={second} />);
+    expect(first.errorNow).toBeNull();
+    expect(first.validNow).toBe(true);
+    expect(second.errorNow).toBe("required");
+  });
+
+  it("settles before a sibling that read validity is on screen", () => {
+    const c = ctx.newControl("");
+
+    function Submit(): Rendered {
+      const { rc, rendered } = useReactive();
+      return rendered(<button>{rc.isValid(c) ? "enabled" : "disabled"}</button>);
+    }
+
+    // The reader renders *before* the validator's component, so it cannot
+    // have seen the error during its own render — it has to arrive from the
+    // commit. The value is settled by the time the mount is done, which is
+    // what the commit effect (rather than a passive one) buys.
+    mount(
+      <>
+        <Submit />
+        <Required control={c} />
+      </>,
+    );
+    expect(container.textContent).toBe("disabled");
   });
 
   it("keeps the error published under StrictMode", () => {

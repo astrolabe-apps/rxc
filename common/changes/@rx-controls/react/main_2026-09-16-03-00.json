@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "`useValidator` publishes at commit rather than during render. Running during render meant a render that never commits (React abandoning a concurrent pass, a sibling throwing, a suspend) left its error on a shared control with no cleanup to clear it — the cleanup lives in the effect that never ran — and a live tracker that re-published it on every subsequent change. The control was then permanently invalid, re-asserted by a component that never mounted and that `clearErrors` could not get rid of. It is a commit (layout) effect, so the error is still settled before paint; on the server it does not run, so validation state now reaches the client at hydration rather than being baked into the HTML — which also removes the previous dependence on whether the component reading validity happened to render before or after the validator's. `control` and `key` are no longer fixed at mount: changing either re-points the hook, clearing the old key first.",
+      "type": "patch",
+      "packageName": "@rx-controls/react"
+    }
+  ],
+  "packageName": "@rx-controls/react",
+  "email": "doolse@gmail.com"
+}

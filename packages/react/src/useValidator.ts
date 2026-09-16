@@ -7,19 +7,24 @@ import {
   SubscriptionReconciler,
   TrackingReadContext,
 } from "@rx-controls/core/internal";
-import { useControlContext } from "./useReactive.js";
+import { useCommitEffect, useControlContext } from "./useReactive.js";
 import { useControlEffect } from "./useControlEffect.js";
 
 /**
  * Attach a validator to a control for this component's lifetime.
  *
  * The dynamic counterpart of `ControlOptions.validator`, with the same
- * publication contract: the error (under `key`) is computed immediately,
- * recomputed when anything the validator read changes, and **re-published on
- * `WriteContext.validate()`** — so an error cleared externally (e.g.
- * `clearErrors`) comes back on the next validate pass, exactly like a setup
- * validator's. On unmount the key is cleared, so a conditionally rendered
- * component doesn't leave its error behind.
+ * publication contract: the error (under `key`) is published when the
+ * component commits, recomputed when anything the validator read changes, and
+ * **re-published on `WriteContext.validate()`** — so an error cleared
+ * externally (e.g. `clearErrors`) comes back on the next validate pass,
+ * exactly like a setup validator's. On unmount the key is cleared, so a
+ * conditionally rendered component doesn't leave its error behind.
+ *
+ * "When the component commits" rather than "during render" is what makes that
+ * last guarantee hold: publishing an error is a write to a control the rest of
+ * the tree can see, and a render that never commits has no cleanup to clear it
+ * with. See the comment on the effect below.
  *
  * The validator receives an `rc`; reads through it (other controls, for
  * cross-field rules) are tracked, so this re-runs when they change too:
@@ -30,8 +35,8 @@ import { useControlEffect } from "./useControlEffect.js";
  * );
  * ```
  *
- * The latest `validator` is always used. `control` and `key` are fixed at
- * mount — remount (`key` prop) to re-point the hook.
+ * The latest `validator` is always used. Changing `control` or `key` re-points
+ * the hook: the old key is cleared before the new one is published.
  */
 export function useValidator<V>(
   control: Control<V>,
@@ -42,40 +47,38 @@ export function useValidator<V>(
   const validatorRef = useRef(validator);
   validatorRef.current = validator;
 
-  const state = useRef<{
-    run: () => void;
-    reconciler: SubscriptionReconciler;
-  } | null>(null);
-  if (!state.current) {
+  // Everything lives in the effect, so a render that never commits leaves
+  // nothing behind. That matters more here than for a purely reactive hook:
+  // the validator does not just subscribe, it *publishes an error onto a
+  // control the rest of the tree reads*. Created during render, an abandoned
+  // pass left that error on a shared control with no cleanup to remove it and
+  // a live tracker to re-publish it on the next change — a field stuck invalid
+  // with nothing on screen responsible for it.
+  //
+  // A commit effect rather than a passive one, so the error is settled before
+  // paint. On the server it does not run at all: validation state reaches the
+  // client at hydration instead of being baked into the HTML, which is also
+  // what keeps the server and client first renders in agreement whatever order
+  // the tree happens to render in.
+  useCommitEffect(() => {
     const rc = new TrackingReadContext();
     const reconciler = new SubscriptionReconciler();
     const run = () => {
       rc.beginTracking();
-      // Re-run (and re-publish) on validate() broadcasts, like the
-      // built-in `ControlOptions.validator` subscription (Value | Validate).
       rc.trackValidate(control);
       const message = validatorRef.current(rc.getValue(control), rc);
       reconciler.reconcile(rc.tracked);
       ctx.update((wc) => wc.setError(control, key, message));
     };
     reconciler.setListener(run);
-    run();
-    state.current = { run, reconciler };
-  }
-  const { run, reconciler } = state.current;
-
-  useEffect(() => {
-    ctx.retainTracker(reconciler);
-    // Republish: a StrictMode unmount/remount cycle ran the cleanup below,
-    // clearing the key, before this second setup.
+    // Runs as it subscribes, which also covers StrictMode's second setup:
+    // the cleanup below already cleared the key.
     run();
     return () => {
-      ctx.releaseTracker(reconciler);
+      reconciler.cleanup();
       ctx.update((wc) => wc.setError(control, key, null));
     };
-    // control/key are fixed at mount by contract.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, reconciler]);
+  }, [ctx, control, key]);
 }
 
 /**

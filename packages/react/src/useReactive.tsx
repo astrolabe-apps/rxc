@@ -244,7 +244,7 @@ function deferRender(tracker: Tracker): void {
  * matters on the server: nothing has committed, so there is nothing queued
  * to drain, and `openRc` is overwritten by the next `beginTracking()`.
  */
-const useCommitEffect =
+export const useCommitEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;
 
 // ── useReactive ─────────────────────────────────────────────────────
