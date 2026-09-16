@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Pick up the `useComputed` lifecycle fix from `@rx-controls/react` 0.2.3. No source change in this package — it bumps because its engine dependencies are `workspace:*`, rewritten to exact versions at publish time, so alpha.6's manifest pins react 0.2.2 and would keep serving the leaking hook however often it were republished.",
+      "type": "patch",
+      "packageName": "@react-typed-forms/core"
+    }
+  ],
+  "packageName": "@react-typed-forms/core",
+  "email": "doolse@gmail.com"
+}
