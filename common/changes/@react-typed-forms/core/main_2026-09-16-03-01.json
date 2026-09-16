@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Pick up the `useValidator` fix from `@rx-controls/react` 0.2.4. No source change in this package — it bumps because its engine dependencies are `workspace:*`, rewritten to exact versions at publish time, so alpha.7's manifest pins react 0.2.3 and would keep serving the render-time validator however often it were republished.",
+      "type": "patch",
+      "packageName": "@react-typed-forms/core"
+    }
+  ],
+  "packageName": "@react-typed-forms/core",
+  "email": "doolse@gmail.com"
+}
