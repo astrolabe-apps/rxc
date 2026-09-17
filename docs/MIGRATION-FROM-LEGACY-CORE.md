@@ -234,6 +234,20 @@ both, so there is no big-bang cutover. While both are in the tree:
   different runtimes.
 - Keep the SWC plugin installed until the last `useComponentTracking` is gone. It is what makes the
   ambient half work.
+- **The provider's own component must be marked `/** @noTrackControls */`, and must call no
+  control hook itself.** Both plugins (SWC and the older Babel one) inject `useComponentTracking()`
+  at the top of every component they transform — including the one rendering the provider, where it
+  then runs *above* it. Any other hook in that component has the same problem, and in a Next root
+  layout the offending call is usually not yours (`useNextNavigationService` calls `useControl`
+  internally). Both mistakes produce the same error:
+
+  ```
+  useControlContext: no ControlContext found. Wrap your app in <ControlContextProvider>.
+  ```
+
+  Give the provider a component of its own that renders the provider and nothing else. Full
+  treatment, including how to read the error in a minified build:
+  [the compat README](../packages/compat-controls/README.md#where-the-provider-goes).
 - `withAmbient(rc, fn)` and `ambientToRc` bridge in the other direction — they let ambient-style
   code run inside an explicit `rc`. Useful for a compute function you have not ported yet.
 - **This is the window where a half-ported read is dangerous.** The prototype patch is still
@@ -247,7 +261,9 @@ Component-by-component in leaf-first order works well, since a leaf's reads are 
 
 ## When you are done
 
-1. Remove the SWC plugin (`@astroapps/swc-controls-plugin`) from your build config.
+1. Remove the SWC plugin (`@astroapps/swc-controls-plugin`) from your build config. Nothing injects
+   `useComponentTracking()` any more, so the `@noTrackControls` comment on your provider component
+   is now inert — drop it, and the "provider component does nothing else" restriction with it.
 2. Drop `@react-typed-forms/core` from `package.json`; add `@rx-controls/react`.
 3. Provide a `ControlContext` of your own: `<ControlContextProvider value={createControlContext()}>`
    at the root. One per app (or per SSR request — that is what makes `uniqueId` sequences
