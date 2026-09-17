@@ -21,10 +21,18 @@
     },
     {
       "commandKind": "global",
-      "name": "publish-alpha",
+      "name": "publish-check",
       "summary": "Publish all packages to npm",
-      "description": "Runs rush publish --include-all --publish --tag alpha with XDG_CONFIG_HOME preserved so browser authentication works correctly",
-      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --publish --tag alpha",
+      "description": "Runs rush publish --include-all with XDG_CONFIG_HOME preserved so browser authentication works correctly",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all",
+      "safeForSimultaneousRushProcesses": true
+    },
+    {
+      "commandKind": "global",
+      "name": "publish-latest",
+      "summary": "Publish all packages to npm",
+      "description": "Runs rush publish --include-all --publish --tag latest -b main with XDG_CONFIG_HOME preserved so browser authentication works correctly",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --publish --tag latest -b main",
       "safeForSimultaneousRushProcesses": true
     }
   ],
