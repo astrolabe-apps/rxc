@@ -1,7 +1,7 @@
 {
   "changes": [
     {
-      "comment": "Add opt-in ambient diagnostics (setStrictAmbient, setAmbientTrace) and load-time duplicate-install detection (getCompatPatchInfo). No default behaviour changes: strict mode and the trace are off by default, and the duplicate report only fires on an install that is already broken.",
+      "comment": "Add opt-in ambient diagnostics and load-time duplicate-install detection. New on the main entry point: setStrictAmbient/getStrictAmbient and getCompatPatchInfo. New '/internal' subpath export carrying setAmbientTrace, a debugging aid held outside the semver promise. No default behaviour changes: strict mode and the trace are off by default, and the duplicate report only fires on an install that is already broken.",
       "type": "minor",
       "packageName": "@react-typed-forms/core"
     }

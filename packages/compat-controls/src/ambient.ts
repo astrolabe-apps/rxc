@@ -33,7 +33,10 @@ export let collectChange: ChangeListenerFunc<any> | undefined;
 export function setChangeCollector(
   c: ChangeListenerFunc<any> | undefined,
 ): void {
-  if (IS_DEV && c !== undefined) everCollected = true;
+  if (IS_DEV && c !== undefined) {
+    everCollected = true;
+    tagForeign(c);
+  }
   collectChange = c;
 }
 
@@ -47,7 +50,10 @@ export function collectChanges<A>(
   run: () => A,
 ): A {
   const prev = collectChange;
-  if (IS_DEV) everCollected = true;
+  if (IS_DEV) {
+    everCollected = true;
+    tagForeign(listener);
+  }
   collectChange = listener;
   try {
     return run();
@@ -62,6 +68,7 @@ export function trackControlChange(
   change: ControlChange,
 ): void {
   const cb = collectChange;
+  if (IS_DEV && ambientTracing) traceAmbient(c, change, cb);
   if (cb !== undefined) cb(c, change);
   else if (IS_DEV && strictAmbient) reportAmbientMiss(c, change);
 }
@@ -96,16 +103,31 @@ export function tagCollector<F extends ChangeListenerFunc<any>>(
   let tag = kind + "#" + ++listenerSeq;
   if (kind === "anon") {
     // Only for collectors installed from outside this package: name the
-    // frame that installed it, so "anon" still says where to look.
-    const frame = (new Error().stack ?? "")
-      .split("\n")
-      .slice(3, 4)
-      .join("")
-      .trim();
+    // frame that installed it, so "anon" still says where to look. Found by
+    // scanning past this package's own frames rather than by a fixed offset
+    // — the depth differs between the eager install path and the lazy
+    // `describeCollector` fallback, and a wrong offset silently names a
+    // frame in this file, which is never the interesting one.
+    const frame = firstForeignFrame();
     if (frame) tag += " (" + frame + ")";
   }
   f.__ambientTag = tag;
   return fn;
+}
+
+/**
+ * Tag a collector installed from outside this package, so a trace can name
+ * the code that installed it.
+ *
+ * Called from the install sites, which is the only place the installing frame
+ * is on the stack. Costs nothing for this package's own collectors — they are
+ * tagged at construction, so the property read below short-circuits — and a
+ * foreign collector pays one stack capture total, because the tag sticks to
+ * the function object.
+ */
+function tagForeign(cb: ChangeListenerFunc<any>): void {
+  if ((cb as unknown as Record<string, unknown>).__ambientTag === undefined)
+    tagCollector(cb, "anon");
 }
 
 /**
@@ -355,15 +377,24 @@ function describeControl(c: Control<any>): string {
 
 const reportedSites = new Set<string>();
 
-/** This package's own report sites — never the interesting frame. */
-const OWN_FRAMES = ["ambient", "patch", "trackedValue"];
+/**
+ * This package's own report sites — never the interesting frame.
+ *
+ * Anchored on the file name rather than matched as a bare substring of the
+ * stack line: a consumer file whose path merely contains "ambient" or "patch"
+ * is not ours, and skipping it would name a frame further up the stack than
+ * the one that actually did the read.
+ */
+const OWN_FRAME = /[\/\\](ambient|patch|trackedValue)\.[cm]?[jt]s/;
+
+/** The nearest stack frame outside this package, or `""` if there is none. */
+function firstForeignFrame(): string {
+  const stack = new Error().stack?.split("\n").slice(1) ?? [];
+  return stack.find((l) => !OWN_FRAME.test(l))?.trim() ?? "";
+}
 
 function callSite(): string {
-  const stack = new Error().stack?.split("\n").slice(1) ?? [];
-  return (
-    stack.find((l) => !OWN_FRAMES.some((f) => l.includes(f)))?.trim() ??
-    "<unknown>"
-  );
+  return firstForeignFrame() || "<unknown>";
 }
 
 /**

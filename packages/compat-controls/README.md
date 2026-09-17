@@ -275,14 +275,24 @@ healthy: a collector is installed, its rc is live, a subscription is created,
 just not on the computation that needed it. Every strict-mode guard stays
 silent on that.
 
+The trace is **not part of the v4 surface** — it is a debugging aid for this
+library, and its observable output (the tag vocabulary, the `anon` fallback,
+the compute bracketing) is not something this package wants to owe semver
+compatibility on yet. So it ships on the `/internal` subpath, the same
+convention `@rx-controls/core/internal` uses:
+
 ```ts
-import { setAmbientTrace } from "@react-typed-forms/core";
+import { setAmbientTrace } from "@react-typed-forms/core/internal";
 
 setAmbientTrace((control, change, collector) =>
   console.log(control.uniqueId, change, collector),
 );
 setAmbientTrace(undefined); // off
 ```
+
+It moves to the main entry point if it earns one. Behaviour is pinned by
+`test/ambientTrace.test.ts`, so the tags above are safe to read in a debugging
+session even though they are not yet a promise.
 
 `collector` is the installed collector's tag: `rc` (the `withAmbient` bridge),
 `tracker` (a `SubscriptionTracker`), `component` (`useComponentTracking`), or

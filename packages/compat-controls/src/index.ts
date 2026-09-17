@@ -50,10 +50,16 @@ export {
   setStrictAmbient,
   getStrictAmbient,
   type AmbientStrictness,
-  setAmbientTrace,
-  type AmbientTrace,
   withAmbient,
 } from "./ambient.js";
+
+// `setAmbientTrace` / `AmbientTrace` are deliberately NOT exported here.
+// The trace answers "which collector got this read", which is a question you
+// ask while debugging the library, not while using it — and its observable
+// surface (the tag vocabulary, the `anon` fallback, the compute bracketing)
+// is not something this package wants to owe semver compatibility on yet.
+// Reach it via `@react-typed-forms/core/internal`, which is documented as
+// outside the semver promise this entry point makes.
 
 // ── Bridge 2: ambient transactions ───────────────────────────────────
 export {
