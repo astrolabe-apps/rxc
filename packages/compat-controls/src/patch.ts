@@ -19,9 +19,11 @@ import { ControlImpl, toImpl } from "@rx-controls/core/internal";
 import { lookupControl as coreLookupControl } from "@rx-controls/core";
 import type { Control as CoreControl } from "@rx-controls/core";
 import {
+  ambientTracing,
   collectChange,
   reportAmbientMiss,
   strictAmbient,
+  traceAmbient,
 } from "./ambient.js";
 import { runInWc } from "./transactions.js";
 import type { Control, ControlProperties } from "./types.js";
@@ -43,6 +45,8 @@ const CLEANUP_KEY = "$compatCleanup";
  */
 function collect(impl: ControlImpl<any>, change: ControlChange): void {
   const cb = collectChange;
+  if (IS_DEV && ambientTracing)
+    traceAmbient(impl as unknown as Control<any>, change, cb);
   if (cb !== undefined) cb(impl as unknown as Control<any>, change);
   else if (IS_DEV && strictAmbient)
     reportAmbientMiss(impl as unknown as Control<any>, change);

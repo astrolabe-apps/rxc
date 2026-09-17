@@ -50,6 +50,8 @@ export {
   setStrictAmbient,
   getStrictAmbient,
   type AmbientStrictness,
+  setAmbientTrace,
+  type AmbientTrace,
   withAmbient,
 } from "./ambient.js";
 

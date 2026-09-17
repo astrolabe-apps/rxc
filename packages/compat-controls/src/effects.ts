@@ -16,6 +16,7 @@ import {
   collectChanges,
   reportDeadTracker,
   strictAmbient,
+  tagCollector,
 } from "./ambient.js";
 
 declare const process: { env: { NODE_ENV?: string } } | undefined;
@@ -57,7 +58,7 @@ export class SubscriptionTracker {
    */
   dead = false;
 
-  collectUsage: ChangeListenerFunc<any> = (c, change) => {
+  collectUsage: ChangeListenerFunc<any> = tagCollector((c, change) => {
     if (IS_DEV && strictAmbient && this.dead) reportDeadTracker(c, change);
     const existing = this.subscriptions.find((x) => x[0] === c);
     if (existing) {
@@ -69,7 +70,7 @@ export class SubscriptionTracker {
         change,
       ]);
     }
-  };
+  }, "tracker");
 
   constructor(listen: ChangeListenerFunc<any>) {
     this.listen = listen;

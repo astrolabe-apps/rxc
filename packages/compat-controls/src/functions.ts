@@ -14,7 +14,13 @@ import {
   type Control as CoreControl,
 } from "@rx-controls/core";
 import { ControlImpl, toImpl } from "@rx-controls/core/internal";
-import { withAmbient } from "./ambient.js";
+import {
+  collectChange,
+  describeCollector,
+  enterCompute,
+  exitCompute,
+  withAmbient,
+} from "./ambient.js";
 import { getCompatContext } from "./context.js";
 import { newControl } from "./newControl.js";
 import { asLegacy, asCore } from "./patch.js";
@@ -181,8 +187,17 @@ export function updateComputedValue<V>(
     | { ref: ComputedHandle; compute: () => V }
     | undefined;
   if (existing?.compute === compute) return;
-  const wrapped = (rc: Parameters<Parameters<typeof computeInto>[2]>[0]) =>
-    withAmbient(rc, compute);
+  const wrapped = (rc: Parameters<Parameters<typeof computeInto>[2]>[0]) => {
+    // Record what the ambient collector was on entry, then confirm whether
+    // `withAmbient` actually becomes the collector for the compute's reads.
+    // Both helpers are no-ops outside a dev build.
+    enterCompute(describeCollector(collectChange));
+    try {
+      return withAmbient(rc, compute);
+    } finally {
+      exitCompute();
+    }
+  };
   if (existing) {
     existing.ref.replaceCompute(wrapped);
     existing.compute = compute;

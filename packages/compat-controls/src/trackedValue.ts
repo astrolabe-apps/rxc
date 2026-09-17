@@ -10,9 +10,11 @@
 
 import { ControlChange } from "@rx-controls/core";
 import {
+  ambientTracing,
   collectChange,
   reportAmbientMiss,
   strictAmbient,
+  traceAmbient,
 } from "./ambient.js";
 
 declare const process: { env: { NODE_ENV?: string } } | undefined;
@@ -39,6 +41,7 @@ export function trackedValue<A>(
   const cv = cc.value;
   const report = (change: ControlChange) => {
     const cb = tracker ?? collectChange;
+    if (IS_DEV && ambientTracing) traceAmbient(c, change, cb);
     if (cb !== undefined) cb(c, change);
     else if (IS_DEV && strictAmbient) reportAmbientMiss(c, change);
   };

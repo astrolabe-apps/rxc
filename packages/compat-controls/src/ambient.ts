@@ -66,6 +66,118 @@ export function trackControlChange(
   else if (IS_DEV && strictAmbient) reportAmbientMiss(c, change);
 }
 
+// ── Ambient trace (opt-in diagnostic) ────────────────────────────────
+//
+// Answers "which collector was installed when this read was reported?" — the
+// one question strict mode cannot answer, because a read collected by the
+// *wrong* owner looks perfectly healthy: a collector is installed, its rc is
+// live, and a subscription is created — just not on the computation that
+// needed it.
+
+export type AmbientTrace = (
+  control: Control<any>,
+  change: ControlChange,
+  listener: string,
+) => void;
+
+let ambientTrace: AmbientTrace | undefined;
+let listenerSeq = 0;
+
+/** True while a trace is installed — the cheap check for the report sites. */
+export let ambientTracing = false;
+
+/** Name a collector so a trace can identify it. Returns `fn` unchanged. */
+export function tagCollector<F extends ChangeListenerFunc<any>>(
+  fn: F,
+  kind: string,
+): F {
+  if (!IS_DEV) return fn;
+  const f = fn as unknown as Record<string, unknown>;
+  let tag = kind + "#" + ++listenerSeq;
+  if (kind === "anon") {
+    // Only for collectors installed from outside this package: name the
+    // frame that installed it, so "anon" still says where to look.
+    const frame = (new Error().stack ?? "")
+      .split("\n")
+      .slice(3, 4)
+      .join("")
+      .trim();
+    if (frame) tag += " (" + frame + ")";
+  }
+  f.__ambientTag = tag;
+  return fn;
+}
+
+/**
+ * The installed collector's tag, for a trace message.
+ *
+ * A collector that reaches here untagged gets one assigned on the spot, with
+ * the site that installed it captured once — so a third-party
+ * `collectChanges`/`setChangeCollector` caller is still identifiable instead
+ * of collapsing into an anonymous bucket.
+ */
+export function describeCollector(
+  cb: ChangeListenerFunc<any> | undefined,
+): string {
+  if (cb === undefined) return "<none>";
+  const f = cb as unknown as Record<string, unknown>;
+  const existing = f.__ambientTag as string | undefined;
+  if (existing !== undefined) return existing;
+  tagCollector(cb, "anon");
+  return (f.__ambientTag as string | undefined) ?? "<untagged>";
+}
+
+/**
+ * Install a callback invoked on every ambient report with the installed
+ * collector's tag. Dev-only, off by default, and the report sites skip it
+ * entirely while unset.
+ */
+export function setAmbientTrace(fn: AmbientTrace | undefined): void {
+  if (!IS_DEV) return;
+  ambientTrace = fn;
+  ambientTracing = fn !== undefined;
+}
+
+/**
+ * How many `updateComputedValue` computations are on the stack right now, and
+ * what the ambient collector was when the innermost one was entered.
+ *
+ * This is what distinguishes "the compute never ran" from "the compute ran but
+ * something else was collecting": a read that arrives with `computeDepth > 0`
+ * and a non-`rc` collector means the swap `withAmbient` performs did not hold
+ * for the duration of the compute.
+ */
+export let computeDepth = 0;
+let computeEntryCollector = "<none>";
+
+/** Bracket a compute so {@link traceAmbient} can report its nesting. */
+export function enterCompute(expected: string): void {
+  if (!IS_DEV) return;
+  computeDepth++;
+  computeEntryCollector = expected;
+}
+
+export function exitCompute(): void {
+  if (!IS_DEV) return;
+  computeDepth--;
+}
+
+/** Report site hook — call only when {@link ambientTracing}. */
+export function traceAmbient(
+  c: Control<any>,
+  change: ControlChange,
+  cb: ChangeListenerFunc<any> | undefined,
+): void {
+  ambientTrace?.(
+    c,
+    change,
+    describeCollector(cb) +
+      " depth=" +
+      computeDepth +
+      (computeDepth > 0 ? " entered=" + computeEntryCollector : ""),
+  );
+}
+
 /**
  * A collector that converts ambient reads into explicit `rc` reads.
  *
@@ -76,7 +188,7 @@ export function trackControlChange(
  * rc subscribe to it.
  */
 export function ambientToRc(rc: ReadContext): ChangeListenerFunc<any> {
-  return (control, change) => {
+  return tagCollector((control, change) => {
     if (IS_DEV && strictAmbient && !rc.isTracking)
       reportStaleBridge(control, change);
     const c = control as unknown as CoreControl<unknown>;
@@ -97,7 +209,7 @@ export function ambientToRc(rc: ReadContext): ChangeListenerFunc<any> {
     } finally {
       if (IS_DEV) bridging = false;
     }
-  };
+  }, "rc");
 }
 
 /**

@@ -25,7 +25,11 @@ import {
 } from "@rx-controls/core/internal";
 import type { Control as CoreControl } from "@rx-controls/core";
 import { useControlContext } from "@rx-controls/react";
-import { collectChange, setChangeCollector } from "./ambient.js";
+import {
+  collectChange,
+  setChangeCollector,
+  tagCollector,
+} from "./ambient.js";
 import type { ChangeListenerFunc } from "./types.js";
 
 interface Tracker {
@@ -58,10 +62,10 @@ export function useComponentTracking(): () => void {
       reconciler,
       prev: undefined,
       open: false,
-      collector: (c, change) => {
+      collector: tagCollector((c, change) => {
         const impl = toImpl(c as unknown as CoreControl<unknown>);
         map.set(impl, (map.get(impl) ?? ControlChange.None) | change);
-      },
+      }, "component"),
     };
     ref.current = tracker;
   }
