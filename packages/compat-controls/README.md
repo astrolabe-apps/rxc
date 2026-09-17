@@ -261,10 +261,41 @@ a warning to a throw, so one switch covers both halves of the same failure.
    names the control and the call site without stopping the app.
 2. Narrow to `throw` once you know roughly where, so the stack points at the
    read.
-3. If nothing fires at all, the read is being collected by a *live* tracker
-   and the dependency really is registered — look at what is *notifying*
-   instead (an equality bail-out, a `Structure`-only subscription that a
-   same-length array replacement never trips).
+3. If nothing fires at all, the read *was* collected — but not necessarily by
+   the collector you meant. Turn on the trace below to see which one got it.
+4. Still nothing odd? The dependency really is registered, so look at what is
+   *notifying* instead (an equality bail-out, a `Structure`-only subscription
+   that a same-length array replacement never trips).
+
+### Tracing which collector got a read
+
+Strict mode answers "was this read collected at all?". It cannot answer "which
+collector got it" — and a read collected by the **wrong** owner looks perfectly
+healthy: a collector is installed, its rc is live, a subscription is created,
+just not on the computation that needed it. Every strict-mode guard stays
+silent on that.
+
+```ts
+import { setAmbientTrace } from "@react-typed-forms/core";
+
+setAmbientTrace((control, change, collector) =>
+  console.log(control.uniqueId, change, collector),
+);
+setAmbientTrace(undefined); // off
+```
+
+`collector` is the installed collector's tag: `rc` (the `withAmbient` bridge),
+`tracker` (a `SubscriptionTracker`), `component` (`useComponentTracking`), or
+`anon` plus the frame that installed it for anything outside this package. It
+also carries the compute nesting depth, so a read arriving inside a compute
+under a non-`rc` collector tells you the `withAmbient` swap did not hold for
+that compute's duration.
+
+Dev-only, off by default, one boolean check at the report sites when off.
+
+**If the tag is not the collector you expected, suspect a duplicate install
+first** — see below. Two copies of this package each keep their own ambient
+collector, and that is exactly how a read ends up collected by the wrong one.
 
 ## Known divergences from v4
 

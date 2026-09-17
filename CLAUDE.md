@@ -391,8 +391,9 @@ while rendering" shape, the analogue of React's guarded render-phase `setState`.
 
 ### Dev-only code must use the literal `process.env.NODE_ENV`
 
-Both dev guards (`useReactive`'s missing-`rendered()` warning, `overrideProxy`'s escaped-read
-warning) gate on a module-scope `IS_DEV`:
+Dev guards (`useReactive`'s missing-`rendered()` warning, `overrideProxy`'s escaped-read
+warning, and the compat package's strict-ambient + trace report sites) gate on a module-scope
+`IS_DEV`:
 
 ```ts
 const IS_DEV: boolean =
@@ -409,6 +410,13 @@ the warning string and the stack capture are gone from `apps/dev/.next/static/ch
 
 No `try`/`catch` is needed — the `typeof` guard covers unbundled browser ESM (where `process` is an
 undeclared identifier) without blocking the fold.
+
+**One deliberate exception**, and only one: the compat package's duplicate-install detection
+(`ensurePatched`, see Phase 5) reports in **every** build, not just dev. It is a single property
+read at module load; the failure it names — two copies of the engine or of the compat package —
+is silent staleness in production exactly as much as in development; and a duplicate normally
+appears in the *production* dependency graph first, which a dev-only guard cannot catch by
+construction. Anything else dev-only stays behind `IS_DEV`.
 
 ## React version support
 
@@ -700,6 +708,34 @@ Reference port target: `astrolabe-common/astrolabe-schemas-editor/src/`.
   finalized-rc read while a *legacy* ambient window is open — the shape
   React's `openRc` rule cannot see, since `openRc` is null while a legacy
   tracked component renders.
+
+- **Ambient trace (`setAmbientTrace`).** Strict mode answers *"was this read
+  collected at all?"*. It cannot answer *"which collector got it"* — and a read
+  collected by the **wrong** owner looks perfectly healthy: a collector is
+  installed, its rc is live, a subscription is created, just not on the
+  computation that needed it. Every strict-mode guard stays silent.
+
+  `setAmbientTrace(fn)` fires on each ambient report with the installed
+  collector's tag. Collectors are tagged where they are built — `rc` (the
+  `withAmbient` bridge), `tracker` (`SubscriptionTracker.collectUsage`),
+  `component` (`useComponentTracking`) — and one installed from outside the
+  package is tagged `anon` on first sight together with the frame that
+  installed it, so a third-party `collectChanges`/`setChangeCollector` caller
+  stays identifiable instead of collapsing into an anonymous bucket.
+  `updateComputedValue` additionally brackets each compute with
+  `enterCompute`/`exitCompute`, recording the collector installed on entry: a
+  read arriving with `computeDepth > 0` under a non-`rc` collector means the
+  swap `withAmbient` performs did not hold for the compute's duration, which
+  separates "the compute never ran" from "the compute ran while something else
+  was collecting".
+
+  Same cost model as strict mode — dev-only, off by default, one module-scope
+  boolean (`ambientTracing`) at the report sites.
+
+  **No test coverage.** The trace is exported public API
+  (`setAmbientTrace`, `AmbientTrace`) with nothing pinning its behaviour: not
+  the tag vocabulary, not the `anon` fallback, not the compute bracketing.
+  Worth tests before anyone relies on the tag strings.
 
 - **Duplicate-install detection (`getCompatPatchInfo`).** Two copies of the
   compat package, or two copies of `@rx-controls/core`, is the cardinal hazard
