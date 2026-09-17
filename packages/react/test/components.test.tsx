@@ -14,6 +14,7 @@ import {
   type ControlContext,
   type ReadContext,
   type Rendered,
+  setWrongRcSeverity,
 } from "../src/index";
 
 // React 19 warns unless this is set for `act()`.
@@ -350,6 +351,33 @@ describe("wrong-rc dev guard", () => {
       "ReadContext belonging to an enclosing component",
     );
     spy.mockRestore();
+  });
+
+  it("throws instead of warning once the severity is raised", () => {
+    // What a diagnostics layer flips on while hunting a staleness bug: the
+    // warning names the call site, but a throw puts the offending read on the
+    // stack. `@react-typed-forms/core`'s `setStrictAmbient` forwards to this.
+    const c = ctx.newControl("a");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    function Comp(): Rendered {
+      const { rc, rendered } = useReactive();
+      return rendered(
+        <Reactive>
+          {(inner: ReadContext) => <span>{rc.getValue(c)}</span>}
+        </Reactive>,
+      );
+    }
+
+    setWrongRcSeverity("throw");
+    try {
+      expect(() => mount(<Comp />)).toThrow(
+        /ReadContext belonging to an enclosing component/,
+      );
+    } finally {
+      setWrongRcSeverity("warn");
+      spy.mockRestore();
+    }
   });
 
   it("stays silent for a legitimate finalized read in an event handler", () => {

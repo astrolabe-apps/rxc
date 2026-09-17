@@ -14,7 +14,7 @@ import type { ComputedHandle } from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
-  setEscapedReadHook,
+  addEscapedReadHook,
 } from "@rx-controls/core/internal";
 import type { ReactiveScope, Rendered } from "./types.js";
 
@@ -131,6 +131,21 @@ function warnMissingRendered(site: string): void {
 let openRc: TrackingReadContext | null = null;
 
 /**
+ * How {@link reportWrongRc} reacts. `"warn"` by default; a diagnostics layer
+ * hunting a staleness bug can raise it to `"throw"` so the stack points
+ * straight at the offending read. Dev-only — the hook that calls it is
+ * installed behind `IS_DEV`.
+ */
+export type WrongRcSeverity = "warn" | "throw";
+
+let wrongRcSeverity: WrongRcSeverity = "warn";
+
+/** Set how a captured-`rc` read is reported. See {@link WrongRcSeverity}. */
+export function setWrongRcSeverity(severity: WrongRcSeverity): void {
+  wrongRcSeverity = severity;
+}
+
+/**
  * Warn when a callback reads through an enclosing component's `rc` instead of
  * the one it was handed.
  *
@@ -144,25 +159,33 @@ let openRc: TrackingReadContext | null = null;
  * rc's window is open can only be a captured context, because legitimate
  * finalized reads (event handlers, refs, effects) all happen with no render
  * in progress.
+ *
+ * Reported as a warning by default; {@link setWrongRcSeverity} raises it to a
+ * throw for a diagnostics session.
  */
-function warnWrongRc(): void {
+function reportWrongRc(): void {
   const site = captureCallSite();
-  if (warnedSites.has(site)) return;
-  warnedSites.add(site);
-  // eslint-disable-next-line no-console
-  console.error(
+  // Throwing is opt-in and meant to be caught on the first occurrence, so it
+  // is not deduplicated — only the warning is.
+  if (wrongRcSeverity !== "throw") {
+    if (warnedSites.has(site)) return;
+    warnedSites.add(site);
+  }
+  const message =
     `[@rx-controls/react] ${site} read through a ReadContext belonging to an ` +
-      `enclosing component, whose render pass has already closed. The read ` +
-      `returned a current value but subscribed to nothing, so this will not ` +
-      `re-render when that control changes. Use the \`rc\` the callback was ` +
-      `given — naming the parameter \`rc\` shadows the outer one and makes ` +
-      `this impossible.`,
-  );
+    `enclosing component, whose render pass has already closed. The read ` +
+    `returned a current value but subscribed to nothing, so this will not ` +
+    `re-render when that control changes. Use the \`rc\` the callback was ` +
+    `given — naming the parameter \`rc\` shadows the outer one and makes ` +
+    `this impossible.`;
+  if (wrongRcSeverity === "throw") throw new Error(message);
+  // eslint-disable-next-line no-console
+  console.error(message);
 }
 
 if (IS_DEV) {
-  setEscapedReadHook((rc) => {
-    if (openRc !== null && openRc !== rc) warnWrongRc();
+  addEscapedReadHook((rc) => {
+    if (openRc !== null && openRc !== rc) reportWrongRc();
   });
 }
 

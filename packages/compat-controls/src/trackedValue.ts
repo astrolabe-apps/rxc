@@ -9,7 +9,15 @@
  */
 
 import { ControlChange } from "@rx-controls/core";
-import { collectChange } from "./ambient.js";
+import {
+  collectChange,
+  reportAmbientMiss,
+  strictAmbient,
+} from "./ambient.js";
+
+declare const process: { env: { NODE_ENV?: string } } | undefined;
+const IS_DEV: boolean =
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 import type { ChangeListenerFunc, Control } from "./types.js";
 
 const restoreControlSymbol = Symbol("restoreControl");
@@ -29,8 +37,11 @@ export function trackedValue<A>(
   if (c == null) return c as null | undefined;
   const cc = c.current;
   const cv = cc.value;
-  const report = (change: ControlChange) =>
-    (tracker ?? collectChange)?.(c, change);
+  const report = (change: ControlChange) => {
+    const cb = tracker ?? collectChange;
+    if (cb !== undefined) cb(c, change);
+    else if (IS_DEV && strictAmbient) reportAmbientMiss(c, change);
+  };
   if (cv == null) {
     report(ControlChange.Structure);
     return cv;

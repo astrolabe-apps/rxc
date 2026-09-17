@@ -125,11 +125,47 @@ export const untrackedRead: ReadContext = {
  */
 export type EscapedReadHook = (rc: TrackingReadContext) => void;
 
-let escapedReadHook: EscapedReadHook | null = null;
+/**
+ * Every installed hook. A list rather than a slot because more than one
+ * package legitimately wants to hear about escaped reads — the React adapter
+ * installs one for its wrong-`rc` warning, and a compat/diagnostics layer may
+ * add its own. With a single slot whichever loaded last silently disabled the
+ * other, which is exactly the class of bug these hooks exist to find.
+ */
+const escapedReadHooks: EscapedReadHook[] = [];
 
-/** Install (or clear, with `null`) the {@link EscapedReadHook}. */
+/** The hook owned by {@link setEscapedReadHook}, so a later call replaces it
+ * rather than stacking another copy. */
+let primaryEscapedReadHook: EscapedReadHook | null = null;
+
+/**
+ * Install (or clear, with `null`) a single {@link EscapedReadHook}, replacing
+ * whatever this function installed before. Hooks added with
+ * {@link addEscapedReadHook} are left alone.
+ */
 export function setEscapedReadHook(hook: EscapedReadHook | null): void {
-  escapedReadHook = hook;
+  if (primaryEscapedReadHook) removeEscapedReadHook(primaryEscapedReadHook);
+  primaryEscapedReadHook = hook;
+  if (hook) escapedReadHooks.push(hook);
+}
+
+/**
+ * Add an {@link EscapedReadHook}, returning a disposer. Composes — every
+ * installed hook is called, in installation order.
+ */
+export function addEscapedReadHook(hook: EscapedReadHook): () => void {
+  escapedReadHooks.push(hook);
+  return () => removeEscapedReadHook(hook);
+}
+
+function removeEscapedReadHook(hook: EscapedReadHook): void {
+  const i = escapedReadHooks.indexOf(hook);
+  if (i >= 0) escapedReadHooks.splice(i, 1);
+  if (primaryEscapedReadHook === hook) primaryEscapedReadHook = null;
+}
+
+function notifyEscapedRead(rc: TrackingReadContext): void {
+  for (let i = 0; i < escapedReadHooks.length; i++) escapedReadHooks[i](rc);
 }
 
 export class TrackingReadContext implements ReadContext {
@@ -162,7 +198,7 @@ export class TrackingReadContext implements ReadContext {
   private track(control: Control<any>, change: ControlChange): ControlImpl {
     const c = toImpl(control);
     if (!this.tracking) {
-      escapedReadHook?.(this);
+      if (escapedReadHooks.length > 0) notifyEscapedRead(this);
       return c;
     }
     const existing = this.tracked.get(c);

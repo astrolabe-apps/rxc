@@ -37,6 +37,9 @@ export {
   type Value,
 } from "./types.js";
 
+// Keeps @rx-controls/react's captured-`rc` guard in step with strict mode.
+import "./strictReact.js";
+
 // ── Bridge 1: ambient reads ──────────────────────────────────────────
 export {
   ambientToRc,
@@ -44,6 +47,9 @@ export {
   collectChanges,
   setChangeCollector,
   trackControlChange,
+  setStrictAmbient,
+  getStrictAmbient,
+  type AmbientStrictness,
   withAmbient,
 } from "./ambient.js";
 

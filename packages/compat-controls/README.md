@@ -185,9 +185,68 @@ function Broken() {
 }
 ```
 
-There is no warning; the component just goes stale. Inside a `useReactive()`
-body, read through the `rc` instead — it accepts the control directly, so
-there was never a reason to reach for `asLegacy` there in the first place.
+There is no warning by default; the component just goes stale. Inside a
+`useReactive()` body, read through the `rc` instead — it accepts the control
+directly, so there was never a reason to reach for `asLegacy` there in the
+first place.
+
+### Strict mode — making that trap loud
+
+`setStrictAmbient` turns the silent case into a warning or a throw. It is
+**off by default**, dev-only, and costs a single boolean load when off, so
+leaving it out of production builds is automatic rather than a discipline.
+
+```ts
+import { setStrictAmbient } from "@react-typed-forms/core";
+
+setStrictAmbient(true); // shorthand for "throw"
+setStrictAmbient("warn"); // console.warn, deduped per (call site, control)
+setStrictAmbient(false); // back to the default
+```
+
+Switch it on without a code change via either escape hatch — the env var for
+node/vitest/a dev server, the global for a browser bundle (set it from the
+devtools console before the app mounts):
+
+```bash
+RTF_STRICT_AMBIENT=throw pnpm dev
+```
+
+```js
+globalThis.RTF_STRICT_AMBIENT = "warn";
+```
+
+It reports **three** shapes, all of which return a correct current value and
+register no dependency:
+
+| Shape | What it means |
+|---|---|
+| No collector installed | The read ran outside any component body / `collectChanges` / `withAmbient`. The message says whether a collector has *ever* been installed — if not, the tracking plugin or `useComponentTracking` is simply not wired up. |
+| Bridged onto a finalized `ReadContext` | `withAmbient(rc, fn)` ran after `rc`'s render pass closed — typically an `rc` captured from an enclosing `useReactive()` body, or a closure invoked from an effect rather than during render. |
+| Collected by a disposed `SubscriptionTracker` | A collector *is* installed, so the read looks healthy, but the effect/computed that owns it was cleaned up. Its subscriptions notify a listener attached to nothing. |
+
+Each message names the control by `uniqueId` and, where it has a parent, its
+path, plus the facet that was read (`value`, `structure`, …).
+
+**Most no-collector reads are correct**, which is why this is opt-in rather
+than always on: event handlers, refs, effects and validators all read current
+values on purpose. Strict mode cannot tell those apart from a stale render
+read, so when it flags a deliberate one, read through `control.current.*` —
+documented as untracked, and silent in every mode.
+
+Turning it on also raises `@rx-controls/react`'s captured-`rc` diagnostic from
+a warning to a throw, so one switch covers both halves of the same failure.
+
+#### Hunting a staleness bug
+
+1. Run with `RTF_STRICT_AMBIENT=warn` first and read the console — the warning
+   names the control and the call site without stopping the app.
+2. Narrow to `throw` once you know roughly where, so the stack points at the
+   read.
+3. If nothing fires at all, the read is being collected by a *live* tracker
+   and the dependency really is registered — look at what is *notifying*
+   instead (an equality bail-out, a `Structure`-only subscription that a
+   same-length array replacement never trips).
 
 ## Known divergences from v4
 

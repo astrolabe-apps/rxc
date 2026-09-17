@@ -17,6 +17,7 @@ export {
   TrackingReadContext,
   SubscriptionReconciler,
   setEscapedReadHook,
+  addEscapedReadHook,
   type EscapedReadHook,
 } from "./readContextImpl.js";
 

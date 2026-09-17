@@ -18,7 +18,11 @@ import { ControlChange } from "@rx-controls/core";
 import { ControlImpl, toImpl } from "@rx-controls/core/internal";
 import { lookupControl as coreLookupControl } from "@rx-controls/core";
 import type { Control as CoreControl } from "@rx-controls/core";
-import { collectChange } from "./ambient.js";
+import {
+  collectChange,
+  reportAmbientMiss,
+  strictAmbient,
+} from "./ambient.js";
 import { runInWc } from "./transactions.js";
 import type { Control, ControlProperties } from "./types.js";
 
@@ -28,10 +32,20 @@ const IS_DEV: boolean =
 
 const CLEANUP_KEY = "$compatCleanup";
 
-/** Report a tracked read of `impl` to the ambient collector, if one is
- * installed. */
+/**
+ * Report a tracked read of `impl` to the ambient collector, if one is
+ * installed.
+ *
+ * The chokepoint for every patched legacy getter, so the no-collector branch
+ * stays as cheap as it was: when strict diagnostics are off this is one
+ * module-scope boolean load, and `IS_DEV` folds the whole thing away in a
+ * production build.
+ */
 function collect(impl: ControlImpl<any>, change: ControlChange): void {
-  collectChange?.(impl as unknown as Control<any>, change);
+  const cb = collectChange;
+  if (cb !== undefined) cb(impl as unknown as Control<any>, change);
+  else if (IS_DEV && strictAmbient)
+    reportAmbientMiss(impl as unknown as Control<any>, change);
 }
 
 /**

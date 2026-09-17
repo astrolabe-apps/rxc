@@ -12,7 +12,15 @@
 
 import { ControlChange } from "@rx-controls/core";
 import type { Subscription } from "@rx-controls/core";
-import { collectChanges } from "./ambient.js";
+import {
+  collectChanges,
+  reportDeadTracker,
+  strictAmbient,
+} from "./ambient.js";
+
+declare const process: { env: { NODE_ENV?: string } } | undefined;
+const IS_DEV: boolean =
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
 import { createCleanupScope } from "./functions.js";
 import { addAfterChangesCallback } from "./transactions.js";
 import type {
@@ -41,7 +49,16 @@ export class SubscriptionTracker {
   listen: TrackerListener;
   subscriptions: TrackedSubscription[] = [];
 
+  /**
+   * Set by {@link cleanup}, and never cleared. Read only by the strict
+   * ambient diagnostics — `collectUsage` will happily subscribe on behalf of
+   * a disposed tracker, and the resulting subscription notifies a listener
+   * nobody is listening to.
+   */
+  dead = false;
+
   collectUsage: ChangeListenerFunc<any> = (c, change) => {
+    if (IS_DEV && strictAmbient && this.dead) reportDeadTracker(c, change);
     const existing = this.subscriptions.find((x) => x[0] === c);
     if (existing) {
       existing[2] |= change;
@@ -86,6 +103,7 @@ export class SubscriptionTracker {
   cleanup(): void {
     this.subscriptions.forEach((x) => x[1] && x[0].unsubscribe(x[1]));
     this.subscriptions = [];
+    if (IS_DEV) this.dead = true;
   }
 }
 

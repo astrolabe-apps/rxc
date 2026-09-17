@@ -8,6 +8,8 @@ export {
   ControlContextProvider,
   useControlContext,
   withControlContext,
+  setWrongRcSeverity,
+  type WrongRcSeverity,
 } from "./useReactive.js";
 
 export { useControl } from "./useControl.js";
