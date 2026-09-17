@@ -1,11 +1,32 @@
 {
   "name": "@react-typed-forms/core",
-  "version": "5.0.0-alpha.8",
+  "version": "5.0.0",
+  "description": "The v5 major of @react-typed-forms/core: the v4 API reimplemented on the @rx-controls engine. Upgrade is a semver bump plus one provider line.",
+  "keywords": [
+    "react",
+    "typescript",
+    "forms",
+    "controls",
+    "reactive",
+    "state-management"
+  ],
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "homepage": "https://github.com/astrolabe-apps/rxc/tree/main/packages/compat-controls#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/compat-controls"
+  },
+  "bugs": {
+    "url": "https://github.com/astrolabe-apps/rxc/issues"
+  },
   "type": "module",
   "files": [
     "lib",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -21,8 +42,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rx-controls/core": "workspace:*",
-    "@rx-controls/react": "workspace:*"
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^"
   },
   "peerDependencies": {
     "react": "^18 || ^19"

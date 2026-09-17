@@ -22,25 +22,25 @@ importers:
         specifier: ~3.2.0
         version: 3.2.2(react@19.1.7)
       '@react-typed-forms/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/compat-controls
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/core
       '@rx-controls/forms':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms-core
       '@rx-controls/forms-dnd':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms-dnd
       '@rx-controls/forms-motion':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms-motion
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/react
       framer-motion:
         specifier: ~12.38.0
@@ -205,22 +205,22 @@ importers:
         specifier: ^1.1.6
         version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/core
       '@rx-controls/forms':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms-core
       '@rx-controls/forms-datagrid':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms-datagrid
       '@rx-controls/forms-react-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/forms-react-core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../../packages/react
       clsx:
         specifier: ^2.1.1
@@ -263,10 +263,10 @@ importers:
   ../../packages/compat-controls:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../react
     devDependencies:
       '@types/react':
@@ -309,16 +309,16 @@ importers:
   ../../packages/forms:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-core
       '@rx-controls/forms-react-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-react-core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../react
     devDependencies:
       '@types/react':
@@ -346,7 +346,7 @@ importers:
   ../../packages/forms-core:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       jsonata:
         specifier: ^2.1.0
@@ -377,19 +377,19 @@ importers:
         specifier: ^1.1.6
         version: 1.1.15(@types/react-dom@19.1.11(@types/react@19.1.17))(@types/react@19.1.17)(react-dom@19.1.7(react@19.1.7))(react@19.1.7)
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@rx-controls/forms':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-core
       '@rx-controls/forms-react-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-react-core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../react
     devDependencies:
       '@types/react':
@@ -408,19 +408,19 @@ importers:
   ../../packages/forms-dnd:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@rx-controls/forms':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-core
       '@rx-controls/forms-react-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-react-core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../react
     devDependencies:
       '@dnd-kit/core':
@@ -448,19 +448,19 @@ importers:
   ../../packages/forms-motion:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@rx-controls/forms':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-core
       '@rx-controls/forms-react-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-react-core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../react
     devDependencies:
       '@types/react':
@@ -482,13 +482,13 @@ importers:
   ../../packages/forms-react-core:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
       '@rx-controls/forms-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../forms-core
       '@rx-controls/react':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../react
     devDependencies:
       '@types/react':
@@ -507,7 +507,7 @@ importers:
   ../../packages/react:
     dependencies:
       '@rx-controls/core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../core
     devDependencies:
       '@types/react':

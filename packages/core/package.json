@@ -1,11 +1,32 @@
 {
   "name": "@rx-controls/core",
-  "version": "0.1.1",
+  "version": "1.0.0",
+  "description": "Reactive control tree for form and application state — explicit reads and writes, no globals, zero dependencies.",
+  "keywords": [
+    "controls",
+    "reactive",
+    "forms",
+    "state-management",
+    "typescript",
+    "validation"
+  ],
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "homepage": "https://github.com/astrolabe-apps/rxc/tree/main/packages/core#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/astrolabe-apps/rxc/issues"
+  },
   "type": "module",
   "files": [
     "lib",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",

@@ -1,30 +1,54 @@
-# Migrating off `@react-typed-forms/core@5` onto `@rx-controls/react`
+# Migrating from `@react-typed-forms/core` to `@rx-controls/react`
 
-For a host already running the compat package (`@react-typed-forms/core@5`) that wants to drop it
-and use `@rx-controls/react` directly.
+For a host on `@react-typed-forms/core` — **either major, v4 or v5** — that wants to move onto
+`@rx-controls/react` and drop the legacy package.
 
-**If you are still on v4, this is not your document.** Getting to v5 is a version bump plus one root
-provider line — see [`packages/compat-controls/README.md`](../packages/compat-controls/README.md),
-which also lists the six known behavioural divergences from v4. Come back here afterwards. Legacy
-`@react-typed-forms/schemas` hosts want [`MIGRATION-FROM-LEGACY.md`](MIGRATION-FROM-LEGACY.md)
-instead; the renderer stack is a separate port.
+The guide is version-agnostic because the surface is. v5 is a reimplementation of the v4 API on the
+new engine, so every name a v4 host actually uses exists in v5 unchanged; the only v4 exports v5
+dropped are engine internals that v4 leaked by re-exporting `@astroapps/controls` wholesale
+(`ControlImpl`, `ControlLogic`, `ArrayLogic`, `ObjectLogic`, `ParentLink`, `FieldsProxy`,
+`InternalControl`, `Subscriptions`, `resolveSetup`, `getInternalMeta`, …). Every mapping table below
+therefore reads the same on both majors. Where behaviour genuinely differs it is called out inline
+as **v4 only** or **v5 only**.
 
-Nothing forces this migration. v5 is a supported package running on the same engine, and a
-half-migrated tree works fine (see [Going incrementally](#going-incrementally)). The reasons to do
-it are that explicit reads are safe under concurrent rendering, you stop needing the SWC plugin, and
-the component that re-renders is the one that read the control rather than the one the ambient
-collector happened to be pointed at.
+This document covers the controls layer only. A host also using the legacy renderer stack
+(`@react-typed-forms/schemas`) can keep it as-is and move just the engine underneath — see
+[the compat README](../packages/compat-controls/README.md).
 
-## What compat is doing for you
+Nothing forces this migration. v5 is a supported package running on the same engine as
+`@rx-controls/react`, and a half-migrated tree works fine (see
+[Going incrementally](#going-incrementally)). The reasons to do it are that explicit reads are safe
+under concurrent rendering, you stop needing the SWC plugin, and the component that re-renders is the
+one that read the control rather than the one the ambient collector happened to be pointed at.
 
-Three ambient bridges, documented in [`COMPAT-CONTROLS-DESIGN.md`](COMPAT-CONTROLS-DESIGN.md).
-Migrating means replacing each with the explicit thing it stands in for:
+## Which major you are on
 
-| Bridge | Compat | `@rx-controls/react` |
+It changes one thing only: whether you can migrate **component by component**.
+
+- **On v5** — you already have a `ControlContext` shared with `@rx-controls/react` (the root
+  `<ControlContextProvider value={getCompatContext()}>`). Mixed trees work. Go incrementally.
+- **On v4** — there is no way to hand v4's module-global singleton context to
+  `@rx-controls/react`, so a mixed tree has two runtimes and module-scope `newControl()` controls
+  land in the wrong one. Either migrate the whole tree in one go, or **bump to v5 first** — a semver
+  bump plus one provider line, with imports unchanged
+  ([compat README](../packages/compat-controls/README.md)) — and then work through this document
+  incrementally.
+
+Bumping to v5 first is the low-risk path for anything but a small app, and it is the only one that
+lets you stop partway.
+
+## What the ambient API is doing for you
+
+Three ambient bridges. Migrating means replacing each with the explicit thing it stands in for.
+(In v5 these are implemented by the compat package and documented in
+[`COMPAT-CONTROLS-DESIGN.md`](COMPAT-CONTROLS-DESIGN.md); in v4 they are the engine's own design.
+Either way the shape is the same.)
+
+| Bridge | `@react-typed-forms/core` | `@rx-controls/react` |
 |---|---|---|
-| **Reads** — a module-global `collectChange` that patched getters report to, so `c.value` subscribes whoever is rendering | `useComponentTracking()` (what the SWC plugin injects), `collectChanges`, `setChangeCollector` | A `ReadContext` (`rc`) threaded explicitly. `rc.getValue(c)` registers the dependency; the render pass closes with `rendered(…)` |
-| **Writes** — a module-global `currentWc` that every setter funnels into | `c.value = x`, `groupedChanges`, `runTransaction`, `runInWc` | `update((wc) => …)`, from `useReactive()` or `useControlContext()` |
-| **Context** — a singleton `ControlContext` so `newControl()` works at module scope | `getCompatContext()` | The `ControlContext` you already provide, read via `useControlContext()`, or `useControl()` which resolves it for you |
+| **Reads** — a module-global collector that patched getters report to, so `c.value` subscribes whoever is rendering | `useComponentTracking()` (what the SWC plugin injects), `collectChanges`, `setChangeCollector` | A `ReadContext` (`rc`) threaded explicitly. `rc.getValue(c)` registers the dependency; the render pass closes with `rendered(…)` |
+| **Writes** — a module-global write context that every setter funnels into | `c.value = x`, `groupedChanges`, `runTransaction` | `update((wc) => …)`, from `useReactive()` or `useControlContext()` |
+| **Context** — a singleton so `newControl()` works at module scope | v4: implicit, baked into the module. v5: `getCompatContext()` | The `ControlContext` you provide, read via `useControlContext()`, or `useControl()` which resolves it for you |
 
 The read bridge is the one that changes how you write components. The other two are mechanical.
 
@@ -34,7 +58,7 @@ This is the whole migration, per component. [`RENDER-BOUNDARY.md`](RENDER-BOUNDA
 authoritative reference; the short version:
 
 ```tsx
-// compat: ambient. The SWC plugin injects the tracking call, or you write it.
+// legacy: ambient. The SWC plugin injects the tracking call, or you write it.
 function CountView() {
   const stop = useComponentTracking();
   try {
@@ -69,10 +93,10 @@ Two rules that catch people:
 
 ## Step 2 — reads
 
-Every patched getter becomes a call on `rc`. The control handle itself is unchanged, so only the
+Every tracked getter becomes a call on `rc`. The control handle itself is unchanged, so only the
 read site moves.
 
-| Compat | `@rx-controls/react` |
+| `@react-typed-forms/core` | `@rx-controls/react` |
 |---|---|
 | `c.value` | `rc.getValue(c)` |
 | `c.initialValue` | `rc.getInitialValue(c)` |
@@ -84,16 +108,30 @@ read site moves.
 | `unsafeRestoreControl(v)` / `unwrapTrackedControl(v)` | `controlFromValue(v)` |
 | `getCurrentFields(c)` | `c.existingFields` |
 
-Untracked snapshots keep working and need no `rc`: `c.valueNow`, `c.initialValueNow`, `c.validNow`,
-`c.dirtyNow`, `c.touchedNow`, `c.disabledNow`, `c.errorNow`, `c.errorsNow`, `c.elementsNow`. Reach
-for these in event handlers and callbacks, where there is nothing to subscribe.
+### Untracked snapshots
+
+Reads that deliberately subscribe to nothing — event handlers, callbacks, anywhere there is no
+render pass to attach to. **This is the one read mapping that differs between majors**, because v4
+exposes only the `current` view and v5 added the `*Now` members alongside it.
+
+| v4 | v5 | `@rx-controls/react` |
+|---|---|---|
+| `c.current.value` | `c.valueNow` | `c.valueNow` |
+| `c.current.initialValue` | `c.initialValueNow` | `c.initialValueNow` |
+| `c.current.valid` / `.dirty` / `.touched` / `.disabled` | `c.validNow` / `c.dirtyNow` / `c.touchedNow` / `c.disabledNow` | same as v5 |
+| `c.current.error` / `.errors` | `c.errorNow` / `c.errorsNow` | `c.errorNow` / `c.errorsNow` |
+| `c.current.elements` | `c.elementsNow` | `c.elementsNow` |
+| `c.current.fields` | `c.existingFields` | `c.existingFields` |
+
+So a v5 host's untracked reads carry over verbatim, while a v4 host rewrites `c.current.x` → `c.xNow`
+as part of the port. `current` itself is **not** on the `@rx-controls/react` `Control`.
 
 ## Step 3 — writes
 
 Mutation moves off the control and onto a `WriteContext` inside `update`. Get `update` from
 `useReactive()` in a component, or `useControlContext().update` anywhere else.
 
-| Compat | `@rx-controls/react` |
+| `@react-typed-forms/core` | `@rx-controls/react` |
 |---|---|
 | `c.value = x` | `update((wc) => wc.setValue(c, x))` |
 | `c.setValue((v) => …)` | `update((wc) => wc.updateValue(c, (v) => …))` |
@@ -119,6 +157,10 @@ published, and the error rethrown). It does not nest — calling `update` from i
 a separate batch that flushes inline. See section I of
 [`CONTROL-SEMANTICS.md`](CONTROL-SEMANTICS.md).
 
+> **v4 only.** `runPendingChanges()` really flushes in v4 (v5 already made it a no-op). If you have
+> call sites that depend on a mid-transaction flush, unpick them before porting rather than during —
+> `@rx-controls/react` has no equivalent, and the batch boundary is the only flush point.
+
 ## Step 4 — hooks, components and helpers
 
 Most hooks keep their names and gain an `rc` where they need one.
@@ -130,7 +172,7 @@ Most hooks keep their names and gain an `rc` where they need one.
 
 **Renamed:**
 
-| Compat | `@rx-controls/react` |
+| `@react-typed-forms/core` | `@rx-controls/react` |
 |---|---|
 | `Finput` / `Fselect` / `Fcheckbox` | `ControlInput` / `ControlSelect` / `ControlCheckbox` |
 | `RenderControl` | `Reactive` — it takes no control, and never did |
@@ -161,19 +203,28 @@ Plan for these before starting; there is no drop-in.
 - **`createAsyncEffect` / `AsyncEffect`** — abort-and-supersede async effects. Not in
   `@rx-controls/react`: `CONTROL-SEMANTICS.md` section L′ specifies an `asyncEffect`, but it was never
   implemented. Compose `effect` with your own `AbortController` (`forms-core`'s jsonata evaluator is
-  a worked example), or keep these call sites on compat.
+  a worked example), or keep these call sites on v5.
 - **`notEmpty`** — a one-line validator helper. Inline it.
 - **`controlValues(…)`** — read the controls directly through `rc` in your compute function.
 - **`SubscriptionTracker`** — the explicit equivalent is a `ReadContext` plus a
   `SubscriptionReconciler` from `@rx-controls/core/internal`, which is not public API. If you are
   using this, say so before migrating.
+- **Per-control `equals` in `ControlSetup`** — equality is per-`ControlContext` in the new engine.
+  **v4 only:** v4 supports this and it fails *silently* if you miss it, so grep for `equals:` in a
+  `ControlSetup` before starting. v5 hosts already dealt with this on the way in.
 - **The metrics and freeze-count APIs** — `getControlMetrics`, `getHeavyControls`,
   `getControlById`, `printControlMetrics`, `printHeavyControls`, `ControlMetricsRegistry`,
-  `unsafeFreezeCountEdit`. Already no-op stubs in v5; simply delete the calls.
-- **Per-control `equals` in `ControlSetup`** — already dropped in v5, and still absent. Equality is
-  per-`ControlContext`.
+  `unsafeFreezeCountEdit`. **v4 only** in the sense that they genuinely work there; v5 already
+  reduced them to no-op stubs. Either way, delete the calls.
+- **The engine internals v4 re-exported** — `ControlImpl`, `ControlLogic`, `ArrayLogic`,
+  `ObjectLogic`, `ParentLink`, `FieldsProxy`, `InternalControl`, `Subscriptions`,
+  `SubscriptionList`, `resolveSetup`, `getInternalMeta`, `ensureInternalMeta`, `ControlFlags`.
+  **v4 only** — v5 already dropped them, and `@rx-controls/core/internal` exposes a deliberately
+  smaller set. If you reach for these, say what for before migrating.
 
 ## Going incrementally
+
+**Requires v5** — see [Which major you are on](#which-major-you-are-on). On v4, bump first.
 
 A migrated and an unmigrated component can share a control, and a write through either API updates
 both, so there is no big-bang cutover. While both are in the tree:
@@ -185,11 +236,12 @@ both, so there is no big-bang cutover. While both are in the tree:
   ambient half work.
 - `withAmbient(rc, fn)` and `ambientToRc` bridge in the other direction — they let ambient-style
   code run inside an explicit `rc`. Useful for a compute function you have not ported yet.
-- **This is the window where a half-ported read is dangerous.** Compat's prototype patch is still
+- **This is the window where a half-ported read is dangerous.** The prototype patch is still
   installed, so `c.value` inside a component that has moved to `useReactive()` still compiles and
   still returns the right value — it just subscribes nobody, because the ambient collector is not
   set during an explicit render pass. Convert a component's reads in the same commit as its
-  boundary. Once compat is gone the compiler catches these for you (see below), but not before.
+  boundary. Once the legacy package is gone the compiler catches these for you (see below), but not
+  before.
 
 Component-by-component in leaf-first order works well, since a leaf's reads are its own.
 
@@ -197,13 +249,14 @@ Component-by-component in leaf-first order works well, since a leaf's reads are 
 
 1. Remove the SWC plugin (`@astroapps/swc-controls-plugin`) from your build config.
 2. Drop `@react-typed-forms/core` from `package.json`; add `@rx-controls/react`.
-3. Keep the root `ControlContextProvider`, changing its value from `getCompatContext()` to a
-   `createControlContext()` of your own. One per app (or per SSR request — that is what makes
-   `uniqueId` sequences reproducible across render and hydration).
+3. Provide a `ControlContext` of your own: `<ControlContextProvider value={createControlContext()}>`
+   at the root. One per app (or per SSR request — that is what makes `uniqueId` sequences
+   reproducible across render and hydration). On v5 this is the provider you already had, with
+   `getCompatContext()` swapped for `createControlContext()`.
 4. Typecheck. Any leftover ambient read is now a compile error, because `@rx-controls/react`'s `Control`
-   declares no `.value`, `.touched`, `.dirty`, `.error` or `.elements` — those getters only ever
-   existed as compat's prototype patch, and dropping the dependency takes them with it. The
-   untracked `*Now` snapshots are the ones that legitimately survive.
+   declares no `.value`, `.touched`, `.dirty`, `.error`, `.elements` or `.current`. The untracked
+   `*Now` snapshots are the ones that legitimately survive.
 
-That last step is the reason to finish rather than sit half-migrated indefinitely: while compat is
-installed, a stale ambient read is silent, and the moment it is gone the compiler finds every one.
+That last step is the reason to finish rather than sit half-migrated indefinitely: while the legacy
+package is installed, a stale ambient read is silent, and the moment it is gone the compiler finds
+every one.

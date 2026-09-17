@@ -4,8 +4,8 @@
 > **Historical record.** This is the design as proposed, kept for its rationale. Many of the
 > API names below were changed before publishing — `useControls` → `useReactive`,
 > `getValueRx` → `getTrackedValue`, `computed` → `computeInto`, `noopReadContext` →
-> `untrackedRead` and ~30 more. `docs/CONTROLS-API-NAMING-REVIEW.md` has the full mapping and
-> the reasoning; the shipped surface is the source of truth.
+> `untrackedRead` and ~30 more. Read every name below as the proposal, not the API: the shipped
+> surface is the source of truth.
 
 ## Context
 

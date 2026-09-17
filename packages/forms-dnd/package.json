@@ -14,11 +14,11 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@rx-controls/react": "workspace:*",
-    "@rx-controls/core": "workspace:*",
-    "@rx-controls/forms": "workspace:*",
-    "@rx-controls/forms-core": "workspace:*",
-    "@rx-controls/forms-react-core": "workspace:*"
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/forms": "workspace:^",
+    "@rx-controls/forms-core": "workspace:^",
+    "@rx-controls/forms-react-core": "workspace:^"
   },
   "peerDependencies": {
     "@dnd-kit/core": "^6",

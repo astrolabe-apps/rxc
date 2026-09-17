@@ -19,11 +19,11 @@
     "@astroapps/datagrid": "^1.2.0",
     "@astroapps/searchstate": "^2.0.0",
     "@radix-ui/react-popover": "^1.1.6",
-    "@rx-controls/react": "workspace:*",
-    "@rx-controls/core": "workspace:*",
-    "@rx-controls/forms": "workspace:*",
-    "@rx-controls/forms-core": "workspace:*",
-    "@rx-controls/forms-react-core": "workspace:*"
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/forms": "workspace:^",
+    "@rx-controls/forms-core": "workspace:^",
+    "@rx-controls/forms-react-core": "workspace:^"
   },
   "peerDependencies": {
     "react": "^18 || ^19"

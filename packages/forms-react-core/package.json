@@ -16,9 +16,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rx-controls/core": "workspace:*",
-    "@rx-controls/react": "workspace:*",
-    "@rx-controls/forms-core": "workspace:*"
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-core": "workspace:^"
   },
   "peerDependencies": {
     "react": "^18 || ^19"

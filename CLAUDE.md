@@ -39,6 +39,17 @@ rush publish --publish --pack --include-all --release-folder <dir>
 node scripts/pack-compat.mjs --out <dir>   # the above + a compat overrides.json
 ```
 
+**Consume packed tarballs through `pnpm.overrides`, never plain dependencies**
+(in a Rush repo, `globalOverrides` in `common/config/rush/pnpm-config.json`).
+A packed tarball's manifest asks for its siblings by *version*, so listing the
+tarballs as ordinary `dependencies` makes the package manager resolve those
+siblings from the registry — you get the published build instead of your local
+one, or a 404 for a version that was never published. Overrides force every
+reference, direct and transitive, onto the tarballs. This also keeps exactly
+one `@rx-controls/core` in the process, which the compat prototype patch
+requires. `pack-compat.mjs` writes a ready-made `overrides.json` next to the
+tarballs for this reason.
+
 **Next 15 apps need `eslint: { ignoreDuringBuilds: true }`.** `rush build` used to
 exit 1 even though every project compiled: the two Next 15 apps (`rxc-legacy-demos`,
 `rxc-legacy-compare-demo`) lint during `next build`, ESLint isn't in their devDeps
@@ -104,12 +115,12 @@ All in `docs/`:
 - **CONTROL-SEMANTICS.md** — The authoritative reference for control tree behavior: value propagation, error handling, dirty/touched/disabled cascading, element lifecycle, null materialization. **These semantics are settled and must be preserved.**
 - **FORM-SEMANTICS.md** — The authoritative reference for form state behavior: FormStateNode lifecycle, visibility/disabled/readonly cascading, children resolution, data node syncing, script overrides. **These semantics are settled and must be preserved.**
 - **MIGRATION-FROM-LEGACY.md** — Rosetta stone for porting hosts and custom renderer sets from `@react-typed-forms/schemas` + `@react-typed-forms/schemas-html` onto `@rx-controls/forms` + `@rx-controls/forms-react-core`. Maps every legacy registration shape, hook, and slot to its new equivalent, calls out mechanical ports vs translations, and lists known gaps. The renderer engine itself has no design doc — the implementation in `packages/forms-react-core/src` and `packages/forms/src` is the source of truth.
+- **MIGRATION-FROM-LEGACY-CORE.md** — Rosetta stone for porting a host off `@react-typed-forms/core` (**either major**) onto `@rx-controls/react`: the three ambient bridges and their explicit replacements, read/write/rename mapping tables, what has no equivalent, and the incremental path. Version-agnostic by construction — v5 replicates the v4 surface, so every table reads the same on both; the handful of genuine v4/v5 differences (untracked snapshots `c.current.x` vs `c.xNow`, per-control `equals`, live vs stubbed metrics APIs, `runPendingChanges`, and the fact that **incremental migration requires v5**) are flagged inline.
 - **FUTURE-API-DESIGN.md** — The three-package architecture, ReadContext/WriteContext design, React-adapter rationale.
 - **RENDER-BOUNDARY.md** — The authoritative reference for how a component gets reactive reads: the `useReactive()` / `rendered(…)` contract, why reconcile must stay synchronous with the render body, `Rendered` branded-type enforcement, the dev-mode guard, behaviour under throw/suspend, and **writing controls from a render body** (the render-phase-update split and the deferred-notification queue). **Settled semantics.**
 - **COMPAT-CONTROLS-DESIGN.md** — Design for the legacy-compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`): three ambient bridges (collector → SubscriptionReconciler, ambient WriteContext, singleton ControlContext), `ControlImpl.prototype` patching, the `withAmbient(rc, fn)` rc-bridge trick, full legacy export inventory with dispositions, phasing A/B/C. Replicates the `@react-typed-forms/core@4.6.0` surface.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
-- **CONTROLS-API-NAMING-REVIEW.md** — Pre-publish naming pass over the full `@rx-controls/react` (+ re-exported `controls-core`) public surface: what each export does, a keep/consider/rename verdict, the compat-coupling analysis showing only four names cross into `packages/compat-controls` unaliased, and a framing section listing the five callers that open a `TrackingReadContext` (render, `computed`, `effect`, `useValidator`, `jsonataEval`) — useful on its own, since `ReadContext` is not render-specific and several of its doc comments imply otherwise. **Proposal — nothing implemented.**
 
 ## Constraints
 
@@ -149,11 +160,25 @@ FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
 
 Only three packages are published, gated by `shouldPublish` in `rush.json`:
 
-| Published | Not published |
-|---|---|
-| `@rx-controls/core` | `@rx-controls/forms-core` |
-| `@rx-controls/react` | `@rx-controls/forms-react-core` |
-| `@react-typed-forms/core` (the compat package) | `@rx-controls/forms`, `-motion`, `-dnd`, `-datagrid` |
+| Published | Version | Not published |
+|---|---|---|
+| `@rx-controls/core` | 1.0.0 | `@rx-controls/forms-core` |
+| `@rx-controls/react` | 1.0.0 | `@rx-controls/forms-react-core` |
+| `@react-typed-forms/core` (the compat package) | 5.0.0 | `@rx-controls/forms`, `-motion`, `-dnd`, `-datagrid` |
+
+**All three publish to `latest`** — 1.0.0 / 5.0.0 final, no prerelease tag. The
+compat package taking `latest` is safe despite v4 consumers: it is a major, so
+nothing upgrades into it without a range bump.
+
+**Intra-repo deps are `workspace:^`, never `workspace:*`.** pnpm rewrites the
+spec at pack time, and `*` becomes an **exact pin** — `@rx-controls/react@1.0.0`
+would hard-require `@rx-controls/core@1.0.0`. A later core patch then leaves a
+consumer on `^1.0.0` resolving 1.0.1 while react still pins 1.0.0: **two copies
+of the engine**, which silently breaks the compat prototype patch (it lands on
+one copy; the app's other controls use the other). `workspace:^` publishes
+`^1.0.0` and dedupes. `ensureConsistentVersions` is on, so this is repo-wide —
+the unpublished forms packages and the apps use `^` too, even though they are
+never packed.
 
 **The forms packages are deliberately unpublished and will stay that way for a
 while — the renderer layer may well be redesigned again.** The control engine
@@ -169,11 +194,12 @@ Flip the flags back when that settles. Nothing else reads them except
 narrows within it, and `--prerelease-name` is silently ignored when it is
 passed — so `shouldPublish` is the only gate. Versions are therefore set by
 hand, and `--tag` is mandatory (npm publishes to `latest` regardless of age,
-prerelease or not).
+prerelease or not) — so pass `--tag latest` explicitly rather than relying on
+the default.
 
-### No deprecations — `@rx-controls/*` is pre-release
+### No deprecations — break cleanly in a major
 
-`@rx-controls/core` and `@rx-controls/react` publish as 0.x, alongside the compat package as a `5.0.0-alpha` prerelease; the forms packages aren't published at all (see "Publishing posture" above). Either way the surface is still open — 0.x and `-alpha` both say so. Don't add `@deprecated` aliases, "legacy" re-exports, backwards-compat shims, or rename-with-pointer transitions when refactoring the public surface. Just change the name / shape and update every call site. The dedicated compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`) exists for legacy core consumers — that's the only place compat shims belong. (Legacy `@react-typed-forms/schemas` consumers either port directly via `docs/MIGRATION-FROM-LEGACY.md`, or keep the legacy renderer set and swap only the engine — see "Legacy schemas on the compat engine" below. A schemas compat *package* was considered and rejected.)
+`@rx-controls/core` and `@rx-controls/react` are at 1.0.0 and the compat package at 5.0.0; the forms packages aren't published at all (see "Publishing posture" above). **The pre-release justification for this rule is gone — it now rests on semver instead:** a rename is a breaking change, so it waits for the next major rather than shipping behind an alias. Don't add `@deprecated` aliases, "legacy" re-exports, backwards-compat shims, or rename-with-pointer transitions when refactoring the public surface. Just change the name / shape and update every call site. The dedicated compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`) exists for legacy core consumers — that's the only place compat shims belong. (Legacy `@react-typed-forms/schemas` consumers can keep the legacy renderer set and swap only the engine — see "Legacy schemas on the compat engine" below. A schemas compat *package* was considered and rejected.)
 
 ### Legacy semantics only — no extensions (current goal)
 

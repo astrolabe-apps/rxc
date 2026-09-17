@@ -11,7 +11,24 @@ imports, your `.value` reads, your `groupedChanges` calls, and the
 injected `useComponentTracking()` imports from this package, so no build
 config changes.)
 
-Design: [`docs/COMPAT-CONTROLS-DESIGN.md`](../../docs/COMPAT-CONTROLS-DESIGN.md).
+Design: [`docs/COMPAT-CONTROLS-DESIGN.md`](https://github.com/astrolabe-apps/rxc/blob/main/docs/COMPAT-CONTROLS-DESIGN.md).
+
+Moving *off* this package onto `@rx-controls/react` directly is a separate, optional step:
+[`docs/MIGRATION-FROM-LEGACY-CORE.md`](https://github.com/astrolabe-apps/rxc/blob/main/docs/MIGRATION-FROM-LEGACY-CORE.md). Nothing
+forces it — v5 is supported, and a half-migrated tree works.
+
+## Installing
+
+```bash
+npm install @react-typed-forms/core
+```
+
+v5 is the current `latest`. It is a major version, so nothing upgrades into it
+by accident — a v4 project stays on v4 until you bump the range yourself.
+
+The engine packages (`@rx-controls/core`, `@rx-controls/react`) are ordinary
+dependencies of this one, so they come along; you only need to depend on them
+directly if you are also writing code against the new API.
 
 ## The one required change
 
@@ -80,41 +97,7 @@ throwing frame is `useControlContext` and its caller is `useComponentTracking`;
 find that caller in the built chunk and it will be whichever component wraps
 the provider.
 
-## Trying it before it is published
-
-The three packages are not on the registry yet, so pack them from the rxc repo:
-
-```bash
-node scripts/pack-compat.mjs --out /some/vendor/dir
-```
-
-Packing itself is plain Rush — `rush publish --publish --pack --include-all
---release-folder <dir>` — and you can run that directly. The helper adds the
-`overrides.json` below, and scopes the preceding build to the publishable
-packages so it doesn't rebuild the four Next apps that never get packed.
-
-In the consuming project, add those to **`pnpm.overrides`** (or, in a Rush repo,
-`globalOverrides` in `common/config/rush/pnpm-config.json`):
-
-```json
-{
-  "pnpm": {
-    "overrides": {
-      "@rx-controls/core": "file:/some/vendor/dir/rxc-controls-core-0.1.0.tgz",
-      "@rx-controls/react": "file:/some/vendor/dir/rxc-controls-0.1.0.tgz",
-      "@react-typed-forms/core": "file:/some/vendor/dir/react-typed-forms-core-5.0.0.tgz"
-    }
-  }
-}
-```
-
-**Overrides, not plain dependencies.** Listing the tarballs as ordinary
-`dependencies` is not enough: the compat tarball's own manifest asks for
-`@rx-controls/core@0.1.0`, which the package manager will then try to fetch
-from the registry and fail with a 404. Overrides force every reference —
-direct and transitive — onto the same tarball.
-
-## Why three tarballs and not one bundle
+## Why three packages and not one bundle
 
 `src/patch.ts` mutates `ControlImpl.prototype` so that *every* control in the
 process carries both the legacy and the new surface. That only holds if there
@@ -124,8 +107,23 @@ If the engine were inlined into this package, a project that also imports
 `@rx-controls/*` directly would end up with two `ControlImpl` classes: the patch would
 land on one, the project's own controls would use the other, and the two would
 stop interoperating. Since interoperating is the whole point — it is what lets
-you migrate one component at a time — the packages stay separate and the
-overrides above keep them deduplicated.
+you migrate one component at a time — the packages stay separate, and keeping
+them to one copy is left to the package manager.
+
+Semver dedupe does that for you. If you depend on `@rx-controls/*` directly as
+well and the versions will not resolve together, `pnpm.overrides` (or
+`resolutions`) is the hammer:
+
+```json
+{
+  "pnpm": {
+    "overrides": {
+      "@rx-controls/core": "<the version this package depends on>",
+      "@rx-controls/react": "<the version this package depends on>"
+    }
+  }
+}
+```
 
 ## Incremental migration
 
@@ -158,9 +156,8 @@ A write through either API updates both.
 `shared` above is a compat `Control<V>`, and `MigratedView` hands it straight
 to `rc.getValue` — no cast, no wrapper. That is the supported direction: a
 compat `Control<V>` **is** a core `Control<V>` as far as TypeScript is
-concerned, so your existing controls flow into `@rx-controls/react` hooks,
-`rc`/`wc` methods and `@rx-controls/forms` unchanged. Migrate a component,
-keep the controls.
+concerned, so your existing controls flow into `@rx-controls/react` hooks
+and `rc`/`wc` methods unchanged. Migrate a component, keep the controls.
 
 The reverse — a control created by `@rx-controls/core`'s `newControl` used
 through the legacy API — needs `asLegacy`, because a core `Control<V>`
@@ -212,7 +209,7 @@ there was never a reason to reach for `asLegacy` there in the first place.
    (Next, Vite, webpack) and vitest are unaffected, and Node >= 22.12 can
    `require()` it via require-ESM support. Two things do break: Node 20, and
    jest running CJS — jest passes `node_modules` through untransformed, so it
-   needs `transformIgnorePatterns: ["/node_modules/(?!(@react-typed-forms|@rxc)/)"]`
+   needs `transformIgnorePatterns: ["/node_modules/(?!(@react-typed-forms|@rx-controls)/)"]`
    plus a babel-jest entry for `.js` (ts-jest will not do it; it only handles
    your own TS).
 7. **Metrics and freeze-count APIs are no-op stubs**:
@@ -221,7 +218,7 @@ there was never a reason to reach for `asLegacy` there in the first place.
    `unsafeFreezeCountEdit`. They exist so imports resolve, and do nothing.
 
 Timing fidelity is explicitly not a goal — transaction flush order and cleanup
-ticks follow `docs/CONTROL-SEMANTICS.md`, not v4's quirks.
+ticks follow [CONTROL-SEMANTICS.md](https://github.com/astrolabe-apps/rxc/blob/main/docs/CONTROL-SEMANTICS.md), not v4's quirks.
 
 ## The legacy schemas stack
 
@@ -244,7 +241,5 @@ Verified on a production app: six Next sites building and statically
 exporting, with one copy of the engine and `@astroapps/controls` absent from
 the install entirely.
 
-This is an alternative to porting onto `@rx-controls/forms`, not a replacement for it
-— it keeps a legacy host on the legacy renderer set while moving the engine
-underneath. See [`docs/MIGRATION-FROM-LEGACY.md`](../../docs/MIGRATION-FROM-LEGACY.md)
-for the full port.
+This keeps a legacy host on the legacy renderer set while moving the engine
+underneath — no renderer work, and nothing in your form definitions changes.

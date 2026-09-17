@@ -16,7 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rx-controls/core": "workspace:*",
+    "@rx-controls/core": "workspace:^",
     "jsonata": "^2.1.0"
   },
   "devDependencies": {

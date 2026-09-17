@@ -1,11 +1,34 @@
 {
   "name": "@rx-controls/react",
-  "version": "0.2.4",
+  "version": "1.0.0",
+  "description": "React bindings for @rx-controls/core — explicit reactive reads through a ReadContext, no compiler plugin, no globals.",
+  "keywords": [
+    "react",
+    "react-hooks",
+    "controls",
+    "reactive",
+    "forms",
+    "state-management",
+    "typescript",
+    "validation"
+  ],
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "homepage": "https://github.com/astrolabe-apps/rxc/tree/main/packages/react#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/react"
+  },
+  "bugs": {
+    "url": "https://github.com/astrolabe-apps/rxc/issues"
+  },
   "type": "module",
   "files": [
     "lib",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -21,7 +44,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@rx-controls/core": "workspace:*"
+    "@rx-controls/core": "workspace:^"
   },
   "peerDependencies": {
     "react": "^18 || ^19"
