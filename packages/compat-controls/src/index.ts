@@ -69,7 +69,13 @@ export {
 export { getCompatContext, setCompatContext } from "./context.js";
 
 // ── Patch + casts ────────────────────────────────────────────────────
-export { asCore, asLegacy, ensurePatched, toImpl } from "./patch.js";
+export {
+  asCore,
+  asLegacy,
+  ensurePatched,
+  getCompatPatchInfo,
+  toImpl,
+} from "./patch.js";
 
 // ── Creation ─────────────────────────────────────────────────────────
 export { controlGroup, convertSetup, newControl } from "./newControl.js";

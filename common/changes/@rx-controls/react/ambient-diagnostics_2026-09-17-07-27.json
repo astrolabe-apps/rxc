@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Add setWrongRcSeverity, which raises the captured-rc diagnostic from a warning to a throw so the stack reaches the offending read. Default is unchanged ('warn').",
+      "type": "minor",
+      "packageName": "@rx-controls/react"
+    }
+  ],
+  "packageName": "@rx-controls/react",
+  "email": "doolse@gmail.com"
+}

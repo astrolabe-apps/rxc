@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Add addEscapedReadHook (internal subpath): escaped-read hooks now compose instead of occupying a single slot, so a second installer no longer silently disables the first. setEscapedReadHook is unchanged and reimplemented over it.",
+      "type": "minor",
+      "packageName": "@rx-controls/core"
+    }
+  ],
+  "packageName": "@rx-controls/core",
+  "email": "doolse@gmail.com"
+}

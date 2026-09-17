@@ -110,6 +110,24 @@ stop interoperating. Since interoperating is the whole point — it is what lets
 you migrate one component at a time — the packages stay separate, and keeping
 them to one copy is left to the package manager.
 
+**This is detected at load.** Both shapes — two copies of this package sharing
+one engine, and two copies of the engine itself — are reported on `console.error`
+the moment the patch runs, with the fix in the message. `getCompatPatchInfo()`
+returns the same thing programmatically (`{ packageCopies, engineCopies,
+duplicatePackage, duplicateEngine }`) if you want to assert it in a smoke test
+or a startup health check.
+
+The check deliberately runs however the process is built, not only in
+development: the failure is silent staleness in production exactly as much as
+in dev, and a duplicate usually appears in the production dependency graph
+first. Strict ambient mode escalates it from a log to a throw.
+
+Nothing else will tell you. Each copy keeps its own module-global ambient
+collector, so a read reported by one copy never reaches a tracker installed by
+the other — components subscribe to nothing and go stale — and strict ambient
+mode is blind to it by construction, because from each copy's point of view
+the read was collected perfectly normally.
+
 Semver dedupe does that for you. If you depend on `@rx-controls/*` directly as
 well and the versions will not resolve together, `pnpm.overrides` (or
 `resolutions`) is the hammer:

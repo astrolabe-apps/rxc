@@ -310,14 +310,125 @@ const PATCH: Record<string, Accessor> = {
   },
 };
 
-// Guard against a second copy of this module re-patching (or a bundler
-// duplicating the package): a well-known symbol on the prototype.
+// ── Duplicate-install detection ──────────────────────────────────────
+//
+// Two copies of this package in one process is the cardinal hazard of the
+// compat design, and until now it failed *silently*: the second copy found
+// the prototype already patched, returned quietly, and then kept its own
+// module-global `collectChange`. Reads report to whichever copy owns the
+// prototype, while a component tracker from the other copy installs into a
+// global nothing reports to — so reads look collected, subscriptions get
+// created, and the component never re-renders. Every strict-ambient guard
+// stays silent on it, because from each copy's point of view nothing is
+// wrong.
+//
+// Two shapes, both detected here:
+//
+//   * **Two copies of this package, one engine.** Both patch the *same*
+//     `ControlImpl.prototype`, so the prototype marker below is present but
+//     owned by a different module instance.
+//   * **Two copies of `@rx-controls/core`.** Two distinct `ControlImpl`
+//     classes, each patched by its own compat copy. The prototype marker
+//     looks fine; the global registry sees two prototypes.
+//
+// Both are install problems, fixed with `pnpm.overrides` (or
+// `globalOverrides` in a Rush repo) — see README, "Why three packages and
+// not one bundle".
+
+/** Marks a patched prototype with the module instance that patched it. */
 const PATCHED = Symbol.for("@react-typed-forms/core/compat-patched");
+
+/** Cross-instance registry, so a second *engine* is visible too. */
+const REGISTRY = Symbol.for("@react-typed-forms/core/compat-instances");
+
+/** Fresh per module evaluation — two copies get two distinct tokens. */
+const MODULE_TOKEN: object = {};
+
+interface CompatRegistry {
+  /** One entry per loaded copy of this package. */
+  instances: object[];
+  /** One entry per distinct `ControlImpl.prototype` that was patched. */
+  protos: object[];
+}
+
+function registry(): CompatRegistry {
+  const g = globalThis as unknown as Record<symbol, CompatRegistry>;
+  return (g[REGISTRY] ??= { instances: [], protos: [] });
+}
+
+/**
+ * What this process actually loaded. `duplicatePackage` or `duplicateEngine`
+ * being true means reactivity is broken in ways nothing else will report —
+ * worth asserting in a smoke test or a startup health check.
+ */
+export function getCompatPatchInfo(): {
+  packageCopies: number;
+  engineCopies: number;
+  duplicatePackage: boolean;
+  duplicateEngine: boolean;
+} {
+  const reg = registry();
+  return {
+    packageCopies: reg.instances.length,
+    engineCopies: reg.protos.length,
+    duplicatePackage: reg.instances.length > 1,
+    duplicateEngine: reg.protos.length > 1,
+  };
+}
+
+const FIX =
+  `Force a single copy with pnpm.overrides (or globalOverrides in a Rush ` +
+  `repo) pinning "@react-typed-forms/core", "@rx-controls/core" and ` +
+  `"@rx-controls/react" to one version each, then reinstall. See the ` +
+  `@react-typed-forms/core README, "Why three packages and not one bundle".`;
+
+/**
+ * Reported however the process is built — not behind `IS_DEV`.
+ *
+ * This is one property read at module load, and the failure it names is
+ * silent staleness in production exactly as much as in development. A guard
+ * that only runs in dev cannot catch an install that only goes wrong in the
+ * production dependency graph, which is the usual way this happens.
+ */
+function reportDuplicate(message: string): void {
+  const full = `[@react-typed-forms/core] ${message}\n    ${FIX}`;
+  if (strictAmbient) throw new Error(full);
+  // eslint-disable-next-line no-console
+  console.error(full);
+}
 
 export function ensurePatched(): void {
   const proto = ControlImpl.prototype as any;
-  if (proto[PATCHED]) return;
-  proto[PATCHED] = true;
+  const reg = registry();
+  reg.instances.push(MODULE_TOKEN);
+  if (!reg.protos.includes(proto)) reg.protos.push(proto);
+
+  if (reg.protos.length > 1) {
+    reportDuplicate(
+      `More than one copy of the @rx-controls/core engine is loaded ` +
+        `(${reg.protos.length} distinct ControlImpl classes). The prototype ` +
+        `patch applies per class, so controls minted by one engine are ` +
+        `invisible to the other: reads register dependencies nothing will ` +
+        `notify, and components silently stop re-rendering.`,
+    );
+  }
+
+  const owner = proto[PATCHED];
+  if (owner !== undefined) {
+    if (owner !== MODULE_TOKEN) {
+      reportDuplicate(
+        `More than one copy of @react-typed-forms/core is loaded ` +
+          `(${reg.instances.length}) against a single engine. Each copy keeps ` +
+          `its own ambient change collector, so a read reported by one copy ` +
+          `never reaches a tracker installed by the other — components ` +
+          `subscribe to nothing and silently go stale. Strict ambient mode ` +
+          `cannot see this: from each copy's point of view the read was ` +
+          `collected normally.`,
+      );
+    }
+    return;
+  }
+  proto[PATCHED] = MODULE_TOKEN;
   for (const [name, acc] of Object.entries(PATCH)) {
     if (IS_DEV && name in proto) {
       // eslint-disable-next-line no-console
