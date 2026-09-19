@@ -151,7 +151,11 @@ FormStateNode design (see `docs/FORM-FUTURE-API-DESIGN.md`):
 ### Open for redesign
 
 - Public API naming and surface
-- **Rendering architecture (`@rx-controls/forms`) — genuinely unsettled, and may be redesigned again.** Phase 4 replaced the legacy `FormRenderer` interface, but that is not the end state. This is why the forms packages are unpublished (see "Publishing posture" below): don't treat the renderer surface as settled, and don't let anything outside this repo depend on it.
+- **The forms packages are a PROOF OF CONCEPT.** `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd` and `-datagrid` exist to prove the control engine can carry a full schema-driven renderer set and to find out what such a set actually needs. They are not a product, they are not feature-complete, and an absence in them is not a bug. Phase 4 replaced the legacy `FormRenderer` interface, but that is not the end state — the replacement is **Forms v2**, a clean-break reimplementation (`docs/FORMS-V2-GOALS.md`), not an incremental fix to what is here. Consequences that matter day to day:
+  - Don't file or fix "gaps" against the POC on their own merit. A missing render type, adornment or evaluator is **input to the v2 design**, not work to schedule — unless something in this repo needs it right now to make a point.
+  - Don't harden, optimise or API-polish the renderer surface for its own sake.
+  - This is why the forms packages are unpublished (see "Publishing posture" below): don't treat the renderer surface as settled, and don't let anything outside this repo depend on it.
+  - `@rx-controls/core` and `@rx-controls/react` are the opposite — published, 1.0.0, and the thing the POC exists to validate. They are not POC.
 - Component composition patterns (labels, layouts, adornments, visibility)
 - How form context flows to renderers (context vs props)
 - Editor-mode reactive proxies for `SchemaField`/`ControlDefinition` (how `trackedValue` adapts to explicit `ReadContext`)
@@ -632,6 +636,67 @@ One-time scan of all ~70 ServiceTas forms (`astrolabe/ServiceTas/ServiceTasAPI/N
   - `DataGrid`+`Pager`+`ColumnOptions` (MrsSummary, MrsDemeritsSummary ✅ display-only, RWVPRenewalSearch ✅ filter+paging via Phase B).
   - `Chart` (MrsSummary, MrsDemeritsSummary), `Map`/`MapPoints` (FireInitial, MastMooringPermitSummary) — viz widgets.
   - Long tail: `CopyableData`, `Tooltip`, `Spotlight`, `HtmlRenderer`, `displayData.Custom` (RWVPVerificationWizard already stubs some).
+
+#### Format-usage survey — adornments, expressions, dynamic properties (reference)
+
+Second pass over the same corpus, widened to every part of the format and to the two
+astrolabe demo apps. Read it as a description of **what the legacy corpus uses**, which is
+input to the Forms v2 design — not as a checklist against the POC renderer set: **80 forms** (68 ServiceTas + 8 `astrolabe-common/forms-app` + 4
+`Astrolabe.TestTemplate/.../formServer/src/forms`). Counts are `uses / forms`.
+
+**Adornments** (6 in `ControlAdornmentType`):
+
+| type | uses / forms | rxc |
+|---|---|---|
+| `HelpText` | 69 / 17 | ✅ |
+| `Accordion` | 19 / 7 | ✅ |
+| `Tooltip` | 4 / 2 | ❌ **used, not implemented** (only real form: `MastRegistrationsSummary`; the other is the `AllControls` demo) |
+| `Icon` | 2 / 1 | ✅ |
+| `SetField` | **0** | ✅ implemented, unused |
+| `Optional` | **0** | ✅ implemented, unused |
+
+Plus two that are host extensions rather than enum members: `ColumnOptions` 26 / 7
+(datagrid, ✅) and `Spotlight` 2 / 1 (host-provided).
+
+**Expressions** (7 in `ExpressionType`):
+
+| type | uses / forms | rxc |
+|---|---|---|
+| `Jsonata` | 373 / 40 (+45 / 9 as a validator) | ✅ |
+| `DataMatch` — serialized `"FieldValue"` | 270 / 34 | ✅ |
+| `NotEmpty` | 122 / 23 | ✅ |
+| `Data` | 72 / 30 | ✅ |
+| `UserMatch` | 2 / 1 | ❌ **used, not implemented** (`forms-app/AdminItemDashboard`) |
+| `UUID` | **0** | ✅ implemented, unused |
+| `Not` | **0** | ✅ implemented (via `createEvalExpr` unwrapping), unused |
+
+**Dynamic properties** (11 in `DynamicPropertyType`, all handled by `buildLegacyScripts`):
+`Visible` 599 / 43 · `Display` 67 / 23 · `ActionData` 61 / 24 · `Disabled` 46 / 9 ·
+`AllowedOptions` 42 / 14 · `LayoutStyle` 15 / 6 · `Label` 14 / 10 · `GridColumns` 2 / 2.
+**Unused: `DefaultValue`, `Readonly`, `Style`.**
+
+**Validators** (3 in `ValidatorType`, all implemented, none unused): `Jsonata` 45 / 9 ·
+`Date` 11 / 6 · `Length` 3 / 3.
+
+Two conclusions worth keeping:
+
+1. **The format is almost fully exercised.** Exactly seven members across the four enums go
+   unused (`SetField`, `Optional`, `UUID`, `Not`, `DefaultValue`, `Readonly`, `Style`) — and
+   all seven are already implemented, so dropping them saves nothing. There is no meaningful
+   surface reduction available from usage data; a v2 loader that aims at the legacy corpus has
+   to carry essentially the whole format.
+2. **Jsonata is load-bearing, not a corner.** 418 uses across 40 of 80 forms — more than half
+   of all expression uses, and `Visible` alone accounts for 599 dynamic properties in 43
+   forms. Any plan that treats the expression engine as optional for the JSON path is wrong.
+
+`Tooltip` and `UserMatch` are used in real forms and neither exists in the rxc renderer set.
+**Not bugs** — the forms packages are a POC (see "Open for redesign"), and an absence in them
+is data about what a real implementation must cover, not work to schedule. Recorded here so
+the v2 loader's scope is decided from usage rather than from what the POC happens to have.
+
+Re-run: `scripts/` has no runner for this — the scan was ad-hoc (walk every `ControlDefinition`
+counting `adornments[].type`, `dynamic[].type` / `.expr.type`, `validators[].type`,
+`renderOptions.type`). Cheap to redo if the corpus moves.
 
 ### TODO — platform-agnostic renderer hooks (React Native readiness)
 
