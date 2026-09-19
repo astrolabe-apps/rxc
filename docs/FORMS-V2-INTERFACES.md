@@ -99,6 +99,9 @@ Presence is **not** on `FieldState`: by the time an implementation runs, presenc
 `rendered` — the boundary handled the other two. Design mode showing a hidden field is
 `useDesignMode()`, not a value that is constant in production.
 
+`focused` and `filled` are not here either, though several UI libraries publish them alongside
+the rest. They are the frame's business, not the form's — see `FrameState` in §7.
+
 ```ts
 interface FormNode extends FormField<unknown> {
   readonly definition: ControlDefinition;
@@ -266,7 +269,7 @@ MUI's chrome without importing MUI.
 
 ```ts
 function useFieldShell(): ComponentType<FieldShellProps>;   // label + required + help + error
-function useInputFrame(): ComponentType<InputFrameProps>;   // the bordered box, start/end slots
+function useInputFrame(): ComponentType<InputFrameProps>;   // the editable surface, start/end slots
 ```
 
 A widget that draws its own surface — stars, a map, a signature pad — uses the shell and skips
@@ -275,6 +278,129 @@ the frame.
 A primitive earns its place only when **both paths need it and it cannot be expressed as a
 renderer**. That admits the shell, the frame, and one layout box; it excludes `Text`,
 `Pressable` and `View`, since goal 4 scopes portability to the built-in set.
+
+### Survey: eight UI libraries
+
+Shapes below are not invented. Eight libraries, picked to span composition styles rather than
+popularity, scanned for the same four questions. This is the evidence the prop shapes are
+derived from, and it is what a third implementation would otherwise have had to discover
+([FORMS-V2-GOALS.md](./FORMS-V2-GOALS.md) — *a third implementation is the only real test*).
+
+| | shell | frame | how the control gets in | border on |
+|---|---|---|---|---|
+| **MUI** | `FormControl` + `InputLabel` + `FormHelperText`, state via context | `OutlinedInput`, `startAdornment`/`endAdornment` | renders its own input; `inputComponent` swaps it | the frame |
+| **Mantine** | `Input.Wrapper` (label/description/error, `inputWrapperOrder`) — wired by **`id` only, no context** | `Input`, `leftSection`/`rightSection` (absolute + input padding) | polymorphic `component="button" \| "select"` + children | the frame |
+| **Chakra v3** | `Field.Root` + `.Label` + `.RequiredIndicator` + `.HelperText` + `.ErrorText`, context | `InputGroup` `startElement`/`endElement`; `InputAddon` for outside | children | the input |
+| **Base UI** | `Field.Root` + `.Label` + `.Description` + `.Error`, context + data-attrs | — | **`render={(props, state) => …}`** on every part | — |
+| **shadcn** | `Field` + `FieldLabel` + `FieldDescription` + `FieldError`, `data-invalid` | `InputGroup` + `InputGroupAddon align=…` | children | the group |
+| **Ant** | `Form.Item` (label/help/validateStatus/extra/tooltip) — **clones `value`/`onChange` into its single child** | `Input` `prefix`/`suffix` (inside) vs `addonBefore`/`addonAfter` (outside) | renders its own input | both, separately |
+| **Bootstrap** | none — markup convention (`.form-label`, `.invalid-feedback`) | `.input-group` + `.input-group-text` | children | **`.form-control`**; addons are siblings |
+| **RN Paper** | none — the label lives *inside* `TextInput`; `HelperText` is a sibling | `TextInput` `left`/`right` | renders its own; v6 moves to `startAccessory`/`endAccessory` **render fns** | the frame |
+
+Six things it settles:
+
+1. **Both primitives are real.** Every library has a shell, seven of eight have a frame.
+   Neither is our invention, which is the strongest available evidence for the "earns its
+   place" test above.
+2. **There are two slot kinds, and only one is a slot.** *Inside the border* (MUI adornment,
+   Mantine section, Chakra `startElement`, Ant `prefix`, shadcn addon, Paper `left`) versus
+   *outside* (Bootstrap `.input-group-text`, Chakra `InputAddon`, Ant `addonBefore`). Ant
+   ships both and names them apart; Bootstrap has only the second, MUI only the first.
+   `start`/`end` are defined as **inside**, and an outside addon is `<Row>` + the frame — it
+   genuinely is two adjacent boxes, which the layout box already expresses.
+3. **The control slot is a render prop, not children.** Four of the eight frames render their
+   own input and cannot host an arbitrary child at all. The two newest designs in the set
+   arrived at the same answer from opposite ends: Base UI puts `render(props, state)` on every
+   part, and Paper v6 migrates `left`/`right` from elements to render functions receiving
+   `{ style, error, disabled, multiline }`. The frame hands the control what it must spread —
+   class, ref, focus handlers — and the control decides what to draw.
+4. **Frame state is not field state.** Base UI's field state is
+   `{ disabled, touched, dirty, valid, filled, focused }`; §3's `FieldState` has no `focused`
+   or `filled`, deliberately — that type is form semantics. But MUI's floating label,
+   Mantine's and Paper's all need both, and a widget hosting its own focus has no other way to
+   report it upward. They live in the frame's render-prop state, which is what Base UI and
+   Paper v6 both do.
+5. **The label is a sibling everywhere except MUI**, where `OutlinedInput` needs the label
+   text a second time to cut the notch in its own border. One outlier does not bend the
+   contract: a shell and a frame always come from the same implementation, so `forms-mui`
+   passes the label frame-ward through a **private context** of its own. The contract only has
+   to guarantee they compose in the same tree.
+6. **An implementation builds its own built-ins on its own primitives.** `forms-mui`'s
+   textfield is `MuiFieldShell` + `MuiInputFrame`, not `<TextField>` — even though MUI
+   documents `TextField` as exactly that composition. Otherwise built-ins take one visual path
+   and third parties take another, and the drift lands entirely on the renderers the
+   primitives exist to serve. Same rule for `forms-html`, or its frame rots.
+
+### The shapes
+
+```ts
+interface FieldShellProps {
+  id: string;
+  label?: ReactNode;
+  labelAs?: "label" | "legend";           // an option group is fieldset/legend, not label/for
+  orientation?: "vertical" | "horizontal";
+  required?: boolean;
+  helpText?: ReactNode;
+  error?: ReactNode;                      // resolved by the boundary, never by the impl
+  children: ReactNode;
+  className?: ClassValue;
+  labelClassName?: ClassValue;
+}
+
+interface InputFrameProps {
+  render: (p: ControlSlotProps, s: FrameState) => ReactNode;
+  start?: ReactNode | ((s: FrameState) => ReactNode);
+  end?: ReactNode | ((s: FrameState) => ReactNode);
+  invalid?: boolean;
+  disabled?: boolean;
+  readonly?: boolean;
+  multiline?: boolean;                    // alignment; Paper v6 passes exactly this
+  className?: ClassValue;
+}
+
+interface ControlSlotProps {
+  id: string;
+  ref: Ref<any>;
+  className?: string;
+  onFocus?: FocusEventHandler;
+  onBlur?: FocusEventHandler;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+}
+
+interface FrameState {
+  focused: boolean; filled: boolean;
+  invalid: boolean; disabled: boolean; readonly: boolean; multiline: boolean;
+}
+```
+
+`labelAs` and `orientation` are on the shell because Chakra and shadcn each ship a separate
+fieldset/legend part and an `orientation` prop, and the POC's `RadioRenderer` already needs the
+first.
+
+**The eight collapse to three families**, which is the practical output: *children-hosting /
+class-driven* (Bootstrap, shadcn, Chakra), *self-rendering / prop-configured* (MUI, Ant, Paper,
+Mantine), and *headless + render props* (Base UI) — the third being the generalisation of the
+other two. So the primitives are modelled on Base UI's shape and validated against **MUI** (the
+hardest of family 2 — the notch) and **Bootstrap** (the hardest of family 1 — the border is on
+the input, so its frame degrades to addons outside the border, which `FORMS-V2-GOALS.md` already
+sanctions as normal). One representative per family is enough; a fourth library adds nothing.
+
+### The HTML default
+
+A move, not a rename. Today the border and every state variant sit **on the `<input>`**
+(`defaultTheme.ts`'s single `INPUT` string, with `aria-invalid:` / `disabled:` / `read-only:`
+variants) so a host setting `inputClass: "form-control"` owns the whole look. With a frame:
+border, padding and background migrate to the box; the input keeps typography and sizing; the
+state variants become data attributes on the box, since `aria-invalid` is now on an element
+inside it; the focus ring moves to the frame via `has-[:focus-visible]`, or focus outlines the
+input while the border outlines the box. `inputClass` splits into `inputFrame` + `inputClass`.
+
+Paid once, and it is what puts `startIcon` **inside** the border — which legacy's `controlStart`
+could never do, being a flat sibling of the input in `DefaultLayout`.
+
+The box renders unconditionally, even with no slots. Two code paths means two appearances that
+drift.
 
 ```ts
 interface StackProps {
@@ -291,6 +417,13 @@ interface StackProps {
 Its neutral props are **exactly what `FlexRenderOptions` carries in JSON** — bounded by the
 format rather than by taste, so it cannot drift into a UI kit and the translator always has
 somewhere to put what it reads.
+
+**From JSON:** `Icon` adornments at `AdornmentPlacement.ControlStart` / `ControlEnd` become
+`start` / `end` on the frame — the placement enum survives translation as a slot choice and
+nothing else. `LabelStart` / `LabelEnd` are the shell's business. Legacy put all four in one
+flat fragment beside the input (`layoutKeyForPlacement` → `controlStart`/`controlEnd` in
+`DefaultLayout`), so a JSON form that read as "icon next to the field" will now read as "icon
+inside the field": intended, and the one visible difference this section causes.
 
 ## 8. Framework components
 
@@ -408,3 +541,7 @@ implementation registry underneath.
   is the likeliest to force a change here.
 - **Whether `forms-html` and `forms-native` share renderer source** — decidable when the second
   package exists, and it changes nothing above.
+- **The §7 primitives are derived from published APIs, not from a build.** The survey says what
+  each library's composition is; it does not prove ours expresses them. The two shapes most
+  likely to move are the MUI shell→frame private channel (the notch) and whether `filled` can
+  be reported without the frame owning the value.
