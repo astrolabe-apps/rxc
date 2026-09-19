@@ -81,13 +81,25 @@ Nothing below is settled. In rough order of how much else depends on it:
    be expressed as a renderer** — which admits `FieldShell`, `InputFrame` and a layout box,
    and excludes `Text` / `Pressable` / `View` (goal 4 scopes portability to the built-in set).
 
-   `Layout` does **not** survive. With the renderer owning the field, the framework wraps only
-   presence and design-mode chrome, so `Layout` becomes `forms-html`'s own `FieldShell` under
-   its current name — that package's API, versioned with it. The compare app already replaces
-   `HtmlLayout` wholesale, which is evidence it was never framework-shaped.
+   **The primitives now have prop shapes**, derived from a survey of eight UI libraries (MUI,
+   Mantine, Chakra v3, Base UI, shadcn, Ant, Bootstrap, RN Paper —
+   [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md) §7). The test above survives contact:
+   all eight have a shell and seven have a frame, so neither is our invention. Two things the
+   survey changed — the control reaches the frame through a **render prop**, not children
+   (four of the eight frames render their own input and accept no arbitrary child), and
+   `focused`/`filled` are frame state rather than field state. Derived from published APIs,
+   not from a build; what stayed open is listed there.
+
+   `Layout` does **not** survive, and not as one thing either. Its job splits: the
+   label/help/error chrome becomes `FieldShell`, and the editable surface becomes
+   `InputFrame` — a piece legacy never had, because the border sat on the `<input>` and
+   `controlStart`/`controlEnd` were flat siblings beside it, so nothing owned the box. Both
+   land in `forms-html` as that package's API, versioned with it. The compare app already
+   replaces `HtmlLayout` wholesale, which is evidence it was never framework-shaped.
 
    `required` must be a flag, never baked into the label string: MUI renders its own asterisk
-   from `<FormControl required>`, so a pre-asterisked label doubles up.
+   from `<FormControl required>`, so a pre-asterisked label doubles up. Chakra and Mantine
+   each ship a dedicated required indicator too — it is the universal shape, not an MUI quirk.
 
    **Only tested against a data renderer.** The contract above was checked end to end against
    a custom field widget. A group renderer (children resolution), a collection renderer (array
@@ -197,7 +209,8 @@ places the platform seam can sit, and legacy tried the other one:
   MUI implementation cannot be expressed at all.
 - **Semantic.** Abstract `FieldShell`, `InputFrame`, a layout box — compositions, not
   elements. Every implementation writes its own renderers; MUI, RN Paper and a host design
-  system can all be expressed.
+  system can all be expressed. The survey in `FORMS-V2-INTERFACES.md` §7 checks that claim
+  against eight of them, and finds the same two compositions in all of them.
 
 **Goal 5 forces semantic, and the price is that "write each renderer once" is gone.** Worth
 stating plainly, because it is the largest cost any goal in this document imposes.
@@ -206,6 +219,12 @@ It also makes a **third implementation the only real test of the contract.** Bui
 `forms-html` and `forms-native` alone produces something accidentally shaped like "DOM, plus
 RN"; sketching `forms-mui` early is what finds the leaks. The walkthrough is a first pass at
 exactly that.
+
+Reading eight libraries' published APIs is the cheap half of it and is done (§7). It already
+found two leaks — a frame that takes `children` cannot express half the field, and MUI needs
+the label text a second time to cut the notch in its own border. It is not a substitute for
+the real thing: nothing has been compiled against a design system yet, and the two shapes most
+likely to move are named there.
 
 Legacy reached the same conclusion from the other direction: `HtmlComponents` grew unwieldy
 and is now marked *"@deprecated: Just use normal html / react-native tags"*
@@ -450,6 +469,12 @@ here.
 - **`FormProp<T> = T | ((rc, ctx) => T) | Control<T>`.** Read-only: the value binding stays a
   `FormField`. Resolve with one helper in the *consuming* renderer's tracking window. Check
   `Control` first, then `typeof === "function"`; `FormProp<SomeFn>` is unsupported.
+- **Two structural primitives, plus a layout box.** `FieldShell` (label / required / help /
+  error) and `InputFrame` (the editable surface, with its slots *inside* the border), both
+  resolved from the active implementation. The control reaches the frame through a render
+  prop, never children. An implementation builds its own built-ins on its own primitives, or
+  they become a second-class path that drifts away from what it ships. Shapes, and the
+  eight-library survey they come from: interfaces §7.
 - **Parent-needs-child-state is not element introspection.** "Is anything below me invalid" →
   the control tree, which already bubbles. "Are all my children hidden" → children register
   into a parent-provided control on mount. Reading a child's `FormProp` from the parent is an
