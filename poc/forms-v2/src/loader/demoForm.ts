@@ -44,6 +44,7 @@ export const demoControls: ControlDefinition[] = [
     required: true,
     styleClass: "demo-accent",
     labelClass: "demo-label",
+    labelTextClass: "demo-label-text",
     layoutClass: "@ demo-shell",
   },
   { type: "Data", field: "hasPets" },

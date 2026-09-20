@@ -32,6 +32,7 @@ import {
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
+  combineClass,
 } from "../framework/index.js";
 import { Contents, ElementsList, FadeVisibility, glyphFor } from "./shared.js";
 
@@ -44,7 +45,12 @@ function HtmlFieldShell(p: FieldShellProps) {
   const Label = legend ? "legend" : "label";
   const hasLabel = p.label !== undefined && p.label !== null;
   const labelText = (
-    <span className={mergeClass("ff-label", p.labelClassName)}>
+    <span
+      className={mergeClass(
+        "ff-label",
+        combineClass(p.labelClassName, p.labelTextClassName),
+      )}
+    >
       {p.label}
       {p.required && <span className="ff-required">*</span>}
     </span>
@@ -68,7 +74,10 @@ function HtmlFieldShell(p: FieldShellProps) {
         <>
           {hasLabel && (
             <Label
-              className={mergeClass("ff-label", p.labelClassName)}
+              className={mergeClass(
+                "ff-label",
+                combineClass(p.labelClassName, p.labelTextClassName),
+              )}
               {...(legend ? {} : { htmlFor: p.id })}
             >
               {p.label}
@@ -158,6 +167,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Frame
         id={p.id}
@@ -211,6 +221,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <input
         id={p.id}
@@ -364,6 +375,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Frame
         id={p.id}

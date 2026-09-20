@@ -42,6 +42,7 @@ import {
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
+  combineClass,
 } from "../framework/index.js";
 import {
   Contents,
@@ -62,7 +63,12 @@ function MantineFieldShell(p: FieldShellProps) {
       required={p.required}
       labelElement={p.labelAs === "legend" ? "div" : "label"}
       className={mergeClass(undefined, p.className)}
-      labelProps={{ className: mergeClass(undefined, p.labelClassName) }}
+      labelProps={{
+        className: mergeClass(
+          undefined,
+          combineClass(p.labelClassName, p.labelTextClassName),
+        ),
+      }}
       mb="sm"
     >
       {p.labelPosition === "after" ? (
@@ -151,6 +157,7 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Frame
         id={p.id}
@@ -357,6 +364,7 @@ function MantineSelect(p: SelectRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Select
         id={p.id}

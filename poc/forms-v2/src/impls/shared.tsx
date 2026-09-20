@@ -102,6 +102,7 @@ export function ElementsList(p: CollectionRenderProps<unknown>) {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <div className="ff-elements">
         {p.elements.length ? p.elements.map((e) => e.node) : p.empty}

@@ -837,6 +837,32 @@ Numbered; each is cited at the matching line of code.
     the label container. It is not one of the decided four, so it stays
     unread — a fifth slot is a decision, not a translation.
 
+49. **`labelTextClassName` is the fifth slot, and it was already in the
+    contract in disguise.** The format has both `styleClass` and `textClass`
+    on a control for one reason: on React Native text styles do not cascade
+    from a `View`, so the container's class and the text's class have to be
+    two props. v2 kept that pair as `className` / `textClassName` — the
+    View/Text split was in the contract from the start — and the label was
+    the one place it had collapsed to a single `labelClassName`. The corpus
+    felt it: `labelTextClass` 248 uses against `labelClass` 39, because on
+    RN the text one is the only one that styles the words.
+
+    So `FieldProps`, `FieldRenderProps` and `FieldShellProps` gain
+    `labelTextClassName`, defined the way the rest of the contract is: *the
+    label's text; an implementation whose label is a single text element may
+    apply it together with `labelClassName`.* That sentence is what keeps web
+    free — in all four implementations the label is one element, so each
+    shell merges the two with `combineClass` and adds no markup. Only
+    `forms-native` will ever separate them, exactly as it must for
+    `textClassName`. The loader maps `labelClass` and `labelTextClass`
+    one-to-one. Verified in the DOM: `label.ff-label.demo-label.demo-label-text`.
+
+    4,102 → **3,854**. The alternative — one slot, with `forms-native`
+    partitioning the class string into text utilities and the rest — would
+    have to classify arbitrary class names, and the corpus styles labels with
+    component classes like `title1` that carry text styling under no
+    recognisable prefix. Two slots is honest about what the platform needs.
+
 ## Things the POC deliberately does not answer
 
 Whether Base UI (family 3, the shape the primitives are modelled on) confirms

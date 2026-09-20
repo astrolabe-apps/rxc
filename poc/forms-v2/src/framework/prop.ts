@@ -31,6 +31,22 @@ export function mergeClass(
   return [own, given].filter(Boolean).join(" ") || undefined;
 }
 
+/**
+ * Two slots landing on one element — a single-element label taking both
+ * `labelClassName` and `labelTextClassName`. A `replace` on the right wins;
+ * one on the left keeps replacing and appends the right.
+ */
+export function combineClass(
+  a: ClassValue | undefined,
+  b: ClassValue | undefined,
+): ClassValue | undefined {
+  if (b === undefined) return a;
+  if (a === undefined) return b;
+  if (typeof b === "object") return b;
+  if (typeof a === "object") return { replace: `${a.replace} ${b}` };
+  return `${a} ${b}`;
+}
+
 const order: Record<string, number> = { hidden: 0, silent: 1, rendered: 2 };
 
 /** Narrow, never widen: a child cannot be more visible than its parent. */

@@ -396,6 +396,7 @@ function buildProps(
     textClassName: toClassValue(def.textClass),
     shellClassName: toClassValue(def.layoutClass),
     labelClassName: toClassValue(def.labelClass),
+    labelTextClassName: toClassValue(def.labelTextClass),
   };
 }
 

@@ -59,6 +59,7 @@ const contractKeys = new Set([
   "endIcon",
   "className",
   "labelClassName",
+  "labelTextClassName",
   "shellClassName",
   "textClassName",
 ]);
@@ -196,6 +197,7 @@ export function fieldRenderer<T, P extends object = {}>(
       endIcon: getProp(rc, props.endIcon),
       className: getProp(rc, props.className),
       labelClassName: getProp(rc, props.labelClassName),
+      labelTextClassName: getProp(rc, props.labelTextClassName),
       shellClassName: getProp(rc, props.shellClassName),
       textClassName: getProp(rc, props.textClassName),
     };
@@ -418,6 +420,7 @@ export function collectionRenderer<T, P extends object = {}>(
       endIcon: getProp(rc, props.endIcon),
       className: getProp(rc, props.className),
       labelClassName: getProp(rc, props.labelClassName),
+      labelTextClassName: getProp(rc, props.labelTextClassName),
       shellClassName: getProp(rc, props.shellClassName),
       textClassName: getProp(rc, props.textClassName),
       elements,

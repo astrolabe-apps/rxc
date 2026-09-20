@@ -38,6 +38,7 @@ function StarsImpl(
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <div className="stars" onBlur={ctl.onBlur}>
         {Array.from({ length: max }, (_, i) => i + 1).map((n) => (

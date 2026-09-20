@@ -58,6 +58,7 @@ import {
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
+  combineClass,
 } from "../framework/index.js";
 import {
   Contents,
@@ -108,7 +109,10 @@ function MuiFieldShell(p: FieldShellProps) {
               (framed && !legend ? (
                 <InputLabel
                   htmlFor={p.id}
-                  className={mergeClass(undefined, p.labelClassName)}
+                  className={mergeClass(
+                    undefined,
+                    combineClass(p.labelClassName, p.labelTextClassName),
+                  )}
                 >
                   {p.label}
                 </InputLabel>
@@ -116,7 +120,10 @@ function MuiFieldShell(p: FieldShellProps) {
                 <FormLabel
                   component={legend ? "legend" : "label"}
                   htmlFor={legend ? undefined : p.id}
-                  className={mergeClass(undefined, p.labelClassName)}
+                  className={mergeClass(
+                    undefined,
+                    combineClass(p.labelClassName, p.labelTextClassName),
+                  )}
                 >
                   {p.label}
                 </FormLabel>
@@ -231,6 +238,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Frame
         id={p.id}
@@ -433,6 +441,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       {/* MUI's Select draws its own outlined input, so it takes the label
           text directly rather than going through the frame's context. */}

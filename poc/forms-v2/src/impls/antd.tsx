@@ -203,6 +203,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Frame
         id={p.id}
@@ -406,6 +407,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <Select
         id={p.id}

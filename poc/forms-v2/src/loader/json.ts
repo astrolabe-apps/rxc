@@ -66,6 +66,7 @@ export interface ControlDefinition {
   textClass?: string | null;
   layoutClass?: string | null;
   labelClass?: string | null;
+  labelTextClass?: string | null;
   renderOptions?: { type: string; [k: string]: unknown };
   /** Display controls only. */
   displayData?: {

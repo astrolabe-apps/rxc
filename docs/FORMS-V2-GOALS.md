@@ -154,12 +154,12 @@ Nothing below is settled. In rough order of how much else depends on it:
    app's forms *and* the schemas it renders them against (evaluating its generated
    `schemas.ts`) into `corpus/`, and `scripts/burndown.ts` runs the loader over it, reporting
    by kind and shape, including every property on a definition that nothing read. 80 forms,
-   3,972 controls, 2 clean, **4,102 warnings** — every one of them loader work. 2,294 are
-   unread properties, led by `hideTitle` on groups and controls (1,371), `labelTextClass`
-   (248) and `sampleText` (123); 442 are action ids no handler claimed (the count of buttons a
+   3,972 controls, 2 clean, **3,854 warnings** — every one of them loader work. 2,046 are
+   unread properties, led by `hideTitle` on groups and controls (1,371) and `sampleText`
+   (123); 442 are action ids no handler claimed (the count of buttons a
    host has to wire); the rest is unhandled shapes, led by `DisplayOnly` 372, `Inline` 198,
    `a/b` field-path refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now: a
-   property the loader never looked at used to cost nothing. README findings 44–48.
+   property the loader never looked at used to cost nothing. README findings 44–49.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the
@@ -225,10 +225,14 @@ Nothing below is settled. In rough order of how much else depends on it:
    class for the slot — so the contract ships a helper rather than a pre-merged string.
    Non-class implementations (MUI's `sx`) map or ignore these, as with `className` generally.
 
-   **Built:** the loader maps all four, `"@ "` becomes `{ replace }`, and both modes are
-   verified in the DOM (interfaces §2, README finding 48). Legacy has a fifth, `labelTextClass`
-   — the label's *text* as distinct from its container — at 248 uses in 30 forms; it is not
-   mapped, and whether it is a fifth slot or folds into `labelClass` is undecided.
+   **Built, and there are five.** Legacy's `labelTextClass` — the label's *text* as distinct
+   from its container, 248 uses in 30 forms — exists because on React Native text styles do
+   not cascade from a `View`, which is the same reason the format has both `styleClass` and
+   `textClass` on a control. The contract already carried that split for the control
+   (`className` / `textClassName`); the label now has it too (`labelClassName` /
+   `labelTextClassName`), defined so a single-element label merges the pair and only
+   `forms-native` separates them. All five map, `"@ "` becomes `{ replace }`, both modes are
+   verified in the DOM (interfaces §2, README findings 48–49).
 
    Left open, and `forms-html`'s business rather than the contract's: whether to merge with
    `tailwind-merge` so an appended class actually wins. Authors currently force it with `!`

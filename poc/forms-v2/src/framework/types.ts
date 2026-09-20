@@ -99,6 +99,14 @@ export interface FieldProps<T> {
   endIcon?: FormProp<ReactNode>;
   className?: FormProp<ClassValue>;
   labelClassName?: FormProp<ClassValue>;
+  /**
+   * The label's *text*, as distinct from its container — the same View/Text
+   * split `className` / `textClassName` already make for the control, and
+   * needed for the same reason: on React Native text styles do not cascade
+   * from a View. An implementation whose label is a single text element may
+   * apply it together with `labelClassName`.
+   */
+  labelTextClassName?: FormProp<ClassValue>;
   shellClassName?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
 }
@@ -121,6 +129,7 @@ export interface FieldRenderProps<T> {
   endIcon?: ReactNode;
   className?: ClassValue;
   labelClassName?: ClassValue;
+  labelTextClassName?: ClassValue;
   shellClassName?: ClassValue;
   textClassName?: ClassValue;
 }
@@ -159,6 +168,8 @@ export interface FieldShellProps {
   children: ReactNode;
   className?: ClassValue;
   labelClassName?: ClassValue;
+  /** The label's text; a single-element label merges it with `labelClassName`. */
+  labelTextClassName?: ClassValue;
 }
 
 export interface ControlSlotProps {

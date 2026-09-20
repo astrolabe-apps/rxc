@@ -88,13 +88,21 @@ type ClassValue = string | { replace: string };
 function mergeClass(own: string | undefined, given: ClassValue | undefined): string | undefined;
 ```
 
-**From JSON (built):** four slots, four props — `styleClass` → `className` (the control),
+**From JSON (built):** five slots, five props — `styleClass` → `className` (the control),
 `textClass` → `textClassName`, `layoutClass` → `shellClassName`, `labelClass` →
-`labelClassName`. The legacy `"@ "` prefix, which means *replace rather than merge* and
-accounts for about a third of class usage in the corpus, becomes `{ replace }`. Every boundary
-kind carries the slots it can use — an action has `className` and `textClassName`, a display
-the same, a group `className`. Not mapped: legacy's `labelTextClass` (248 uses), the label's
-*text* as distinct from its container — a fifth slot would be a contract decision.
+`labelClassName`, `labelTextClass` → `labelTextClassName`. The legacy `"@ "` prefix, which
+means *replace rather than merge* and accounts for about a third of class usage in the corpus,
+becomes `{ replace }`. Every boundary kind carries the slots it can use — an action has
+`className` and `textClassName`, a display the same, a group `className`.
+
+**Container and text are two slots wherever there is text (decided, built).** `className` /
+`textClassName` on a control and `labelClassName` / `labelTextClassName` on its label are the
+same split for the same reason: on React Native text styles do not cascade from a `View`, so
+the words need their own class. The contract defines the text slot semantically — *the
+element's text; an implementation whose label is a single text element may apply it together
+with the container's class* — which is what lets every web implementation merge the pair with
+`combineClass` and add no markup, while `forms-native` puts one on the `View` and one on the
+`Text`. Corpus evidence for the label pair: `labelTextClass` 248 uses to `labelClass` 39.
 
 ## 3. The two handles
 
@@ -268,6 +276,7 @@ interface FieldProps<T> {
   endIcon?: FormProp<ReactNode>;
   className?: FormProp<ClassValue>;
   labelClassName?: FormProp<ClassValue>;
+  labelTextClassName?: FormProp<ClassValue>;    // the label's text — see §2
   shellClassName?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
 }
@@ -284,6 +293,7 @@ interface FieldRenderProps<T> {
   endIcon?: ReactNode;
   className?: ClassValue;
   labelClassName?: ClassValue;
+  labelTextClassName?: ClassValue;
   shellClassName?: ClassValue;
   textClassName?: ClassValue;
 }
@@ -676,6 +686,7 @@ interface FieldShellProps {
   children: ReactNode;
   className?: ClassValue;
   labelClassName?: ClassValue;
+  labelTextClassName?: ClassValue;        // merged with labelClassName when the label is one element
 }
 
 interface InputFrameProps {

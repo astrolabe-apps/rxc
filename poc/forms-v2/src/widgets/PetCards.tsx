@@ -56,6 +56,7 @@ function PetCardsImpl<T>(
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
     >
       <div
         className="ff-cards"
