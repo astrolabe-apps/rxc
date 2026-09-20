@@ -6,6 +6,7 @@ import {
 } from "./boundary.js";
 import { tabsRenderer } from "./tabs.js";
 import { wizardRenderer } from "./wizard.js";
+import { dialogRenderer } from "./dialog.js";
 import { actionRenderer } from "./actions.js";
 import { displayRenderer } from "./display.js";
 import type {
@@ -89,3 +90,6 @@ export const SelectField = fieldRenderer<OptionValue, SelectExtra>({
 
 /** A stateful container whose state may live in the data. */
 export const Wizard = wizardRenderer({ key: "wizard" });
+
+/** The portal container. Closed is `silent`; design mode renders it inline. */
+export const Dialog = dialogRenderer({ key: "dialog" });

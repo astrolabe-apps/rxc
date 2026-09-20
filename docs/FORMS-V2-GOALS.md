@@ -184,7 +184,13 @@ Nothing below is settled. In rough order of how much else depends on it:
       trigger and its contents are selected from the **tree panel** instead. A renderer may
       opt in by declaring a flattened variant — progressive enhancement, never a requirement.
 
-   The cost is layer 3, and it is small: a designer already needs the tree for anything fiddly.
+   **Layers 1 and 2 are built.** Presence is pinned before dispatch, and the dialog boundary
+   passes `inline: true` in design mode so the implementation renders its content in place —
+   the `Dialog → Contents` substitution with zero renderer cooperation, verified in four
+   implementations (interfaces §6). Layer 3 is not a build question: a third-party portal
+   renderer's content escapes the canvas and the designer selects it from the tree. That is a
+   designer policy, and the cost is small — a designer already needs the tree for anything
+   fiddly. **Proposed closed on that basis.**
 4. **Class slots — four targets, two merge modes.** Not a build-time question: an
    implementation assumes its classes are defined somehow. The content is *where each lands*
    and *how it combines*, and the corpus (3,700 uses across 80 forms) shows all four in

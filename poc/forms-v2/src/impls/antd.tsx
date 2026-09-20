@@ -6,6 +6,7 @@ import {
   Flex,
   Form,
   Input,
+  Modal,
   Select,
   Steps,
   Tabs as AntTabList,
@@ -39,6 +40,7 @@ import {
   type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
+  type DialogRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import {
@@ -460,6 +462,32 @@ function AntWizard(p: WizardRenderProps) {
   );
 }
 
+/** `forceRender` mounts the body before first open; `destroyOnHidden={false}` keeps it. */
+function AntDialog(p: DialogRenderProps) {
+  if (p.inline)
+    return (
+      <div
+        style={{ border: "1px solid #d9d9d9", borderRadius: 8, padding: 16 }}
+      >
+        {p.title && <Typography.Title level={5}>{p.title}</Typography.Title>}
+        {p.content}
+      </div>
+    );
+  return (
+    <Modal
+      open={p.open}
+      onCancel={p.onClose}
+      onOk={p.onClose}
+      title={p.title}
+      forceRender
+      destroyOnHidden={false}
+      footer={<Button onClick={p.onClose}>Close</Button>}
+    >
+      {p.content}
+    </Modal>
+  );
+}
+
 export const antdRenderers: FormRenderers = {
   name: "Ant",
   textfield: AntTextField,
@@ -471,6 +499,7 @@ export const antdRenderers: FormRenderers = {
   action: AntAction,
   contents: Contents,
   wizard: AntWizard,
+  dialog: AntDialog,
   tabs: AntTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

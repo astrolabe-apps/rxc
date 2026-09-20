@@ -502,3 +502,24 @@ body {
   gap: 8px;
   justify-content: flex-end;
 }
+
+/* ── dialog ──────────────────────────────────────────────────────── */
+.ff-modal {
+  border: 1px solid #d4d4d8;
+  border-radius: 10px;
+  padding: 18px;
+  min-width: 360px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+.ff-modal::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+.ff-modal-title {
+  display: block;
+  margin-bottom: 12px;
+}
+.ff-modal-inline {
+  border: 1px dashed #a1a1aa;
+  border-radius: 8px;
+  padding: 12px;
+}

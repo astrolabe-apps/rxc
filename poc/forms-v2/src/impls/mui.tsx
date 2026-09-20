@@ -25,6 +25,10 @@ import StepLabel from "@mui/material/StepLabel";
 import Stepper from "@mui/material/Stepper";
 import Typography from "@mui/material/Typography";
 import MuiTooltip from "@mui/material/Tooltip";
+import MuiDialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import CssBaseline from "@mui/material/CssBaseline";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
@@ -52,6 +56,7 @@ import {
   type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
+  type DialogRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import {
@@ -486,6 +491,26 @@ function MuiWizard(p: WizardRenderProps) {
   );
 }
 
+/** `keepMounted`: the closed dialog stays in the DOM, hidden — `silent` needs that. */
+function MuiDialogImpl(p: DialogRenderProps) {
+  if (p.inline)
+    return (
+      <Box sx={{ border: 1, borderColor: "divider", borderRadius: 1, p: 2 }}>
+        {p.title && <Typography variant="h6">{p.title}</Typography>}
+        {p.content}
+      </Box>
+    );
+  return (
+    <MuiDialog open={p.open} onClose={p.onClose} keepMounted fullWidth>
+      {p.title && <DialogTitle>{p.title}</DialogTitle>}
+      <DialogContent>{p.content}</DialogContent>
+      <DialogActions>
+        <Button onClick={p.onClose}>Close</Button>
+      </DialogActions>
+    </MuiDialog>
+  );
+}
+
 export const muiRenderers: FormRenderers = {
   name: "MUI",
   textfield: MuiTextField,
@@ -497,6 +522,7 @@ export const muiRenderers: FormRenderers = {
   action: MuiAction,
   contents: Contents,
   wizard: MuiWizard,
+  dialog: MuiDialogImpl,
   tabs: MuiTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

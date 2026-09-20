@@ -1,10 +1,12 @@
 import { useMemo, type ReactNode } from "react";
-import { useReactive, type Rendered } from "@rx-controls/react";
+import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import type { Control } from "@rx-controls/core";
 import { useControlContext } from "@rx-controls/react";
 import {
   arrayActions,
+  Action,
   CheckboxField,
+  Dialog,
   Section,
   SelectField,
   TextDisplay,
@@ -174,6 +176,11 @@ export function PersonForm({
   const Stack = useStack();
   // Buttons outside the list: mutation is not the collection renderer's job.
   const pets = arrayActions(rc, update, f.$.pets, petBounds);
+  // The dialog's open state is a control, so `open` binds to it directly —
+  // the Control arm of FormProp, no wrapper.
+  const detailsOpen = useControl(false);
+  const setDetailsOpen = (v: boolean) =>
+    update((wc) => wc.setValue(detailsOpen, v));
   return rendered(
     <Form
       readOnly={readOnly}
@@ -262,6 +269,46 @@ export function PersonForm({
                     }
                   />
                 </Stack>
+                {/* The portal container. Its content is `silent` while closed:
+            the required field inside validates (see the state table) and the
+            trigger reports it. Design mode renders it inline instead. */}
+                <Stack direction="row" gap={12} align="center">
+                  <Action
+                    actionId="openDetails"
+                    text="More details…"
+                    style="secondary"
+                    onClick={() => setDetailsOpen(true)}
+                  />
+                  <TextDisplay
+                    text={(rc) =>
+                      rc.getValue(f.$.lastName.control)
+                        ? `Last name: ${rc.getValue(f.$.lastName.control)}`
+                        : "Last name missing — required, inside the dialog."
+                    }
+                  />
+                </Stack>
+                <Dialog
+                  open={detailsOpen}
+                  onClose={() => setDetailsOpen(false)}
+                  title="More details"
+                >
+                  <Stack gap={4}>
+                    <TextField
+                      field={f.$.lastName}
+                      label="Last name"
+                      required
+                      helpText="Required, and validated while the dialog is closed."
+                    />
+                    <SelectField
+                      field={f.$.priority}
+                      label="Priority"
+                      options={[
+                        { name: "Low", value: 1 },
+                        { name: "High", value: 3 },
+                      ]}
+                    />
+                  </Stack>
+                </Dialog>
                 <Stars
                   field={f.$.rating}
                   label="How did we do?"

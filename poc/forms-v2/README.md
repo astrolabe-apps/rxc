@@ -37,8 +37,8 @@ that returns what it could not translate.
 | `src/widgets/PetCards.tsx` | a **third-party collection**: per-row chrome from the implementation's buttons, staged edit, a callback prop |
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
-Not built, and not pretended: a portal container (dialog), design-mode
-substitution, Base UI.
+Not built, and not pretended: Base UI; a third-party group or action renderer;
+the loader's `Dialog` group translator.
 
 ## What held up
 
@@ -623,11 +623,51 @@ Numbered; each is cited at the matching line of code.
     where before it re-rendered the boundary and everything under it. That
     is the direction §1 wanted anyway.
 
+43. **A dialog is a tab strip with one panel and a portal, and `silent` is
+    what makes it work.** The boundary is `tabsRenderer` with the item list
+    collapsed to one: content presence is `open || designMode ? "rendered" :
+    "silent"`, wrapped in its own validation scope, handed to the
+    implementation already scoped and always mounted. Verified on load: a
+    required field inside a dialog that has never been opened reports
+    *Please enter a value* in the state table, and a display beside the
+    trigger reads it — the closed dialog validates exactly as an inactive tab
+    does. Type in it, close it, and the value is there: the field the modal
+    shows *is* the field, not a copy.
+
+    Each library keeps closed content mounted its own way, and every one had
+    to be told: the native `<dialog>` is driven by `showModal()`/`close()`
+    from an effect with the content always its child; MUI `keepMounted`; Ant
+    `forceRender` + `destroyOnHidden={false}`; Mantine `keepMounted` **with
+    `keepMountedMode="display-none"`** — its default is `activity`, so the
+    Tabs trap of finding 25 is a Modal trap too, and the morning's rule
+    ("never `<Activity>`") paid for itself within the day.
+
+    **Design mode's layer 2 is real and costs the boundary one boolean.** In
+    design mode the boundary passes `inline: true` and the implementation
+    renders the content in place, no portal, no chrome — the `Dialog →
+    Contents` substitution from the goals doc, done above the renderer so no
+    implementation knows design mode exists. Verified: toggle design mode and
+    the dialog body appears inline, dashed, with the wizard's pages stacked
+    beside it.
+
+    One honest cost. Switching `inline` **moves the content between
+    parents** — from a portal to an in-place `<div>` — which remounts it,
+    exactly the thing findings 17 and 22 forbid for a state toggle. It is
+    tolerable here because design mode is an authoring-mode switch, not
+    something a form user does mid-edit; but a library that wanted it seamless
+    would have to render the inline chrome *inside* the same parent and
+    un-portal it, which none of the four offer.
+
+    Layer 3 — a third-party portal renderer the substitution table has never
+    heard of — is not a build question. Its content escapes the canvas and
+    the designer selects it from the tree; that is a designer policy, and the
+    dialog trial has nothing to add to it.
+
 ## Things the POC deliberately does not answer
 
-A portal container — the one §6 shape never built, and the one design mode's
-layer 3 is about; design-mode substitution (`Dialog → Contents`, `Tabs → all
-stacked`); whether Base UI (family 3, the shape the primitives are modelled on)
-confirms or embarrasses them; and whether a *third-party* group or action
-renderer can be written against the contract the way `Stars` and `PetCards`
-were for a field and a collection.
+Whether Base UI (family 3, the shape the primitives are modelled on) confirms
+or embarrasses them; whether a *third-party* group or action renderer can be
+written against the contract the way `Stars` and `PetCards` were for a field
+and a collection; and design mode's layer 3 — a third-party portal renderer
+selected from the tree rather than the canvas — which is a designer policy,
+not something this build can test.

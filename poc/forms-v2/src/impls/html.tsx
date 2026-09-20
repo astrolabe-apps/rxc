@@ -1,4 +1,10 @@
-import { useState, type FocusEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type ReactNode,
+} from "react";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
@@ -24,6 +30,7 @@ import {
   type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
+  type DialogRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import { Contents, ElementsList, FadeVisibility, glyphFor } from "./shared.js";
@@ -434,6 +441,52 @@ function HtmlWizard(p: WizardRenderProps) {
   );
 }
 
+/**
+ * A native `<dialog>`. `showModal()`/`close()` are driven from an effect and
+ * the content is always its child, so opening never moves it — and while
+ * closed the UA hides it, mounted, which is what `silent` needs.
+ */
+function HtmlDialog(p: DialogRenderProps) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || p.inline) return;
+    if (p.open && !el.open) el.showModal();
+    else if (!p.open && el.open) el.close();
+  }, [p.open, p.inline]);
+  if (p.inline) {
+    return (
+      <div className={mergeClass("ff-modal-inline", p.className)}>
+        {p.title && <strong>{p.title}</strong>}
+        {p.content}
+      </div>
+    );
+  }
+  return (
+    <dialog
+      ref={ref}
+      className={mergeClass("ff-modal", p.className)}
+      onClose={p.onClose}
+      onCancel={(e) => {
+        e.preventDefault();
+        p.onClose();
+      }}
+    >
+      {p.title && <strong className="ff-modal-title">{p.title}</strong>}
+      {p.content}
+      <div className="ff-row" style={{ marginTop: 12 }}>
+        <button
+          type="button"
+          className="ff-btn ff-btn--secondary"
+          onClick={p.onClose}
+        >
+          Close
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 export const htmlRenderers: FormRenderers = {
   name: "html",
   textfield: HtmlTextField,
@@ -445,6 +498,7 @@ export const htmlRenderers: FormRenderers = {
   action: HtmlAction,
   contents: Contents,
   wizard: HtmlWizard,
+  dialog: HtmlDialog,
   tabs: HtmlTabs,
   elements: ElementsList,
   visibility: FadeVisibility,

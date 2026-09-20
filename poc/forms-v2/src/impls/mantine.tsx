@@ -6,6 +6,7 @@ import {
   Group,
   Input,
   MantineProvider,
+  Modal,
   Select,
   Stepper,
   Tabs as MTabs,
@@ -39,6 +40,7 @@ import {
   type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
+  type DialogRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import {
@@ -409,6 +411,39 @@ function MantineWizard(p: WizardRenderProps) {
   );
 }
 
+/**
+ * `keepMounted` with `keepMountedMode="display-none"` — the default mode is
+ * `activity`, which destroys effects and with them the closed dialog's
+ * validators. The same switch, and the same trap, as Mantine's Tabs.
+ */
+function MantineDialog(p: DialogRenderProps) {
+  if (p.inline)
+    return (
+      <div
+        style={{ border: "1px solid #dee2e6", borderRadius: 8, padding: 16 }}
+      >
+        {p.title && <Text fw={600}>{p.title}</Text>}
+        {p.content}
+      </div>
+    );
+  return (
+    <Modal
+      opened={p.open}
+      onClose={p.onClose}
+      title={p.title}
+      keepMounted
+      keepMountedMode="display-none"
+    >
+      {p.content}
+      <Group justify="flex-end" mt="md">
+        <Button variant="default" onClick={p.onClose}>
+          Close
+        </Button>
+      </Group>
+    </Modal>
+  );
+}
+
 export const mantineRenderers: FormRenderers = {
   name: "Mantine",
   textfield: MantineTextField,
@@ -420,6 +455,7 @@ export const mantineRenderers: FormRenderers = {
   action: MantineAction,
   contents: Contents,
   wizard: MantineWizard,
+  dialog: MantineDialog,
   tabs: MantineTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

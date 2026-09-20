@@ -426,6 +426,7 @@ export interface FormRenderers {
   contents: ComponentType<GroupRenderProps>;
   tabs: ComponentType<import("./tabs.js").TabsRenderProps>;
   wizard: ComponentType<import("./wizard.js").WizardRenderProps>;
+  dialog: ComponentType<import("./dialog.js").DialogRenderProps>;
   elements: ComponentType<CollectionRenderProps<any>>;
   fieldShell: ComponentType<FieldShellProps>;
   inputFrame: ComponentType<InputFrameProps>;

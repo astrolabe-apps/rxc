@@ -9,7 +9,7 @@ and display boundaries, a tab container, a wizard, a staged-edit modal and a JSO
 in four implementations (plain HTML, MUI, Ant, Mantine), plus a third-party widget that reuses
 each one's chrome without importing it. Everything below marked **(built)** is a
 change that build forced, and its README carries the long form of each. What it never touched
-— a portal container, design-mode substitution, Base UI — is listed under *Still open*.
+— Base UI, a third-party group or action renderer — is listed under *Still open*.
 (`FORMS-V2-GOALS.md` reserves "the POC" for `@rx-controls/forms`, so this one is "the build"
 throughout, whatever its folder is called.)
 
@@ -531,9 +531,21 @@ stays for containers that need nothing but a box.
 That is the structural parent link this design needed from core — validity, touched and
 dirty aggregated *without* value flow — and `createDerivedGroup` is it. Closed.
 
-**From JSON:** `designAs` is not per-implementation — `Dialog → Contents`, `Tabs → all
-stacked`, `Wizard → all pages` holds for every implementation, so it is a framework constant
-that an implementation may extend.
+**The portal container is a tab strip with one panel (built).** `<Dialog open onClose title>`
+narrows its content to `silent` while closed — a required field inside a never-opened dialog
+reports its error, and a trigger outside can read the dialog's scope — and hands the
+implementation the content already scoped and **always mounted**: native `<dialog>` driven by
+`showModal()`/`close()` from an effect, MUI `keepMounted`, Ant `forceRender`, Mantine
+`keepMounted` with `keepMountedMode="display-none"` (its default is `activity`; §4's rule again).
+In design mode the boundary passes `inline: true` and the implementation renders the content in
+place with no portal — the `Dialog → Contents` substitution, done above the renderer. The one
+cost: switching `inline` moves the content between a portal and an in-place parent, which
+remounts it; tolerable for an authoring-mode switch, and the reason design mode is not a
+mid-edit toggle.
+
+**From JSON:** the design-mode substitution is not per-implementation — `Dialog → Contents`,
+`Tabs → all stacked`, `Wizard → all pages` holds for every implementation, so it is a framework
+constant that an implementation may extend.
 
 ## 7. Structural primitives
 
@@ -995,11 +1007,9 @@ defeats a memo.
 
 ## Still open
 
-- **A portal container has not been built.** Everything else in §6's table has: a field, an
-  options widget, a collection, a chrome-less group, tabs, a wizard, actions, displays, the
-  staged-edit flow and the JSON loader, each in four implementations. A dialog is the one shape
-  left, and it is the one design mode's layer 3 is about — a renderer whose content escapes the
-  canvas and can only be selected from the tree.
+- **A third-party group or action renderer.** Every boundary kind exists in four
+  implementations and two have been written from outside the package (`Stars`, `PetCards`);
+  a group and an action have not. Neither is expected to bend anything.
 - **Whether `forms-html` and `forms-native` share renderer source** — decidable when the second
   package exists, and it changes nothing above.
 

@@ -14,5 +14,6 @@ export * from "./display.js";
 export * from "./actionIds.js";
 export * from "./tabs.js";
 export * from "./wizard.js";
+export * from "./dialog.js";
 export * from "./controllers.js";
 export * from "./builtins.js";
