@@ -153,10 +153,13 @@ Nothing below is settled. In rough order of how much else depends on it:
    **The baseline exists (built):** `poc/forms-v2/scripts/extract-corpus.ts` pulls each legacy
    app's forms *and* the schemas it renders them against (evaluating its generated
    `schemas.ts`) into `corpus/`, and `scripts/burndown.ts` runs the loader over it, reporting
-   by kind and shape. 80 forms, 3,972 controls, 9 clean, **1,450 warnings** — every one of them
-   loader work. Top of the list: `DisplayOnly` 375, `Inline` 205, `a/b` field-path refs 105,
-   `HelpText` 69, `dynamic Display` 67, `Group` 66, `ActionData` 61, `Radio` 55. README
-   findings 44–45.
+   by kind and shape, including every property on a definition that nothing read. 80 forms,
+   3,972 controls, 1 clean, **8,169 warnings** — every one of them loader work. 6,719 are
+   unread properties, led by the four class slots (3,954 between them), `hideTitle` (1,400),
+   and the action props (`actionStyle` 361, `actionData` 81, `iconPlacement` 65,
+   `disableType` 39); the rest is unhandled shapes, led by `DisplayOnly` 375, `Inline` 205,
+   `a/b` field-path refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now:
+   a property the loader never looked at used to cost nothing. README findings 44–46.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the

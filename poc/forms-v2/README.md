@@ -737,6 +737,42 @@ Numbered; each is cited at the matching line of code.
     `ActionData` 61, `Radio` 55, `Jsonata` validators 45, `AllowedOptions`
     42, `Flex` 37, `Display / Custom` 36.
 
+46. **The burndown had a blind spot the size of the format, and closing it
+    took the number from 1,450 to 8,169.** A warning was only ever raised for
+    a feature the loader *knew* it dropped; a property nothing reads was
+    silent, because nothing had looked. So the definition handed to
+    `buildProps`, `warnUnhandled` and the matched translator is now a
+    recording proxy — one level down into `renderOptions`, `groupOptions`
+    and `displayData` — and every meaningful property nobody touched is
+    reported as `unread`. (`null`, `false`, `""`, `{}` and `[]` are skipped:
+    the editor writes `defaultValue: null` and `fieldDef: {}` on every
+    control.)
+
+    6,719 unread properties on 3,972 controls, and one form clean instead of
+    nine. The top of the list is the class slots — `styleClass` 1,550,
+    `textClass` 1,481, `layoutClass` 636, `labelTextClass` 248, `labelClass`
+    39 — which the goals doc already calls the most-used thing in the format
+    after `Visible` and which the loader never mapped; then `hideTitle` on
+    groups (1,030) and controls (370), `actionStyle` 361, `sampleText` 126,
+    `icon` 112, `noSelection` 110, `actionData` 81, `iconPlacement` 65,
+    `emptyText` 48, `disableType` 39, `customId` 36, `placeholder` 32 and
+    the array `noAdd`/`noRemove`/`noReorder` trio at ~31 each.
+
+    Two things to read carefully. `groupOptions.hideTitle` at 1,030 is
+    honoured *by accident* — the group translator renders no title at all —
+    and its falsy twin, "show this group's title", is invisible to the audit
+    because a `false` is skipped; the audit finds dropped *data*, not dropped
+    *defaults*. And the demo's own JSON reports no unread properties at all,
+    because it was written against what the loader knows; the corpus was
+    written against legacy. That gap between the two is exactly what this
+    number measures now and did not before.
+
+    The five-line version of the list: map the four class slots to the four
+    `className` props (§2 already says how), pass `hideTitle`, wire
+    `actionStyle`/`icon`/`iconPlacement`/`disableType`/`actionData` into
+    `ActionProps` — which is the actions decision — and read the array
+    options. That is most of 6,719.
+
 ## Things the POC deliberately does not answer
 
 Whether Base UI (family 3, the shape the primitives are modelled on) confirms

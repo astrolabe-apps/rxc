@@ -46,7 +46,9 @@ export interface LoaderWarning {
     | "validator"
     | "expression"
     /** The definition names a field the supplied schema does not have — an input gap, not a loader one. */
-    | "schema";
+    | "schema"
+    /** A property on the definition that nothing — loader or translator — ever read. */
+    | "unread";
   /** `def.title` or the bound field, for a human reading the list. */
   subject?: string;
   detail: string;
@@ -287,6 +289,69 @@ function buildProps(
   };
 }
 
+/**
+ * The blind spot the warning list had: a property no translator reads is
+ * silently dropped, and the loader has no list of what it dropped because it
+ * never looked. So the definition handed to `buildProps`, `warnUnhandled` and
+ * the matched translator is a **recording proxy** — every property read is
+ * noted, one level down into `renderOptions` / `groupOptions` / `displayData`
+ * — and whatever was never read is reported afterwards. Properties whose value
+ * carries nothing (`null`, `false`, `""`, `{}`, `[]`) are skipped: the editor
+ * writes `defaultValue: null` and `fieldDef: {}` on every control.
+ */
+const nestedKeys = ["renderOptions", "groupOptions", "displayData"] as const;
+
+function meaningful(v: unknown): boolean {
+  if (v === null || v === undefined || v === false || v === "") return false;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "object") return Object.keys(v as object).length > 0;
+  return true;
+}
+
+function recording<T extends object>(
+  target: T,
+  seen: Set<string>,
+  prefix = "",
+): T {
+  return new Proxy(target, {
+    get(t, prop, r) {
+      if (typeof prop === "string") {
+        seen.add(prefix + prop);
+        const v = Reflect.get(t, prop, r);
+        if (
+          !prefix &&
+          (nestedKeys as readonly string[]).includes(prop) &&
+          v &&
+          typeof v === "object"
+        )
+          return recording(v as object, seen, prop + ".");
+        return v;
+      }
+      return Reflect.get(t, prop, r);
+    },
+  });
+}
+
+function warnUnread(def: ControlDefinition, seen: Set<string>, warn: Warn) {
+  const subject = def.title ?? def.field;
+  const report = (path: string) =>
+    warn({
+      kind: "unread",
+      subject,
+      detail: `"${path}" is not read by any translator — dropped`,
+    });
+  for (const [k, v] of Object.entries(def)) {
+    if (!meaningful(v)) continue;
+    if (!seen.has(k)) report(k);
+    else if (
+      (nestedKeys as readonly string[]).includes(k) &&
+      typeof v === "object"
+    )
+      for (const [nk, nv] of Object.entries(v as object))
+        if (meaningful(nv) && !seen.has(`${k}.${nk}`)) report(`${k}.${nk}`);
+  }
+}
+
 /** A `Tooltip` adornment's text, which a display translates to its accessible name. */
 function tooltipOf(def: ControlDefinition): string | undefined {
   const a = def.adornments?.find((a) => a.type === "Tooltip");
@@ -350,12 +415,14 @@ export function translate(
   ctx: ControlContext,
   data: Control<unknown>,
   fields: SchemaField[],
-  def: ControlDefinition,
+  rawDef: ControlDefinition,
   key: string,
   opts: LoaderOptions,
   collect: Collect = noCollect,
 ): ReactNode {
   const translators = opts.translators ?? defaultTranslators;
+  const seen = new Set<string>();
+  const def = recording(rawDef, seen);
   const schema = def.field ? findField(fields, def.field) : undefined;
   const at: Warn = (w) => collect({ ...w, path: key });
   const t = translators.find((t) => t.match(def, schema));
@@ -413,17 +480,13 @@ export function translate(
         def.displayData?.type ? ` / ${def.displayData.type}` : ""
       }${def.renderOptions?.type ? ` / ${def.renderOptions.type}` : ""}`,
     });
-    return (
-      <TranslatedKey key={key}>
-        {(opts.onUnsupported ?? defaultUnsupported)(def)}
-      </TranslatedKey>
-    );
+    const node = (opts.onUnsupported ?? defaultUnsupported)(def);
+    warnUnread(rawDef, seen, at);
+    return <TranslatedKey key={key}>{node}</TranslatedKey>;
   }
-  return (
-    <TranslatedKey key={key}>
-      {t.render({ def, schema, props, children, element })}
-    </TranslatedKey>
-  );
+  const node = t.render({ def, schema, props, children, element });
+  warnUnread(rawDef, seen, at);
+  return <TranslatedKey key={key}>{node}</TranslatedKey>;
 }
 
 /**
