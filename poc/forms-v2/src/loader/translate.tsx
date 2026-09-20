@@ -44,7 +44,9 @@ export interface LoaderWarning {
     | "adornment"
     | "dynamic"
     | "validator"
-    | "expression";
+    | "expression"
+    /** The definition names a field the supplied schema does not have — an input gap, not a loader one. */
+    | "schema";
   /** `def.title` or the bound field, for a human reading the list. */
   subject?: string;
   detail: string;
@@ -75,6 +77,14 @@ export interface TranslateArgs {
 export interface Translator {
   match(def: ControlDefinition, schema?: SchemaField): boolean;
   render(a: TranslateArgs): ReactNode;
+  /**
+   * The `renderOptions.type` / `groupOptions.type` values this translator
+   * gives meaning to. Anything else on a matched definition is reported as a
+   * discriminator the loader fell back on — so a translator that handles
+   * `Standard` and `Multiline` says so, and `Radio` on the same field is a
+   * warning rather than a silent `<input>`.
+   */
+  renderTypes?: string[];
 }
 
 export interface LoaderOptions {
@@ -127,6 +137,7 @@ export const defaultTranslators: Translator[] = [
   },
   {
     match: (d, s) => d.type === "Data" && !!s?.collection,
+    renderTypes: ["Array"],
     render: ({ props, element, def }) => {
       const len = def.validators?.find((v) => v.type === "Length");
       const collectionProps = props as FieldProps<unknown[]>;
@@ -146,16 +157,19 @@ export const defaultTranslators: Translator[] = [
     // Options come off the schema here and become a prop there; nothing below
     // this line knows a schema exists.
     match: (d, s) => d.type === "Data" && !!s?.options?.length,
+    renderTypes: ["Dropdown"],
     render: ({ props, schema }) => (
       <SelectField {...props} options={schema!.options} />
     ),
   },
   {
     match: (d, s) => d.type === "Data" && s?.type === "Bool",
+    renderTypes: ["Checkbox"],
     render: ({ props }) => <CheckboxField {...props} />,
   },
   {
     match: (d) => d.type === "Data",
+    renderTypes: ["Standard", "Textfield", "Multiline"],
     render: ({ props, def }) => (
       <TextField
         {...props}
@@ -165,6 +179,7 @@ export const defaultTranslators: Translator[] = [
   },
   {
     match: (d) => d.type === "Group" && d.groupOptions?.type === "Tabs",
+    renderTypes: ["Tabs"],
     render: ({ def, children }) => (
       <Tabs
         items={(def.children ?? []).map((c, i) => ({
@@ -177,6 +192,7 @@ export const defaultTranslators: Translator[] = [
   },
   {
     match: (d) => d.type === "Group",
+    renderTypes: ["Standard", "Contents"],
     render: ({ props, children }) => (
       <Contents hidden={props.hidden} disabled={props.disabled}>
         {children}
@@ -277,9 +293,6 @@ function tooltipOf(def: ControlDefinition): string | undefined {
   return typeof a?.tooltip === "string" ? a.tooltip : undefined;
 }
 
-/** What the built-in translators actually read off `renderOptions`/`groupOptions`. */
-const handledRenderOptions = new Set(["Standard", "Multiline"]);
-const handledGroupOptions = new Set(["Standard", "Contents", "Tabs"]);
 const handledDynamic = new Set(["Visible", "Disabled", "Label"]);
 
 /**
@@ -288,8 +301,13 @@ const handledDynamic = new Set(["Visible", "Disabled", "Label"]);
  * behaviour the JSON asked for, which is the failure mode that is hard to
  * notice and easy to ship.
  */
-function warnUnhandled(def: ControlDefinition, warn: Warn): void {
+function warnUnhandled(
+  def: ControlDefinition,
+  warn: Warn,
+  renderTypes: readonly string[] = [],
+): void {
   const subject = def.title ?? def.field;
+  const handled = new Set(renderTypes);
 
   for (const a of def.adornments ?? []) {
     // Tooltip on a display is consumed by the display translator as its
@@ -312,7 +330,7 @@ function warnUnhandled(def: ControlDefinition, warn: Warn): void {
   }
 
   const ro = def.renderOptions?.type;
-  if (ro && !handledRenderOptions.has(ro))
+  if (ro && !handled.has(ro))
     warn({
       kind: "renderOptions",
       subject,
@@ -320,7 +338,7 @@ function warnUnhandled(def: ControlDefinition, warn: Warn): void {
     });
 
   const go = def.groupOptions?.type;
-  if (go && !handledGroupOptions.has(go))
+  if (go && !handled.has(go))
     warn({
       kind: "renderOptions",
       subject,
@@ -340,10 +358,11 @@ export function translate(
   const translators = opts.translators ?? defaultTranslators;
   const schema = def.field ? findField(fields, def.field) : undefined;
   const at: Warn = (w) => collect({ ...w, path: key });
-  warnUnhandled(def, at);
+  const t = translators.find((t) => t.match(def, schema));
+  warnUnhandled(def, at, t?.renderTypes);
   if (def.field && !schema)
     at({
-      kind: "control",
+      kind: "schema",
       subject: def.field,
       detail: `no schema field named "${def.field}"`,
     });
@@ -386,7 +405,6 @@ export function translate(
       )
     : undefined;
 
-  const t = translators.find((t) => t.match(def, schema));
   if (!t) {
     at({
       kind: "control",

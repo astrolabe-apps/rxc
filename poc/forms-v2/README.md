@@ -10,6 +10,7 @@ the interfaces bend.
 rush update
 rushx dev          # http://localhost:5183, from this directory
 rushx typecheck
+rushx burndown <dir-or-file>...   # the loader over a form corpus; --json, --strict
 ```
 
 ## What it builds
@@ -662,6 +663,45 @@ Numbered; each is cited at the matching line of code.
     heard of — is not a build question. Its content escapes the canvas and
     the designer selects it from the tree; that is a designer policy, and the
     dialog trial has nothing to add to it.
+
+44. **The corpus burndown: 80 forms, 3,972 controls, 7 clean, 2,227
+    warnings — and the number is now a number.** `scripts/burndown.ts` runs
+    `translateForm` over every form file it is pointed at (`{ controls,
+    fields }` as the editor writes them, or a bare array) and reports by kind
+    and by *shape* — the quoted discriminator in each warning — so the output
+    reads as a work list rather than a log. `--strict` exits non-zero on any
+    warning, which is what a CI gate over the corpus will be; `--json` is for
+    tracking it. The first run against the 68 ServiceTas forms, the 8
+    `forms-app` forms and the 4 TestTemplate forms:
+
+    | kind | count | what it is |
+    |---|---|---|
+    | `schema` | 934 | 806 plain names the supplied schema does not have — **input, not loader**: ServiceTas keeps its schemas in generated `schemas.ts`, and the form JSON's `fields` carries only form-local extensions (`MrsLicenceDetails` ships one field). 105 `a/b` paths, 21 `../x` parent refs and 2 `.` self refs are reference syntax the loader does not resolve yet — those are loader work. |
+    | `renderOptions` | 892 | `DisplayOnly` 375 · `Inline` 205 · `Group` 66 · `Radio` 55 · `Flex` 37 · `Array` 29 · `Dropdown` 26 · then a long tail (`Dialog` 8, `DataGrid` 7, `Switch` 9, payment widgets 10, …) |
+    | `dynamic` | 187 | `Display` 67 · `ActionData` 61 · `AllowedOptions` 42 · `LayoutStyle` 15 · `GridColumns` 2 |
+    | `adornment` | 119 | `HelpText` 69 · `ColumnOptions` 26 · `Accordion` 19 · `Spotlight` 2 · `Icon` 2 · `Tooltip` 1 (the data-field one) |
+    | `validator` | 59 | `Jsonata` 45 · `Date` 11 · `Length` on a non-string 3 |
+    | `control` | 36 | `Display / Custom` — the host-supplied display, in 16 forms |
+
+    Two things the first run taught, one about the script and one about the
+    loader. The **schema misses had to be their own kind** — reported as
+    `control` they were 970 of 2,280 and keyed by field name, which buried
+    the loader's real list under `firstName` × 21; split out and bucketed by
+    reference syntax they separate "supply the schema" from "resolve `../x`"
+    in one line. And **translators now declare the render types they
+    consume** (`Translator.renderTypes`) instead of the loader keeping a
+    static list: `Textfield` — legacy's name for the standard text renderer
+    — was 53 false warnings until the text translator said it handles it.
+    `Array`, `Dropdown` and `Checkbox` still appear, correctly: those
+    translators match on the schema, and with no schema a data control
+    *does* render as a text field.
+
+    The next step the number points at is not loader work: a schema
+    extractor that evaluates ServiceTas's `schemas.ts` and writes the
+    `SchemaField[]` beside each form, so the 806 become 0 and the 128
+    reference-syntax misses stand alone. After that the list reads top-down:
+    `DisplayOnly`, `Inline`, `HelpText`, `Display` and `ActionData`
+    dynamics, `Group` render options, `Radio`.
 
 ## Things the POC deliberately does not answer
 

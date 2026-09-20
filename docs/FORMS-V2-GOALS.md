@@ -150,6 +150,12 @@ Nothing below is settled. In rough order of how much else depends on it:
    that throws on any warning is how that check runs in CI, and is the only other policy the
    library itself ships.
 
+   **The baseline exists (built):** `poc/forms-v2/scripts/burndown.ts` runs the loader over 80
+   forms and reports by kind and shape — 3,972 controls, 7 clean, 2,227 warnings on the first
+   run, of which 806 are the corpus not supplying its schema (ServiceTas keeps it in generated
+   `schemas.ts`) and the rest is the loader's ordered work list, led by `DisplayOnly` (375),
+   `Inline` (205), `HelpText` (69) and `dynamic Display` (67). README finding 44.
+
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the
    JSON asked for, which is the failure mode that is easy to ship. A jsonata compile failure
@@ -162,7 +168,7 @@ Nothing below is settled. In rough order of how much else depends on it:
    `DefaultValue`, `Readonly`, `Style` — and all seven are already implemented, so dropping
    them saves nothing. A loader aimed at the legacy corpus carries essentially the whole
    format, Jsonata included (418 uses across 40 of 80 forms).
-3. **Design mode and portals.** A dialog renderer's content escapes the selection wrapper —
+3. **Design mode and portals. Decided.** A dialog renderer's content escapes the selection wrapper —
    and legacy does not solve this. Its editor **forks the render pipeline**:
    `FormControlPreview` re-implements `renderControlLayout`, renders adornments itself, injects
    sample data and forces `hidden: false` / `clearHidden: false`; there is no `createPortal`
@@ -190,7 +196,7 @@ Nothing below is settled. In rough order of how much else depends on it:
    implementations (interfaces §6). Layer 3 is not a build question: a third-party portal
    renderer's content escapes the canvas and the designer selects it from the tree. That is a
    designer policy, and the cost is small — a designer already needs the tree for anything
-   fiddly. **Proposed closed on that basis.**
+   fiddly. Closed on that basis.
 4. **Class slots — four targets, two merge modes.** Not a build-time question: an
    implementation assumes its classes are defined somehow. The content is *where each lands*
    and *how it combines*, and the corpus (3,700 uses across 80 forms) shows all four in

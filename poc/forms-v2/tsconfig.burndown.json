@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".burndown",
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["scripts", "src/loader", "src/framework"]
+}
