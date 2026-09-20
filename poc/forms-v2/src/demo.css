@@ -453,3 +453,24 @@ body {
   padding-left: 10px;
   margin-left: -13px;
 }
+
+/* The loader's returned warnings, rendered by the host because the host
+   chose to. Deliberately styled as a report rather than as an error: every
+   control below still rendered. */
+.ff-warnings {
+  margin: 0;
+  padding: 8px 10px 8px 26px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+}
+
+.ff-warnings code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #fef3c7;
+  font-size: 11px;
+}

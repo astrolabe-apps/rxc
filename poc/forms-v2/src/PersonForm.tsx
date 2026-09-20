@@ -382,6 +382,16 @@ export function PersonForm({
                   controls={demoControls}
                   schema={demoSchema}
                   data={data}
+                  renderWarnings={(ws) => (
+                    <ul className="ff-warnings">
+                      {ws.map((w, i) => (
+                        <li key={i}>
+                          <code>{w.path}</code> <b>{w.kind}</b>
+                          {w.subject ? ` · ${w.subject}` : ""} — {w.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 />
               </Stack>
             ),

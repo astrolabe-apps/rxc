@@ -9,7 +9,8 @@ and display boundaries, a tab container, a wizard, a staged-edit modal and a JSO
 in four implementations (plain HTML, MUI, Ant, Mantine), plus a third-party widget that reuses
 each one's chrome without importing it. Everything below marked **(built)** is a
 change that build forced, and its README carries the long form of each. What it never touched
-— real group renderers, actions, display, the loader — is listed under *Still open*.
+— a portal container, design-mode substitution, Base UI, any third-party renderer that is not
+a field — is listed under *Still open*.
 (`FORMS-V2-GOALS.md` reserves "the POC" for `@rx-controls/forms`, so this one is "the build"
 throughout, whatever its folder is called.)
 
@@ -43,11 +44,9 @@ renderer gets `silent`, design mode and the cascade without knowing they exist. 
 a custom renderer is not a special case: `fieldRenderer(MyImpl)` produces the same wrapper as
 `fieldRenderer({ key: "textfield" })`, differing only in how the implementation is found.
 
-There used to be a second category — *framework components*, for structure with nothing to
-swap. Both candidates turned out to be boundary-shaped and neither survived the build:
-`<Show>` became a group with a `hidden` prop (§4, §8) and `<Each>` became a collection
-boundary (§8). What they had in common is instructive — each governed a region of a form
-without *binding* to it, so validators, `clearHidden` and the locks all went missing at
+This includes the structural wrappers — a hidden region is a chrome-less group with a
+`hidden` prop (§8), a repeated row is a collection boundary (§8). Anything that governs a
+region of a form has to *bind* to it, or validators, `clearHidden` and the locks go missing at
 exactly the place an author would expect them.
 
 ---
@@ -65,11 +64,9 @@ Read-only by construction — a value the renderer *writes* is a `FormField`, ne
 `FormProp`. Discrimination checks `Control` first, then `typeof === "function"`, so
 `FormProp<SomeFn>` is unsupported; nothing needs it.
 
-`getProp`, not `use…`: it takes an `rc` and returns a value, with no React involved. Both it
-and `FormProp` belong in the **non-React** layer alongside `FormField` — React only ever
-supplies the `rc`. The repo has paid for this naming before: `useLabelText` was a non-hook
-whose prefix made `react-hooks/rules-of-hooks` report a false positive, and is now
-`resolveLabelText`.
+`getProp`, not `use…`: it takes an `rc` and returns a value, with no React involved, and a
+`use` prefix on a non-hook trips `react-hooks/rules-of-hooks`. Both it and `FormProp` belong in
+the **non-React** layer alongside `FormField` — React only ever supplies the `rc`.
 
 **From JSON:** this is where the expression engine terminates, and the build confirms it —
 `$scripts`, `dynamic`, `EntityExpression` and jsonata get no further than the loader. A literal
@@ -153,15 +150,9 @@ interface FormNode extends FormField<unknown> {
 }
 ```
 
-**No `schema` on the binding (built).** It carried one, and the build measured what read it:
-across every implementation and both data boundaries, exactly one expression — `label ??
-schema.displayName`. Everything else was the schema carrying *itself* along, so that default
-stayed reachable through `$` and through per-element wrappers. Options would have been the
-second reader, and the goals doc already rules out the third: `SchemaField.required` and
-`.validators` are never read, because validators are declared at the usage.
-
-A label is a prop. The author writes one; the loader passes `displayName` as one. Options are a
-prop too, and belong to the widgets that have them rather than to every binding.
+**No `schema` on the binding (built).** Nothing at this layer reads one: a label is a prop —
+the author writes it, the loader passes `displayName` — options are a prop on the widgets that
+have them, and validators are declared at the usage, never inherited from the field.
 
 **Options, built.** The contract declares its own `FieldOption`, and its shape is constrained by
 the format it will be fed from — `{ name, value: string | number }`, not `{ label, id }` — or
@@ -243,11 +234,10 @@ Two things the build pinned down:
   is what those 599 `Visible` uses are — then reaches the fields that read it as an ordinary
   control write, with no provider component re-rendering at all. Resolved values in a context
   can only be delivered by re-rendering the subtree. Narrowing is function composition.
-- **`hidden` is an input to validation, not a wrapper around it.** The table reads as though
-  the boundary skips registration when hidden. It cannot: hooks are not conditional and
-  presence changes after mount. The boundary registers unconditionally and feeds the resolved
-  presence to the validators through a control they read via their own `rc`, so a field that
-  becomes `hidden` clears its errors by re-running rather than by unregistering.
+- **`hidden` is an input to validation, not a wrapper around it.** Hooks are not conditional
+  and presence changes after mount, so the boundary registers unconditionally and feeds the
+  resolved presence to the validators through a control they read via their own `rc`; a field
+  that becomes `hidden` clears its errors by re-running rather than by unregistering.
 
 ## 5. Contract props
 
@@ -305,11 +295,10 @@ different thing and stays in the scope (§4), so the boundary holds both and fol
 restriction-only: a prop or an ancestor can add a lock, neither can re-enable a control that
 disabled itself.
 
-`error` runs the other way (**built**). §7 says the shell's error is resolved by the boundary
-and never by the implementation — but the *implementation* is what renders the shell, so it has
-to be handed one. It is also what makes `<Shell {...p}>` line up slot for slot, which is the
-whole point of that spread. Whether an error is shown *at all* — in the build, only once
-touched — stays boundary policy; the implementation draws what it is given.
+`error` is resolved by the boundary and handed *to* the implementation (**built**), because the
+implementation is what renders the shell; it is also what makes `<Shell {...p}>` line up slot
+for slot. Whether an error is shown *at all* — in the build, only once touched — stays boundary
+policy; the implementation draws what it is given.
 
 `required` is a flag, never baked into `label`: MUI renders its own asterisk from
 `<FormControl required>`.
@@ -317,15 +306,11 @@ touched — stays boundary policy; the implementation draws what it is given.
 **A trailing label is still the shell's business (built).** A checkbox's label sits after the
 control, and every library attaches it differently: an html `<label>` wrapping the input, MUI's
 `FormControlLabel` wrapping both, Mantine a `label` prop on the control, Ant the checkbox's own
-*child*. The first attempt let the renderer keep `label` and draw it — legacy's `hidesLabel`,
-expressed by omission — and the build showed the bill: the html checkbox hand-rolled the label
-markup *and* a copy of the required asterisk, duplicating the shell and guaranteeing drift for
-any third-party toggle or switch. So `FieldShellProps` takes `labelPosition` (§7), where
-`"after"` also licenses the shell to **wrap** the control, and each implementation maps it to
-its own idiom.
-
-A standalone `Label` primitive would not have worked: in three of the four the trailing label is
-not a sibling at all, so nothing you render *next to* the control can express it.
+*child*. So `FieldShellProps` takes `labelPosition` (§7), where `"after"` also licenses the
+shell to **wrap** the control, and each implementation maps it to its own idiom. It has to be
+the shell's: in three of the four the trailing label is not a sibling at all, so nothing
+rendered *next to* the control — a renderer drawing its own, or a standalone `Label` primitive —
+can express it.
 
 ```ts
 interface GroupProps  { hidden?; disabled?; readOnly?; title?; className?; children: ReactNode }
@@ -365,8 +350,9 @@ one (`addActionId`) so two grids on a page can be styled apart. Ids name the dee
 `apply`, never `primaryButton`. Appearance is `style` plus the override map.
 
 **From JSON:** adornments do not survive translation — `HelpText` → `helpText`, `Icon` →
-`startIcon`/`endIcon`, `Tooltip` → `tooltip`, `Accordion` → a wrapper the loader emits,
-`SetField` → `useControlEffect`. `AdornmentKind`, priority ordering and `wrapAdornments` have
+`startIcon`/`endIcon`, `Tooltip` → `accessibleName` on the display it sits on (§6),
+`Accordion` → a wrapper the loader emits, `SetField` → a computed-write registration
+(`useControlEffect`). `AdornmentKind`, priority ordering and `wrapAdornments` have
 nothing left to be about once the renderer owns the whole field. `def.hidden` /
 `def.disabled` / `def.readonly` → the three flags, and a `Visible` / `Disabled` dynamic
 property → the same prop as a `(rc) => …` — the spelling shifts to `readOnly` to match
@@ -415,8 +401,35 @@ chrome. That the guarantees come apart along exactly that line — and that the 
 needed no special casing — is the best evidence so far that the boundary is factored correctly.
 
 One consequence for the loader: prop-building is **field-shaped**, so it has to branch on the
-control's *type* rather than hand every translator the same props. A display takes `hidden` and
-the class slots, and there is nothing else it could take.
+control's *type* rather than hand every translator the same props. A display takes `hidden`,
+the class slots and one thing more:
+
+```ts
+interface DisplayProps {
+  hidden?: FormProp<boolean>;
+  accessibleName?: FormProp<string>;
+  className?: FormProp<ClassValue>;
+  textClassName?: FormProp<ClassValue>;
+  children?: ReactNode;
+}
+```
+
+**`accessibleName` is where the legacy `Tooltip` adornment lands (decided).** Every real use
+of it — three, all in `MastRegistrationsSummary` — is on a `Display` whose `displayData` is a
+bare icon, with the tooltip supplying the meaning the glyph does not carry: a `fa-regular
+person` / `fa-regular building` pair switched by Jsonata `Visible` expressions, plus one more.
+None is on a data field, so nothing is added to `FieldProps`; the loader converts a `Tooltip`
+adornment on a display to this prop.
+
+Two things follow from naming it after the a11y concept rather than after the widget. It is
+**redundant on a display that already renders text** — a `<p>` has an accessible name, and an
+implementation is free to ignore the prop there; it is load-bearing only where the content is
+non-textual, which is the icon case and the reason the corpus reached for a tooltip at all.
+And **whether it is also visible is the implementation's call**: MUI may wrap the content in
+its own `Tooltip`, plain HTML may use `title`, and a text display may do nothing. That is what
+keeps the Mast rendering reproducible without a portal-based tooltip — and a provider
+requirement — in the contract. It is also why the prop is a `string` rather than a
+`ReactNode`: an accessible name is text, and anything richer is a tooltip renderer's business.
 
 All of them also resolve `FormProp`s, apply presence, route class slots, and wrap design-mode
 chrome.
@@ -432,12 +445,11 @@ rather than merging stops mattering.
 
 **Every wrapper a boundary adds is unconditional (built).** The provider above, and the
 design-mode chrome, are rendered whether or not they have anything to do — the chrome sits at
-`display: contents` when off. Adding them only when needed looks free and is a **remount**: the
-element at that position changes the instant a lock or design mode toggles, so React discards
-the implementation and builds a new one. Toggling `readOnly` replayed MUI's floating-label
-animation and dropped focus and selection mid-edit. This is the same failure as the hidden
-group in §8 and it has now appeared three times in one build, which is enough to state as a
-rule: **in a form library, a wrapper whose presence depends on state must not be conditional.**
+`display: contents` when off. A wrapper added only when needed is a **remount**: the element at
+that position changes the instant a lock or design mode toggles, React discards the
+implementation, and the input loses focus, selection and animation state mid-edit. The rule:
+**in a form library, a wrapper whose presence depends on state must not be conditional.** The
+hidden group in §8 is the same rule.
 
 **The produced component has to stay generic in the value type (built).** A boundary is built
 for one concrete `T`, but a schema legitimately yields `string`, `string | undefined` or
@@ -484,25 +496,20 @@ because the boundary runs even when nothing renders.
 the array control, so element validity bubbles natively. That is the one case where the data tree
 really is enough.
 
-**Built, and the shortcut was tried and rejected (built).** A scope keeps a set of member
-controls plus a version control so membership changes re-trigger; `isValid(rc)` reads every
-member *without* early-exiting, so all of them stay subscribed; registration runs upward, so
-validity reaches every enclosing scope. `{ scope: true }` is a boundary option, not a renderer
-one — `<Contents>` and `<Section>` in the build are the same implementation with and without it,
-and the implementation sees the result as `invalid` in its render props.
+**Built (built).** A field's boundary attaches its validity-bearing control to the nearest
+scope; a scope attaches itself to *its* parent, so validity reaches every enclosing scope and
+nesting is just another member. `{ scope: true }` is a boundary option, not a renderer one —
+`<Contents>` and `<Section>` in the build are the same implementation with and without it, and
+the implementation sees the result as `invalid` in its render props.
 
 The scope **is** a real `Control` — which is what makes validity an ordinary tracked read,
-`touchAll` a `setTouched` cascade, and nesting just another member — but it took a change in
-core to be safe. Built on the existing `attachFields` it corrupts data: a scope always holds
-both a control and a descendant of it (a collection registers its array, its rows register
-fields inside it), the group's value then carries that datum under two keys, and the downward
-sync writes the pre-write copy back. The symptom was a collection row that silently refused
-input. `@react-typed-forms/core@4.6` does the same, so it is long-standing.
-
-So core gained `createDerivedGroup` — a group whose value is composed from its children and
-never written back down — and `detachFields`, the counterpart `attachFields` never had. The
-composed value stays correct under the aliasing, because both keys update through their own
-upward routes; only the downward half was ever broken. See `CONTROL-SEMANTICS.md` § O.
+`touchAll` a `setTouched` cascade, and nesting just another member — built on core's
+`createDerivedGroup`: a group whose value is composed from its children and **never written
+back down**, with `detachFields` as the counterpart to `attachFields`. Derived is load-bearing,
+not a nicety: a scope always holds both a control and a descendant of it (a collection
+registers its array, its rows register fields inside it), so a group that synced values
+downward would write a stale copy of that datum back into the child. See
+`CONTROL-SEMANTICS.md` § O.
 
 **A stateful container offers two homes for its state, and the author picks (built).** A tab
 strip keeps its active key in component state, which is right. A wizard's page index usually
@@ -525,9 +532,8 @@ is what the surveyed libraries do too: Ant an `items` array, Mantine and Base UI
 components with context, MUI the caller pairing a `Tab` with a panel. The generic group boundary
 stays for containers that need nothing but a box.
 
-Needed in core: a **structural parent link** that aggregates validity/touched/dirty *without*
-value flow. `createControlGroup` composes values through the group, which a validity scope
-never wants.
+That is the structural parent link this design needed from core — validity, touched and
+dirty aggregated *without* value flow — and `createDerivedGroup` is it. Closed.
 
 **From JSON:** `designAs` is not per-implementation — `Dialog → Contents`, `Tabs → all
 stacked`, `Wizard → all pages` holds for every implementation, so it is a framework constant
@@ -681,13 +687,12 @@ own outlined input and takes the label a second time for the notch — directly 
 here the widget *is* the control — and Ant's and Mantine's draw their own surface under
 `surface: "custom"`.
 
-**Five of those props are the build's, and each has exactly one reason:**
+**Six of those props exist for exactly one reason each (built):**
 
-1. **`filled`** — left open above as *whether `filled` can be reported without the frame
-   owning the value*. It cannot. MUI's shrink-and-notch and Mantine's sizing both need it, no
-   frame in the survey ever sees a value, and the caller always knows. `forms-mui` then feeds
-   `InputBase` a placeholder value purely to drive that state: private, contained, and the
-   honest price of family 2.
+1. **`filled`** — MUI's shrink-and-notch and Mantine's sizing both need it, no frame in the
+   survey ever sees a value, and the caller always knows, so the frame is *told*. `forms-mui`
+   then feeds `InputBase` a placeholder value purely to drive that state: private, contained,
+   and the honest price of family 2.
 2. **`id` / `describedBy` on the frame** — `ControlSlotProps` already carried both, which
    only works if the frame is told them. MUI's `OutlinedInput` takes `id` and passes it down itself.
 3. **`disabled` on the shell** — MUI's `FormControl` greys its own label and helper text from
@@ -701,12 +706,10 @@ here the widget *is* the control — and Ant's and Mantine's draw their own surf
    chrome exists as class names. Ant's is `theme.useToken()`, computed per render, so its
    frame has nothing to put in a class. MUI is fine (emotion generates one), as is the HTML
    default.
-6. **`labelPosition`** — see §5. The one predicted to suffer was Ant, since its checkbox wants
-   the label as its own child and a shell cannot reach in there. It barely suffers: a sibling
-   `<label htmlFor>` comes out identical to the native control — same 14px/22px, same
-   `rgba(0,0,0,.88)`, same 16px box and 8px gap — because the label is only text at the body
-   font. What it does lose is the greying Ant applies through a class on its own wrapper, so
-   the shell maps `disabled` to `colorTextDisabled` by hand. A smaller bill than the frame.
+6. **`labelPosition`** — see §5. Ant is the one library whose checkbox wants the label as its
+   own child, and a sibling `<label htmlFor>` comes out visually identical anyway, because the
+   label is only text at the body font; the shell maps `disabled` to `colorTextDisabled` by
+   hand to recover the greying Ant applies through its own wrapper.
 
 **The control slot must reach the frame as a stable component identity.** MUI takes
 `inputComponent`, Mantine takes `component`; both want a *component type*, and an inline one
@@ -791,6 +794,9 @@ component of its own kind.
 interface CollectionProps<T> extends FieldProps<T[]> {
   children: (item: FormField<T>, index: number) => ReactNode;
   empty?: ReactNode;
+  /** The JSX spelling of a `Length` validator; the boundary registers it and derives the bounds. */
+  minLength?: number;
+  maxLength?: number;
 }
 
 /** What the implementation gets. The hard parts are already done. */
@@ -815,53 +821,35 @@ A null array is treated as empty and never materialised to `[]`, which would lea
 and every ancestor permanently dirty.
 
 Mutation is not the renderer's job: `arrayActions(rc, update, field, bounds)` yields
-add/remove/move plus the `Length`-derived bounds, so the buttons can live outside the list and
-a read-only list costs nothing. It takes an `rc` and returns values, so it is not spelled
+add/remove/move plus `canAdd`/`canRemove` from the `minLength`/`maxLength` bounds, so the
+buttons can live outside the list and a read-only list costs nothing. It takes an `rc` and returns values, so it is not spelled
 `use…` — the same rule as `getProp` in §1.
 
-### Why neither `<Show>` nor `<Each>` is here
+### Hiding a region
 
-**There is no `<Show>` (built).** An earlier draft had one: a component that narrowed presence
-to `hidden`, did not mount its children — unrendered children register nothing, which *is*
-validation suppression — and took a `for` field so `clearHidden` could still reach them. Both
-halves fail in JSX.
+**Hiding a region is a chrome-less group with a `hidden` prop — `<Contents hidden={…}>` — whose
+children stay mounted and each clear their own binding (built).** In JSX, children bind
+wherever they like, so the boundary that bound the data is the only thing that knows what to
+clear, and it has to be mounted to do it; the JSON form tree runs parallel to the data tree,
+which is why "clear the subtree" *looked* like one operation there. Mounted is also what an
+exit transition needs (§9's `visibility` slot). Because the wrapper is a boundary rather than a
+special case, it gets the scope and design mode for free.
 
-- **`for` is unsound.** It names *one* field, but children bind wherever they like; nothing
-  ties a component inside the wrapper to the data under `for`. Anything bound elsewhere is
-  silently never cleared, and the symptom is stale data in a submitted payload. Making it a
-  list only moves the problem — the list is a hand-maintained copy of the children's bindings.
-  In JSON this reads as sound because the form tree runs parallel to the data tree, so
-  "clear the subtree" and "clear each node's own field" coincide; JSX breaks that parallelism,
-  and only the second one survives. The boundary that bound the data is the only thing that
-  knows what to clear.
-- **Unmounting cannot animate.** An exit transition needs the subtree mounted while it leaves,
-  which is what §9's `visibility` slot is for.
+**A hidden group hides with CSS, in one unchanging structure (built).** The group implementation
+receives `hidden: boolean` in its render props and applies it as `display: none` on the element
+it was already rendering. Two things force this. Changing the element at that position — bare
+`{children}` when hidden, chrome when shown — **remounts the whole subtree**. And the children
+include **plain JSX** — a button, a paragraph, anything that is not a boundary — which nothing
+suppresses, because self-suppression is a thing only a boundary knows how to do; a hidden
+region would otherwise leak its own "Add" button, operating on data nobody can see. For
+arbitrary non-form JSX, `{cond && …}` still works — it just gets no animation and no scope
+narrowing, which is the right trade for a paragraph of text.
 
-So hiding a region is an ordinary chrome-less group — `<Contents hidden={…}>` — whose children
-stay mounted and each clear their own binding. Nothing is lost at the call site; what changes
-is that the wrapper is a boundary rather than a special case, so it gets the scope and design
-mode for free.
-
-**A hidden group hides with CSS, in one unchanging structure (built).** Two things force this,
-and the build found the second one the hard way — by shipping a visibly broken demo. Rendering
-`{children}` bare when hidden, and the chrome only when rendered, changes the element at that
-position, so React **remounts the whole subtree**. Worse, the children that stay behind include
-**plain JSX** — a button, a paragraph, anything that is not a boundary — and nothing suppresses
-those, because self-suppression is a thing only a boundary knows how to do. A hidden region
-therefore leaked its own "Add" button, which then operated on data nobody could see. So the
-group implementation receives `hidden: boolean` in its render props and applies it as
-`display: none` on the element it was already rendering. For arbitrary non-form JSX, `{cond && …}` still
-works — it just gets no animation and no scope narrowing, which is the right trade for a
-paragraph of text.
-
-**And there is no `<Each>` (built).** It went the same way, for the same reason and with a
-sharper bill, since a collection has more to lose than a region does. As a framework component
-it had no binding of its own, so: a `Length` validator on the array had nowhere to register;
-`clearHidden` never reached the array (only its elements' fields); and `hidden`, the locks,
-design mode and the array-level error message all went missing. `<Elements>` — the chrome-less
-collection, the array analogue of `<Contents>` — replaces it, and the build exercises all
-four: `Length 1–3` publishes *At least 1 required* on the array itself, and hiding the region
-clears the array rather than leaving a stale one behind.
+**A repeated region is a collection boundary — `<Elements>`, the array analogue of
+`<Contents>` (built).** It binds the array, so a `Length` validator has somewhere to register,
+`clearHidden` reaches the array and not only its elements' fields, and `hidden`, the locks,
+design mode and the array-level error message all apply. In the build `Length 1–3` publishes
+*At least 1 required* on the array itself, and hiding the region clears the array.
 
 **From JSON:** a collection control resolves one child per element; that must produce the same
 per-element boundaries rather than a second mechanism.
@@ -909,8 +897,8 @@ mounts it.
 registry slot because a hard `visible ? children : null` cannot animate an exit — the subtree
 has to stay mounted while it leaves. The POC already works this way (`DefaultVisibility` is
 the no-op; `@rx-controls/forms-motion` swaps in `<AnimatePresence>`-backed fade and slide
-versions), and it is why `<Show>` could not survive: a framework component that unmounts its
-children has nothing to hand this slot.
+versions). It is also why a boundary keeps its children mounted while hidden: something that
+unmounts them has nothing to hand this slot.
 
 For a **field** the semantics do not linger with the pixels — a boundary whose presence has
 gone `hidden` has already stopped validating and cleared its field, and the `visibility`
@@ -923,8 +911,8 @@ measured: the collapsing region fires `transitionstart`/`transitionend` on
 `grid-template-rows` and `opacity` over 220ms, and for the whole of that the field inside is
 still on screen, because *its* `visibility` component is holding its last frame.
 
-The two exits compose, and that is why `Presence` needs no fourth cell after all. "Renders but
-does not validate" is precisely what the `visibility` slot already does, for the length of one
+The two exits compose, and that is why `Presence` needs no fourth cell. "Renders but does not
+validate" is precisely what the `visibility` slot already does, for the length of one
 transition, without anyone having to name it as a state. A non-animating `visibility` — the
 default — drops its children at once and the region collapses over an empty box, which is the
 right answer there: nothing was animating to begin with.
@@ -933,9 +921,9 @@ right answer there: nothing was animating to begin with.
 *scriptable*, and the designer edits it off the same declaration. An extension shipping its own
 editor panel would be additional work, not a substitute.
 
-**Unsupported render type:** render a visible placeholder naming it, and report through a
-form-level `onUnsupported` whose default is exactly that. Same path covers a platform with no
-implementation for a key.
+**Unsupported render type:** render a visible placeholder naming it — the loader's
+`onUnsupported`, whose default is exactly that — and report it in the loader's returned
+`warnings` (§10). A platform with no implementation for a key fails the same visible way.
 
 ## 10. Starting a form
 
@@ -962,10 +950,8 @@ function PersonForm({ data, view }: { data: Control<Person>; view: boolean }) {
 so locking a whole form is `<Form readOnly>` rather than a separate provider — which leaves
 `FormEditProvider` with exactly one job, the republication in §6.
 
-An earlier draft did without it, on the grounds that the scope defaults to rendered / enabled /
-editable so a form is just components. That was aesthetics, and it left `clearHidden` homeless:
-it is per-form, not per-app — an edit form and a search form over the same schema disagree
-about it — so there was nowhere legitimate to put it.
+It exists because `clearHidden` is per-form, not per-app — an edit form and a search form over
+the same schema disagree about it — so it needs a per-form home.
 
 `<FormProvider renderers={…}>` still sits at the app root and is about implementation, not
 about any one form. Root validity needs no scope — the root data control already aggregates.
@@ -974,8 +960,18 @@ about any one form. Root validity needs no scope — the root data control alrea
 `ControlDefinition[]` into exactly the JSX above — the same boundaries, the same scope, the
 same registry. Its output composes with hand-written form source in one tree: in the build the
 JSON form is a third tab beside two hand-written ones, bound to the same data control, and
-nothing below the loader can tell which is which. An unsupported control renders a visible
-placeholder naming it.
+nothing below the loader can tell which is which.
+
+**What it could not carry is returned, not logged (built).** `translateForm` yields
+`{ tree, warnings }`; `<JsonForm renderWarnings>` is one thing a host may do with the list, and
+logging it, asserting on it in a fixture or failing a build over a corpus are the others. The
+gaps worth reporting are mostly not unknown control types — those already render a visible
+placeholder. They are features on a control that translated *fine*: an adornment nobody
+claimed, a dynamic property nobody reads, a `renderOptions` that silently fell back to the
+default widget, a validator that is not enforced, a jsonata expression that does not compile.
+Each renders something plausible and drops what the JSON asked for. Whether such a control
+should render at all is open decision 2 in the goals doc; the list is what makes the question
+answerable.
 
 **Translation allocates, and that is the loader's defining hazard.** Every scripted prop costs
 a control and a subscription, where a hand-written form allocates nothing per render. Building
@@ -989,17 +985,18 @@ defeats a memo.
 
 ## Still open
 
-- **Which named props beyond the minimum.** `tooltip` and `optional` are the next candidates,
-  left out on survey evidence (`Tooltip` in one real form, `Optional` in none). Every
-  implementation handles every named prop, so adding one is a contract change.
+- **Which named props beyond the minimum.** `optional` is the next candidate, left out on
+  survey evidence (found in no real form). Every implementation handles every named prop, so
+  adding one is a contract change. (`tooltip` is `DisplayProps.accessibleName`, §6.)
 - **A portal container has not been built.** Everything else in §6's table has: a field, an
   options widget, a collection, a chrome-less group, tabs, a wizard, actions, displays, the
   staged-edit flow and the JSON loader, each in four implementations. A dialog is the one shape
   left, and it is the one design mode's layer 3 is about — a renderer whose content escapes the
-  canvas and can only be selected from the tree. `{ scope: true }` now has
-  a working hand-rolled implementation, which is enough to say what core is missing — a
-  structural parent link aggregating validity without value flow — but not to say what its API
-  should be.
+  canvas and can only be selected from the tree.
+- **A third-party renderer that is not a field.** The build's one external widget, `Stars`, is
+  a `fieldRenderer`. A custom collection is the case most likely to bend the contract — how it
+  reaches `arrayActions` and the staged-edit controller from outside the package has never been
+  exercised.
 - **Whether renderer-specific props are resolved by the boundary or by the implementation.**
   §6 has the boundary do it, which invokes any function-valued prop with an `rc`. Handing them
   through unresolved and letting the implementation call `getProp` in its own window is what

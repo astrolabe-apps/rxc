@@ -84,5 +84,29 @@ export const demoControls: ControlDefinition[] = [
   },
   // Nothing translates this one, so the loader says so on screen.
   { type: "Display", displayData: { type: "Custom" }, title: "Custom" },
+  // Three shapes that render *something* and quietly lose what the JSON asked
+  // for — the failure the warning list exists to catch. The first is the
+  // legacy `Tooltip` adornment on a display, which is decided (it becomes the
+  // display's accessible name) but not built here.
+  {
+    type: "Display",
+    title: "Operator type",
+    displayData: { type: "Text", text: "🧑" },
+    adornments: [{ type: "Tooltip", tooltip: "The operator is a person." }],
+  },
+  {
+    type: "Data",
+    field: "status",
+    title: "Status as radios",
+    renderOptions: { type: "Radio" },
+  },
+  {
+    type: "Data",
+    field: "firstName",
+    title: "Styled name",
+    dynamic: [
+      { type: "Style", expr: { type: "Data", field: "status" } } as never,
+    ],
+  },
   { type: "Action", actionId: "apply", actionText: "Submit" },
 ];

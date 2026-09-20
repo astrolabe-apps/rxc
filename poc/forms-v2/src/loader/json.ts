@@ -36,6 +36,16 @@ export interface ValidatorDef {
   max?: number;
 }
 
+/**
+ * Deliberately open: the real format has six adornment types and hosts add
+ * their own, so a loader meets ones it has never heard of. Nothing here
+ * translates any of them — which is what the warning is for.
+ */
+export interface ControlAdornment {
+  type: string;
+  [k: string]: unknown;
+}
+
 export interface ControlDefinition {
   type: "Data" | "Group" | "Action" | "Display";
   title?: string;
@@ -53,6 +63,7 @@ export interface ControlDefinition {
   groupOptions?: { type: string; [k: string]: unknown };
   validators?: ValidatorDef[];
   dynamic?: DynamicProperty[];
+  adornments?: ControlAdornment[];
   children?: ControlDefinition[];
   /** Action controls only. */
   actionId?: string;

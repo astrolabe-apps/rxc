@@ -1,4 +1,4 @@
-# forms-v2 POC — one field boundary, four implementations
+# forms-v2 POC — the v2 contract, four implementations
 
 Throwaway. A Vite app, and a Rush project — it started outside Rush on plain npm
 and moved in once it needed the workspace's own `@rx-controls/core` rather than
@@ -14,16 +14,21 @@ rushx typecheck
 
 ## What it builds
 
-Three boundaries — `fieldRenderer`, `collectionRenderer` and a minimal
-`groupRenderer` — and the parts of the contract a *field* needs: `FormProp`/`getProp`, `ClassValue`/`mergeClass`,
-`FormField`/`FieldState`, derived `Presence` with the `hidden`/`disabled`/`readOnly`
-props, `<Form>`, `<Contents>`, `<Elements>`, the scope, keyed validators,
-per-boundary `clearHidden`, `arrayActions`, the two structural primitives, the
-`visibility` slot, and the registry.
+All six boundaries — `fieldRenderer`, `collectionRenderer`, `groupRenderer`
+(with and without `{ scope: true }`), `actionRenderer`, `displayRenderer` and
+the options widgets — over the contract: `FormProp`/`getProp`,
+`ClassValue`/`mergeClass`, `FormField`/`FieldState`, derived `Presence` with
+the `hidden`/`disabled`/`readOnly` props, `<Form>`, `<Contents>`, `<Elements>`,
+the validation scope on core's `createDerivedGroup`, keyed validators,
+per-boundary `clearHidden`, `arrayActions`, `useAction` + `StandardActionIds`,
+the two structural primitives, the `visibility` slot, and the registry. On top
+of that: a tab container, a wizard, the staged-edit modal, and a JSON loader
+that returns what it could not translate.
 
 | | |
 |---|---|
-| `src/framework/` | the contract (§1–§9 of the doc, field-shaped subset) |
+| `src/framework/` | the contract (§1–§10 of the doc) |
+| `src/loader/` | the JSON loader — translators, expressions, `translateForm`, `<JsonForm>` |
 | `src/impls/html.tsx` | family 1 — children-hosting, class-driven (Bootstrap / shadcn shaped) |
 | `src/impls/mui.tsx` | family 2, hardest case — self-rendering input, notched outline |
 | `src/impls/antd.tsx` | family 2 — `Form.Item` standalone, runtime theme tokens |
@@ -31,9 +36,9 @@ per-boundary `clearHidden`, `arrayActions`, the two structural primitives, the
 | `src/widgets/Stars.tsx` | a **third-party** widget: no UI library, own surface, `fieldRenderer(MyImpl)` |
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
-Not built, and not pretended: real group renderers (only chrome-less
-`<Contents>`), actions, display, the staged-edit controller, async validators,
-the JSON loader, design-mode substitution, Base UI.
+Not built, and not pretended: a portal container (dialog), design-mode
+substitution, Base UI, a third-party renderer of any kind but a field, and
+an icon display (so `accessibleName` is decided but unexercised).
 
 ## What held up
 
@@ -315,12 +320,14 @@ Numbered; each is cited at the matching line of code.
     clears while the tab is still off screen. Measured in all four
     implementations.
 
-    The validation scope behind it is hand-rolled, because core has no
-    primitive for "is anything under me invalid" — a set of member controls, a
-    version control so membership changes re-trigger, registration running
-    upward from each field to every enclosing scope, and no early exit in the
-    aggregate so every member stays subscribed. `createControlGroup` is not it:
-    it composes *values* through the parent, which a validity scope never wants.
+    The validation scope behind it was hand-rolled at this point — a set of
+    member controls, a version control so membership changes re-trigger,
+    registration running upward from each field to every enclosing scope, and
+    no early exit in the aggregate so every member stays subscribed — because
+    core had no primitive for "is anything under me invalid", and
+    `createControlGroup` composes *values* through the parent, which a validity
+    scope never wants. Superseded by finding 37, which put it on a core
+    primitive.
 
 24. **A container with per-child metadata cannot take `children`.** Tabs need
     titles and `ReactNode` is opaque, so `TabsProps` takes
@@ -515,10 +522,40 @@ Numbered; each is cited at the matching line of code.
     in its render props and can draw it however it likes (the demo shows a red
     bar on the pets section, which clears the moment the row inside is named).
 
+39. **The loader's silence was worse than its gaps, and the gaps were mostly
+    not unknown control types.** The obvious failure — a control nothing
+    translates — was already visible on screen as a placeholder. The four that
+    were not are features *on a control that translated fine*: an adornment
+    nobody claimed, a dynamic property nobody reads, a
+    `renderOptions`/`groupOptions` discriminator that silently falls back to
+    the default widget, and a validator that is simply not enforced. Each of
+    those renders something plausible and quietly drops what the JSON asked
+    for. A `Radio` render option becoming a `<select>` is the shape of it: the
+    form works, and nothing anywhere says the author did not get what they
+    wrote.
+
+    They are **returned, not logged** — `translateForm` hands back
+    `{ tree, warnings }`. Open decision 2 calls this a policy question, so the
+    loader's job is to find the gaps and the host's is to decide what they
+    mean; a `console.warn` forecloses that (invisible in production,
+    unavailable to a test, impossible for a designer to render beside the
+    control it is about).
+
+    One thing had to change for the fifth kind to be reportable at all. A
+    jsonata expression is compiled by *building the prop*, and the loader built
+    `Visible` and `Label` props inside the read closure — so a compile failure
+    happened at first render, after the warning list had been handed over, and
+    on a jsonata arm the `ensureMetaValue` cache meant it happened exactly
+    once, wherever that first read landed. Hoisting the prop out of the closure
+    puts the failure at translate time, and is what a sync expression wanted
+    anyway: one stable closure instead of a fresh one per read.
+
 ## Things the POC deliberately does not answer
 
-`<Each>` and array actions; whether a group boundary's `{ scope: true }`
-validity aggregation needs the structural parent link core doesn't have; how a
-translator reaches any of this; and whether Base UI (family 3, the shape the
-primitives are modelled on) confirms or embarrasses them. §7 names the
-collection case as the likeliest to force a change, and nothing here touched it.
+A portal container — the one §6 shape never built, and the one design mode's
+layer 3 is about; design-mode substitution (`Dialog → Contents`, `Tabs → all
+stacked`); whether Base UI (family 3, the shape the primitives are modelled on)
+confirms or embarrasses them; and whether a *third-party* group, collection or
+action renderer can be written against the contract the way `Stars` was for a
+field — the collection case, reaching `arrayActions` and the staged-edit
+controller from outside the package, is the likeliest to force a change.

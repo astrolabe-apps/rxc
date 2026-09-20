@@ -38,10 +38,19 @@ function isEmpty(v: unknown): boolean {
  *   `FormProp<T>` already allows. Without the control arm of that union, async
  *   expressions would need a second mechanism.
  */
+/**
+ * Reported back to the loader rather than logged. Only a *compile* failure can
+ * be — it happens while the expression is being turned into a prop, which is
+ * translate time. An evaluation that throws later does so asynchronously, long
+ * after the warning list has been handed over, and stays a silent `false`.
+ */
+export type ExprWarn = (detail: string) => void;
+
 export function toFormProp(
   ctx: ControlContext,
   data: Control<unknown>,
   expr: EntityExpression,
+  warn?: ExprWarn,
 ): FormProp<boolean> {
   switch (expr.type) {
     case "Data":
@@ -52,7 +61,7 @@ export function toFormProp(
     case "DataMatch":
       return (rc) => rc.getValue(child(data, expr.field)) === expr.value;
     case "Jsonata":
-      return jsonataProp(ctx, data, expr.expression);
+      return jsonataProp(ctx, data, expr.expression, warn);
   }
 }
 
@@ -70,6 +79,7 @@ function jsonataProp(
   ctx: ControlContext,
   data: Control<unknown>,
   expression: string,
+  warn?: ExprWarn,
 ): Control<boolean> {
   return ensureMetaValue<Control<boolean>>(
     data,
@@ -79,7 +89,8 @@ function jsonataProp(
       let expr: ReturnType<typeof jsonata> | undefined;
       try {
         expr = jsonata(expression);
-      } catch {
+      } catch (e) {
+        warn?.(`jsonata expression does not compile: ${expression} (${e})`);
         return result;
       }
       const run = () =>
@@ -99,6 +110,7 @@ export function toValueProp(
   ctx: ControlContext,
   data: Control<unknown>,
   expr: EntityExpression,
+  warn?: ExprWarn,
 ): FormProp<unknown> {
   switch (expr.type) {
     case "Data":
@@ -112,7 +124,10 @@ export function toValueProp(
           let compiled: ReturnType<typeof jsonata> | undefined;
           try {
             compiled = jsonata(expr.expression);
-          } catch {
+          } catch (e) {
+            warn?.(
+              `jsonata expression does not compile: ${expr.expression} (${e})`,
+            );
             return result;
           }
           const run = () =>
@@ -126,6 +141,7 @@ export function toValueProp(
         },
       );
     default:
-      return (rc: ReadContext) => !!getProp(rc, toFormProp(ctx, data, expr));
+      return (rc: ReadContext) =>
+        !!getProp(rc, toFormProp(ctx, data, expr, warn));
   }
 }

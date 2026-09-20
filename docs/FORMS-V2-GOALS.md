@@ -7,7 +7,9 @@ in production, and the parity reference wherever this doc says "identical semant
 POC* = `@rx-controls/forms` and siblings in this repo — a proof of concept that v2 replaces,
 owed nothing. Neither is "v1".
 
-Key interfaces: [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md).
+Key interfaces: [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md). *The build* =
+`poc/forms-v2`, the throwaway that put the interfaces in front of four UI libraries; anything
+marked **(built)** below is something it settled, and its README has the long form.
 
 **JSX first.** A form is React. JSON is an input format that loads onto the same surface —
 downstream of the design, not alongside it. No renderer knows JSON exists. This is the
@@ -22,7 +24,7 @@ inversion of how forms work today, and the goals below are ordered by it: 1–3 
    for an author writing them by hand, not to be a superset of `ControlDefinition`.
 
 2. **Props are reactive by default.** Every prop a form component takes is a
-   `FormProp<T> = T | ((rc, ctx) => T) | Control<T>`: a literal, a reactive derivation, or a
+   `FormProp<T> = T | ((rc) => T) | Control<T>`: a literal, a reactive derivation, or a
    control to bind to. Making one prop dynamic never means restructuring the component tree
    around it, and it is the same mechanism for `label`, `disabled`, `options` and
    `className`. See *Settled structure*, below.
@@ -87,35 +89,73 @@ Nothing below is settled. In rough order of how much else depends on it:
    all eight have a shell and seven have a frame, so neither is our invention. Two things the
    survey changed — the control reaches the frame through a **render prop**, not children
    (four of the eight frames render their own input and accept no arbitrary child), and
-   `focused`/`filled` are frame state rather than field state. Derived from published APIs,
-   not from a build; what stayed open is listed there.
+   `focused`/`filled` are frame state rather than field state. Derived from published APIs
+   and then built four times over (built); what stayed open is listed there.
 
-   `Layout` does **not** survive, and not as one thing either. Its job splits: the
-   label/help/error chrome becomes `FieldShell`, and the editable surface becomes
-   `InputFrame` — a piece legacy never had, because the border sat on the `<input>` and
-   `controlStart`/`controlEnd` were flat siblings beside it, so nothing owned the box. Both
-   land in `forms-html` as that package's API, versioned with it. The compare app already
-   replaces `HtmlLayout` wholesale, which is evidence it was never framework-shaped.
+   The two are what legacy's single `Layout` slot splits into: the label/help/error chrome is
+   `FieldShell`, and the editable surface is `InputFrame` — a piece legacy never had, because
+   the border sat on the `<input>` and `controlStart`/`controlEnd` were flat siblings beside
+   it, so nothing owned the box. Both land in `forms-html` as that package's API, versioned
+   with it.
 
    `required` must be a flag, never baked into the label string: MUI renders its own asterisk
    from `<FormControl required>`, so a pre-asterisked label doubles up. Chakra and Mantine
    each ship a dedicated required indicator too — it is the universal shape, not an MUI quirk.
 
-   **Only tested against a data renderer.** The contract above was checked end to end against
-   a custom field widget. A group renderer (children resolution), a collection renderer (array
-   actions, and how a custom one would reach the staged-edit controller) and an action renderer
-   have not been walked, and the collection case is the likeliest to force a change.
+   **The third-party path is only tested for a field.** The built-in group, collection, action
+   and display renderers exist in four implementations (built), so the boundaries themselves
+   have been walked. What has not is a renderer written from *outside* the package for any of
+   them — the build's one external widget, `Stars`, is a field. A custom collection renderer
+   is the likeliest to force a change: how it reaches array actions and the staged-edit
+   controller has never been exercised through the contract.
 
    Still open: **which named props are in the set.** Proposed minimum —
-   `field, id, label, required, helpText, startIcon, endIcon` + the four class slots. `tooltip`
-   and `optional` are the next candidates and are left out for now: the survey found `Tooltip`
-   in one real form and `Optional` in none, so both can be wrappers until something asks. Every
-   implementation handles every named prop and adding one is a contract change, so the set
-   starts small.
+   `field, id, label, required, helpText, startIcon, endIcon` + the four class slots.
+   `optional` is the next candidate and is left out for now — the survey found it in no real
+   form, so it can be a wrapper until something asks. Every implementation handles every named
+   prop and adding one is a contract change, so the set starts small.
+
+   **`tooltip` is decided, and it is not a field prop.** Reading the three real uses settled
+   it: all are on `Display` controls in `MastRegistrationsSummary` whose `displayData` is a
+   bare icon — a `fa-regular person` / `fa-regular building` pair switched by Jsonata `Visible`
+   expressions, plus one more — with the tooltip supplying the meaning the glyph does not
+   carry. None is on a data field. (The fourth use the survey counted is the `AllControls`
+   demo, which exists to exercise the renderer.) So the corpus is not asking for tooltips on
+   fields; it is asking for an **accessible name on a display**, and that is where it goes:
+   `DisplayProps.accessibleName`, with the loader converting a `Tooltip` adornment on a display
+   to it. Whether an implementation also surfaces it visibly — MUI's `Tooltip`, a `title`
+   attribute, nothing — is the implementation's call, which reproduces the Mast rendering
+   without putting a portal-based tooltip, or its provider, in the contract. Details in
+   [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md) §6.
 
 2. **What does the loader do with JSON it cannot translate?** Goal 6 makes this a policy
    question rather than an architectural one — fail loudly, render a placeholder, or refuse
    to load. It also bounds what the designer (goal 7) can offer.
+
+   **Provisionally: it returns the gaps and lets the host decide (built).** The loader's job
+   is to *find* what it could not carry; choosing what that means is the host's, which is what
+   makes it a policy question in the first place. `translateForm` returns
+   `{ tree, warnings }` and `<JsonForm renderWarnings>` is one thing a host may do with the
+   list — it can equally log it, assert on it in a fixture, or fail a build over a form
+   corpus. A `console.warn` would have foreclosed all of those: invisible in production,
+   unavailable to a test, and impossible for a designer to put next to the control it is
+   about.
+
+   What this does *not* settle is whether an untranslatable control should still render. It
+   does today — a placeholder for a control no translator matched, and the default widget for
+   a `renderOptions` nobody understood — which is the more dangerous half, because the form
+   looks fine. The warning is what makes that visible; whether "visible" is enough is the part
+   still open.
+
+   The gaps worth reporting turned out not to be mostly unknown *control types*. Four of the
+   five are features on a control that translated fine: an adornment nobody claimed, a dynamic
+   property nobody reads, a `renderOptions`/`groupOptions` discriminator that silently falls
+   back to the default widget, and a validator that is simply not enforced. Those render
+   without complaint and lose behaviour the JSON asked for, which is the failure mode that is
+   easy to ship. A jsonata expression that does not compile is the fifth, and it only lands in
+   the list because building the prop is what compiles it — the loader had to stop rebuilding
+   props inside its read closures for the failure to happen at translate time rather than at
+   first render.
 
    It will **not** be narrowed by dropping unused parts of the format. A usage survey across
    80 forms (see *Format-usage survey* in `CLAUDE.md`) found exactly seven unused members
@@ -217,14 +257,14 @@ stating plainly, because it is the largest cost any goal in this document impose
 
 It also makes a **third implementation the only real test of the contract.** Building
 `forms-html` and `forms-native` alone produces something accidentally shaped like "DOM, plus
-RN"; sketching `forms-mui` early is what finds the leaks. The walkthrough is a first pass at
-exactly that.
+RN"; building `forms-mui` early is what finds the leaks — which is why the build did MUI first.
 
-Reading eight libraries' published APIs is the cheap half of it and is done (§7). It already
-found two leaks — a frame that takes `children` cannot express half the field, and MUI needs
-the label text a second time to cut the notch in its own border. It is not a substitute for
-the real thing: nothing has been compiled against a design system yet, and the two shapes most
-likely to move are named there.
+Reading eight libraries' published APIs was the cheap half of it (§7). It found two leaks — a
+frame that takes `children` cannot express half the field, and MUI needs the label text a
+second time to cut the notch in its own border. The build then compiled the contract against
+MUI, Ant and Mantine (built), and the two shapes the survey flagged as likeliest to move were
+exactly the two that did: the MUI shell→frame private channel held as predicted, and `filled`
+turned out to need telling. §7 carries what changed.
 
 Legacy reached the same conclusion from the other direction: `HtmlComponents` grew unwieldy
 and is now marked *"@deprecated: Just use normal html / react-native tags"*
@@ -233,7 +273,7 @@ implementations. Its own list had already sprung a leak — `CheckButtons` sits 
 and is not an element, because a radio/checkbox group could not be expressed as div-plus-class.
 So element-level did not hold even for goal 4 alone.
 
-Two consequences: **NativeWind stops being a prerequisite** (see open decision 5 — it is now an
+Two consequences: **NativeWind stops being a prerequisite** (see open decision 6 — it is now an
 internal question for two packages, not an architectural fork), and **platform-specific
 degradation is normal rather than exceptional**. `Grid` is the worked example: the RN renderer
 chunks children into rows of N and gives each cell `flex-1` or a per-column class
@@ -266,21 +306,18 @@ sees the word:
 |---|---|
 | `HelpText` | a `helpText` prop |
 | `Icon` | a `startIcon` / `endIcon` prop |
-| `Tooltip` | a `tooltip` prop |
+| `Tooltip` | `accessibleName` on the display it sits on — every real use is on an icon display; see open decision 1 |
 | `Optional` | an `optional` prop |
 | `Accordion` | a `<Accordion>` wrapper the loader emits |
 | `SetField` | a computed-write registration — see *Settled structure* |
 
-This is what makes the MUI walkthrough come out clean: there is no opaque array to split
+This is what makes the MUI implementation come out clean: there is no opaque array to split
 between shell and input, only ordinary props the renderer routes — `helpText` to the shell,
 `startIcon` to the `InputFrame`.
 
-**A lot of machinery goes with it.** `AdornmentKind` (`label` / `control` / `field`),
-priority-ordered `wrapAdornments`, `indexAdornments`, the whole wrap order — all of it exists
-only because the framework owned composition and had to decide where in the nesting each
-adornment landed. Once the renderer owns the whole field, "label adornment vs control
-adornment" means nothing. What remains is loader-internal: does this translate to a prop, or
-to a wrapper?
+Once the renderer owns the whole field, "label adornment vs control adornment" means
+nothing — the framework no longer decides where in the nesting anything lands. What remains
+is loader-internal: does this translate to a prop, or to a wrapper?
 
 **What is lost** is adornments as an *open* extension mechanism — a custom decoration
 applicable to any control. Two reasons that is acceptable: the survey found exactly one
@@ -295,8 +332,7 @@ every prop, and adding one is a contract change, where an open array absorbed ne
 free. It is the same bargain goal 4 already strikes: the set need only cover what *built-in*
 renderers need, and anything past it is a platform-specific renderer.
 
-**Two kinds of extension, and they are not the same thing.** Conflating them is what made
-the registry question look hard:
+**Two kinds of extension, and they are not the same thing:**
 
 1. **Renderers** — components that know the library's vocabulary (`FormProp`, the scope
    context, the field binding, the shared controllers). A renderer is an ordinary component:
@@ -402,11 +438,10 @@ as live reactive values, since the designer edits them in place (the `trackedVal
 adaptation listed under "Open for redesign" in `CLAUDE.md`).
 
 **From goal 3's split between hidden and not-rendered:** the cascade carries three states,
-not a boolean — and one of them falls out for free. In JSX, a `<Show>` that declines to
-render its children means those children register no validators at all, which *is*
-validation suppression. So `<Show>` needs to name its subtree only for `clearHidden` and the
-disabled→data write, which is a much weaker justification for the prop than the JSON cascade
-gave it. Worth re-testing before the prop is committed to.
+not a boolean. Hiding a region is an ordinary chrome-less group with a `hidden` prop whose
+children stay **mounted** and each clear their own binding (built) — in JSX, children bind
+wherever they like, so the boundary that bound the data is the only thing that knows what to
+clear, and it has to be there to do it. Interfaces §8.
 
 **Embedding a JSON section inside a JSX form is not a goal.** It looks achievable and may well
 happen, but nothing requires it, so nothing is designed for it. The cost it would carry is
@@ -435,15 +470,18 @@ in.
 Decided, and the input to the interfaces doc. Reasoning is in the conversation, not repeated
 here.
 
-- **Two handles.** `FormField<T>` = `{ control, schema, state(rc) }` — the binding, knows
-  nothing of `ControlDefinition`. `FormNode extends FormField<unknown>` adds `definition`,
-  `children(rc)` and `at<T>(path)`; only the loader produces these.
-- **`FormStateNode` does not survive.** Three trees become two — definition and data — plus a
-  thin residual (below). Children resolution goes to the loader's recursion, data-node
+- **Two handles.** `FormField<T>` = `{ control, state(rc), $ }` — a scoped control handle
+  that knows nothing of `ControlDefinition` **or `SchemaField`** (built: the only thing this
+  layer ever read off a schema was a default label, and a label is a prop). `FormNode extends
+  FormField<unknown>` adds `definition`, `children(rc)` and `at<T>(path)`; only the loader
+  produces these.
+- **Two trees, not three** — definition and data — plus a thin residual (below); there is no
+  `FormStateNode`. Children resolution goes to the loader's recursion, data-node
   resolution to the cursor, scripted overrides to `FormProp`s resolved at translation.
-- **The cascade is React context**, holding `Control<Presence>` / `Control<boolean>` rather
-  than plain values, so an ancestor toggle re-renders only the leaves that read it. Each
-  `<Show>` / `<Disabled>` provides a scope derived from its parent's.
+- **The cascade is React context**, holding rc-resolvers rather than plain values, so a facet
+  driven by form data reaches the leaves that read it as an ordinary control write with no
+  provider re-rendering. Every boundary with a `hidden` / `disabled` / `readOnly` prop
+  provides a scope narrowed from its parent's (built — interfaces §4, §8).
 - **Three presence states**, not a boolean:
 
   | state | renders | validates | `clearHidden` |
@@ -464,9 +502,11 @@ here.
   that owns the subtree, which is the only reason that needs to name one.
 - **Validity needs a thin residual tree.** The data tree is not enough — non-data groups,
   per-control validators, per-node gating, array-level errors. The residual is *a control, a
-  parent link, and its validators*; core's `createControlGroup` / `attachFields` already
-  aggregate validity across independently-owned controls.
-- **`FormProp<T> = T | ((rc, ctx) => T) | Control<T>`.** Read-only: the value binding stays a
+  parent link, and its validators*, opt-in per group as `{ scope: true }`, built on core's
+  `createDerivedGroup` / `detachFields` (built). Derived rather than a plain group because a
+  scope always holds both a control and a descendant of it, so a group that wrote values
+  back down would write stale data.
+- **`FormProp<T> = T | ((rc) => T) | Control<T>`.** Read-only: the value binding stays a
   `FormField`. Resolve with one helper in the *consuming* renderer's tracking window. Check
   `Control` first, then `typeof === "function"`; `FormProp<SomeFn>` is unsupported.
 - **Two structural primitives, plus a layout box.** `FieldShell` (label / required / help /
