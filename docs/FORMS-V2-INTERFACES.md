@@ -208,13 +208,16 @@ build had to get right for that, each a constraint on any container that sets `s
   nothing, so this forces each library's keep-mounted escape hatch on: Ant's `forceRender`,
   Mantine's `keepMounted`, and MUI, which leaves panel rendering to the caller anyway. A
   container that mounts lazily is not implementing `silent`.
-- **Nothing may tear down the effects.** Mantine hides kept-mounted panels with React's
-  `<Activity>` by default, which preserves the DOM and **destroys effects** — and `silent` lives
-  in effects: validator registration, validation-scope attachment, `clearHidden`. The symptom is
-  an inactive tab that quietly stops reporting its errors while looking perfectly healthy
-  (`keepMountedMode="display-none"` fixes it). The general point is sharper than §6's rule about
-  conditional wrappers: React is standardising an API whose purpose is to hide UI *by*
-  unmounting its effects, and a form's semantics cannot live anywhere it can reach.
+- **Nothing may tear down the effects — so never `<Activity>` (decided).** `silent` lives in
+  effects: validator registration, validation-scope attachment, `clearHidden`. React's
+  `<Activity mode="hidden">` preserves the DOM and **destroys effects**, which is the opposite
+  answer to the same question, so the two are incompatible by construction. The rule: a
+  container that keeps panels mounted hides them with `display:none` (Mantine's
+  `keepMountedMode="display-none"` — its default wraps them in `<Activity>`), and a form
+  region a host places under `<Activity>` stops validating and is unsupported. A dev-mode guard
+  is feasible and is an implementation follow-up: in a boundary's effect cleanup, a genuine
+  unmount has already removed the DOM node while an `<Activity>` hide leaves it connected, so
+  `ref.current?.isConnected` while presence is still `rendered` / `silent` names the misuse.
 - **The panel hides itself.** Boundaries suppress themselves under `silent`; plain JSX among
   them does not — the same leak as a hidden group in §8, and the same fix.
 
@@ -828,12 +831,15 @@ buttons can live outside the list and a read-only list costs nothing. It takes a
 ### Hiding a region
 
 **Hiding a region is a chrome-less group with a `hidden` prop — `<Contents hidden={…}>` — whose
-children stay mounted and each clear their own binding (built).** In JSX, children bind
-wherever they like, so the boundary that bound the data is the only thing that knows what to
-clear, and it has to be mounted to do it; the JSON form tree runs parallel to the data tree,
-which is why "clear the subtree" *looked* like one operation there. Mounted is also what an
-exit transition needs (§9's `visibility` slot). Because the wrapper is a boundary rather than a
-special case, it gets the scope and design mode for free.
+children stay mounted and each clear their own binding (built).** The mounted requirement is
+§4's — `silent` needs live effects — and `hidden` inherits it. What it buys `hidden` is the
+**trigger**: the clear is a `useEffect` on a presence transition, never an unmount cleanup,
+which fires for StrictMode, HMR, a re-keyed parent and a route change — none of which mean
+"drop this value". Each boundary clears its own binding because in JSX children bind wherever
+they like, so nothing else knows what to clear; the JSON form tree runs parallel to the data
+tree, which is why "clear the subtree" *looked* like one operation there. Mounted is also what
+an exit transition needs (§9's `visibility` slot). Because the wrapper is a boundary rather than
+a special case, it gets the scope and design mode for free.
 
 **A hidden group hides with CSS, in one unchanging structure (built).** The group implementation
 receives `hidden: boolean` in its render props and applies it as `display: none` on the element
@@ -985,9 +991,6 @@ defeats a memo.
 
 ## Still open
 
-- **Which named props beyond the minimum.** `optional` is the next candidate, left out on
-  survey evidence (found in no real form). Every implementation handles every named prop, so
-  adding one is a contract change. (`tooltip` is `DisplayProps.accessibleName`, §6.)
 - **A portal container has not been built.** Everything else in §6's table has: a field, an
   options widget, a collection, a chrome-less group, tabs, a wizard, actions, displays, the
   staged-edit flow and the JSON loader, each in four implementations. A dialog is the one shape

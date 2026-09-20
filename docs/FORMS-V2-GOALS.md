@@ -109,11 +109,11 @@ Nothing below is settled. In rough order of how much else depends on it:
    is the likeliest to force a change: how it reaches array actions and the staged-edit
    controller has never been exercised through the contract.
 
-   Still open: **which named props are in the set.** Proposed minimum —
-   `field, id, label, required, helpText, startIcon, endIcon` + the four class slots.
-   `optional` is the next candidate and is left out for now — the survey found it in no real
-   form, so it can be a wrapper until something asks. Every implementation handles every named
-   prop and adding one is a contract change, so the set starts small.
+   **The named-prop set is the minimum, decided:** `field, id, label, required, helpText,
+   startIcon, endIcon` + the four class slots. `optional` is out — the survey found it in no
+   real form, so it is a wrapper until something asks. Every implementation handles every
+   named prop and adding one is a contract change, so the set starts small and grows only on
+   evidence.
 
    **`tooltip` is decided, and it is not a field prop.** Reading the three real uses settled
    it: all are on `Display` controls in `MastRegistrationsSummary` whose `displayData` is a
@@ -128,41 +128,38 @@ Nothing below is settled. In rough order of how much else depends on it:
    without putting a portal-based tooltip, or its provider, in the contract. Details in
    [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md) §6.
 
-2. **What does the loader do with JSON it cannot translate?** Goal 6 makes this a policy
-   question rather than an architectural one — fail loudly, render a placeholder, or refuse
-   to load. It also bounds what the designer (goal 7) can offer.
+2. **What does the loader do with JSON it cannot translate? Decided: it renders anyway, and
+   returns the gaps (built).** A control no translator matched renders a visible placeholder;
+   a feature no translator claimed — an adornment, a dynamic property, a `renderOptions`
+   discriminator, a validator, an expression that does not compile — renders the default and
+   is reported. `translateForm` returns `{ tree, warnings }`; `<JsonForm renderWarnings>` is
+   one thing a host does with the list, and logging it, asserting on it in a fixture or
+   failing a build over a corpus are the others. Rendering anyway is what the designer's
+   preview needs — a form with one unknown widget is still worth looking at — and returning
+   rather than logging is what makes every other policy possible: a `console.warn` is
+   invisible in production, unavailable to a test, and impossible to put beside the control
+   it is about.
 
-   **Provisionally: it returns the gaps and lets the host decide (built).** The loader's job
-   is to *find* what it could not carry; choosing what that means is the host's, which is what
-   makes it a policy question in the first place. `translateForm` returns
-   `{ tree, warnings }` and `<JsonForm renderWarnings>` is one thing a host may do with the
-   list — it can equally log it, assert on it in a fixture, or fail a build over a form
-   corpus. A `console.warn` would have foreclosed all of those: invisible in production,
-   unavailable to a test, and impossible for a designer to put next to the control it is
-   about.
+   **The target the list exists to serve: the existing forms corpus translates with zero
+   warnings.** That is goal 6's "identical semantics to legacy" made checkable — a run of
+   `translateForm` over every production form definition, asserting an empty list, is the
+   acceptance test for the loader and the burndown for building it. Until it is empty, the
+   warnings are the work list; once it is, they are the regression guard. A `strict` option
+   that throws on any warning is how that check runs in CI, and is the only other policy the
+   library itself ships.
 
-   What this does *not* settle is whether an untranslatable control should still render. It
-   does today — a placeholder for a control no translator matched, and the default widget for
-   a `renderOptions` nobody understood — which is the more dangerous half, because the form
-   looks fine. The warning is what makes that visible; whether "visible" is enough is the part
-   still open.
+   The gaps that matter are mostly not unknown *control types* — those were always visible.
+   They are features on a control that translated fine and then silently lost behaviour the
+   JSON asked for, which is the failure mode that is easy to ship. A jsonata compile failure
+   is reportable only because building the prop is what compiles it, so the loader builds
+   props at translate time rather than inside its read closures.
 
-   The gaps worth reporting turned out not to be mostly unknown *control types*. Four of the
-   five are features on a control that translated fine: an adornment nobody claimed, a dynamic
-   property nobody reads, a `renderOptions`/`groupOptions` discriminator that silently falls
-   back to the default widget, and a validator that is simply not enforced. Those render
-   without complaint and lose behaviour the JSON asked for, which is the failure mode that is
-   easy to ship. A jsonata expression that does not compile is the fifth, and it only lands in
-   the list because building the prop is what compiles it — the loader had to stop rebuilding
-   props inside its read closures for the failure to happen at translate time rather than at
-   first render.
-
-   It will **not** be narrowed by dropping unused parts of the format. A usage survey across
-   80 forms (see *Format-usage survey* in `CLAUDE.md`) found exactly seven unused members
-   across the four format enums — `SetField`, `Optional`, `UUID`, `Not`, `DefaultValue`,
-   `Readonly`, `Style` — and all seven are already implemented, so dropping them saves
-   nothing. A loader aimed at the legacy corpus carries essentially the whole format,
-   Jsonata included (418 uses across 40 of 80 forms).
+   The corpus will **not** be narrowed by dropping unused parts of the format. A usage survey
+   across 80 forms (see *Format-usage survey* in `CLAUDE.md`) found exactly seven unused
+   members across the four format enums — `SetField`, `Optional`, `UUID`, `Not`,
+   `DefaultValue`, `Readonly`, `Style` — and all seven are already implemented, so dropping
+   them saves nothing. A loader aimed at the legacy corpus carries essentially the whole
+   format, Jsonata included (418 uses across 40 of 80 forms).
 3. **Design mode and portals.** A dialog renderer's content escapes the selection wrapper —
    and legacy does not solve this. Its editor **forks the render pipeline**:
    `FormControlPreview` re-implements `renderControlLayout`, renders adornments itself, injects
@@ -212,10 +209,11 @@ Nothing below is settled. In rough order of how much else depends on it:
    Left open, and `forms-html`'s business rather than the contract's: whether to merge with
    `tailwind-merge` so an appended class actually wins. Authors currently force it with `!`
    prefixes — `!text-accent` alone appears 171 times.
-5. **Does the JSX path need the deferred async queue?** The JSON path's jsonata resolution
-   needs `runAsync` deferred to a commit effect or SSR and first hydration disagree (the POC
-   hit this with a `Display`-typed script). A JSX form has no async expressions — so does it
-   avoid the problem entirely, or does an embedded JSON section drag it back in?
+5. **Does the JSX path need the deferred async queue? Decided: no.** The JSON path's jsonata
+   resolution needs `runAsync` deferred to a commit effect or SSR and first hydration disagree
+   (the POC hit this with a `Display`-typed script). A JSX form has no async expressions, and
+   embedding a JSON section in a JSX form is a stated non-goal, so the loader owns the queue
+   and hand-written forms never touch it.
 6. **Do `forms-html` and `forms-native` share renderer source, or just a contract?** A
    semantic contract means each implementation writes its own renderers, so this is no longer
    an architectural fork — it is whether those two particular packages can share source by
@@ -496,6 +494,12 @@ here.
 - **`silent` lives in the dispatch layer**, so no renderer implements it: a leaf runs its
   hooks, registers, and returns `null`; a container returns `<>{children}</>` instead of
   calling the group implementation.
+- **Containers keep every panel mounted and hide with `display:none` — never `<Activity>`.**
+  `silent` lives in effects and `<Activity mode="hidden">` destroys them, so the two are
+  incompatible by construction: a form region under `<Activity>` stops validating, and that is
+  unsupported rather than a bug. A dev-mode guard is feasible — in a boundary's effect cleanup
+  a genuine unmount has already removed the DOM node, an `<Activity>` hide leaves it connected
+  — and is an implementation follow-up, not a contract question.
 - **Field semantics register above the renderer boundary** — validators, `defaultValue`,
   disabled→data, computed writes. Never inside an implementation, or `silent` drops them and a
   third-party renderer could too. `clearHidden` is the exception: it belongs to the `<Show>`
@@ -537,19 +541,19 @@ here.
 
 A form imports from `forms-react` and nothing else.
 
-## Assumed, not stated — confirm or cut
+## Decided boundaries
+
+Confirmed, not assumed. Two limits on what v2 is, two things it does not owe.
 
 - **JSX forms need no round-trip to JSON.** They are not editable in the designer. The
-  alternative — compiling a restricted JSX subset back to JSON — is a much larger project.
+  alternative — compiling a restricted JSX subset back to JSON — is a much larger project and
+  nothing in the goals asks for it.
 - **The designer stays on JSON.** Goal 1 making JSX primary does not make the designer
   produce JSX; it produces the same JSON it always did, and goal 6 is what makes that render.
-
-## Explicit non-goals — confirm
-
-- **Migration path from `@rx-controls/forms`.** The existing renderer set is a **proof of
+- **No migration path from `@rx-controls/forms`.** The existing renderer set is a **proof of
   concept** — built to find out what a schema-driven renderer set needs, not to be shipped.
   v2 is a clean break that replaces it, and nothing is owed to its API, its feature coverage
   or its behaviour. Where this doc cites the current implementation, it is as **evidence about
   what a form needs**, never as a contract to preserve.
-- **Legacy `@react-typed-forms/schemas` compatibility.** Handled by the compat engine
+- **No legacy `@react-typed-forms/schemas` compatibility.** Handled by the compat engine
   (`packages/compat-controls`); out of scope here.
