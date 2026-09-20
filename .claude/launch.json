@@ -4,9 +4,21 @@
     {
       "name": "dev-app",
       "runtimeExecutable": "rushx",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "cwd": "apps/dev",
       "port": 3000
+    },
+    {
+      "name": "forms-v2-poc",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "cwd": "poc/forms-v2",
+      "port": 5183
     }
   ]
 }

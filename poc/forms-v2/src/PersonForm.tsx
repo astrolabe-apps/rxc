@@ -1,0 +1,346 @@
+import { useMemo, type ReactNode } from "react";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import type { Control } from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
+import {
+  arrayActions,
+  CheckboxField,
+  SelectField,
+  TextDisplay,
+  Contents,
+  Elements,
+  getExternalEdit,
+  StandardActionIds,
+  Tabs,
+  useAction,
+  Form,
+  FormScopeProvider,
+  narrowScope,
+  TextField,
+  useFormField,
+  useFormScope,
+  useStack,
+  type FormField,
+  type Presence,
+} from "./framework/index.js";
+import { Stars } from "./widgets/Stars.js";
+import { JsonForm } from "./loader/JsonForm.js";
+import { demoControls, demoSchema } from "./loader/demoForm.js";
+import { AntInputReference } from "./impls/antd.js";
+
+export interface Person {
+  firstName: string;
+  lastName: string;
+  email: string;
+  notes: string;
+  rating: number | undefined;
+  hasPets: boolean;
+  pets: { name: string }[];
+  vetName: string;
+  status: string | undefined;
+  priority: number | undefined;
+}
+
+/** One place, so the buttons and the array's `Length` validator agree. */
+const petBounds = { minLength: 1, maxLength: 3 };
+
+/** For the demo's state table only — the form itself needs no schema. */
+export const statusOptions = [
+  { name: "Active", value: "active" },
+  { name: "Inactive", value: "inactive" },
+  { name: "Pending", value: "pending", disabled: true },
+];
+
+export const personFieldNames: (keyof Person)[] = [
+  "firstName",
+  "lastName",
+  "email",
+  "notes",
+  "rating",
+  "hasPets",
+  "pets",
+  "vetName",
+  "status",
+  "priority",
+];
+
+/**
+ * A container implementation — the only kind of thing that narrows presence to
+ * `silent`. A real one would be a tab panel or a wizard page; no form author
+ * ever writes `silent`, which is why it is a scope facet and not a prop.
+ */
+function Panel({
+  presence,
+  children,
+}: {
+  presence: Presence;
+  children: ReactNode;
+}) {
+  const parent = useFormScope();
+  const scope = useMemo(
+    () => narrowScope(parent, { presence }),
+    [parent, presence],
+  );
+  return <FormScopeProvider scope={scope}>{children}</FormScopeProvider>;
+}
+
+type Pets = { name: string }[];
+
+/**
+ * The staged-edit host. Deliberately rendered **outside** the region the array
+ * lives in, which is the whole point of the experiment: the draft belongs to
+ * the array's scope, and this is somewhere else entirely.
+ */
+function DraftHost({ field }: { field: FormField<Pets> }) {
+  const { rc, rendered } = useReactive();
+  const ctx = useControlContext();
+  const edit = getExternalEdit(ctx, field);
+  const session = edit.session(rc);
+  const here = useFormScope();
+  const ApplyBtn = useAction(StandardActionIds.apply);
+  const CancelBtn = useAction(StandardActionIds.cancel);
+  if (!session) return rendered(null);
+  const bindTime = session.field.state(rc).readOnly;
+  const atRenderLocation = here.readOnly(rc);
+  return rendered(
+    <div className="ff-dialog">
+      <strong>Editing pet {session.index + 1}</strong>
+      <TextField field={session.field.$.name} label="Name (draft)" required />
+      <p className="hint">
+        bind-time scope says readOnly <b>{String(bindTime)}</b> · the scope
+        where this modal renders says <b>{String(atRenderLocation)}</b>
+      </p>
+      <div className="ff-row">
+        <ApplyBtn
+          actionId={StandardActionIds.apply}
+          text="Apply"
+          style="primary"
+          disabled={false}
+          busy={false}
+          onClick={() => edit.apply()}
+        />
+        <CancelBtn
+          actionId={StandardActionIds.cancel}
+          text="Cancel"
+          style="link"
+          disabled={false}
+          busy={false}
+          onClick={() => edit.cancel()}
+        />
+      </div>
+    </div>,
+  );
+}
+
+/**
+ * The form. No JSON, no renderer named — this source is identical under every
+ * implementation.
+ */
+export function PersonForm({
+  data,
+  emailPresence,
+  showReference,
+  lockPets,
+  readOnly,
+  disabled,
+  clearHidden,
+  designMode,
+}: {
+  data: Control<Person>;
+  emailPresence: Presence;
+  showReference: boolean;
+  lockPets: boolean;
+  readOnly: boolean;
+  disabled: boolean;
+  clearHidden: boolean;
+  designMode: boolean;
+}): Rendered {
+  const { rc, rendered, update } = useReactive();
+  const ctx = useControlContext();
+  const f = useFormField(data);
+  const edit = getExternalEdit(ctx, f.$.pets);
+  // Composed, not dispatched: chrome from the implementation, no boundary
+  // guarantees — see `useAction`.
+  const AddBtn = useAction(StandardActionIds.add);
+  const RemoveBtn = useAction(StandardActionIds.remove);
+  const EditBtn = useAction(StandardActionIds.edit);
+  const Stack = useStack();
+  // Buttons outside the list: mutation is not the collection renderer's job.
+  const pets = arrayActions(rc, update, f.$.pets, petBounds);
+  return rendered(
+    <Form
+      readOnly={readOnly}
+      disabled={disabled}
+      clearHidden={clearHidden}
+      designMode={designMode}
+    >
+      <Tabs
+        items={[
+          {
+            key: "details",
+            title: "Details",
+            children: (
+              <Stack gap={4}>
+                <Stack direction="row" gap={16}>
+                  <TextField
+                    field={f.$.firstName}
+                    label="First name"
+                    required
+                    placeholder="Ada"
+                  />
+                  <TextField field={f.$.lastName} label="Last name" />
+                </Stack>
+
+                <Panel presence={emailPresence}>
+                  <TextField
+                    field={f.$.email}
+                    label="Email"
+                    startIcon="@"
+                    endIcon={(rc) =>
+                      (rc.getValue(f.$.email.control) ?? "").includes("@")
+                        ? "✓"
+                        : null
+                    }
+                    helpText="Validates even while it is not on screen."
+                    inputType="email"
+                    validate={{
+                      shape: (v) =>
+                        !v || v.includes("@")
+                          ? null
+                          : "That does not look like an email",
+                      length: (v) => (!v || v.length < 60 ? null : "Too long"),
+                    }}
+                  />
+                </Panel>
+
+                <TextField
+                  field={f.$.notes}
+                  multiline
+                  label={(rc) =>
+                    `Notes (${(rc.getValue(f.$.notes.control) ?? "").length} chars)`
+                  }
+                />
+
+                <SelectField
+                  field={f.$.status}
+                  label="Status"
+                  options={statusOptions}
+                  required
+                  helpText="Options are a prop — the schema is loader-only."
+                />
+                <TextDisplay text="Authored display — static content, no field." />
+                <Stars
+                  field={f.$.rating}
+                  label="How did we do?"
+                  maxStars={5}
+                  required
+                  requiredMessage="Please rate us"
+                  helpText="A third-party widget."
+                />
+              </Stack>
+            ),
+          },
+          {
+            key: "pets",
+            title: "Pets",
+            children: (
+              <Stack gap={4}>
+                {/* What replaced <Each>: a boundary, so the array itself gets a
+            Length validator, clearHidden, and the cascade. The region around
+            it can be locked on its own. */}
+                <Contents readOnly={lockPets}>
+                  <Elements
+                    field={f.$.pets}
+                    label="Pets"
+                    {...petBounds}
+                    helpText="Length 1–3, validated on the array itself."
+                    empty={<p className="ff-empty">No pets yet.</p>}
+                  >
+                    {(pet, i) => (
+                      <div className="ff-row">
+                        <TextField
+                          field={pet.$.name}
+                          required
+                          label={`Pet ${i + 1}`}
+                          placeholder="Rex"
+                        />
+                        <EditBtn
+                          actionId={StandardActionIds.edit}
+                          text="Edit"
+                          style="secondary"
+                          disabled={false}
+                          busy={false}
+                          onClick={() => edit.beginEdit(i, pet)}
+                        />
+                        <RemoveBtn
+                          actionId={StandardActionIds.remove}
+                          text="Remove"
+                          style="secondary"
+                          disabled={!pets.canRemove}
+                          busy={false}
+                          onClick={() => pets.remove(i)}
+                        />
+                      </div>
+                    )}
+                  </Elements>
+                  <AddBtn
+                    actionId={StandardActionIds.add}
+                    text={`Add pet (${pets.length}/${petBounds.maxLength})`}
+                    style="primary"
+                    disabled={!pets.canAdd}
+                    busy={false}
+                    onClick={() => pets.add({ name: "" })}
+                  />
+                </Contents>
+
+                {/* Outside the locked region, on purpose. */}
+                <DraftHost field={f.$.pets} />
+
+                <CheckboxField
+                  field={f.$.hasPets}
+                  label="Has pets"
+                  helpText="A widget that labels itself — the shell never sees the label."
+                />
+
+                {/* What replaced <Show>: an ordinary chrome-less group. Its children
+            stay mounted while hidden — each boundary clears its own field —
+            and the group hides them with CSS, so plain JSX inside it goes too. */}
+                <Contents hidden={(rc) => !rc.getValue(f.$.hasPets.control)}>
+                  <TextField
+                    field={f.$.vetName}
+                    label="Vet's name"
+                    required
+                    helpText="Cleared by clearHidden when the region is hidden."
+                  />
+                </Contents>
+
+                <p className="ff-plain">
+                  Plain JSX inside the Pets tab — no boundary suppresses this,
+                  so the panel itself has to hide it.
+                </p>
+                {showReference && <AntInputReference />}
+              </Stack>
+            ),
+          },
+          {
+            key: "json",
+            title: "From JSON",
+            children: (
+              <Stack gap={4}>
+                <p className="ff-plain">
+                  Loaded from a ControlDefinition[], bound to the same data as
+                  the other tabs. No renderer knows JSON exists.
+                </p>
+                <JsonForm
+                  controls={demoControls}
+                  schema={demoSchema}
+                  data={data}
+                />
+              </Stack>
+            ),
+          },
+        ]}
+      />
+    </Form>,
+  );
+}

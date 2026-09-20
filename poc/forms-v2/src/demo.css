@@ -1,0 +1,416 @@
+:root {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #f6f7f9;
+  color: #18181b;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  min-height: 100vh;
+}
+.panel {
+  padding: 20px;
+  background: #fff;
+  border-right: 1px solid #e4e4e7;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+.panel h1 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+.panel .row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.panel .row.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.panel select,
+.panel button {
+  font: inherit;
+  padding: 4px 6px;
+}
+.panel .row:has(button) {
+  flex-direction: row;
+  gap: 8px;
+}
+.hint {
+  color: #52525b;
+  line-height: 1.5;
+}
+.state {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.state th,
+.state td {
+  border-bottom: 1px solid #e4e4e7;
+  text-align: left;
+  padding: 3px 4px;
+  vertical-align: top;
+  max-width: 130px;
+  overflow-wrap: anywhere;
+}
+.state tr.bad td {
+  color: #b91c1c;
+}
+.canvas {
+  padding: 32px;
+  max-width: 760px;
+}
+
+/* ── the html implementation ─────────────────────────────────────── */
+.ff-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.ff-shell--horizontal {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12px;
+}
+.ff-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3f3f46;
+}
+.ff-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+.ff-help {
+  margin: 0;
+  font-size: 12px;
+  color: #71717a;
+}
+.ff-error {
+  margin: 0;
+  font-size: 12px;
+  color: #dc2626;
+}
+.ff-control {
+  display: block;
+}
+
+/* The border is on the FRAME, not the input — see the doc's "HTML default". */
+.ff-frame {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px 10px;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+.ff-frame[data-multiline] {
+  align-items: flex-start;
+}
+.ff-frame[data-focused] {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px #2563eb22;
+}
+.ff-frame[data-invalid] {
+  border-color: #dc2626;
+}
+.ff-frame[data-invalid][data-focused] {
+  box-shadow: 0 0 0 3px #dc262622;
+}
+.ff-frame[data-disabled] {
+  background: #f4f4f5;
+  color: #a1a1aa;
+}
+.ff-frame[data-readonly] {
+  background: #fafafa;
+}
+.ff-slot {
+  color: #a1a1aa;
+  font-size: 13px;
+  display: inline-flex;
+}
+.ff-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  resize: vertical;
+}
+
+/* ── the third-party widget ──────────────────────────────────────── */
+.stars {
+  display: inline-flex;
+  gap: 2px;
+}
+.stars-btn {
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: #f59e0b;
+  padding: 0 2px;
+}
+.stars-btn:disabled {
+  color: #d4d4d8;
+  cursor: default;
+}
+
+/* ── design mode ─────────────────────────────────────────────────── */
+.ff-boundary {
+  display: contents;
+}
+.ff-boundary[data-design] {
+  display: block;
+  outline: 1px dashed #a855f7;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── the visibility slot (html implementation) ───────────────────── */
+.ff-fade {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.ff-fade[data-leaving] {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* ── collections ─────────────────────────────────────────────────── */
+.ff-elements {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ff-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.ff-row > :first-child {
+  flex: 1;
+}
+.ff-row button,
+.canvas > * button {
+  font: inherit;
+  padding: 4px 8px;
+}
+.ff-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #71717a;
+}
+.ff-row button:disabled,
+.canvas button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.canvas button {
+  align-self: flex-start;
+}
+.ff-row button {
+  align-self: flex-end;
+}
+
+/* ── the staged-edit host ────────────────────────────────────────── */
+.ff-dialog {
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 24px #18181b1a;
+  max-width: 420px;
+}
+
+/* ── a region that animates its own exit ─────────────────────────── */
+.ff-contents {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.22s ease,
+    opacity 0.22s ease;
+}
+.ff-contents[data-hidden] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.ff-contents-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── the self-labelling widget ───────────────────────────────────── */
+.ff-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.ff-check input {
+  width: 16px;
+  height: 16px;
+}
+.ff-label-after {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.ff-label-after input {
+  width: 16px;
+  height: 16px;
+}
+.canvas .stars-btn:disabled {
+  opacity: 1;
+} /* beats .canvas button:disabled */
+
+/* ── tabs (html implementation) ──────────────────────────────────── */
+.ff-tabs[data-hidden] {
+  display: none;
+}
+.ff-tabstrip {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e4e4e7;
+  margin-bottom: 16px;
+}
+.ff-tab {
+  font: inherit;
+  font-size: 14px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-bottom: 2px solid transparent;
+  color: #52525b;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: auto;
+}
+.ff-tab--active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+.ff-tab[data-invalid] {
+  color: #dc2626;
+}
+.ff-tab[data-invalid].ff-tab--active {
+  border-bottom-color: #dc2626;
+}
+.ff-tab-dot {
+  font-size: 9px;
+  line-height: 1;
+}
+.ff-tabpanel[data-inactive] {
+  display: none;
+}
+.ff-plain {
+  margin: 0;
+  font-size: 12px;
+  color: #a1a1aa;
+  font-style: italic;
+}
+
+/* ── buttons (html implementation) ───────────────────────────────── */
+.ff-btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #d4d4d8;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ff-btn--primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.ff-btn--link {
+  border-color: transparent;
+  background: none;
+  color: #2563eb;
+  text-decoration: underline;
+}
+.ff-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ff-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ff-spin 0.6s linear infinite;
+}
+@keyframes ff-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ff-fancy-add {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(90deg, #a855f7, #ec4899);
+}
+.ff-fancy-add:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ff-unsupported {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px dashed #f59e0b;
+}
