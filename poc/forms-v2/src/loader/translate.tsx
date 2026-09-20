@@ -8,6 +8,7 @@ import {
   Elements,
   getProp,
   HtmlDisplay,
+  IconDisplay,
   SelectField,
   Tabs,
   TextDisplay,
@@ -110,6 +111,18 @@ export const defaultTranslators: Translator[] = [
     match: (d) => d.type === "Display" && d.displayData?.type === "Html",
     render: ({ def, props }) => (
       <HtmlDisplay html={def.displayData?.html} hidden={props.hidden} />
+    ),
+  },
+  {
+    // The one display whose accessible name is load-bearing — and where the
+    // legacy `Tooltip` adornment lands (goals doc, open decision 1).
+    match: (d) => d.type === "Display" && d.displayData?.type === "Icon",
+    render: ({ def, props }) => (
+      <IconDisplay
+        icon={def.displayData?.icon?.name}
+        accessibleName={tooltipOf(def)}
+        hidden={props.hidden}
+      />
     ),
   },
   {
@@ -258,6 +271,12 @@ function buildProps(
   };
 }
 
+/** A `Tooltip` adornment's text, which a display translates to its accessible name. */
+function tooltipOf(def: ControlDefinition): string | undefined {
+  const a = def.adornments?.find((a) => a.type === "Tooltip");
+  return typeof a?.tooltip === "string" ? a.tooltip : undefined;
+}
+
 /** What the built-in translators actually read off `renderOptions`/`groupOptions`. */
 const handledRenderOptions = new Set(["Standard", "Multiline"]);
 const handledGroupOptions = new Set(["Standard", "Contents", "Tabs"]);
@@ -273,11 +292,14 @@ function warnUnhandled(def: ControlDefinition, warn: Warn): void {
   const subject = def.title ?? def.field;
 
   for (const a of def.adornments ?? []) {
-    const detail =
-      a.type === "Tooltip" && def.type === "Display"
-        ? `adornment "Tooltip" on a display translates to the display's accessible name, which this loader does not build yet`
-        : `no translator for adornment "${a.type}" — it is dropped`;
-    warn({ kind: "adornment", subject, detail });
+    // Tooltip on a display is consumed by the display translator as its
+    // accessible name; anywhere else it has no meaning and is reported.
+    if (a.type === "Tooltip" && def.type === "Display") continue;
+    warn({
+      kind: "adornment",
+      subject,
+      detail: `no translator for adornment "${a.type}" — it is dropped`,
+    });
   }
 
   for (const d of def.dynamic ?? []) {

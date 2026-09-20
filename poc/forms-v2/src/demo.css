@@ -474,3 +474,10 @@ body {
   background: #fef3c7;
   font-size: 11px;
 }
+
+/* ── icon display ────────────────────────────────────────────────── */
+.ff-icon {
+  font-size: 24px;
+  line-height: 1;
+  display: inline-block;
+}

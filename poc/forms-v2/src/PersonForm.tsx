@@ -11,6 +11,7 @@ import {
   Wizard,
   Contents,
   Elements,
+  IconDisplay,
   getExternalEdit,
   StandardActionIds,
   Tabs,
@@ -234,6 +235,32 @@ export function PersonForm({
                   helpText="Options are a prop — the schema is loader-only."
                 />
                 <TextDisplay text="Authored display — static content, no field." />
+                {/* The Mast form's shape, hand-written: a glyph pair switched by
+            data, each carrying the meaning the glyph does not. Hover for the
+            implementation's answer to "is the name also visible". */}
+                <Stack direction="row" gap={8} align="center">
+                  <IconDisplay
+                    icon="person"
+                    accessibleName="The operator is a person."
+                    hidden={(rc) =>
+                      rc.getValue(f.$.status.control) === "inactive"
+                    }
+                  />
+                  <IconDisplay
+                    icon="building"
+                    accessibleName="The operator is a business or group."
+                    hidden={(rc) =>
+                      rc.getValue(f.$.status.control) !== "inactive"
+                    }
+                  />
+                  <TextDisplay
+                    text={(rc) =>
+                      rc.getValue(f.$.status.control) === "inactive"
+                        ? "Business — set status back to Active for the person."
+                        : "Person — set status to Inactive for the business."
+                    }
+                  />
+                </Stack>
                 <Stars
                   field={f.$.rating}
                   label="How did we do?"

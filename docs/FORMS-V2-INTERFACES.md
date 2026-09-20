@@ -417,7 +417,7 @@ interface DisplayProps {
 }
 ```
 
-**`accessibleName` is where the legacy `Tooltip` adornment lands (decided).** Every real use
+**`accessibleName` is where the legacy `Tooltip` adornment lands (built).** Every real use
 of it — three, all in `MastRegistrationsSummary` — is on a `Display` whose `displayData` is a
 bare icon, with the tooltip supplying the meaning the glyph does not carry: a `fa-regular
 person` / `fa-regular building` pair switched by Jsonata `Visible` expressions, plus one more.
@@ -428,10 +428,10 @@ Two things follow from naming it after the a11y concept rather than after the wi
 **redundant on a display that already renders text** — a `<p>` has an accessible name, and an
 implementation is free to ignore the prop there; it is load-bearing only where the content is
 non-textual, which is the icon case and the reason the corpus reached for a tooltip at all.
-And **whether it is also visible is the implementation's call**: MUI may wrap the content in
-its own `Tooltip`, plain HTML may use `title`, and a text display may do nothing. That is what
-keeps the Mast rendering reproducible without a portal-based tooltip — and a provider
-requirement — in the contract. It is also why the prop is a `string` rather than a
+And **whether it is also visible is the implementation's call**: in the build, html uses
+`title` and MUI, Ant and Mantine each wrap the glyph in their own `Tooltip`; a text display
+may do nothing. That is what keeps the Mast rendering reproducible without a portal-based
+tooltip — and a provider requirement — in the contract. It is also why the prop is a `string` rather than a
 `ReactNode`: an accessible name is text, and anything richer is a tooltip renderer's business.
 
 All of them also resolve `FormProp`s, apply presence, route class slots, and wrap design-mode

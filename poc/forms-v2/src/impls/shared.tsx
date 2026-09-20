@@ -7,6 +7,21 @@ import {
   type VisibilityProps,
 } from "../framework/index.js";
 
+/**
+ * Icon names as the JSON format spells them (FontAwesome's), drawn as text so
+ * the POC's dependency list stays honest. An implementation may map them to
+ * its own icon set instead; the contract only says a name arrives.
+ */
+const glyphs: Record<string, string> = {
+  person: "\u{1F9D1}",
+  building: "\u{1F3E2}",
+  check: "\u2713",
+  warning: "\u26A0",
+};
+export function glyphFor(name: string | undefined): string {
+  return (name && glyphs[name]) ?? name ?? "";
+}
+
 /** The no-op: a hard mount/unmount. Cannot animate an exit. */
 export function DefaultVisibility({ visible, children }: VisibilityProps) {
   return visible ? <>{children}</> : null;

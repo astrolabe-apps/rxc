@@ -37,8 +37,7 @@ that returns what it could not translate.
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
 Not built, and not pretended: a portal container (dialog), design-mode
-substitution, Base UI, a third-party renderer of any kind but a field, and
-an icon display (so `accessibleName` is decided but unexercised).
+substitution, Base UI, and a third-party renderer of any kind but a field.
 
 ## What held up
 
@@ -549,6 +548,30 @@ Numbered; each is cited at the matching line of code.
     once, wherever that first read landed. Hoisting the prop out of the closure
     puts the failure at translate time, and is what a sync expression wanted
     anyway: one stable closure instead of a fresh one per read.
+
+40. **`accessibleName` costs each implementation one line, and the "is it also
+    visible" clause is where they differ — which is the point.** An icon
+    display in all four: every one puts `role="img"` + `aria-label` on the
+    glyph, and the name reaches the accessibility tree identically. What
+    differs is the visible half. html uses `title` — a native tooltip, no
+    library, no provider; MUI, Ant and Mantine each wrap the glyph in their
+    own `Tooltip`, and MUI's is what the Mast form's users would see. None
+    of that is in the contract, and none of it needed to be: the contract
+    said "a name arrives", and four implementations made four defensible
+    calls about showing it.
+
+    The loader side is one translator and one line of suppression: a
+    `Display/Icon` control takes the `Tooltip` adornment's text as its
+    `accessibleName`, and `warnUnhandled` skips that adornment on a display
+    because the translator consumed it. A `Tooltip` on a data field — the
+    `AllControls` demo's shape, and nothing else in the corpus — has no
+    meaning and stays reported. The demo's warning list lost one entry and
+    gained one, which is the decision made visible.
+
+    Icon *names* arrive as the JSON spells them (FontAwesome's); the POC
+    draws them as text glyphs from a four-entry map so its dependency list
+    stays honest. A real implementation maps to its icon set. The contract
+    only says a name arrives.
 
 ## Things the POC deliberately does not answer
 

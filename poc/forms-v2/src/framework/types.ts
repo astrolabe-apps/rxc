@@ -337,12 +337,20 @@ export type SelectRenderProps = FieldRenderProps<OptionValue> &
  */
 export interface DisplayProps {
   hidden?: FormProp<boolean>;
+  /**
+   * Where the legacy `Tooltip` adornment lands. An accessible name is text —
+   * redundant on a display that already renders text, load-bearing on one
+   * that does not (an icon). Whether it is *also* visible is the
+   * implementation's call: a `title`, its own Tooltip, or nothing.
+   */
+  accessibleName?: FormProp<string>;
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
   children?: ReactNode;
 }
 
 export interface DisplayRenderProps {
+  accessibleName?: string;
   className?: ClassValue;
   textClassName?: ClassValue;
   children?: ReactNode;
@@ -350,11 +358,15 @@ export interface DisplayRenderProps {
 
 export type TextDisplayExtra = { text?: FormProp<ReactNode> };
 export type HtmlDisplayExtra = { html?: FormProp<string> };
+/** A named glyph. The implementation decides what draws it. */
+export type IconDisplayExtra = { icon?: FormProp<string> };
 
 export type TextDisplayRenderProps = DisplayRenderProps &
   Resolved<TextDisplayExtra>;
 export type HtmlDisplayRenderProps = DisplayRenderProps &
   Resolved<HtmlDisplayExtra>;
+export type IconDisplayRenderProps = DisplayRenderProps &
+  Resolved<IconDisplayExtra>;
 
 // ── Actions ──────────────────────────────────────────────────────────
 
@@ -396,6 +408,7 @@ export interface FormRenderers {
   action: ComponentType<ActionRenderProps>;
   text: ComponentType<TextDisplayRenderProps>;
   html: ComponentType<HtmlDisplayRenderProps>;
+  icon: ComponentType<IconDisplayRenderProps>;
   contents: ComponentType<GroupRenderProps>;
   tabs: ComponentType<import("./tabs.js").TabsRenderProps>;
   wizard: ComponentType<import("./wizard.js").WizardRenderProps>;

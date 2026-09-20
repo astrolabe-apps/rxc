@@ -84,16 +84,26 @@ export const demoControls: ControlDefinition[] = [
   },
   // Nothing translates this one, so the loader says so on screen.
   { type: "Display", displayData: { type: "Custom" }, title: "Custom" },
-  // Three shapes that render *something* and quietly lose what the JSON asked
-  // for — the failure the warning list exists to catch. The first is the
-  // legacy `Tooltip` adornment on a display, which is decided (it becomes the
-  // display's accessible name) but not built here.
+  // The Mast form's real shape: a bare icon whose meaning the legacy Tooltip
+  // adornment supplied. It translates to the display's accessible name.
   {
     type: "Display",
     title: "Operator type",
-    displayData: { type: "Text", text: "🧑" },
+    displayData: {
+      type: "Icon",
+      icon: { library: "fa-regular", name: "person" },
+    },
     adornments: [{ type: "Tooltip", tooltip: "The operator is a person." }],
   },
+  // A Tooltip anywhere else has nothing to become, and is reported.
+  {
+    type: "Data",
+    field: "firstName",
+    title: "Tooltipped field",
+    adornments: [{ type: "Tooltip", tooltip: "Family name." }],
+  },
+  // Two shapes that render *something* and quietly lose what the JSON asked
+  // for — the failure the warning list exists to catch.
   {
     type: "Data",
     field: "status",

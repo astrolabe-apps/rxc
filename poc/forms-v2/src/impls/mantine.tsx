@@ -10,6 +10,7 @@ import {
   Stepper,
   Tabs as MTabs,
   Text,
+  Tooltip as MTooltip,
 } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { useReactive, type Rendered } from "@rx-controls/react";
@@ -27,6 +28,7 @@ import {
   type ControlSlotProps,
   type ActionRenderProps,
   type HtmlDisplayRenderProps,
+  type IconDisplayRenderProps,
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
@@ -39,7 +41,12 @@ import {
   type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
-import { Contents, ElementsList, DefaultVisibility } from "./shared.js";
+import {
+  Contents,
+  ElementsList,
+  DefaultVisibility,
+  glyphFor,
+} from "./shared.js";
 
 // ── Shell: wired by `id` only, no context ────────────────────────────
 
@@ -283,6 +290,25 @@ function MantineText(p: TextDisplayRenderProps) {
   );
 }
 
+function MantineIcon(p: IconDisplayRenderProps) {
+  const glyph = (
+    <Text
+      component="span"
+      role="img"
+      aria-label={p.accessibleName}
+      className={mergeClass(undefined, p.className)}
+      style={{ fontSize: 24, lineHeight: 1 }}
+    >
+      {glyphFor(p.icon)}
+    </Text>
+  );
+  return p.accessibleName ? (
+    <MTooltip label={p.accessibleName}>{glyph}</MTooltip>
+  ) : (
+    glyph
+  );
+}
+
 function MantineHtml(p: HtmlDisplayRenderProps) {
   return (
     <Text
@@ -380,6 +406,7 @@ export const mantineRenderers: FormRenderers = {
   select: MantineSelect,
   text: MantineText,
   html: MantineHtml,
+  icon: MantineIcon,
   action: MantineAction,
   contents: Contents,
   wizard: MantineWizard,

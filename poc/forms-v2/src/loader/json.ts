@@ -59,7 +59,12 @@ export interface ControlDefinition {
   dontClearHidden?: boolean;
   renderOptions?: { type: string; [k: string]: unknown };
   /** Display controls only. */
-  displayData?: { type: string; text?: string; html?: string };
+  displayData?: {
+    type: string;
+    text?: string;
+    html?: string;
+    icon?: { library?: string; name: string };
+  };
   groupOptions?: { type: string; [k: string]: unknown };
   validators?: ValidatorDef[];
   dynamic?: DynamicProperty[];

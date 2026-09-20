@@ -13,6 +13,7 @@ import {
   useTextInput,
   type ActionRenderProps,
   type HtmlDisplayRenderProps,
+  type IconDisplayRenderProps,
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
@@ -25,7 +26,7 @@ import {
   type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
-import { Contents, ElementsList, FadeVisibility } from "./shared.js";
+import { Contents, ElementsList, FadeVisibility, glyphFor } from "./shared.js";
 
 // ── Shell: family 1 (children-hosting, class-driven — Bootstrap / shadcn) ──
 
@@ -298,6 +299,24 @@ function HtmlText(p: TextDisplayRenderProps) {
   );
 }
 
+/**
+ * `role="img"` + `aria-label` is what gives a glyph a name; `title` is the
+ * html implementation's answer to "is it also visible" — a native tooltip,
+ * no library, no provider.
+ */
+function HtmlIcon(p: IconDisplayRenderProps) {
+  return (
+    <span
+      className={mergeClass("ff-icon", p.className)}
+      role="img"
+      aria-label={p.accessibleName}
+      title={p.accessibleName}
+    >
+      {glyphFor(p.icon)}
+    </span>
+  );
+}
+
 function HtmlHtml(p: HtmlDisplayRenderProps) {
   return (
     <div
@@ -414,6 +433,7 @@ export const htmlRenderers: FormRenderers = {
   select: HtmlSelect,
   text: HtmlText,
   html: HtmlHtml,
+  icon: HtmlIcon,
   action: HtmlAction,
   contents: Contents,
   wizard: HtmlWizard,

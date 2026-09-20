@@ -16,6 +16,7 @@ export type DisplayImplSource<P extends object> =
 
 const contractKeys = new Set([
   "hidden",
+  "accessibleName",
   "className",
   "textClassName",
   "children",
@@ -56,6 +57,7 @@ export function displayRenderer<P extends object = {}>(
       >
         <Visibility visible={presenceNow === "rendered"}>
           <Impl
+            accessibleName={getProp(rc, props.accessibleName)}
             className={getProp(rc, props.className)}
             textClassName={getProp(rc, props.textClassName)}
             {...getProps(rc, extra)}

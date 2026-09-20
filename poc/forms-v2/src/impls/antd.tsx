@@ -9,6 +9,7 @@ import {
   Select,
   Steps,
   Tabs as AntTabList,
+  Tooltip as AntTooltip,
   Typography,
   theme,
 } from "antd";
@@ -27,6 +28,7 @@ import {
   useTextInput,
   type ActionRenderProps,
   type HtmlDisplayRenderProps,
+  type IconDisplayRenderProps,
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
@@ -39,7 +41,12 @@ import {
   type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
-import { Contents, ElementsList, DefaultVisibility } from "./shared.js";
+import {
+  Contents,
+  ElementsList,
+  DefaultVisibility,
+  glyphFor,
+} from "./shared.js";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
 //
@@ -337,6 +344,24 @@ function AntText(p: TextDisplayRenderProps) {
   );
 }
 
+function AntIcon(p: IconDisplayRenderProps) {
+  const glyph = (
+    <span
+      role="img"
+      aria-label={p.accessibleName}
+      className={mergeClass(undefined, p.className)}
+      style={{ fontSize: 24, lineHeight: 1 }}
+    >
+      {glyphFor(p.icon)}
+    </span>
+  );
+  return p.accessibleName ? (
+    <AntTooltip title={p.accessibleName}>{glyph}</AntTooltip>
+  ) : (
+    glyph
+  );
+}
+
 function AntHtml(p: HtmlDisplayRenderProps) {
   return (
     <Typography
@@ -432,6 +457,7 @@ export const antdRenderers: FormRenderers = {
   select: AntSelect,
   text: AntText,
   html: AntHtml,
+  icon: AntIcon,
   action: AntAction,
   contents: Contents,
   wizard: AntWizard,

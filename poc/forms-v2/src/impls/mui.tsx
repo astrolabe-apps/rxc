@@ -24,6 +24,7 @@ import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Stepper from "@mui/material/Stepper";
 import Typography from "@mui/material/Typography";
+import MuiTooltip from "@mui/material/Tooltip";
 import CssBaseline from "@mui/material/CssBaseline";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
@@ -40,6 +41,7 @@ import {
   type ControlSlotProps,
   type ActionRenderProps,
   type HtmlDisplayRenderProps,
+  type IconDisplayRenderProps,
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
@@ -52,7 +54,12 @@ import {
   type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
-import { Contents, ElementsList, DefaultVisibility } from "./shared.js";
+import {
+  Contents,
+  ElementsList,
+  DefaultVisibility,
+  glyphFor,
+} from "./shared.js";
 
 /**
  * The one thing §7's survey predicted would need a private channel: MUI's
@@ -355,6 +362,26 @@ function MuiText(p: TextDisplayRenderProps) {
   );
 }
 
+/** MUI makes the name visible through its own Tooltip — its call, not the contract's. */
+function MuiIcon(p: IconDisplayRenderProps) {
+  const glyph = (
+    <Typography
+      component="span"
+      role="img"
+      aria-label={p.accessibleName}
+      className={mergeClass(undefined, p.className)}
+      sx={{ fontSize: 24, lineHeight: 1 }}
+    >
+      {glyphFor(p.icon)}
+    </Typography>
+  );
+  return p.accessibleName ? (
+    <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
+  ) : (
+    glyph
+  );
+}
+
 function MuiHtml(p: HtmlDisplayRenderProps) {
   return (
     <Typography
@@ -456,6 +483,7 @@ export const muiRenderers: FormRenderers = {
   select: MuiSelect,
   text: MuiText,
   html: MuiHtml,
+  icon: MuiIcon,
   action: MuiAction,
   contents: Contents,
   wizard: MuiWizard,

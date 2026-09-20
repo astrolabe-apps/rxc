@@ -12,6 +12,7 @@ import type {
   CollectionProps,
   FieldProps,
   HtmlDisplayExtra,
+  IconDisplayExtra,
   OptionValue,
   SelectExtra,
   TextDisplayExtra,
@@ -73,6 +74,11 @@ export const Action = actionRenderer({ key: "action" });
 /** Static content. No binding, so no validators and nothing to clear. */
 export const TextDisplay = displayRenderer<TextDisplayExtra>({ key: "text" });
 export const HtmlDisplay = displayRenderer<HtmlDisplayExtra>({ key: "html" });
+/**
+ * The display whose content carries no meaning of its own, so
+ * `accessibleName` is load-bearing here and nowhere else.
+ */
+export const IconDisplay = displayRenderer<IconDisplayExtra>({ key: "icon" });
 
 /** The options widget. `options` is a prop — the schema is loader-only. */
 export const SelectField = fieldRenderer<OptionValue, SelectExtra>({
