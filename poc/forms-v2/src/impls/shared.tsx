@@ -65,6 +65,7 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
  * and the boundaries inside keep drawing their own last frames meanwhile.
  */
 export function Contents({
+  title,
   className,
   hidden,
   invalid,
@@ -77,7 +78,12 @@ export function Contents({
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
     >
-      <div className="ff-contents-inner">{children}</div>
+      <div className="ff-contents-inner">
+        {title !== undefined && title !== null && (
+          <div className="ff-group-title">{title}</div>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

@@ -276,6 +276,7 @@ export function groupRenderer(
     // visible, because only a boundary knows how to suppress itself.
     const body = (
       <Impl
+        title={getProp(rc, props.title)}
         className={getProp(rc, props.className)}
         hidden={presenceNow !== "rendered"}
         invalid={validation ? !validation.isValid(rc) : undefined}

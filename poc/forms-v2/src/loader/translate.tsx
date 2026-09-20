@@ -301,6 +301,7 @@ export const defaultTranslators: Translator[] = [
       <Contents
         hidden={props.hidden}
         disabled={props.disabled}
+        title={props.label}
         className={props.className}
       >
         {children}
@@ -380,11 +381,19 @@ function buildProps(
     ? (rc) => !getProp(rc, visibleProp)
     : undefined;
 
+  // `hideTitle` is legacy's "render no label"; a group keeps the same flag
+  // under `groupOptions`. Read both so the audit sees them either way.
+  const hideTitle =
+    def.hideTitle === true ||
+    (def.type === "Group" && def.groupOptions?.hideTitle === true);
+
   return {
     field: createFormField(control),
-    label: labelProp
-      ? (rc) => getProp(rc, labelProp) as ReactNode
-      : (schema?.displayName ?? def.title),
+    label: hideTitle
+      ? undefined
+      : labelProp
+        ? (rc) => getProp(rc, labelProp) as ReactNode
+        : (schema?.displayName ?? def.title),
     required: def.required,
     requiredMessage: def.requiredErrorText,
     hidden: hiddenFromExpr ?? def.hidden,

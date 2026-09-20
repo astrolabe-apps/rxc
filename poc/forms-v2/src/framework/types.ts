@@ -214,6 +214,8 @@ export interface GroupProps {
   hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
+  /** A heading over the content; absent means none. */
+  title?: FormProp<ReactNode>;
   className?: FormProp<ClassValue>;
   children: ReactNode;
 }
@@ -270,6 +272,7 @@ export interface CollectionRenderProps<T> extends FieldRenderProps<T[]> {
 
 /** What a group implementation receives. */
 export interface GroupRenderProps {
+  title?: ReactNode;
   className?: ClassValue;
   /**
    * Hide without unmounting. The children have to stay mounted — each clears

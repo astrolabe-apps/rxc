@@ -57,6 +57,8 @@ export interface ControlDefinition {
   field?: string;
   required?: boolean;
   requiredErrorText?: string;
+  /** Do not render the control's label (a group's title lives in `groupOptions.hideTitle`). */
+  hideTitle?: boolean;
   hidden?: boolean;
   disabled?: boolean;
   readonly?: boolean;

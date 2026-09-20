@@ -863,6 +863,28 @@ Numbered; each is cited at the matching line of code.
     component classes like `title1` that carry text styling under no
     recognisable prefix. Two slots is honest about what the platform needs.
 
+50. **`hideTitle` was a third of what remained, and the interesting half was
+    the falsy one.** On a control the flag means "render no label", and the
+    loader now passes `label: undefined` when it is set — one line. On a
+    group it lives under `groupOptions.hideTitle`, and the 1,005 `true`s
+    were being honoured by accident, because the group translator rendered
+    no title at all; the `false`s and absences — "show this group's title" —
+    were being dropped silently, and the unread audit could not see them
+    because it skips falsy values. So the fix is not the flag, it is the
+    title: `GroupProps` gains `title` (INTERFACES §5 had it all along), the
+    group boundary resolves it, the shared `Contents` implementation renders
+    it as a heading, and the translator passes `props.label` — which
+    `buildProps` has already emptied when either flag is set. Verified: a
+    `Standard` group with `hideTitle: false` shows "Contact"; a control with
+    `hideTitle: true` shows no label.
+
+    3,854 → **2,483**, three forms clean. The unread column is down to 675,
+    and for the first time the largest kind is `renderOptions` — unhandled
+    *shapes*, not dropped *data*. What is left of unread is render-option
+    sub-fields (`sampleText` 123, `noSelection` 110, `emptyText` 45,
+    `renderOptions.groupOptions` 45), each of which belongs to a translator
+    that does not exist yet and will go when it does.
+
 ## Things the POC deliberately does not answer
 
 Whether Base UI (family 3, the shape the primitives are modelled on) confirms

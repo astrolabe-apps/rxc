@@ -154,12 +154,12 @@ Nothing below is settled. In rough order of how much else depends on it:
    app's forms *and* the schemas it renders them against (evaluating its generated
    `schemas.ts`) into `corpus/`, and `scripts/burndown.ts` runs the loader over it, reporting
    by kind and shape, including every property on a definition that nothing read. 80 forms,
-   3,972 controls, 2 clean, **3,854 warnings** — every one of them loader work. 2,046 are
-   unread properties, led by `hideTitle` on groups and controls (1,371) and `sampleText`
-   (123); 442 are action ids no handler claimed (the count of buttons a
+   3,972 controls, 3 clean, **2,483 warnings** — every one of them loader work. 675 are
+   unread properties, all render-option sub-fields of translators that do not exist yet
+   (`sampleText` 123, `noSelection` 110); 442 are action ids no handler claimed (the count of buttons a
    host has to wire); the rest is unhandled shapes, led by `DisplayOnly` 372, `Inline` 198,
    `a/b` field-path refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now: a
-   property the loader never looked at used to cost nothing. README findings 44–49.
+   property the loader never looked at used to cost nothing. README findings 44–50.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the

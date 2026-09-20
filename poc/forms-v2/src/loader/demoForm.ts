@@ -61,6 +61,20 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
+  // A group with a title legacy would show, and one that hides it.
+  {
+    type: "Group",
+    title: "Contact",
+    groupOptions: { type: "Standard", hideTitle: false },
+    children: [
+      {
+        type: "Data",
+        field: "firstName",
+        hideTitle: true,
+        title: "Hidden label",
+      },
+    ],
+  },
   // A synchronous one, which becomes `(rc) => …`.
   {
     type: "Data",

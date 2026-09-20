@@ -329,6 +329,8 @@ can express it.
 
 ```ts
 interface GroupProps  { hidden?; disabled?; readOnly?; title?; className?; children: ReactNode }
+// `title` is a heading the implementation draws when given (built); a JSON group's `title`
+// arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
 
 /** A container needing per-child metadata takes it structured, not as children. */
 interface TabsProps  { items: { key: string; title: ReactNode; children: ReactNode }[]; … }

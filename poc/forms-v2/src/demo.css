@@ -523,3 +523,8 @@ body {
   border-radius: 8px;
   padding: 12px;
 }
+
+.ff-group-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
