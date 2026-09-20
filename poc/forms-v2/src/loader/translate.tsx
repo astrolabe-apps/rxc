@@ -137,7 +137,7 @@ export const defaultTranslators: Translator[] = [
   },
   {
     match: (d, s) => d.type === "Data" && !!s?.collection,
-    renderTypes: ["Array"],
+    renderTypes: ["Standard", "Array"],
     render: ({ props, element, def }) => {
       const len = def.validators?.find((v) => v.type === "Length");
       const collectionProps = props as FieldProps<unknown[]>;
@@ -157,14 +157,14 @@ export const defaultTranslators: Translator[] = [
     // Options come off the schema here and become a prop there; nothing below
     // this line knows a schema exists.
     match: (d, s) => d.type === "Data" && !!s?.options?.length,
-    renderTypes: ["Dropdown"],
+    renderTypes: ["Standard", "Dropdown"],
     render: ({ props, schema }) => (
       <SelectField {...props} options={schema!.options} />
     ),
   },
   {
     match: (d, s) => d.type === "Data" && s?.type === "Bool",
-    renderTypes: ["Checkbox"],
+    renderTypes: ["Standard", "Checkbox"],
     render: ({ props }) => <CheckboxField {...props} />,
   },
   {

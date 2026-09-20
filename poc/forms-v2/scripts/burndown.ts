@@ -14,7 +14,7 @@
  * A form file is either `{ controls, fields }` (what the form editor writes)
  * or a bare `ControlDefinition[]` with no schema.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createControlContext } from "@rx-controls/core";
 import { translateForm, type LoaderWarning } from "../src/loader/translate.js";
@@ -36,9 +36,12 @@ interface FormResult {
 const args = process.argv.slice(2);
 const json = args.includes("--json");
 const strict = args.includes("--strict");
-const roots = args.filter((a) => !a.startsWith("--"));
+let roots = args.filter((a) => !a.startsWith("--"));
+if (roots.length === 0 && existsSync("corpus")) roots = ["corpus"];
 if (roots.length === 0) {
-  console.error("usage: burndown [--json] [--strict] <dir-or-file>...");
+  console.error(
+    "usage: burndown [--json] [--strict] <dir-or-file>...  (default: ./corpus)",
+  );
   process.exit(2);
 }
 

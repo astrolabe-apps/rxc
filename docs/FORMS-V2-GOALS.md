@@ -150,11 +150,13 @@ Nothing below is settled. In rough order of how much else depends on it:
    that throws on any warning is how that check runs in CI, and is the only other policy the
    library itself ships.
 
-   **The baseline exists (built):** `poc/forms-v2/scripts/burndown.ts` runs the loader over 80
-   forms and reports by kind and shape — 3,972 controls, 7 clean, 2,227 warnings on the first
-   run, of which 806 are the corpus not supplying its schema (ServiceTas keeps it in generated
-   `schemas.ts`) and the rest is the loader's ordered work list, led by `DisplayOnly` (375),
-   `Inline` (205), `HelpText` (69) and `dynamic Display` (67). README finding 44.
+   **The baseline exists (built):** `poc/forms-v2/scripts/extract-corpus.ts` pulls each legacy
+   app's forms *and* the schemas it renders them against (evaluating its generated
+   `schemas.ts`) into `corpus/`, and `scripts/burndown.ts` runs the loader over it, reporting
+   by kind and shape. 80 forms, 3,972 controls, 9 clean, **1,450 warnings** — every one of them
+   loader work. Top of the list: `DisplayOnly` 375, `Inline` 205, `a/b` field-path refs 105,
+   `HelpText` 69, `dynamic Display` 67, `Group` 66, `ActionData` 61, `Radio` 55. README
+   findings 44–45.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the

@@ -10,7 +10,8 @@ the interfaces bend.
 rush update
 rushx dev          # http://localhost:5183, from this directory
 rushx typecheck
-rushx burndown <dir-or-file>...   # the loader over a form corpus; --json, --strict
+rushx extract-corpus <name> <src-dir>   # a legacy app's forms + schemas → corpus/<name>/
+rushx burndown [<dir-or-file>...]       # the loader over ./corpus (default); --json, --strict
 ```
 
 ## What it builds
@@ -702,6 +703,39 @@ Numbered; each is cited at the matching line of code.
     reference-syntax misses stand alone. After that the list reads top-down:
     `DisplayOnly`, `Inline`, `HelpText`, `Display` and `ActionData`
     dynamics, `Group` render options, `Radio`.
+
+45. **With the schemas supplied, the burndown is 1,450 — and the schema
+    column is now all loader work.** `scripts/extract-corpus.ts` compiles a
+    legacy app's generated `schemas.ts` to CommonJS with the app's *own*
+    `tsc`, into its own `node_modules/.cache` so `./client` and
+    `@react-typed-forms/schemas` resolve from there, `require`s it, and reads
+    the form→schema pairing out of `formDefs.ts` textually (`schema:
+    XSchema` beside `controls: YJson.controls`). `buildSchema` already
+    returns `SchemaField[]`, so the exported constants *are* the arrays. It
+    writes `corpus/<name>/<Form>.json` as `{ controls, fields }`, appending
+    the form's own `fields` the way the app does. Three apps, one script:
+    ServiceTas (`formDefs.ts`), `forms-app` (`formdefs.ts`), TestTemplate
+    (`forms.ts`) — 77 of 80 forms paired with a schema; the three unpaired
+    are TestTemplate demo forms with no schema anywhere.
+
+    What the schemas changed, 2,227 → 1,450: the `schema` kind fell 934 →
+    208, and what remains is 105 `a/b` path refs, 21 `../x` parent refs, 2
+    `.` self refs — reference syntax the loader does not resolve yet — plus
+    80 plain misses, 55 of them the three unpaired demo forms and 25 genuine
+    (a control naming a field its schema does not have; those forms are
+    probably broken in production too). `Array` fell 29 → 3, `Dropdown` 26 →
+    17, `Checkbox` 14 → 0: with a schema the collection, options and Bool
+    translators match, as predicted. And `Standard` on a non-text field
+    surfaced (23) and went — those translators now claim it, since
+    `Standard` means "the default widget for this field type".
+
+    The corpus is gitignored: it is derived from other repositories, and a
+    re-run refreshes it. A CI gate would extract then run `--strict`.
+
+    The list, top-down, is now the loader's alone: `DisplayOnly` 375,
+    `Inline` 205, path refs 105, `HelpText` 69, `Display` 67, `Group` 66,
+    `ActionData` 61, `Radio` 55, `Jsonata` validators 45, `AllowedOptions`
+    42, `Flex` 37, `Display / Custom` 36.
 
 ## Things the POC deliberately does not answer
 
