@@ -107,6 +107,8 @@ export function actionRenderer(
           text={getProp(rc, props.text)}
           icon={getProp(rc, props.icon)}
           iconPlacement={getProp(rc, props.iconPlacement) ?? "before"}
+          className={getProp(rc, props.className)}
+          textClassName={getProp(rc, props.textClassName)}
           onClick={onClick}
           disabled={disabled}
           busy={rc.getValue(busy)}

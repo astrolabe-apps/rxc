@@ -23,7 +23,11 @@ export type EntityExpression =
   | { type: "DataMatch"; field: string; value: unknown }
   | { type: "Jsonata"; expression: string };
 
-export type DynamicPropertyType = "Visible" | "Disabled" | "Label" | "ActionData";
+export type DynamicPropertyType =
+  | "Visible"
+  | "Disabled"
+  | "Label"
+  | "ActionData";
 
 export interface DynamicProperty {
   type: DynamicPropertyType;
@@ -57,6 +61,11 @@ export interface ControlDefinition {
   disabled?: boolean;
   readonly?: boolean;
   dontClearHidden?: boolean;
+  /** The four class slots — see goals decision 4. `"@ "` prefix = replace. */
+  styleClass?: string | null;
+  textClass?: string | null;
+  layoutClass?: string | null;
+  labelClass?: string | null;
   renderOptions?: { type: string; [k: string]: unknown };
   /** Display controls only. */
   displayData?: {

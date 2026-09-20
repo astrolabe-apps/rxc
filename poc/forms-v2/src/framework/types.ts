@@ -405,6 +405,9 @@ export interface ActionProps {
   disabled?: FormProp<boolean>;
   disableType?: DisableType;
   style?: FormProp<ActionStyle>;
+  /** The two class slots a button has: the control, and its text. */
+  className?: FormProp<ClassValue>;
+  textClassName?: FormProp<ClassValue>;
   children?: ReactNode;
 }
 
@@ -424,6 +427,8 @@ export interface ActionRenderProps {
   disabled: boolean;
   busy: boolean;
   style: ActionStyle;
+  className?: ClassValue;
+  textClassName?: ClassValue;
   children?: ReactNode;
 }
 

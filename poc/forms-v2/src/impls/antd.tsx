@@ -331,6 +331,7 @@ function AntAction(p: ActionRenderProps) {
             : "default"
       }
       size="small"
+      className={mergeClass(undefined, p.className)}
       disabled={p.disabled}
       loading={p.busy}
       icon={p.icon}
@@ -338,7 +339,13 @@ function AntAction(p: ActionRenderProps) {
       onClick={p.onClick}
       aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
     >
-      {p.iconPlacement === "replace" ? null : (p.children ?? p.text)}
+      {p.iconPlacement === "replace"
+        ? null
+        : (p.children ?? (
+            <span className={mergeClass(undefined, p.textClassName)}>
+              {p.text}
+            </span>
+          ))}
     </Button>
   );
 }

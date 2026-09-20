@@ -88,10 +88,13 @@ type ClassValue = string | { replace: string };
 function mergeClass(own: string | undefined, given: ClassValue | undefined): string | undefined;
 ```
 
-**From JSON:** four slots, four props — `styleClass` → `className` (the control), `textClass`
-→ `textClassName`, `layoutClass` → `shellClassName`, `labelClass` → `labelClassName`. The
-legacy `"@ "` prefix, which means *replace rather than merge* and accounts for about a third of
-class usage in the corpus, becomes `{ replace }`.
+**From JSON (built):** four slots, four props — `styleClass` → `className` (the control),
+`textClass` → `textClassName`, `layoutClass` → `shellClassName`, `labelClass` →
+`labelClassName`. The legacy `"@ "` prefix, which means *replace rather than merge* and
+accounts for about a third of class usage in the corpus, becomes `{ replace }`. Every boundary
+kind carries the slots it can use — an action has `className` and `textClassName`, a display
+the same, a group `className`. Not mapped: legacy's `labelTextClass` (248 uses), the label's
+*text* as distinct from its container — a fifth slot would be a contract decision.
 
 ## 3. The two handles
 
@@ -329,6 +332,8 @@ interface ActionProps {
   disabled?: FormProp<boolean>;
   disableType?: "none" | "self" | "global";     // what a running async handler locks
   style?: FormProp<ActionStyle>;
+  className?: FormProp<ClassValue>;              // the control (the button)
+  textClassName?: FormProp<ClassValue>;          // its text
   children?: ReactNode;                          // any style, not just Group
 }
 interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () => void }

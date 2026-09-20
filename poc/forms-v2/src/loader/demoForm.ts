@@ -35,8 +35,17 @@ export const demoSchema: SchemaField[] = [
 ];
 
 export const demoControls: ControlDefinition[] = [
-  // Label from `displayName`, required from the definition.
-  { type: "Data", field: "firstName", required: true },
+  // Label from `displayName`, required from the definition — and the class
+  // slots: `styleClass` merges onto the control, `textClass` onto its text,
+  // and an `"@ "` prefix replaces the implementation's class outright.
+  {
+    type: "Data",
+    field: "firstName",
+    required: true,
+    styleClass: "demo-accent",
+    labelClass: "demo-label",
+    layoutClass: "@ demo-shell",
+  },
   { type: "Data", field: "hasPets" },
   // An async jsonata expression, which can only become a `FormProp` by
   // evaluating into a control.

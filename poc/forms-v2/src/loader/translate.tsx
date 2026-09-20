@@ -19,6 +19,7 @@ import {
   Tabs,
   TextDisplay,
   TextField,
+  type ClassValue,
   type FieldProps,
   type FormField,
   type FormProp,
@@ -149,6 +150,8 @@ export const defaultTranslators: Translator[] = [
         onClick={onClick}
         hidden={props.hidden}
         disabled={props.disabled}
+        className={props.className}
+        textClassName={props.textClassName}
         style={actionStyleOf(def.actionStyle)}
         icon={
           def.icon?.name ? (
@@ -185,6 +188,7 @@ export const defaultTranslators: Translator[] = [
     ownsChildren: true,
     render: ({ def, props, retranslate }) => (
       <DialogGroup
+        className={props.className}
         // Read here, at translate time, so the unread audit sees it.
         title={
           typeof def.groupOptions?.title === "string"
@@ -200,13 +204,23 @@ export const defaultTranslators: Translator[] = [
   {
     match: (d) => d.type === "Display" && d.displayData?.type === "Text",
     render: ({ def, props }) => (
-      <TextDisplay text={def.displayData?.text} hidden={props.hidden} />
+      <TextDisplay
+        text={def.displayData?.text}
+        hidden={props.hidden}
+        className={props.className}
+        textClassName={props.textClassName}
+      />
     ),
   },
   {
     match: (d) => d.type === "Display" && d.displayData?.type === "Html",
     render: ({ def, props }) => (
-      <HtmlDisplay html={def.displayData?.html} hidden={props.hidden} />
+      <HtmlDisplay
+        html={def.displayData?.html}
+        hidden={props.hidden}
+        className={props.className}
+        textClassName={props.textClassName}
+      />
     ),
   },
   {
@@ -218,6 +232,8 @@ export const defaultTranslators: Translator[] = [
         icon={def.displayData?.icon?.name}
         accessibleName={tooltipOf(def)}
         hidden={props.hidden}
+        className={props.className}
+        textClassName={props.textClassName}
       />
     ),
   },
@@ -266,13 +282,15 @@ export const defaultTranslators: Translator[] = [
   {
     match: (d) => d.type === "Group" && d.groupOptions?.type === "Tabs",
     renderTypes: ["Tabs"],
-    render: ({ def, children }) => (
+    render: ({ def, props, children }) => (
       <Tabs
         items={(def.children ?? []).map((c, i) => ({
           key: c.title ?? String(i),
           title: c.title ?? `Tab ${i + 1}`,
           children: children[i],
         }))}
+        hidden={props.hidden}
+        className={props.className}
       />
     ),
   },
@@ -280,7 +298,11 @@ export const defaultTranslators: Translator[] = [
     match: (d) => d.type === "Group",
     renderTypes: ["Standard", "Contents"],
     render: ({ props, children }) => (
-      <Contents hidden={props.hidden} disabled={props.disabled}>
+      <Contents
+        hidden={props.hidden}
+        disabled={props.disabled}
+        className={props.className}
+      >
         {children}
       </Contents>
     ),
@@ -370,6 +392,10 @@ function buildProps(
     readOnly: def.readonly,
     dontClearHidden: def.dontClearHidden,
     validate: Object.keys(validate).length ? validate : undefined,
+    className: toClassValue(def.styleClass),
+    textClassName: toClassValue(def.textClass),
+    shellClassName: toClassValue(def.layoutClass),
+    labelClassName: toClassValue(def.labelClass),
   };
 }
 
@@ -436,6 +462,17 @@ function warnUnread(def: ControlDefinition, seen: Set<string>, warn: Warn) {
   }
 }
 
+/**
+ * The four class slots (goals doc, decision 4): `styleClass` → the control,
+ * `textClass` → its text, `layoutClass` → the shell, `labelClass` → the label.
+ * Legacy spells *replace rather than merge* as an `"@ "` prefix inside the
+ * string; the contract types it as `{ replace }`.
+ */
+function toClassValue(s: string | null | undefined): ClassValue | undefined {
+  if (!s) return undefined;
+  return s.startsWith("@ ") ? { replace: s.slice(2) } : s;
+}
+
 function actionStyleOf(s: ControlDefinition["actionStyle"]) {
   return s === "Secondary" ? "secondary" : s === "Link" ? "link" : "primary";
 }
@@ -461,11 +498,13 @@ function DialogGroup({
   title,
   placements,
   hidden,
+  className,
   retranslate,
 }: {
   title?: string;
   placements: (string | null | undefined)[];
   hidden?: FormProp<boolean>;
+  className?: FormProp<ClassValue>;
   retranslate: (opts: Partial<LoaderOptions>) => ReactNode[];
 }) {
   const ctx = useControlContext();
@@ -495,6 +534,7 @@ function DialogGroup({
         onClose={() => ctx.update((wc) => wc.setValue(open, false))}
         title={title}
         hidden={hidden}
+        className={className}
       >
         {kids.body}
       </Dialog>

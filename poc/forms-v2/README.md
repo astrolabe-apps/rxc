@@ -813,6 +813,30 @@ Numbered; each is cited at the matching line of code.
     `renderOptions` 844 → 824 (`Dialog`), `unread` 6,719 → 5,935
     (`actionStyle`, `icon`, `iconPlacement`, `disableType`, `actionData`).
 
+48. **The four class slots were half the remaining burndown, and mapping them
+    was fifteen lines.** `styleClass` → `className`, `textClass` →
+    `textClassName`, `layoutClass` → `shellClassName`, `labelClass` →
+    `labelClassName`, in `buildProps`, with the `"@ "` prefix becoming
+    `{ replace }` — exactly as goals decision 4 and interfaces §2 said.
+    Verified in the DOM: `styleClass: "demo-accent"` merges onto the frame
+    (`div.ff-frame.demo-accent`), `labelClass` onto the label
+    (`label.ff-label.demo-label`), and `layoutClass: "@ demo-shell"` replaces
+    the shell's class outright (`div.demo-shell`, no `ff-shell`). The field
+    boundaries already carried the slots and every translator that spreads
+    `props` got them for free; the group, tabs, dialog, display and action
+    translators had to pass them through by hand.
+
+    Actions were the one boundary without the slots. A button has a control
+    class and a text class like everything else — `textClass` on "a button's
+    text" is in the goals doc's own table — so `ActionProps` gained
+    `className` and `textClassName`, and each implementation merges the first
+    onto its button and wraps `text` in a span for the second.
+
+    7,743 → **4,102**. One slot is left over: **`labelTextClass`, 248 uses in
+    30 forms**, which legacy applies to the label's *text* as distinct from
+    the label container. It is not one of the decided four, so it stays
+    unread — a fifth slot is a decision, not a translation.
+
 ## Things the POC deliberately does not answer
 
 Whether Base UI (family 3, the shape the primitives are modelled on) confirms

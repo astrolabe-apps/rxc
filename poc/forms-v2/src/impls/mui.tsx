@@ -351,6 +351,7 @@ function MuiAction(p: ActionRenderProps) {
             : "outlined"
       }
       size="small"
+      className={mergeClass(undefined, p.className)}
       disabled={p.disabled}
       loading={p.busy}
       startIcon={
@@ -360,7 +361,13 @@ function MuiAction(p: ActionRenderProps) {
       onClick={p.onClick}
       aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
     >
-      {p.iconPlacement === "replace" ? p.icon : (p.children ?? p.text)}
+      {p.iconPlacement === "replace"
+        ? p.icon
+        : (p.children ?? (
+            <span className={mergeClass(undefined, p.textClassName)}>
+              {p.text}
+            </span>
+          ))}
     </Button>
   );
 }

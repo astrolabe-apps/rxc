@@ -494,7 +494,9 @@ export function PersonForm({
                         return () => new Promise((r) => setTimeout(r, 1200));
                       case "greet":
                         return () =>
-                          console.log(`Hello, ${String(actionData ?? "nobody")}`);
+                          console.log(
+                            `Hello, ${String(actionData ?? "nobody")}`,
+                          );
                     }
                     return undefined;
                   }}

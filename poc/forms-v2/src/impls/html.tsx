@@ -292,14 +292,19 @@ function HtmlAction(p: ActionRenderProps) {
   return (
     <button
       type="button"
-      className={`ff-btn ff-btn--${p.style}`}
+      className={mergeClass(`ff-btn ff-btn--${p.style}`, p.className)}
       disabled={p.disabled}
       aria-busy={p.busy || undefined}
       onClick={p.onClick}
     >
       {p.iconPlacement !== "after" &&
         (p.busy ? <span className="ff-spinner" /> : p.icon)}
-      {p.iconPlacement !== "replace" && (p.children ?? p.text)}
+      {p.iconPlacement !== "replace" &&
+        (p.children ?? (
+          <span className={mergeClass(undefined, p.textClassName)}>
+            {p.text}
+          </span>
+        ))}
       {p.iconPlacement === "after" &&
         (p.busy ? <span className="ff-spinner" /> : p.icon)}
     </button>
