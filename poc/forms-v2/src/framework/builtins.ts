@@ -5,6 +5,7 @@ import {
   groupRenderer,
 } from "./boundary.js";
 import { tabsRenderer } from "./tabs.js";
+import { wizardRenderer } from "./wizard.js";
 import { actionRenderer } from "./actions.js";
 import { displayRenderer } from "./display.js";
 import type {
@@ -34,6 +35,14 @@ export const TextField = fieldRenderer<
 
 /** The chrome-less group. What replaced `<Show>`. */
 export const Contents = groupRenderer({ key: "contents" });
+
+/**
+ * The same implementation, with a validation scope. Two boundaries from one
+ * renderer, differing only in whether they aggregate their content's validity
+ * — which is what `{ scope: true }` is: a property of the boundary, not of
+ * the thing that draws it.
+ */
+export const Section = groupRenderer({ key: "contents" }, { scope: true });
 
 /**
  * The chrome-less collection — the array analogue of `<Contents>`, and what
@@ -71,3 +80,6 @@ export const SelectField = fieldRenderer<OptionValue, SelectExtra>({
 }) as unknown as <T extends OptionValue>(
   props: FieldProps<T> & SelectExtra,
 ) => Rendered;
+
+/** A stateful container whose state may live in the data. */
+export const Wizard = wizardRenderer({ key: "wizard" });

@@ -33,4 +33,9 @@ export {
   asControl,
 } from "./controlUtils.js";
 
-export { createControlGroup, attachFields } from "./groupControl.js";
+export {
+  createControlGroup,
+  attachFields,
+  createDerivedGroup,
+  detachFields,
+} from "./groupControl.js";

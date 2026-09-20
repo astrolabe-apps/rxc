@@ -22,6 +22,17 @@ export enum ControlFlags {
   Disabled = 2,
   ChildInvalid = 4,
   DontClearError = 8,
+  /**
+   * PROTOTYPE — this control's value is *derived* from its children and never
+   * written back down to them.
+   *
+   * An aggregate assembled from controls it does not own (a validity scope
+   * over an arbitrary set of fields) needs the upward half of the parent link
+   * and not the downward half. Without this, a group that holds both a control
+   * and a descendant of it holds the same datum under two keys, and the
+   * downward sync writes the stale copy back — silently reverting the write.
+   */
+  DerivedValue = 16,
 }
 
 export interface ParentLink {
@@ -171,7 +182,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
       this.setErrorsImpl(null, notify);
     }
     // Sync existing fields down
-    if (this._fields) {
+    if (this._fields && !(this._flags & ControlFlags.DerivedValue)) {
       const ov = v as Record<string, unknown> | null;
       for (const k in this._fields) {
         const child = this._fields[k];
@@ -181,7 +192,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
       }
     }
     // Sync existing elements down
-    if (this._elems) {
+    if (this._elems && !(this._flags & ControlFlags.DerivedValue)) {
       this.syncElementsOnValueChange(notify);
     }
     // Propagate upward
@@ -198,7 +209,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
     if (this._ctx.equals(this._initialValue, v)) return;
     this._initialValue = v;
     // Sync existing fields down
-    if (this._fields) {
+    if (this._fields && !(this._flags & ControlFlags.DerivedValue)) {
       const ov = v as Record<string, unknown> | null;
       for (const k in this._fields) {
         const child = this._fields[k];
@@ -208,7 +219,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
       }
     }
     // Sync existing elements down
-    if (this._elems) {
+    if (this._elems && !(this._flags & ControlFlags.DerivedValue)) {
       this.syncElementsOnInitialValueChange(notify);
     }
     this._subscriptions?.applyChange(ControlChange.InitialValue);

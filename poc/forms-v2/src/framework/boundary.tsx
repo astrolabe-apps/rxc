@@ -19,7 +19,11 @@ import {
 } from "./scope.js";
 import { useFieldValidation, useMirror } from "./validation.js";
 import { useRenderers } from "./renderers.js";
-import { useValidationScope } from "./validationScope.js";
+import {
+  createValidationScope,
+  useValidationScope,
+  ValidationScopeProvider,
+} from "./validationScope.js";
 import type {
   CollectionProps,
   CollectionRenderProps,
@@ -228,7 +232,8 @@ export function fieldRenderer<T, P extends object = {}>(
 }
 
 export type GroupImplSource =
-  ComponentType<GroupRenderProps> | { key: keyof FormRenderers };
+  | ComponentType<GroupRenderProps>
+  | { key: keyof FormRenderers };
 
 /**
  * A group boundary: scope narrowing plus chrome. It never unmounts its
@@ -237,12 +242,25 @@ export type GroupImplSource =
  */
 export function groupRenderer(
   source: GroupImplSource,
+  opts?: { scope?: boolean },
 ): ComponentType<GroupProps> {
   function GroupBoundary(props: GroupProps): Rendered {
     const { rc, rendered } = useReactive();
     const renderers = useRenderers();
+    const ctx = useControlContext();
     const scope = useBoundScope(props);
     const presenceNow = scope.presence(rc);
+
+    // Opt-in: only a container that gets asked "is my content invalid" pays
+    // for one. It attaches to the enclosing scope, so validity bubbles.
+    const parentValidation = useValidationScope();
+    const validation = useMemo(
+      () =>
+        opts?.scope
+          ? createValidationScope(ctx, parentValidation, "section")
+          : undefined,
+      [ctx, parentValidation],
+    );
 
     const Impl = (
       "key" in source
@@ -258,14 +276,23 @@ export function groupRenderer(
       <Impl
         className={getProp(rc, props.className)}
         hidden={presenceNow !== "rendered"}
+        invalid={validation ? !validation.isValid(rc) : undefined}
       >
         {props.children}
       </Impl>
     );
 
+    const scoped = validation ? (
+      <ValidationScopeProvider value={validation}>
+        {body}
+      </ValidationScopeProvider>
+    ) : (
+      body
+    );
+
     return rendered(
       <FormScopeProvider scope={scope}>
-        {republish(body, scope.disabled(rc), scope.readOnly(rc))}
+        {republish(scoped, scope.disabled(rc), scope.readOnly(rc))}
       </FormScopeProvider>,
     );
   }

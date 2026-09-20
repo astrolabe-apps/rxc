@@ -484,6 +484,25 @@ Creates a parent control from a map of `{ fieldName: Control }`. The parent's va
 
 Merges new field controls into an existing control. Detaches all existing fields, attaches the new ones, then reconstructs the parent value and initialValue from the field values via `setValueAndInitial`.
 
+**A group must not hold two controls where one is reachable from the other.** The group's value then carries the same datum under two keys, and any write reverts: it arrives up one route, the group recomposes only that key, and the downward sync (§B) writes the other key's pre-write copy back into the child. Nothing warns, and it is permanent rather than a first-write glitch.
+
+```ts
+const person = ctx.newControl({ name: "" });
+const group = createControlGroup(ctx, { whole: person, part: person.fields.name });
+ctx.update((wc) => wc.setValue(person.fields.name, "Ada"));
+person.fields.name.valueNow;  // "" — silently reverted
+```
+
+`@react-typed-forms/core@4.6` behaves identically, so this is long-standing rather than new. It is documented rather than fixed because the shape is rare in ordinary use and the fix would mean refreshing every key that aliases a changed control on every write.
+
+### createDerivedGroup(ctx) / detachFields(control, keys)
+
+`createDerivedGroup` makes a group whose value is **derived**: composed from its children as usual, but never written back down to them (`ControlFlags.DerivedValue` skips the downward sync in §B and §D, for fields and elements alike). Writing such a group's value directly therefore changes nothing but the group.
+
+That is what makes the aliasing above safe — the composed value stays correct, since both keys update through their own upward routes — so a derived group can aggregate an arbitrary set of controls, which is exactly what "is anything under this tab invalid?" needs. Validity aggregation, the `setTouched` cascade and `validate()` are unaffected.
+
+`detachFields` removes members by key, the counterpart `attachFields` never had (previously a member could only be *replaced*). It clears the parent's `ChildInvalid` cache before re-deriving, because `isValid()` short-circuits on that flag and a detached invalid member would otherwise keep the group invalid forever.
+
 ## P. Monkey Patch Surface `[patch]`
 
 Summary of everything `@react-typed-forms/core` adds to `Control`:

@@ -20,6 +20,9 @@ import MuiTab from "@mui/material/Tab";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Step from "@mui/material/Step";
+import StepLabel from "@mui/material/StepLabel";
+import Stepper from "@mui/material/Stepper";
 import Typography from "@mui/material/Typography";
 import CssBaseline from "@mui/material/CssBaseline";
 import { useReactive, type Rendered } from "@rx-controls/react";
@@ -29,6 +32,8 @@ import {
   mergeClass,
   useFieldShell,
   useInputFrame,
+  StandardActionIds,
+  useAction,
   useCheckbox,
   useSelectController,
   useTextInput,
@@ -44,6 +49,7 @@ import {
   type InputFrameProps,
   type StackProps,
   type TabsRenderProps,
+  type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import { Contents, ElementsList, DefaultVisibility } from "./shared.js";
@@ -399,6 +405,50 @@ function MuiSelect(p: SelectRenderProps): Rendered {
   );
 }
 
+function MuiWizard(p: WizardRenderProps) {
+  const NextBtn = useAction(StandardActionIds.next);
+  const BackBtn = useAction(StandardActionIds.back);
+  return (
+    <div style={p.hidden ? { display: "none" } : undefined}>
+      <Stepper activeStep={p.index} sx={{ mb: 2 }}>
+        {p.items.map((i) => (
+          <Step key={i.key}>
+            <StepLabel error={i.invalid && i.visited}>{i.title}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
+      {/* Every page rendered: an unreached one is `silent`, not absent. */}
+      {p.items.map((i) => (
+        <div
+          key={i.key}
+          className="ff-wizard-page"
+          data-inactive={i.active ? undefined : ""}
+        >
+          {i.content}
+        </div>
+      ))}
+      <div className="ff-row" style={{ marginTop: 12 }}>
+        <BackBtn
+          actionId={StandardActionIds.back}
+          text="Back"
+          style="secondary"
+          disabled={!p.canBack}
+          busy={false}
+          onClick={p.back}
+        />
+        <NextBtn
+          actionId={StandardActionIds.next}
+          text="Next"
+          style="primary"
+          disabled={!p.canNext}
+          busy={false}
+          onClick={p.next}
+        />
+      </div>
+    </div>
+  );
+}
+
 export const muiRenderers: FormRenderers = {
   name: "MUI",
   textfield: MuiTextField,
@@ -408,6 +458,7 @@ export const muiRenderers: FormRenderers = {
   html: MuiHtml,
   action: MuiAction,
   contents: Contents,
+  wizard: MuiWizard,
   tabs: MuiTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

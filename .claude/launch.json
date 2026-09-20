@@ -12,9 +12,8 @@
     },
     {
       "name": "forms-v2-poc",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "rushx",
       "runtimeArgs": [
-        "run",
         "dev"
       ],
       "cwd": "poc/forms-v2",

@@ -47,6 +47,7 @@ const initial: Person = {
   vetName: "",
   status: undefined,
   priority: undefined,
+  wizardPage: undefined,
 };
 
 export default function App() {

@@ -53,7 +53,8 @@ export interface TabsRenderProps {
 }
 
 export type TabsImplSource =
-  ComponentType<TabsRenderProps> | { key: keyof FormRenderers };
+  | ComponentType<TabsRenderProps>
+  | { key: keyof FormRenderers };
 
 /**
  * The only thing that sets `silent`: an inactive panel is off screen and still
@@ -85,7 +86,7 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
     const scopes = useMemo(() => {
       const m = new Map<string, ValidationScope>();
       for (const i of items)
-        m.set(i.key, createValidationScope(ctx, parentScope));
+        m.set(i.key, createValidationScope(ctx, parentScope, "tab:" + i.key));
       return m;
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ctx, parentScope, keyList]);

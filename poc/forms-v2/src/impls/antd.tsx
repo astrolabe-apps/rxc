@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   Select,
+  Steps,
   Tabs as AntTabList,
   Typography,
   theme,
@@ -19,6 +20,8 @@ import {
   mergeClass,
   useFieldShell,
   useInputFrame,
+  StandardActionIds,
+  useAction,
   useCheckbox,
   useSelectController,
   useTextInput,
@@ -33,6 +36,7 @@ import {
   type InputFrameProps,
   type StackProps,
   type TabsRenderProps,
+  type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import { Contents, ElementsList, DefaultVisibility } from "./shared.js";
@@ -375,6 +379,52 @@ function AntSelect(p: SelectRenderProps): Rendered {
   );
 }
 
+function AntWizard(p: WizardRenderProps) {
+  const NextBtn = useAction(StandardActionIds.next);
+  const BackBtn = useAction(StandardActionIds.back);
+  return (
+    <div style={p.hidden ? { display: "none" } : undefined}>
+      <Steps
+        current={p.index}
+        style={{ marginBottom: 16 }}
+        onChange={p.goTo}
+        items={p.items.map((i) => ({
+          title: i.title,
+          status: i.invalid && i.visited ? "error" : undefined,
+        }))}
+      />
+      {/* Every page rendered: an unreached one is `silent`, not absent. */}
+      {p.items.map((i) => (
+        <div
+          key={i.key}
+          className="ff-wizard-page"
+          data-inactive={i.active ? undefined : ""}
+        >
+          {i.content}
+        </div>
+      ))}
+      <div className="ff-row" style={{ marginTop: 12 }}>
+        <BackBtn
+          actionId={StandardActionIds.back}
+          text="Back"
+          style="secondary"
+          disabled={!p.canBack}
+          busy={false}
+          onClick={p.back}
+        />
+        <NextBtn
+          actionId={StandardActionIds.next}
+          text="Next"
+          style="primary"
+          disabled={!p.canNext}
+          busy={false}
+          onClick={p.next}
+        />
+      </div>
+    </div>
+  );
+}
+
 export const antdRenderers: FormRenderers = {
   name: "Ant",
   textfield: AntTextField,
@@ -384,6 +434,7 @@ export const antdRenderers: FormRenderers = {
   html: AntHtml,
   action: AntAction,
   contents: Contents,
+  wizard: AntWizard,
   tabs: AntTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

@@ -5,8 +5,10 @@ import { useControlContext } from "@rx-controls/react";
 import {
   arrayActions,
   CheckboxField,
+  Section,
   SelectField,
   TextDisplay,
+  Wizard,
   Contents,
   Elements,
   getExternalEdit,
@@ -39,6 +41,8 @@ export interface Person {
   vetName: string;
   status: string | undefined;
   priority: number | undefined;
+  /** The wizard's page index, kept in the data rather than in a component. */
+  wizardPage: number | undefined;
 }
 
 /** One place, so the buttons and the array's `Length` validator agree. */
@@ -62,6 +66,7 @@ export const personFieldNames: (keyof Person)[] = [
   "vetName",
   "status",
   "priority",
+  "wizardPage",
 ];
 
 /**
@@ -247,8 +252,9 @@ export function PersonForm({
               <Stack gap={4}>
                 {/* What replaced <Each>: a boundary, so the array itself gets a
             Length validator, clearHidden, and the cascade. The region around
-            it can be locked on its own. */}
-                <Contents readOnly={lockPets}>
+            it can be locked on its own, and `<Section>` is the same renderer
+            with a validation scope — the red bar is its aggregate. */}
+                <Section readOnly={lockPets}>
                   <Elements
                     field={f.$.pets}
                     label="Pets"
@@ -291,7 +297,7 @@ export function PersonForm({
                     busy={false}
                     onClick={() => pets.add({ name: "" })}
                   />
-                </Contents>
+                </Section>
 
                 {/* Outside the locked region, on purpose. */}
                 <DraftHost field={f.$.pets} />
@@ -320,6 +326,47 @@ export function PersonForm({
                 </p>
                 {showReference && <AntInputReference />}
               </Stack>
+            ),
+          },
+          {
+            key: "wizard",
+            title: "Wizard",
+            children: (
+              <Wizard
+                page={f.$.wizardPage}
+                items={[
+                  {
+                    key: "who",
+                    title: "Who",
+                    children: (
+                      <Stack gap={4}>
+                        <TextField
+                          field={f.$.lastName}
+                          label="Last name"
+                          required
+                          helpText="Next is refused until this page is valid."
+                        />
+                        <SelectField
+                          field={f.$.status}
+                          label="Status"
+                          options={statusOptions}
+                          required
+                        />
+                      </Stack>
+                    ),
+                  },
+                  {
+                    key: "detail",
+                    title: "Detail",
+                    children: (
+                      <Stack gap={4}>
+                        <TextField field={f.$.email} label="Email" />
+                        <TextField field={f.$.notes} label="Notes" multiline />
+                      </Stack>
+                    ),
+                  },
+                ]}
+              />
             ),
           },
           {

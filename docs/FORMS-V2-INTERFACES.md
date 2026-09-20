@@ -3,9 +3,11 @@
 Status: **proposal**. Goals, and the reasoning behind everything here, are in
 [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md).
 
-Nothing in `packages/` implements this. One throwaway build does — `poc/forms-v2`: the field
-boundary, four implementations of it (plain HTML, MUI, Ant, Mantine) and a third-party widget
-that reuses each one's chrome without importing it. Everything below marked **(built)** is a
+Nothing in `packages/` implements this. One throwaway build does — `poc/forms-v2`, a Rush
+project so it can link the workspace's own core: the field, options, collection, group, action
+and display boundaries, a tab container, a wizard, a staged-edit modal and a JSON loader, each
+in four implementations (plain HTML, MUI, Ant, Mantine), plus a third-party widget that reuses
+each one's chrome without importing it. Everything below marked **(built)** is a
 change that build forced, and its README carries the long form of each. What it never touched
 — real group renderers, actions, display, the loader — is listed under *Still open*.
 (`FORMS-V2-GOALS.md` reserves "the POC" for `@rx-controls/forms`, so this one is "the build"
@@ -482,11 +484,40 @@ because the boundary runs even when nothing renders.
 the array control, so element validity bubbles natively. That is the one case where the data tree
 really is enough.
 
-**Built, with a hand-rolled substitute (built).** A scope keeps a set of member controls plus a
-version control so membership changes re-trigger; `isValid(rc)` reads every member *without*
-early-exiting, so all of them stay subscribed. Registration runs upward — a field registers with
-the nearest scope, and a scope registers its members with its own parent — so validity reaches
-every enclosing scope. It works and it is the wrong shape for a library.
+**Built, and the shortcut was tried and rejected (built).** A scope keeps a set of member
+controls plus a version control so membership changes re-trigger; `isValid(rc)` reads every
+member *without* early-exiting, so all of them stay subscribed; registration runs upward, so
+validity reaches every enclosing scope. `{ scope: true }` is a boundary option, not a renderer
+one — `<Contents>` and `<Section>` in the build are the same implementation with and without it,
+and the implementation sees the result as `invalid` in its render props.
+
+The scope **is** a real `Control` — which is what makes validity an ordinary tracked read,
+`touchAll` a `setTouched` cascade, and nesting just another member — but it took a change in
+core to be safe. Built on the existing `attachFields` it corrupts data: a scope always holds
+both a control and a descendant of it (a collection registers its array, its rows register
+fields inside it), the group's value then carries that datum under two keys, and the downward
+sync writes the pre-write copy back. The symptom was a collection row that silently refused
+input. `@react-typed-forms/core@4.6` does the same, so it is long-standing.
+
+So core gained `createDerivedGroup` — a group whose value is composed from its children and
+never written back down — and `detachFields`, the counterpart `attachFields` never had. The
+composed value stays correct under the aliasing, because both keys update through their own
+upward routes; only the downward half was ever broken. See `CONTROL-SEMANTICS.md` § O.
+
+**A stateful container offers two homes for its state, and the author picks (built).** A tab
+strip keeps its active key in component state, which is right. A wizard's page index usually
+must not: it wants to survive a remount, a deep link, or save-and-resume. So `WizardProps` takes
+an optional `page?: FormField<number>` — bound, the index lives in the data and shows up in the
+payload; omitted, it is component state. A container that only offers the second is unusable for
+half its cases, and one that only offers the first pollutes the schema for the other half.
+
+**Gating is what a validation scope is actually for.** The wizard refuses Next while the current
+page's scope reports invalid, and a refusal `touchAll()`s that page so the errors it already had
+become visible. That needs one method beyond `isValid`, and it only works because an unreached
+page is `silent` — validating without rendering, so the step marker can show a page invalid
+before the user has ever seen it. Everything else the wizard needed already existed: presence,
+the scope, actions, structured `items`. The two buttons it draws use the documented ids `next`
+and `back`, so a host restyles them the same way as any other.
 
 **A container that needs per-child metadata cannot take `children`.** A tab strip needs titles,
 and `children: ReactNode` is opaque — React cannot inspect it. So tabs take `items` (§5), which
@@ -961,11 +992,11 @@ defeats a memo.
 - **Which named props beyond the minimum.** `tooltip` and `optional` are the next candidates,
   left out on survey evidence (`Tooltip` in one real form, `Optional` in none). Every
   implementation handles every named prop, so adding one is a contract change.
-- **Everything in §6's table has now been built**: a field, an options widget, a collection, a
-  chrome-less group, tabs, actions, displays, the staged-edit flow and the JSON loader, each in
-  four implementations. What remains unbuilt is a *stateful* group with chrome — a wizard, an
-  accordion, a dialog — and `{ scope: true }` still rests on a hand-rolled substitute for a
-  core primitive that does not exist. `{ scope: true }` now has
+- **A portal container has not been built.** Everything else in §6's table has: a field, an
+  options widget, a collection, a chrome-less group, tabs, a wizard, actions, displays, the
+  staged-edit flow and the JSON loader, each in four implementations. A dialog is the one shape
+  left, and it is the one design mode's layer 3 is about — a renderer whose content escapes the
+  canvas and can only be selected from the tree. `{ scope: true }` now has
   a working hand-rolled implementation, which is enough to say what core is missing — a
   structural parent link aggregating validity without value flow — but not to say what its API
   should be.

@@ -26,6 +26,10 @@ export const StandardActionIds = {
   apply: "apply",
   /** Discard a staged edit. */
   cancel: "cancel",
+  /** Advance a wizard. */
+  next: "next",
+  /** Go back a wizard page. */
+  back: "back",
 } as const;
 
 export type StandardActionId =

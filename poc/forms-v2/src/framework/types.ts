@@ -249,6 +249,8 @@ export interface GroupRenderProps {
    * the element at that position or the subtree remounts.
    */
   hidden?: boolean;
+  /** Only when the boundary was built with `{ scope: true }`. */
+  invalid?: boolean;
   children: ReactNode;
 }
 
@@ -396,6 +398,7 @@ export interface FormRenderers {
   html: ComponentType<HtmlDisplayRenderProps>;
   contents: ComponentType<GroupRenderProps>;
   tabs: ComponentType<import("./tabs.js").TabsRenderProps>;
+  wizard: ComponentType<import("./wizard.js").WizardRenderProps>;
   elements: ComponentType<CollectionRenderProps<any>>;
   fieldShell: ComponentType<FieldShellProps>;
   inputFrame: ComponentType<InputFrameProps>;

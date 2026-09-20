@@ -54,7 +54,8 @@ export function useAction(actionId: string): ComponentType<ActionRenderProps> {
 }
 
 export type ActionImplSource =
-  ComponentType<ActionRenderProps> | { key: keyof FormRenderers };
+  | ComponentType<ActionRenderProps>
+  | { key: keyof FormRenderers };
 
 /**
  * The action boundary: resolves `FormProp`s, folds the lock cascade, holds

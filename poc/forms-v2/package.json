@@ -1,12 +1,12 @@
 {
-  "name": "forms-v2-poc",
+  "name": "rxc-forms-v2-poc",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "description": "Throwaway POC for docs/FORMS-V2-INTERFACES.md — one field boundary, several implementations.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "format": "prettier --write .",
@@ -19,18 +19,18 @@
     "@mantine/core": "^9.6.1",
     "@mantine/hooks": "^9.6.1",
     "@mui/material": "^9.4.0",
-    "@rx-controls/core": "^1.0.0",
-    "@rx-controls/react": "^1.0.0",
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
     "antd": "^6.6.4",
-    "jsonata": "^2.2.2",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "jsonata": "^2.1.0",
+    "react": "~19.1.0",
+    "react-dom": "~19.1.0"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
+    "@types/react": "~19.1.0",
+    "@types/react-dom": "~19.1.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "prettier": "^3.9.8",
+    "prettier": "^3.8.1",
     "typescript": "~5.8.0",
     "vite": "^8.3.0"
   }

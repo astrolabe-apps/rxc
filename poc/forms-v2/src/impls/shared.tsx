@@ -49,11 +49,17 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
  * 1fr → 0fr and opacity, `inert` takes it out of tab order and the a11y tree,
  * and the boundaries inside keep drawing their own last frames meanwhile.
  */
-export function Contents({ className, hidden, children }: GroupRenderProps) {
+export function Contents({
+  className,
+  hidden,
+  invalid,
+  children,
+}: GroupRenderProps) {
   return (
     <div
       className={mergeClass("ff-contents", className)}
       data-hidden={hidden ? "" : undefined}
+      data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
     >
       <div className="ff-contents-inner">{children}</div>

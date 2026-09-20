@@ -7,6 +7,7 @@ import {
   Input,
   MantineProvider,
   Select,
+  Stepper,
   Tabs as MTabs,
   Text,
 } from "@mantine/core";
@@ -18,6 +19,8 @@ import {
   mergeClass,
   useFieldShell,
   useInputFrame,
+  StandardActionIds,
+  useAction,
   useCheckbox,
   useSelectController,
   useTextInput,
@@ -33,6 +36,7 @@ import {
   type InputFrameProps,
   type StackProps,
   type TabsRenderProps,
+  type WizardRenderProps,
   type TextFieldRenderProps,
 } from "../framework/index.js";
 import { Contents, ElementsList, DefaultVisibility } from "./shared.js";
@@ -323,6 +327,52 @@ function MantineSelect(p: SelectRenderProps): Rendered {
   );
 }
 
+function MantineWizard(p: WizardRenderProps) {
+  const NextBtn = useAction(StandardActionIds.next);
+  const BackBtn = useAction(StandardActionIds.back);
+  return (
+    <div style={p.hidden ? { display: "none" } : undefined}>
+      <Stepper active={p.index} onStepClick={p.goTo} mb="md" size="sm">
+        {p.items.map((i) => (
+          <Stepper.Step
+            key={i.key}
+            label={i.title}
+            color={i.invalid && i.visited ? "red" : undefined}
+          />
+        ))}
+      </Stepper>
+      {/* Every page rendered: an unreached one is `silent`, not absent. */}
+      {p.items.map((i) => (
+        <div
+          key={i.key}
+          className="ff-wizard-page"
+          data-inactive={i.active ? undefined : ""}
+        >
+          {i.content}
+        </div>
+      ))}
+      <div className="ff-row" style={{ marginTop: 12 }}>
+        <BackBtn
+          actionId={StandardActionIds.back}
+          text="Back"
+          style="secondary"
+          disabled={!p.canBack}
+          busy={false}
+          onClick={p.back}
+        />
+        <NextBtn
+          actionId={StandardActionIds.next}
+          text="Next"
+          style="primary"
+          disabled={!p.canNext}
+          busy={false}
+          onClick={p.next}
+        />
+      </div>
+    </div>
+  );
+}
+
 export const mantineRenderers: FormRenderers = {
   name: "Mantine",
   textfield: MantineTextField,
@@ -332,6 +382,7 @@ export const mantineRenderers: FormRenderers = {
   html: MantineHtml,
   action: MantineAction,
   contents: Contents,
+  wizard: MantineWizard,
   tabs: MantineTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

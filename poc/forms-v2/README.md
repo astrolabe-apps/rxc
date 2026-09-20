@@ -1,13 +1,15 @@
 # forms-v2 POC — one field boundary, four implementations
 
-Throwaway. Plain npm + Vite, deliberately outside Rush, no relationship to
-anything in `packages/`. It exists to put `docs/FORMS-V2-INTERFACES.md` in front
-of real UI libraries and find out where the interfaces bend.
+Throwaway. A Vite app, and a Rush project — it started outside Rush on plain npm
+and moved in once it needed the workspace's own `@rx-controls/core` rather than
+the published one (finding 37). It exists to put
+`docs/FORMS-V2-INTERFACES.md` in front of real UI libraries and find out where
+the interfaces bend.
 
 ```bash
-npm install
-npm run dev        # http://localhost:5183
-npm run typecheck
+rush update
+rushx dev          # http://localhost:5183, from this directory
+rushx typecheck
 ```
 
 ## What it builds
@@ -450,6 +452,68 @@ Numbered; each is cited at the matching line of code.
     second time for the notch (directly from props — here the widget *is* the
     control), Ant's and Mantine's draw their own surface under
     `surface: "custom"`.
+
+35. **A stateful container needs two homes for its state, and the author
+    picks.** Tabs keep the active key in component state, which is right for a
+    tab strip. A wizard's page index usually must not — it wants to survive a
+    remount, a deep link, or save-and-resume — so `WizardProps` takes an
+    optional `page?: FormField<number>`. The demo binds it, and `wizardPage: 1`
+    duly appears in the state table alongside the form's real data. Offer only
+    component state and half the cases are unbuildable; offer only the bound
+    form and the other half pollute their schema with UI state.
+
+36. **Gating is what the validation scope was actually for.** Next is refused
+    while the current page is invalid, and refusing `touchAll()`s that page so
+    the errors it already had become visible — one method beyond `isValid`, and
+    the only thing the wizard needed that did not already exist. It works
+    because an unreached page is `silent`: validating without rendering, so a
+    step can be marked invalid before the user has ever seen it. Verified: Next
+    on an empty first page does not advance and turns the page's fields
+    touched-and-red; filling them lets it through and `wizardPage` becomes 1.
+
+    Everything else was reuse — presence, the scope, actions, structured
+    `items`, design-mode stacking — and the two buttons it draws use the
+    documented ids `next` and `back`, exactly as finding 27 intends. All four
+    libraries drew their own stepper (`MuiStepper`, `ant-steps`, Mantine's,
+    and the html one) with no contract change.
+
+37. **The validation scope needed a change in core — the first thing this whole
+    exercise has asked of it.** The scope wants to be a real `Control`: then
+    validity is an ordinary tracked read, `touchAll` is a `setTouched` cascade,
+    and a nested scope is just another member. Built on the existing
+    `attachFields` it corrupts data instead.
+
+    The shape is unavoidable, not exotic: a scope always holds both a control
+    and a descendant of it, because a collection registers its array while its
+    rows register fields inside it. The group's value then carries that datum
+    under two keys; a write arrives up one route, the group recomposes only
+    that key, and the downward sync writes the other key's pre-write copy back
+    into the child. The symptom was a collection row that silently refused
+    typing. It took three attempts to describe correctly — the first two
+    explanations were wrong, and the minimal repro (a compound plus one of its
+    own fields) is what settled it. `@react-typed-forms/core@4.6` behaves
+    identically, so it is long-standing rather than an rxc regression.
+
+    Core gained `createDerivedGroup` — a group whose value is composed from its
+    children and never written back down — and `detachFields`, the counterpart
+    `attachFields` never had. The composed value stays *correct* under the
+    aliasing, since both keys update through their own upward routes; only the
+    downward half was ever broken. Writing detach turned up a second bug: the
+    `ChildInvalid` cache short-circuits `isValid()`, so a detached invalid
+    member kept the group invalid forever unless the flag is cleared first.
+
+    What it deleted from here: a version counter, a fan-out that had to avoid
+    early-exiting so every member stayed subscribed, a hand-written `touchAll`,
+    and a throwaway-control hack standing in for detach. It also made nesting
+    real — a parent scope now holds one child aggregate instead of a flattened
+    copy of its members.
+
+38. **`{ scope: true }` is a property of the boundary, not of the renderer.**
+    `<Contents>` and `<Section>` are the same implementation, produced by the
+    same `groupRenderer` call shape, differing only in whether they aggregate
+    their content's validity; the implementation sees the answer as `invalid`
+    in its render props and can draw it however it likes (the demo shows a red
+    bar on the pets section, which clears the moment the row inside is named).
 
 ## Things the POC deliberately does not answer
 

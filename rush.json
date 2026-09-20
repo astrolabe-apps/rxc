@@ -96,6 +96,11 @@
       "packageName": "rxc-compare-demo",
       "projectFolder": "apps/rxc-compare",
       "shouldPublish": false
+    },
+    {
+      "packageName": "rxc-forms-v2-poc",
+      "projectFolder": "poc/forms-v2",
+      "shouldPublish": false
     }
   ]
 }

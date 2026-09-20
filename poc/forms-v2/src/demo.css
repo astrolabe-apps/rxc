@@ -414,3 +414,42 @@ body {
   background: #fef3c7;
   border: 1px dashed #f59e0b;
 }
+
+/* ── wizard (html implementation) ────────────────────────────────── */
+.ff-steps {
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  margin: 0 0 16px;
+  border-bottom: 1px solid #e4e4e7;
+}
+.ff-step button {
+  font: inherit;
+  font-size: 13px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 10px;
+  color: #52525b;
+  border-bottom: 2px solid transparent;
+  align-self: auto;
+}
+.ff-step[data-active] button {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+.ff-step[data-invalid] button {
+  color: #dc2626;
+}
+.ff-wizard-page[data-inactive] {
+  display: none;
+}
+.ff-row > button:first-child {
+  flex: 0 0 auto;
+}
+.ff-contents[data-invalid] {
+  border-left: 3px solid #dc2626;
+  padding-left: 10px;
+  margin-left: -13px;
+}

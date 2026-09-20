@@ -1,4 +1,4 @@
-import { toImpl } from "./controlImpl.js";
+import { ControlFlags, toImpl } from "./controlImpl.js";
 import type { ControlImpl } from "./controlImpl.js";
 import type { WriteContextImpl } from "./writeContextImpl.js";
 import { ControlChange } from "./types.js";
@@ -97,4 +97,63 @@ function linkFields(
     child.updateParentLink(parent, k);
   }
   return changed;
+}
+
+/**
+ * PROTOTYPE — a group whose value is **derived**: composed from its children
+ * and never written back down to them.
+ *
+ * For aggregating flags (validity, touched, dirty) over controls the group
+ * does not own — a tab's fields, a wizard page's — where the ordinary group is
+ * unsafe: such a set routinely contains both a control and a descendant of it
+ * (a collection registers its array, its rows register fields inside it), and
+ * the downward sync then writes one key's stale copy over the other.
+ */
+export function createDerivedGroup(ctx: ControlContext): Control<unknown> {
+  const group = toImpl(ctx.newControl<unknown>({}));
+  group._flags |= ControlFlags.DerivedValue;
+  return group as unknown as Control<unknown>;
+}
+
+/**
+ * PROTOTYPE — detach `fields` from a group, by key.
+ *
+ * The counterpart `attachFields` never had: today a field can only be
+ * *replaced*, so removing a member means attaching a throwaway in its place.
+ */
+export function detachFields(
+  wc: WriteContext,
+  control: Control<any>,
+  keys: string[],
+): void {
+  const parent = toImpl(control);
+  if (!parent._fields) return;
+  let changed = false;
+  for (const k of keys) {
+    const child = parent._fields[k];
+    if (!child) continue;
+    child.updateParentLink(parent, undefined);
+    delete parent._fields[k];
+    changed = true;
+  }
+  if (!changed) return;
+  const notify = (wc as WriteContextImpl).notify;
+  const value: Record<string, unknown> = {
+    ...(parent._value as Record<string, unknown> | null),
+  };
+  for (const k of keys) delete value[k];
+  parent.setValueImpl(value, notify);
+  // `ChildInvalid` is a cache that short-circuits `isValid()`, so a detached
+  // invalid member would otherwise keep the group invalid forever. Clearing it
+  // lets `isValid()` recompute from what is left, here and up the chain.
+  if (parent._flags & ControlFlags.ChildInvalid) {
+    // Clear first: `isValid()` short-circuits on the flag, and re-sets it
+    // itself if what remains is still invalid.
+    parent._flags &= ~ControlFlags.ChildInvalid;
+    if (parent.isValid()) parent.validityChangedImpl(false, notify);
+  }
+  parent._subscriptions?.applyChange(
+    ControlChange.Structure | ControlChange.Valid,
+  );
+  notify(parent);
 }
