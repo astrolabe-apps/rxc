@@ -4,9 +4,9 @@ import {
   type FieldProps,
   useFieldShell,
   useNumberInput,
+  getProp,
   type FieldRenderProps,
   type FormProp,
-  type Resolved,
 } from "../framework/index.js";
 
 export interface StarsExtra {
@@ -19,11 +19,11 @@ export interface StarsExtra {
  * error chrome — which is the whole claim §7 makes for the primitives.
  */
 function StarsImpl(
-  p: FieldRenderProps<number | undefined | null> & Resolved<StarsExtra>,
+  p: FieldRenderProps<number | undefined | null> & StarsExtra,
 ): Rendered {
   const Shell = useFieldShell();
   const ctl = useNumberInput(p.field);
-  const max = p.maxStars ?? 5;
+  const max = getProp(ctl.rc, p.maxStars) ?? 5;
   const value = ctl.value ?? 0;
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(

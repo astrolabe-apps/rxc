@@ -27,6 +27,7 @@ import {
   type Presence,
 } from "./framework/index.js";
 import { Stars } from "./widgets/Stars.js";
+import { PetCards } from "./widgets/PetCards.js";
 import { JsonForm } from "./loader/JsonForm.js";
 import { demoControls, demoSchema } from "./loader/demoForm.js";
 import { AntInputReference } from "./impls/antd.js";
@@ -352,6 +353,37 @@ export function PersonForm({
                   so the panel itself has to hide it.
                 </p>
                 {showReference && <AntInputReference />}
+              </Stack>
+            ),
+          },
+          {
+            key: "cards",
+            title: "Cards",
+            children: (
+              <Stack gap={4}>
+                <p className="ff-plain">
+                  The same pets array through a third-party collection renderer
+                  — no UI library imported, per-row chrome composed from the
+                  implementation's buttons, Edit through the shared staged-edit
+                  controller (the modal on the Pets tab opens it).
+                </p>
+                <PetCards
+                  field={f.$.pets}
+                  label="Pets as cards"
+                  {...petBounds}
+                  columns={2}
+                  onCardClick={(i) => console.log("card", i)}
+                  empty={<p className="ff-empty">No cards.</p>}
+                >
+                  {(pet, i) => (
+                    <TextField
+                      field={pet.$.name}
+                      required
+                      label={`Pet ${i + 1}`}
+                    />
+                  )}
+                </PetCards>
+                <DraftHost field={f.$.pets} />
               </Stack>
             ),
           },

@@ -135,6 +135,11 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
+  // Renderer-specific props arrive unresolved; resolve them here, in this
+  // window — and before the frame's render prop, which runs in the frame's.
+  const placeholder = getProp(ctl.rc, p.placeholder);
+  const inputType = getProp(ctl.rc, p.inputType) ?? "text";
+  const multiline = !!getProp(ctl.rc, p.multiline);
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -153,7 +158,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
         invalid={!!p.error}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
-        multiline={!!p.multiline}
+        multiline={multiline}
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
@@ -164,7 +169,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
           const common = {
             ...slot,
             value: ctl.value,
-            placeholder: p.placeholder,
+            placeholder,
             onChange: (e: { target: { value: string } }) =>
               ctl.setValue(e.target.value),
             onBlur: (e: FocusEvent<HTMLElement>) => {
@@ -175,7 +180,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
           return s.multiline ? (
             <textarea {...common} rows={3} />
           ) : (
-            <input {...common} type={p.inputType ?? "text"} />
+            <input {...common} type={inputType} />
           );
         }}
       />
@@ -292,10 +297,11 @@ function HtmlAction(p: ActionRenderProps) {
 }
 
 function HtmlText(p: TextDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <p className={mergeClass("ff-text", p.className ?? p.textClassName)}>
-      {p.text ?? p.children}
-    </p>
+      {getProp(rc, p.text) ?? p.children}
+    </p>,
   );
 }
 
@@ -305,24 +311,26 @@ function HtmlText(p: TextDisplayRenderProps) {
  * no library, no provider.
  */
 function HtmlIcon(p: IconDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <span
       className={mergeClass("ff-icon", p.className)}
       role="img"
       aria-label={p.accessibleName}
       title={p.accessibleName}
     >
-      {glyphFor(p.icon)}
-    </span>
+      {glyphFor(getProp(rc, p.icon))}
+    </span>,
   );
 }
 
 function HtmlHtml(p: HtmlDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <div
       className={mergeClass("ff-html", p.className)}
-      dangerouslySetInnerHTML={{ __html: p.html ?? "" }}
-    />
+      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+    />,
   );
 }
 

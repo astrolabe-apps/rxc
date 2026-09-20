@@ -104,7 +104,7 @@ export function ElementsList(p: CollectionRenderProps<unknown>) {
       labelClassName={p.labelClassName}
     >
       <div className="ff-elements">
-        {p.elements.length ? p.elements : p.empty}
+        {p.elements.length ? p.elements.map((e) => e.node) : p.empty}
       </div>
     </Shell>
   );

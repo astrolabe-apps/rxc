@@ -481,3 +481,24 @@ body {
   line-height: 1;
   display: inline-block;
 }
+
+/* ── third-party cards collection ────────────────────────────────── */
+.ff-cards {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ff-card {
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fafafa;
+}
+.ff-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

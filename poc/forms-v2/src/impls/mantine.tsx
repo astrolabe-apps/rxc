@@ -133,6 +133,11 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
+  // Renderer-specific props arrive unresolved; resolve them here, in this
+  // window — and before the frame's render prop, which runs in the frame's.
+  const placeholder = getProp(ctl.rc, p.placeholder);
+  const inputType = getProp(ctl.rc, p.inputType) ?? "text";
+  const multiline = !!getProp(ctl.rc, p.multiline);
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -151,7 +156,7 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
         invalid={!!p.error}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
-        multiline={!!p.multiline}
+        multiline={multiline}
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
@@ -160,7 +165,7 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
           const common = {
             ...slot,
             value: ctl.value,
-            placeholder: p.placeholder,
+            placeholder,
             onChange: (e: { target: { value: string } }) =>
               ctl.setValue(e.target.value),
             onBlur: (e: FocusEvent<HTMLElement>) => {
@@ -171,7 +176,7 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
           return s.multiline ? (
             <textarea {...common} rows={3} />
           ) : (
-            <input {...common} type={p.inputType ?? "text"} />
+            <input {...common} type={inputType} />
           );
         }}
       />
@@ -280,17 +285,19 @@ function MantineAction(p: ActionRenderProps) {
 }
 
 function MantineText(p: TextDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <Text
       size="sm"
       className={mergeClass(undefined, p.className ?? p.textClassName)}
     >
-      {p.text ?? p.children}
-    </Text>
+      {getProp(rc, p.text) ?? p.children}
+    </Text>,
   );
 }
 
 function MantineIcon(p: IconDisplayRenderProps) {
+  const { rc, rendered } = useReactive();
   const glyph = (
     <Text
       component="span"
@@ -299,24 +306,27 @@ function MantineIcon(p: IconDisplayRenderProps) {
       className={mergeClass(undefined, p.className)}
       style={{ fontSize: 24, lineHeight: 1 }}
     >
-      {glyphFor(p.icon)}
+      {glyphFor(getProp(rc, p.icon))}
     </Text>
   );
-  return p.accessibleName ? (
-    <MTooltip label={p.accessibleName}>{glyph}</MTooltip>
-  ) : (
-    glyph
+  return rendered(
+    p.accessibleName ? (
+      <MTooltip label={p.accessibleName}>{glyph}</MTooltip>
+    ) : (
+      glyph
+    ),
   );
 }
 
 function MantineHtml(p: HtmlDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <Text
       size="sm"
       component="div"
       className={mergeClass(undefined, p.className)}
-      dangerouslySetInnerHTML={{ __html: p.html ?? "" }}
-    />
+      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+    />,
   );
 }
 

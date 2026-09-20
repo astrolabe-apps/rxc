@@ -102,12 +102,14 @@ Nothing below is settled. In rough order of how much else depends on it:
    from `<FormControl required>`, so a pre-asterisked label doubles up. Chakra and Mantine
    each ship a dedicated required indicator too — it is the universal shape, not an MUI quirk.
 
-   **The third-party path is only tested for a field.** The built-in group, collection, action
-   and display renderers exist in four implementations (built), so the boundaries themselves
-   have been walked. What has not is a renderer written from *outside* the package for any of
-   them — the build's one external widget, `Stars`, is a field. A custom collection renderer
-   is the likeliest to force a change: how it reaches array actions and the staged-edit
-   controller has never been exercised through the contract.
+   **The third-party path is tested for a field and a collection (built).** The built-in
+   group, collection, action and display renderers exist in four implementations, and two
+   renderers written from *outside* the package — `Stars`, a field, and `PetCards`, a
+   collection with per-row chrome and a staged edit — reuse each implementation's chrome
+   without importing it. The collection did bend the contract once, as predicted: an
+   implementation cannot put a button on a row it receives as an opaque node, so elements
+   arrive as `{ key, index, field, node }`. A third-party group or action renderer has not
+   been written.
 
    **The named-prop set is the minimum, decided:** `field, id, label, required, helpText,
    startIcon, endIcon` + the four class slots. `optional` is out — the survey found it in no

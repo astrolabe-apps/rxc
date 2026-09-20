@@ -34,10 +34,11 @@ that returns what it could not translate.
 | `src/impls/antd.tsx` | family 2 — `Form.Item` standalone, runtime theme tokens |
 | `src/impls/mantine.tsx` | family 2 — `Input.Wrapper` wired by `id`, polymorphic `Input` |
 | `src/widgets/Stars.tsx` | a **third-party** widget: no UI library, own surface, `fieldRenderer(MyImpl)` |
+| `src/widgets/PetCards.tsx` | a **third-party collection**: per-row chrome from the implementation's buttons, staged edit, a callback prop |
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
 Not built, and not pretended: a portal container (dialog), design-mode
-substitution, Base UI, and a third-party renderer of any kind but a field.
+substitution, Base UI.
 
 ## What held up
 
@@ -573,12 +574,60 @@ Numbered; each is cited at the matching line of code.
     stays honest. A real implementation maps to its icon set. The contract
     only says a name arrives.
 
+41. **A collection implementation cannot put chrome on a row it cannot see.**
+    The first third-party collection — cards with their own Edit / Remove,
+    the shape a DataGrid's remove column has — did not compile against
+    `elements: ReactNode[]`: there was nothing to attach a button *to*, and no
+    index or field to hand the staged-edit controller. `elements` is now
+    `CollectionElement<T>[]` — `{ key, index, field, node }` — and the
+    built-in `ElementsList` just maps `e.node`. The boundary's three
+    guarantees (structure-only subscription, a scope per element, keyed by
+    `uniqueId`) are untouched; the implementation simply gets to know what
+    the rows *are*. `field` is the element's scoped binding, so
+    `edit.beginEdit(e.index, e.field)` from inside a card captures the
+    array's scope exactly as the Pets tab's buttons do — verified: Edit on a
+    card opens the same draft the Pets tab's host shows, because the
+    controller is cached on the array control and both hosts read it.
+
+    Smaller, and worth knowing: a **non-field** implementation has no
+    controller to hand it `rc` and `rendered`. `Stars` got its window from
+    `useNumberInput`; a collection or a display has to call `useReactive()`
+    itself. That is the same one line every `@rx-controls/react` component
+    writes, so not a gap — but it is the first place a renderer author meets
+    the render boundary directly rather than through a controller.
+
+42. **Renderer-specific props reach the implementation unresolved — decided,
+    and the deciding renderer was a callback.** `PetCards` takes
+    `onCardClick?: (index) => void`. Forwarded through the boundary's
+    `getProps`, the callback was *invoked with the `rc`* during render —
+    `card {tracked: Map(1), tracking: true}` four times on load — and the
+    implementation received `undefined`. The boundary cannot tell
+    `(rc) => T` from `(index) => void`; both are one-argument functions.
+
+    So the boundary now spreads renderer-specific props through as the author
+    wrote them, and the implementation resolves each with `getProp` in its
+    own window — the rule §1 already states for every other `FormProp`, now
+    with no exception. `Resolved<P>` is gone from the contract, and so is
+    `getProps`. Measured cost of the change, which is what this trial was
+    for: seven read sites per implementation (placeholder, inputType,
+    multiline, options, text, html, icon), `useSelectController` taking the
+    `FormProp` and resolving it itself, and the three display
+    implementations each opening a tracking window they previously did not
+    need. TypeScript found every site — `FormProp<string>` is not assignable
+    to `string` — so forgetting one is a compile error, not a silent render
+    of a function's source. Verified after: nothing fires at render, a click
+    delivers the index, and the `Ada` placeholder still resolves.
+
+    One thing this moves rather than removes: a change to a
+    renderer-specific `FormProp` now re-renders the implementation only,
+    where before it re-rendered the boundary and everything under it. That
+    is the direction §1 wanted anyway.
+
 ## Things the POC deliberately does not answer
 
 A portal container — the one §6 shape never built, and the one design mode's
 layer 3 is about; design-mode substitution (`Dialog → Contents`, `Tabs → all
 stacked`); whether Base UI (family 3, the shape the primitives are modelled on)
-confirms or embarrasses them; and whether a *third-party* group, collection or
-action renderer can be written against the contract the way `Stars` was for a
-field — the collection case, reaching `arrayActions` and the staged-edit
-controller from outside the package, is the likeliest to force a change.
+confirms or embarrasses them; and whether a *third-party* group or action
+renderer can be written against the contract the way `Stars` and `PetCards`
+were for a field and a collection.

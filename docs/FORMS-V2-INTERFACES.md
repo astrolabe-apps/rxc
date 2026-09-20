@@ -9,8 +9,7 @@ and display boundaries, a tab container, a wizard, a staged-edit modal and a JSO
 in four implementations (plain HTML, MUI, Ant, Mantine), plus a third-party widget that reuses
 each one's chrome without importing it. Everything below marked **(built)** is a
 change that build forced, and its README carries the long form of each. What it never touched
-— a portal container, design-mode substitution, Base UI, any third-party renderer that is not
-a field — is listed under *Still open*.
+— a portal container, design-mode substitution, Base UI — is listed under *Still open*.
 (`FORMS-V2-GOALS.md` reserves "the POC" for `@rx-controls/forms`, so this one is "the build"
 throughout, whatever its folder is called.)
 
@@ -371,12 +370,12 @@ path.
 /** Generic in the value type, not fixed to the one the boundary was built for. */
 type FieldComponent<T, P> = <V extends T>(props: FieldProps<V> & P) => Rendered;
 
-function fieldRenderer<T, P = {}>(impl: ComponentType<FieldRenderProps<T> & Resolved<P>>)
+function fieldRenderer<T, P = {}>(impl: ComponentType<FieldRenderProps<T> & P>)
   : FieldComponent<T, P>;
 function fieldRenderer<T, P = {}>(builtIn: { key: keyof FormRenderers })
   : FieldComponent<T, P>;
 
-function collectionRenderer<T, P = {}>(impl: ComponentType<CollectionRenderProps<T> & Resolved<P>>)
+function collectionRenderer<T, P = {}>(impl: ComponentType<CollectionRenderProps<T> & P>)
   : <V extends T>(props: CollectionProps<V> & P) => Rendered;
 
 function groupRenderer(impl, opts?: { scope?: boolean; designAs?: keyof FormRenderers });
@@ -460,22 +459,16 @@ for one concrete `T`, but a schema legitimately yields `string`, `string | undef
 `FormField<string | undefined | null>`. Fixed to one `T`, every schema has to spell out the
 widget's exact union instead.
 
-**`Resolved<P>` only works written backwards (built).** `X extends FormProp<infer T>` infers
-`T` as the entire union, because `FormProp`'s bare `T` member is a naked type parameter that
-absorbs everything. Test the reactive shapes first and fall through:
-
-```ts
-type Resolved<P> = { [K in keyof P]: UnwrapProp<P[K]> };
-type UnwrapProp<X> = X extends (rc: ReadContext) => infer T ? T
-  : X extends Control<infer T> ? T : X;
-```
-
-The cost is at runtime rather than in the types. Resolving props whose names the boundary does
-not know means calling `getProp` on each, so **any function-valued renderer prop is invoked
-with an `rc`** — and `ActionProps.onClick` is already a plain function in §5, so this bites the
-moment a field renderer wants a callback. Either extras stay unresolved and the implementation
-resolves them in its own window (which §1 prefers on every other count), or the contract needs
-a way to mark a prop pass-through. Listed under *Still open*.
+**Renderer-specific props reach the implementation as the author wrote them (built).** The
+boundary resolves the contract props it knows by name and spreads everything else through
+untouched; the implementation resolves each renderer-specific `FormProp` with `getProp` in its
+own window — the same rule §1 states for every other prop, with no exception. The boundary
+cannot do it: it has no way to tell `(rc) => T` from a callback such as `(index) => void`, and
+a callback resolved by the boundary is invoked with an `rc` during render. There is therefore
+no `Resolved<P>` in the contract — an implementation's props type is
+`FieldRenderProps<T> & P` for the `P` the author sees. The cost, measured in the build, is a
+`getProp` per renderer-specific read (seven per implementation) and a tracking window in
+implementations that had none — the displays.
 
 **Where validators publish from is not a free choice (built).** Errors are published from a
 commit effect, as `@rx-controls/react`'s own `useValidator` does, while `useReactive`
@@ -802,16 +795,27 @@ interface CollectionProps<T> extends FieldProps<T[]> {
   maxLength?: number;
 }
 
+/** One element as the implementation sees it — enough to put chrome *on* the row. */
+interface CollectionElement<T> {
+  key: number;             // the element control's uniqueId
+  index: number;
+  field: FormField<T>;     // the element's scoped binding — what a staged edit starts from
+  node: ReactNode;         // the author's row, rendered in its own scope
+}
+
 /** What the implementation gets. The hard parts are already done. */
 interface CollectionRenderProps<T> extends FieldRenderProps<T[]> {
-  elements: ReactNode[];   // one per element, each in its own scope, keyed by uniqueId
+  elements: CollectionElement<T>[];
   actions: ArrayActions;   // add / remove / move + the Length-derived bounds
   empty?: ReactNode;
 }
 ```
 
-The boundary resolves the elements rather than handing the implementation an array to iterate,
-because the three things that must not be got wrong are not obvious:
+The boundary renders the rows rather than handing the implementation controls to iterate,
+because the three things that must not be got wrong are not obvious — but it hands them over
+**structured** (built): a third-party collection that draws per-row chrome (a card's Edit, a
+grid's remove column) has to know each row's index and field, and an opaque `ReactNode[]`
+carried neither.
 
 - subscribe to the array's **structure** only, so adding an element re-renders the list while
   editing one re-renders one field;
@@ -996,15 +1000,6 @@ defeats a memo.
   staged-edit flow and the JSON loader, each in four implementations. A dialog is the one shape
   left, and it is the one design mode's layer 3 is about — a renderer whose content escapes the
   canvas and can only be selected from the tree.
-- **A third-party renderer that is not a field.** The build's one external widget, `Stars`, is
-  a `fieldRenderer`. A custom collection is the case most likely to bend the contract — how it
-  reaches `arrayActions` and the staged-edit controller from outside the package has never been
-  exercised.
-- **Whether renderer-specific props are resolved by the boundary or by the implementation.**
-  §6 has the boundary do it, which invokes any function-valued prop with an `rc`. Handing them
-  through unresolved and letting the implementation call `getProp` in its own window is what
-  §1 prefers on every other count. Unresolved because nothing in the build needed a callback
-  prop; the first renderer that does decides it.
 - **Whether `forms-html` and `forms-native` share renderer source** — decidable when the second
   package exists, and it changes nothing above.
 

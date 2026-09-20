@@ -21,12 +21,15 @@ export type FormProp<T> = T | ((rc: ReadContext) => T) | Control<T>;
  * gets the right answer for `string | ((rc) => string) | Control<string> |
  * undefined` → `string | undefined`.
  */
-export type Resolved<P> = { [K in keyof P]: UnwrapProp<P[K]> };
-export type UnwrapProp<X> = X extends (rc: ReadContext) => infer T
-  ? T
-  : X extends Control<infer T>
-    ? T
-    : X;
+/**
+ * Renderer-specific props reach the implementation **as the author wrote
+ * them** — a `FormProp` still a `FormProp`, resolved by the implementation
+ * with `getProp` in its own tracking window. The boundary cannot resolve them
+ * for it: it has no way to tell `(rc) => T` from a callback like
+ * `(index) => void`, and would invoke the callback with an `rc`. Since a
+ * `FormProp` is read in the consuming component's window everywhere else,
+ * this is the same rule, not an exception to it.
+ */
 
 // ── §2 Class values ──────────────────────────────────────────────────
 
@@ -229,12 +232,27 @@ export interface CollectionProps<T> extends FieldProps<T[]> {
 }
 
 /**
+ * One element, as the implementation sees it. `node` is the author's row,
+ * already rendered in its own tracking scope; the rest is what an
+ * implementation needs to put chrome *on* that row — a DataGrid's remove
+ * column, a card's Edit button — which an opaque `ReactNode[]` could not
+ * carry. `field` is the element's scoped binding, so a staged edit begun from
+ * here captures the array's scope.
+ */
+export interface CollectionElement<T> {
+  key: number;
+  index: number;
+  field: FormField<T>;
+  node: ReactNode;
+}
+
+/**
  * What a collection implementation receives. The three things that are easy to
  * get wrong — structure-only subscription, a tracking scope per element, keying
  * by `uniqueId` — are done before it sees them.
  */
 export interface CollectionRenderProps<T> extends FieldRenderProps<T[]> {
-  elements: ReactNode[];
+  elements: CollectionElement<T>[];
   actions: ArrayActions;
   empty?: ReactNode;
 }
@@ -300,7 +318,7 @@ export interface TextFieldExtra {
 }
 
 export type TextFieldRenderProps = FieldRenderProps<string | undefined | null> &
-  Resolved<TextFieldExtra>;
+  TextFieldExtra;
 
 /** Closed and exhaustive. An implementation supplies every key. */
 export type CheckboxRenderProps = FieldRenderProps<boolean | undefined | null>;
@@ -325,8 +343,7 @@ export type OptionValue = string | number | undefined | null;
 
 export type SelectExtra = { options?: FormProp<FieldOption[]> };
 
-export type SelectRenderProps = FieldRenderProps<OptionValue> &
-  Resolved<SelectExtra>;
+export type SelectRenderProps = FieldRenderProps<OptionValue> & SelectExtra;
 
 // ── Displays ─────────────────────────────────────────────────────────
 
@@ -361,12 +378,9 @@ export type HtmlDisplayExtra = { html?: FormProp<string> };
 /** A named glyph. The implementation decides what draws it. */
 export type IconDisplayExtra = { icon?: FormProp<string> };
 
-export type TextDisplayRenderProps = DisplayRenderProps &
-  Resolved<TextDisplayExtra>;
-export type HtmlDisplayRenderProps = DisplayRenderProps &
-  Resolved<HtmlDisplayExtra>;
-export type IconDisplayRenderProps = DisplayRenderProps &
-  Resolved<IconDisplayExtra>;
+export type TextDisplayRenderProps = DisplayRenderProps & TextDisplayExtra;
+export type HtmlDisplayRenderProps = DisplayRenderProps & HtmlDisplayExtra;
+export type IconDisplayRenderProps = DisplayRenderProps & IconDisplayExtra;
 
 // ── Actions ──────────────────────────────────────────────────────────
 

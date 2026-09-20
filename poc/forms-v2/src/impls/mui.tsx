@@ -210,6 +210,11 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
+  // Renderer-specific props arrive unresolved; resolve them here, in this
+  // window — and before the frame's render prop, which runs in the frame's.
+  const placeholder = getProp(ctl.rc, p.placeholder);
+  const inputType = getProp(ctl.rc, p.inputType) ?? "text";
+  const multiline = !!getProp(ctl.rc, p.multiline);
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -228,7 +233,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
         invalid={!!p.error}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
-        multiline={!!p.multiline}
+        multiline={multiline}
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
@@ -237,7 +242,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
           const common = {
             ...slot,
             value: ctl.value,
-            placeholder: p.placeholder,
+            placeholder,
             onChange: (e: { target: { value: string } }) =>
               ctl.setValue(e.target.value),
             onBlur: (e: FocusEvent<HTMLElement>) => {
@@ -248,7 +253,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
           return s.multiline ? (
             <textarea {...common} rows={3} />
           ) : (
-            <input {...common} type={p.inputType ?? "text"} />
+            <input {...common} type={inputType} />
           );
         }}
       />
@@ -352,18 +357,20 @@ function MuiAction(p: ActionRenderProps) {
 }
 
 function MuiText(p: TextDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <Typography
       variant="body2"
       className={mergeClass(undefined, p.className ?? p.textClassName)}
     >
-      {p.text ?? p.children}
-    </Typography>
+      {getProp(rc, p.text) ?? p.children}
+    </Typography>,
   );
 }
 
 /** MUI makes the name visible through its own Tooltip — its call, not the contract's. */
 function MuiIcon(p: IconDisplayRenderProps) {
+  const { rc, rendered } = useReactive();
   const glyph = (
     <Typography
       component="span"
@@ -372,24 +379,27 @@ function MuiIcon(p: IconDisplayRenderProps) {
       className={mergeClass(undefined, p.className)}
       sx={{ fontSize: 24, lineHeight: 1 }}
     >
-      {glyphFor(p.icon)}
+      {glyphFor(getProp(rc, p.icon))}
     </Typography>
   );
-  return p.accessibleName ? (
-    <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
-  ) : (
-    glyph
+  return rendered(
+    p.accessibleName ? (
+      <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
+    ) : (
+      glyph
+    ),
   );
 }
 
 function MuiHtml(p: HtmlDisplayRenderProps) {
-  return (
+  const { rc, rendered } = useReactive();
+  return rendered(
     <Typography
       variant="body2"
       component="div"
       className={mergeClass(undefined, p.className)}
-      dangerouslySetInnerHTML={{ __html: p.html ?? "" }}
-    />
+      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+    />,
   );
 }
 

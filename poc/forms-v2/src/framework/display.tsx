@@ -1,17 +1,16 @@
 import { type ComponentType } from "react";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import { useBoundScope } from "./boundary.js";
-import { getProp, getProps } from "./prop.js";
+import { getProp } from "./prop.js";
 import { useRenderers } from "./renderers.js";
 import type {
   DisplayProps,
   DisplayRenderProps,
   FormRenderers,
-  Resolved,
 } from "./types.js";
 
 export type DisplayImplSource<P extends object> =
-  | ComponentType<DisplayRenderProps & Resolved<P>>
+  | ComponentType<DisplayRenderProps & P>
   | { key: keyof FormRenderers };
 
 const contractKeys = new Set([
@@ -60,7 +59,7 @@ export function displayRenderer<P extends object = {}>(
             accessibleName={getProp(rc, props.accessibleName)}
             className={getProp(rc, props.className)}
             textClassName={getProp(rc, props.textClassName)}
-            {...getProps(rc, extra)}
+            {...extra}
           >
             {props.children}
           </Impl>

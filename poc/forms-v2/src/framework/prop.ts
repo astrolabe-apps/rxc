@@ -21,21 +21,6 @@ export function getProp<T>(
   return p;
 }
 
-/** Resolve a whole bag of renderer-specific props. */
-export function getProps<P extends object>(
-  rc: ReadContext,
-  props: P,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const k of Object.keys(props)) {
-    out[k] = getProp(
-      rc,
-      (props as Record<string, unknown>)[k] as FormProp<unknown>,
-    );
-  }
-  return out;
-}
-
 /** Only the implementation knows its own class for a slot, so it does the merge. */
 export function mergeClass(
   own: string | undefined,

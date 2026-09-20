@@ -8,7 +8,7 @@ import {
   type Rendered,
 } from "@rx-controls/react";
 import type { ReadContext } from "@rx-controls/core";
-import { getProp, getProps } from "./prop.js";
+import { getProp } from "./prop.js";
 import { bindScope, elementField } from "./schema.js";
 import { arrayActions, lengthValidator } from "./collections.js";
 import {
@@ -25,6 +25,7 @@ import {
   ValidationScopeProvider,
 } from "./validationScope.js";
 import type {
+  CollectionElement,
   CollectionProps,
   CollectionRenderProps,
   FieldProps,
@@ -35,12 +36,11 @@ import type {
   GroupProps,
   GroupRenderProps,
   Presence,
-  Resolved,
   Validator,
 } from "./types.js";
 
 export type FieldImplSource<T, P extends object> =
-  | ComponentType<FieldRenderProps<T> & Resolved<P>>
+  | ComponentType<FieldRenderProps<T> & P>
   | { key: keyof FormRenderers };
 
 const contractKeys = new Set([
@@ -215,7 +215,7 @@ export function fieldRenderer<T, P extends object = {}>(
     const el = republish(
       <Impl
         {...(renderProps as unknown as Record<string, unknown>)}
-        {...getProps(rc, extra)}
+        {...extra}
       />,
       state.disabled,
       state.readOnly,
@@ -302,8 +302,16 @@ export function groupRenderer(
   return GroupBoundary;
 }
 
+const collectionContractKeys = new Set([
+  ...contractKeys,
+  "children",
+  "empty",
+  "minLength",
+  "maxLength",
+]);
+
 export type CollectionImplSource<T, P extends object> =
-  | ComponentType<CollectionRenderProps<T> & Resolved<P>>
+  | ComponentType<CollectionRenderProps<T> & P>
   | { key: keyof FormRenderers };
 
 /**
@@ -381,11 +389,21 @@ export function collectionRenderer<T, P extends object = {}>(
     // Structure only: adding or removing re-renders the list, editing one
     // element re-renders that element's scope.
     const elementControls = rc.isNull(control) ? [] : rc.getElements(control);
-    const elements = elementControls.map((elem, index) => (
-      <Reactive key={elem.uniqueId}>
-        {() => children(elementField(bound, elem), index)}
-      </Reactive>
-    ));
+    const elements: CollectionElement<T>[] = elementControls.map(
+      (elem, index) => {
+        const field = elementField(bound, elem);
+        return {
+          key: elem.uniqueId,
+          index,
+          field,
+          node: (
+            <Reactive key={elem.uniqueId}>
+              {() => children(field, index)}
+            </Reactive>
+          ),
+        };
+      },
+    );
 
     const actions = arrayActions(rc, update, bound, { minLength, maxLength });
 
@@ -414,8 +432,16 @@ export function collectionRenderer<T, P extends object = {}>(
     ) as ComponentType<Record<string, unknown>>;
     const Visibility = renderers.visibility;
 
+    const extra: Record<string, unknown> = {};
+    for (const k of Object.keys(props))
+      if (!collectionContractKeys.has(k))
+        extra[k] = (props as Record<string, unknown>)[k];
+
     const el = republish(
-      <Impl {...(renderProps as unknown as Record<string, unknown>)} />,
+      <Impl
+        {...(renderProps as unknown as Record<string, unknown>)}
+        {...extra}
+      />,
       state.disabled,
       state.readOnly,
     );

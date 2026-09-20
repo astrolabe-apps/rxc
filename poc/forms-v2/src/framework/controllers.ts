@@ -1,3 +1,5 @@
+import { getProp } from "./prop.js";
+import type { FormProp } from "./types.js";
 import type { ReactNode } from "react";
 import type { ReadContext } from "@rx-controls/core";
 import { useReactive, type Rendered } from "@rx-controls/react";
@@ -104,9 +106,12 @@ export interface SelectController extends FieldController {
  */
 export function useSelectController(
   field: FormField<OptionValue>,
-  options: FieldOption[] = [],
+  optionsProp?: FormProp<FieldOption[]>,
 ): SelectController {
   const { rc, rendered, update } = useReactive();
+  // Resolved here, in the implementation's window — the boundary hands
+  // renderer-specific props through untouched.
+  const options = getProp(rc, optionsProp) ?? [];
   const value = rc.getValue(field.control);
   const setValue = (v: OptionValue) =>
     update((wc) => wc.setValue(field.control, v));
