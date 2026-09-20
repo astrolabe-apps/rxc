@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "Add createDerivedGroup and detachFields. A derived group composes its value from its children but never writes it back down to them, which makes it safe to aggregate validity, touched and dirty over an arbitrary set of controls — including a control and a descendant of it, where an ordinary group silently reverts writes. detachFields removes members by key, which previously required replacing them with a throwaway control.",
+      "type": "minor",
+      "packageName": "@rx-controls/core"
+    }
+  ],
+  "packageName": "@rx-controls/core",
+  "email": "doolse@gmail.com"
+}
