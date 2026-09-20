@@ -385,15 +385,25 @@ export type IconDisplayRenderProps = DisplayRenderProps & IconDisplayExtra;
 // ── Actions ──────────────────────────────────────────────────────────
 
 export type ActionStyle = "primary" | "secondary" | "link";
+export type IconPlacement = "before" | "after" | "replace";
+/**
+ * What a running async handler locks: nothing, this button, or the whole form.
+ * A JSX author asks for this by hand — "disable everything while this saves"
+ * — so it is a contract prop, where `actionData` (JSON's stand-in for a
+ * closure) is not.
+ */
+export type DisableType = "none" | "self" | "global";
 
 /** What an author writes. */
 export interface ActionProps {
   actionId: string;
   text?: FormProp<ReactNode>;
   icon?: FormProp<ReactNode>;
+  iconPlacement?: FormProp<IconPlacement>;
   onClick?: () => void | Promise<void>;
   hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
+  disableType?: DisableType;
   style?: FormProp<ActionStyle>;
   children?: ReactNode;
 }
@@ -408,6 +418,8 @@ export interface ActionRenderProps {
   actionId: string;
   text?: ReactNode;
   icon?: ReactNode;
+  /** Absent means `"before"` — a composed button need not say. */
+  iconPlacement?: IconPlacement;
   onClick: () => void;
   disabled: boolean;
   busy: boolean;

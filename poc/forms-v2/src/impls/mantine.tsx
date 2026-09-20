@@ -278,10 +278,14 @@ function MantineAction(p: ActionRenderProps) {
       size="xs"
       disabled={p.disabled}
       loading={p.busy}
-      leftSection={p.icon}
+      leftSection={
+        (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
+      }
+      rightSection={p.iconPlacement === "after" ? p.icon : undefined}
       onClick={p.onClick}
+      aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
     >
-      {p.children ?? p.text}
+      {p.iconPlacement === "replace" ? p.icon : (p.children ?? p.text)}
     </Button>
   );
 }

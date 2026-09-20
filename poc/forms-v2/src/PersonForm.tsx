@@ -488,6 +488,16 @@ export function PersonForm({
                   controls={demoControls}
                   schema={demoSchema}
                   data={data}
+                  actionHandler={(id, actionData) => {
+                    switch (id) {
+                      case "apply":
+                        return () => new Promise((r) => setTimeout(r, 1200));
+                      case "greet":
+                        return () =>
+                          console.log(`Hello, ${String(actionData ?? "nobody")}`);
+                    }
+                    return undefined;
+                  }}
                   renderWarnings={(ws) => (
                     <ul className="ff-warnings">
                       {ws.map((w, i) => (

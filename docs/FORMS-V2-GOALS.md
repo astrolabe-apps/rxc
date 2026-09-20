@@ -154,12 +154,12 @@ Nothing below is settled. In rough order of how much else depends on it:
    app's forms *and* the schemas it renders them against (evaluating its generated
    `schemas.ts`) into `corpus/`, and `scripts/burndown.ts` runs the loader over it, reporting
    by kind and shape, including every property on a definition that nothing read. 80 forms,
-   3,972 controls, 1 clean, **8,169 warnings** — every one of them loader work. 6,719 are
-   unread properties, led by the four class slots (3,954 between them), `hideTitle` (1,400),
-   and the action props (`actionStyle` 361, `actionData` 81, `iconPlacement` 65,
-   `disableType` 39); the rest is unhandled shapes, led by `DisplayOnly` 375, `Inline` 205,
-   `a/b` field-path refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now:
-   a property the loader never looked at used to cost nothing. README findings 44–46.
+   3,972 controls, 1 clean, **7,743 warnings** — every one of them loader work. 5,935 are
+   unread properties, led by the four class slots (3,954 between them) and `hideTitle`
+   (1,400); 442 are action ids no handler claimed (the count of buttons a host has to wire);
+   the rest is unhandled shapes, led by `DisplayOnly` 375, `Inline` 205, `a/b` field-path
+   refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now: a property the
+   loader never looked at used to cost nothing. README findings 44–47.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the
@@ -314,6 +314,17 @@ them.
 The schema still supplies what the *data* is — type, collection, options, and `displayName` as
 a label default. The split is: a label default is harmless and overridable; a validator default
 silently changes whether the form can be submitted.
+
+**`actionData` does not exist at the JSX level either (decided).** JSON gives a button an id
+and a payload because it cannot write a closure; a JSX author's `onClick` *is* the closure. So
+the payload, the host resolver that pairs id with handler (legacy's
+`ControlRenderOptions.actionHandler` shape, `(actionId, actionData) => onClick | undefined`),
+and `runAction` / `disableForm` all belong to the loader — `<JsonForm actionHandler>` — and the
+contract's `ActionProps` gains only what an author writes by hand: `iconPlacement` and
+`disableType`. One consequence worth having: because the resolver is asked at translate time,
+an action id nobody claims is a **warning**, where legacy renders the dead button silently.
+Legacy's Dialog group, opened by action id, is likewise a loader component that claims
+`openDialog` / `closeDialog` for its subtree. Interfaces §5; README finding 47.
 
 **Adornments do not exist at the JSX level.** "Adornment" is a *JSON format* concept. The
 loader translates each one into whatever is natural in JSX, and the renderer contract never

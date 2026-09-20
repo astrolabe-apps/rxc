@@ -73,12 +73,25 @@ export function actionRenderer(
 
     const hidden = scope.presence(rc) !== "rendered";
     const disabled = scope.disabled(rc) || rc.getValue(busy);
+    const disableType = props.disableType ?? "self";
+    const lock = scope.globalLock;
     const onClick = () => {
       if (scope.designMode || disabled) return;
       const r = props.onClick?.();
       if (r instanceof Promise) {
-        update((wc) => wc.setValue(busy, true));
-        r.finally(() => update((wc) => wc.setValue(busy, false)));
+        // "self" holds this button; "global" also holds the form's lock,
+        // which the root scope reads as `disabled` for every boundary.
+        const global = disableType === "global" && lock;
+        update((wc) => {
+          if (disableType !== "none") wc.setValue(busy, true);
+          if (global) wc.setValue(lock, rc.getValue(lock) + 1);
+        });
+        r.finally(() =>
+          update((wc) => {
+            wc.setValue(busy, false);
+            if (global) wc.setValue(lock, Math.max(0, rc.getValue(lock) - 1));
+          }),
+        );
       }
     };
 
@@ -93,6 +106,7 @@ export function actionRenderer(
           actionId={props.actionId}
           text={getProp(rc, props.text)}
           icon={getProp(rc, props.icon)}
+          iconPlacement={getProp(rc, props.iconPlacement) ?? "before"}
           onClick={onClick}
           disabled={disabled}
           busy={rc.getValue(busy)}

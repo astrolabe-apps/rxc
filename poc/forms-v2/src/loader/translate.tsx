@@ -1,9 +1,15 @@
-import type { ReactNode } from "react";
-import type { Control, ControlContext } from "@rx-controls/core";
+import { useMemo, type ReactNode } from "react";
+import {
+  untrackedRead,
+  type Control,
+  type ControlContext,
+} from "@rx-controls/core";
+import { useControlContext } from "@rx-controls/react";
 import {
   Action,
   CheckboxField,
   Contents,
+  Dialog,
   createFormField,
   Elements,
   getProp,
@@ -48,7 +54,9 @@ export interface LoaderWarning {
     /** The definition names a field the supplied schema does not have — an input gap, not a loader one. */
     | "schema"
     /** A property on the definition that nothing — loader or translator — ever read. */
-    | "unread";
+    | "unread"
+    /** An action id no handler claimed — the button renders and does nothing. */
+    | "action";
   /** `def.title` or the bound field, for a human reading the list. */
   subject?: string;
   detail: string;
@@ -74,6 +82,14 @@ export interface TranslateArgs {
   children: ReactNode[];
   /** For a collection: the children, rendered against one element. */
   element?: (item: FormField<any>) => ReactNode;
+  /** For an action: the click the host's `actionHandler` resolved, if any. */
+  onClick?: () => void | Promise<void>;
+  /**
+   * For a container that needs its children built under different options —
+   * a Dialog group claims `openDialog` / `closeDialog` for its subtree. The
+   * given handler is consulted first; the enclosing one is the fall-through.
+   */
+  retranslate?: (opts: Partial<LoaderOptions>) => ReactNode[];
 }
 
 export interface Translator {
@@ -87,11 +103,32 @@ export interface Translator {
    * warning rather than a silent `<input>`.
    */
   renderTypes?: string[];
+  /**
+   * The translator builds its children itself through `retranslate` — a
+   * Dialog group, whose children need its handler. The loader then skips its
+   * eager pass, or every child would be translated twice and warned twice.
+   */
+  ownsChildren?: boolean;
 }
+
+/**
+ * How a button in a *loaded* form reaches host code. JSON cannot write a
+ * closure, so the format gives a button an id and a payload; the host pairs
+ * them here. Legacy's resolver shape (`ControlRenderOptions.actionHandler`):
+ * asked once per button, returns the click or `undefined` to decline — which
+ * is what lets the loader report an unclaimed id at translate time instead of
+ * shipping a button that silently does nothing. Loader-only: `ActionProps`
+ * has `onClick`, and this is what the loader builds it from.
+ */
+export type ActionHandler = (
+  actionId: string,
+  actionData: unknown,
+) => (() => void | Promise<void>) | undefined;
 
 export interface LoaderOptions {
   translators?: Translator[];
   onUnsupported?: (def: ControlDefinition) => ReactNode;
+  actionHandler?: ActionHandler;
 }
 
 const defaultUnsupported = (def: ControlDefinition) => (
@@ -105,11 +142,58 @@ const defaultUnsupported = (def: ControlDefinition) => (
 export const defaultTranslators: Translator[] = [
   {
     match: (d) => d.type === "Action",
-    render: ({ def }) => (
+    render: ({ def, props, children, onClick }) => (
       <Action
         actionId={def.actionId ?? "action"}
         text={def.actionText ?? def.title}
-        style="primary"
+        onClick={onClick}
+        hidden={props.hidden}
+        disabled={props.disabled}
+        style={actionStyleOf(def.actionStyle)}
+        icon={
+          def.icon?.name ? (
+            <span aria-hidden>{glyph(def.icon.name)}</span>
+          ) : undefined
+        }
+        iconPlacement={
+          def.iconPlacement === "AfterText"
+            ? "after"
+            : def.iconPlacement === "ReplaceText"
+              ? "replace"
+              : "before"
+        }
+        disableType={
+          def.disableType === "Global"
+            ? "global"
+            : def.disableType === "None"
+              ? "none"
+              : "self"
+        }
+      >
+        {def.actionStyle === "Group" && children.length ? children : undefined}
+      </Action>
+    ),
+  },
+  {
+    // Legacy's Dialog group: children with `placement: "trigger"` render in
+    // place, the rest inside a dialog the trigger opens by *action id* —
+    // `openDialog` / `closeDialog` — which the translator claims for its own
+    // subtree before the host's handler sees them, exactly as legacy's
+    // DefaultDialogRenderer did with a child `actionHandler`.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Dialog",
+    renderTypes: ["Dialog"],
+    ownsChildren: true,
+    render: ({ def, props, retranslate }) => (
+      <DialogGroup
+        // Read here, at translate time, so the unread audit sees it.
+        title={
+          typeof def.groupOptions?.title === "string"
+            ? def.groupOptions.title
+            : undefined
+        }
+        placements={(def.children ?? []).map((c) => c.placement)}
+        hidden={props.hidden}
+        retranslate={retranslate!}
       />
     ),
   },
@@ -341,7 +425,7 @@ function warnUnread(def: ControlDefinition, seen: Set<string>, warn: Warn) {
       detail: `"${path}" is not read by any translator — dropped`,
     });
   for (const [k, v] of Object.entries(def)) {
-    if (!meaningful(v)) continue;
+    if (!meaningful(v) || parentReadKeys.has(k)) continue;
     if (!seen.has(k)) report(k);
     else if (
       (nestedKeys as readonly string[]).includes(k) &&
@@ -352,13 +436,85 @@ function warnUnread(def: ControlDefinition, seen: Set<string>, warn: Warn) {
   }
 }
 
+function actionStyleOf(s: ControlDefinition["actionStyle"]) {
+  return s === "Secondary" ? "secondary" : s === "Link" ? "link" : "primary";
+}
+
+const glyphs: Record<string, string> = {
+  plus: "+",
+  trash: "\u{1F5D1}",
+  pen: "\u270E",
+  check: "\u2713",
+  xmark: "\u2715",
+  "arrow-right": "\u2192",
+  "arrow-left": "\u2190",
+};
+function glyph(name: string): string {
+  return glyphs[name] ?? name;
+}
+
+/**
+ * The Dialog group's translation needs state — the `open` control — and a
+ * handler for its subtree, so it is a component rather than a bare element.
+ */
+function DialogGroup({
+  title,
+  placements,
+  hidden,
+  retranslate,
+}: {
+  title?: string;
+  placements: (string | null | undefined)[];
+  hidden?: FormProp<boolean>;
+  retranslate: (opts: Partial<LoaderOptions>) => ReactNode[];
+}) {
+  const ctx = useControlContext();
+  const open = useMemo(() => ctx.newControl(false), [ctx]);
+  const kids = useMemo(() => {
+    const nodes = retranslate({
+      actionHandler: (id) =>
+        id === "openDialog"
+          ? () => ctx.update((wc) => wc.setValue(open, true))
+          : id === "closeDialog"
+            ? () => ctx.update((wc) => wc.setValue(open, false))
+            : undefined,
+    });
+    const trigger: ReactNode[] = [];
+    const body: ReactNode[] = [];
+    placements.forEach((p, i) =>
+      (p === "trigger" ? trigger : body).push(nodes[i]),
+    );
+    return { trigger, body };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retranslate, ctx, open]);
+  return (
+    <>
+      {kids.trigger}
+      <Dialog
+        open={open}
+        onClose={() => ctx.update((wc) => wc.setValue(open, false))}
+        title={title}
+        hidden={hidden}
+      >
+        {kids.body}
+      </Dialog>
+    </>
+  );
+}
+
 /** A `Tooltip` adornment's text, which a display translates to its accessible name. */
 function tooltipOf(def: ControlDefinition): string | undefined {
   const a = def.adornments?.find((a) => a.type === "Tooltip");
   return typeof a?.tooltip === "string" ? a.tooltip : undefined;
 }
 
-const handledDynamic = new Set(["Visible", "Disabled", "Label"]);
+const handledDynamic = new Set(["Visible", "Disabled", "Label", "ActionData"]);
+
+/**
+ * Keys a *parent* translator reads off a child definition, which the child's
+ * own recording proxy cannot see: a Dialog group reads `placement`.
+ */
+const parentReadKeys = new Set(["placement"]);
 
 /**
  * Everything a definition carries that no translator will read. Each of these
@@ -427,13 +583,6 @@ export function translate(
   const at: Warn = (w) => collect({ ...w, path: key });
   const t = translators.find((t) => t.match(def, schema));
   warnUnhandled(def, at, t?.renderTypes);
-  if (def.field && !schema)
-    at({
-      kind: "schema",
-      subject: def.field,
-      detail: `no schema field named "${def.field}"`,
-    });
-  const props = buildProps(ctx, data, def, schema, at);
 
   const childFields = schema?.children ?? fields;
   const childData = def.field
@@ -442,7 +591,55 @@ export function translate(
       ] as Control<unknown>)
     : data;
 
-  const children = (def.children ?? []).map((c, i) =>
+  // An action's click: the host's resolver, asked now with the static payload
+  // so an unclaimed id is a warning here rather than a dead button there. A
+  // dynamic `ActionData` is read again at click time, untracked.
+  let onClick: (() => void | Promise<void>) | undefined;
+  if (def.type === "Action" && def.actionId) {
+    const id = def.actionId;
+    const dyn = def.dynamic?.find((d) => d.type === "ActionData")?.expr;
+    const dataProp = dyn ? toValueProp(ctx, data, dyn) : undefined;
+    // Read unconditionally: it is consumed whether or not a handler exists.
+    const staticData = def.actionData ?? undefined;
+    const resolved = opts.actionHandler?.(id, staticData);
+    if (!resolved)
+      at({
+        kind: "action",
+        subject: def.title ?? id,
+        detail: `no handler claimed action "${id}" — the button does nothing`,
+      });
+    else
+      onClick = dataProp
+        ? () => opts.actionHandler!(id, getProp(untrackedRead, dataProp))?.()
+        : resolved;
+  }
+
+  // A container may rebuild its children under a handler of its own; the
+  // enclosing handler is the fall-through, so a Dialog claims two ids and
+  // the host keeps the rest.
+  const retranslate = (over: Partial<LoaderOptions>): ReactNode[] => {
+    const inner = over.actionHandler;
+    const merged: LoaderOptions = {
+      ...opts,
+      ...over,
+      actionHandler: inner
+        ? (id, d) => inner(id, d) ?? opts.actionHandler?.(id, d)
+        : opts.actionHandler,
+    };
+    return (rawDef.children ?? []).map((c, i) =>
+      translate(ctx, childData, childFields, c, `${key}.${i}`, merged, collect),
+    );
+  };
+
+  if (def.field && !schema)
+    at({
+      kind: "schema",
+      subject: def.field,
+      detail: `no schema field named "${def.field}"`,
+    });
+  const props = buildProps(ctx, data, def, schema, at);
+
+  const children = (t?.ownsChildren ? [] : (def.children ?? [])).map((c, i) =>
     translate(
       ctx,
       schema?.collection ? childData : childData,
@@ -484,7 +681,15 @@ export function translate(
     warnUnread(rawDef, seen, at);
     return <TranslatedKey key={key}>{node}</TranslatedKey>;
   }
-  const node = t.render({ def, schema, props, children, element });
+  const node = t.render({
+    def,
+    schema,
+    props,
+    children,
+    element,
+    onClick,
+    retranslate,
+  });
   warnUnread(rawDef, seen, at);
   return <TranslatedKey key={key}>{node}</TranslatedKey>;
 }

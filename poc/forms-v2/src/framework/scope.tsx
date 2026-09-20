@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import type { ReadContext } from "@rx-controls/core";
+import type { Control, ReadContext } from "@rx-controls/core";
+import { useControl } from "@rx-controls/react";
 import { getProp, narrowPresence } from "./prop.js";
 import type { FormProp, Presence } from "./types.js";
 
@@ -19,6 +20,11 @@ export interface ScopeState {
   /** Form-wide, set on <Form>; `dontClearHidden` is the per-control opt-out. */
   clearHidden: boolean;
   designMode: boolean;
+  /**
+   * Held by `<Form>`: how many `disableType: "global"` actions are running.
+   * The root scope reads it as `disabled`, so one counter locks the form.
+   */
+  globalLock?: Control<number>;
 }
 
 const rootScope: ScopeState = {
@@ -55,6 +61,7 @@ export function narrowScope(parent: ScopeState, n: ScopeNarrowing): ScopeState {
     readOnly: (rc) => parent.readOnly(rc) || (getProp(rc, n.readOnly) ?? false),
     clearHidden: n.clearHidden ?? parent.clearHidden,
     designMode: n.designMode ?? parent.designMode,
+    globalLock: parent.globalLock,
   };
 }
 
@@ -71,6 +78,7 @@ export function combineScopes(a: ScopeState, b: ScopeState): ScopeState {
     readOnly: (rc) => a.readOnly(rc) || b.readOnly(rc),
     clearHidden: a.clearHidden || b.clearHidden,
     designMode: a.designMode || b.designMode,
+    globalLock: a.globalLock ?? b.globalLock,
   };
 }
 
@@ -95,11 +103,21 @@ export interface FormProps extends ScopeNarrowing {
  */
 export function Form({ children, ...narrowing }: FormProps) {
   const parent = useFormScope();
+  const globalLock = useControl(0);
   const scope = useMemo(
-    () => narrowScope(parent, narrowing),
+    () => {
+      const { disabled } = narrowing;
+      const s = narrowScope(parent, {
+        ...narrowing,
+        disabled: (rc) =>
+          (getProp(rc, disabled) ?? false) || rc.getValue(globalLock) > 0,
+      });
+      return { ...s, globalLock };
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       parent,
+      globalLock,
       narrowing.presence,
       narrowing.disabled,
       narrowing.readOnly,

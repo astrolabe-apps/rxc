@@ -297,8 +297,11 @@ function HtmlAction(p: ActionRenderProps) {
       aria-busy={p.busy || undefined}
       onClick={p.onClick}
     >
-      {p.busy ? <span className="ff-spinner" /> : p.icon}
-      {p.children ?? p.text}
+      {p.iconPlacement !== "after" &&
+        (p.busy ? <span className="ff-spinner" /> : p.icon)}
+      {p.iconPlacement !== "replace" && (p.children ?? p.text)}
+      {p.iconPlacement === "after" &&
+        (p.busy ? <span className="ff-spinner" /> : p.icon)}
     </button>
   );
 }

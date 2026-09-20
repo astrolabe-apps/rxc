@@ -773,6 +773,46 @@ Numbered; each is cited at the matching line of code.
     `ActionProps` — which is the actions decision — and read the array
     options. That is most of 6,719.
 
+47. **`actionData` never crosses into JSX, and that is what made the actions
+    question small.** JSON gives a button an id and a payload because it
+    cannot write a closure; a JSX author writes `onClick={() => approve(id)}`
+    and the payload *is* the closure. So — by the same argument the goals doc
+    makes for adornments — the loader owns all of it: `<JsonForm
+    actionHandler>` takes legacy's resolver shape (`(actionId, actionData) =>
+    onClick | undefined`, i.e. `ControlRenderOptions.actionHandler`, which
+    every host already has), the translator resolves `actionData` (static, or
+    the `dynamic: ActionData` expression read untracked at click time) and
+    builds the `onClick`. `ActionProps` gains only what a JSX author would
+    write by hand: `iconPlacement` and `disableType`.
+
+    **The resolver shape is what makes an inert button reportable.** Asked at
+    translate time, `undefined` means "nobody claims this id", and the loader
+    warns (`kind: "action"`) instead of shipping a button that does nothing —
+    legacy renders exactly that button, silently. The burndown now shows 442
+    of them across the corpus, which is the count of buttons a host handler
+    has to claim before the forms work.
+
+    **`disableType: "global"` needed one thing from the contract.** `<Form>`
+    holds a lock counter on the scope; a running global action increments it,
+    and the root scope reads it as `disabled` for every boundary. Verified:
+    Submit greys the whole form for the length of its promise.
+
+    **Legacy's Dialog group is a loader component, not a contract change.**
+    Children with `placement: "trigger"` render in place, the rest inside the
+    `<Dialog>` from finding 43; the translator owns the `open` control and
+    claims `openDialog` / `closeDialog` for its subtree, falling through to the
+    host's handler for anything else — the same nesting legacy's
+    `DefaultDialogRenderer` gets by passing a child `actionHandler`. Two
+    things that took a `Translator` addition: `retranslate`, so a container
+    can build its children under its own options, and `ownsChildren`, so the
+    loader skips its eager pass — without it every Dialog child was translated
+    twice and warned twice, which the corpus numbers had been quietly
+    carrying.
+
+    Burndown 7,887 → 7,743: `dynamic` 187 → 123 (`ActionData` handled),
+    `renderOptions` 844 → 824 (`Dialog`), `unread` 6,719 → 5,935
+    (`actionStyle`, `icon`, `iconPlacement`, `disableType`, `actionData`).
+
 ## Things the POC deliberately does not answer
 
 Whether Base UI (family 3, the shape the primitives are modelled on) confirms

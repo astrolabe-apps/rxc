@@ -23,7 +23,7 @@ export type EntityExpression =
   | { type: "DataMatch"; field: string; value: unknown }
   | { type: "Jsonata"; expression: string };
 
-export type DynamicPropertyType = "Visible" | "Disabled" | "Label";
+export type DynamicPropertyType = "Visible" | "Disabled" | "Label" | "ActionData";
 
 export interface DynamicProperty {
   type: DynamicPropertyType;
@@ -73,6 +73,13 @@ export interface ControlDefinition {
   /** Action controls only. */
   actionId?: string;
   actionText?: string;
+  actionData?: string | null;
+  actionStyle?: "Button" | "Secondary" | "Link" | "Group" | null;
+  icon?: { library?: string; name: string } | null;
+  iconPlacement?: "BeforeText" | "AfterText" | "ReplaceText" | null;
+  disableType?: "None" | "Self" | "Global" | null;
+  /** Children of a Dialog group: `"trigger"` renders outside the dialog. */
+  placement?: string | null;
 }
 
 export function findField(

@@ -323,11 +323,12 @@ interface ActionProps {
   actionId: string;
   text?: FormProp<ReactNode>;
   icon?: FormProp<ReactNode>;
+  iconPlacement?: FormProp<"before" | "after" | "replace">;
   onClick?: () => void | Promise<void>;
+  hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
-  disableType?: "self" | "global";
+  disableType?: "none" | "self" | "global";     // what a running async handler locks
   style?: FormProp<ActionStyle>;
-  iconPlacement?: FormProp<IconPlacement>;
   children?: ReactNode;                          // any style, not just Group
 }
 interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () => void }
@@ -336,6 +337,14 @@ interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () =
 type ActionOverrides = Record<string, ComponentType<ActionRenderProps>>;
 function useAction(actionId: string): ComponentType<ActionRenderProps>;
 ```
+
+**No `actionData` (decided, built).** JSON gives a button an id and a payload because it
+cannot write a closure; a JSX author's payload *is* the closure. So the payload, the host
+resolver that pairs the two, and `runAction`/`disableForm` are all **loader-only** — see *From
+JSON* below — and the contract carries only what an author writes by hand: `iconPlacement`,
+and `disableType`, because "lock the whole form while this saves" is asked of a button
+regardless of where it came from. `"global"` is implemented by a lock counter `<Form>` holds
+on the scope, which the root reads as `disabled` for every boundary (built).
 
 **Different buttons for different ids (built).** Three situations hide behind that, and only
 the third needs dispatch. An **author** can see the call site, so `style` and ordinary props
@@ -350,6 +359,18 @@ That only works if the ids are **known**, so the framework's own buttons use a d
 `add`, `remove`, `edit`, `apply`, `cancel` — never a private string, and a definition may rename
 one (`addActionId`) so two grids on a page can be styled apart. Ids name the deed, not the look:
 `apply`, never `primaryButton`. Appearance is `style` plus the override map.
+
+**From JSON — actions (built):** `<JsonForm actionHandler>` takes legacy's resolver shape,
+`(actionId, actionData) => onClick | undefined` (`ControlRenderOptions.actionHandler`, which
+every host already has), and the translator builds `onClick` from it — `actionData` static, or
+the `dynamic: ActionData` expression read untracked at click time. Asked at *translate* time,
+`undefined` means nobody claims the id and the loader **warns** rather than shipping a button
+that does nothing, which is what legacy does silently. `actionStyle` → `style`, `icon` /
+`iconPlacement` / `disableType` map one-to-one. Legacy's **Dialog group** is a loader component:
+`placement: "trigger"` children render in place, the rest inside `<Dialog>` (§6), and the
+translator owns the `open` control and claims `openDialog` / `closeDialog` for its subtree with
+the host's handler as fall-through — a `Translator` may `retranslate` its children under its
+own options and declare `ownsChildren` so the loader does not build them twice.
 
 **From JSON:** adornments do not survive translation — `HelpText` → `helpText`, `Icon` →
 `startIcon`/`endIcon`, `Tooltip` → `accessibleName` on the display it sits on (§6),

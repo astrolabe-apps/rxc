@@ -118,5 +118,49 @@ export const demoControls: ControlDefinition[] = [
       { type: "Style", expr: { type: "Data", field: "status" } } as never,
     ],
   },
-  { type: "Action", actionId: "apply", actionText: "Submit" },
+  {
+    type: "Action",
+    actionId: "apply",
+    actionText: "Submit",
+    actionStyle: "Button",
+    icon: { library: "fa", name: "check" },
+    disableType: "Global",
+  },
+  // A static payload, and one the data supplies at click time.
+  {
+    type: "Action",
+    actionId: "greet",
+    actionText: "Greet (static data)",
+    actionData: "hello",
+    actionStyle: "Secondary",
+  },
+  {
+    type: "Action",
+    actionId: "greet",
+    actionText: "Greet (dynamic data)",
+    actionStyle: "Link",
+    iconPlacement: "AfterText",
+    icon: { library: "fa", name: "arrow-right" },
+    dynamic: [
+      { type: "ActionData", expr: { type: "Data", field: "firstName" } },
+    ],
+  },
+  // Nobody handles this one — the loader says so instead of shipping a dead button.
+  { type: "Action", actionId: "launchRockets", actionText: "Unclaimed" },
+  // Legacy's Dialog group: the trigger opens it by action id.
+  {
+    type: "Group",
+    title: "Notes dialog",
+    groupOptions: { type: "Dialog", title: "Edit notes" },
+    children: [
+      {
+        type: "Action",
+        actionId: "openDialog",
+        actionText: "Edit notes…",
+        placement: "trigger",
+      },
+      { type: "Data", field: "notes", renderOptions: { type: "Multiline" } },
+      { type: "Action", actionId: "closeDialog", actionText: "Done" },
+    ],
+  },
 ];
