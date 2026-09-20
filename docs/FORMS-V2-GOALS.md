@@ -161,6 +161,17 @@ Nothing below is settled. In rough order of how much else depends on it:
    `a/b` field-path refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now: a
    property the loader never looked at used to cost nothing. README findings 44–50.
 
+   **What the number does not prove.** It measures shape coverage — did something claim this
+   discriminator, did something read this property — and cannot see a translation that is
+   *wrong*. Three places to expect one: a jsonata expression inside an array row evaluates
+   against whatever control the translator holds, with none of legacy's path prefix or
+   variables; the `defaultValue`-on-becoming-visible cycle is not built; a `../x` or `a/b`
+   reference has to bind the scope to the right node, not only the value. So "identical
+   semantics" needs a second instrument beside the burndown: render each corpus form in legacy
+   and in v2 over fixture data and diff visibility, validity and values per field — the
+   compare-app workstream generalised from one Fire form to the corpus. Until that exists the
+   target is asserted, not measured. README, *Where to pick up*.
+
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the
    JSON asked for, which is the failure mode that is easy to ship. A jsonata compile failure

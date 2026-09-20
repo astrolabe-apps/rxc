@@ -18,12 +18,11 @@ import {
  * Registration happens in the boundary, which runs even when the field renders
  * nothing — that is what makes an inactive tab report its errors.
  *
- * **Hand-rolled, and it has to be.** The obvious shortcut is core's
- * `attachFields`: make the scope a real control, attach the members as its
- * fields, and get validity, `touchAll` and nesting for free. It was built that
- * way and it corrupts data — see README finding 37. A membership set plus a
- * version control is the honest substitute until core has a parent link that
- * aggregates validity *without* composing values.
+ * The scope is a real control — core's `createDerivedGroup`, whose value is
+ * composed from its members and never written back down. Derived is what
+ * makes overlapping membership safe, and a scope always overlaps: a collection
+ * registers its array while its rows register fields inside it. See README
+ * finding 37.
  */
 export interface ValidationScope {
   register(control: Control<unknown>): () => void;

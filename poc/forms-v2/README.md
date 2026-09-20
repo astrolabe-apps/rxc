@@ -14,6 +14,19 @@ rushx extract-corpus <name> <src-dir>   # a legacy app's forms + schemas → cor
 rushx burndown [<dir-or-file>...]       # the loader over ./corpus (default); --json, --strict
 ```
 
+`corpus/` is gitignored — derived from other repositories. To rebuild it, point
+the extractor at each legacy app's source directory (the one holding
+`schemas.ts` and its pairing file). On the machine this was built on:
+
+```bash
+rushx extract-corpus servicetas   ~/astrolabe/myServiceTasIntegrationLayer/ServiceTasAPI/NewClientApp/client-common
+rushx extract-corpus forms-app    ~/astrolabe/astrolabe-common/forms-app/src
+rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTemplate/ClientApp/sites/formServer/src
+rushx burndown
+```
+
+80 forms, 3,972 controls; the burndown at the last commit is in finding 50.
+
 ## What it builds
 
 All six boundaries — `fieldRenderer`, `collectionRenderer`, `groupRenderer`
@@ -884,6 +897,35 @@ Numbered; each is cited at the matching line of code.
     sub-fields (`sampleText` 123, `noSelection` 110, `emptyText` 45,
     `renderOptions.groupOptions` 45), each of which belongs to a translator
     that does not exist yet and will go when it does.
+
+## Where to pick up
+
+The burndown (`rushx burndown`) is the work list, top-down. At the last run:
+`DisplayOnly` 372 (+ its `sampleText` 123) needs a read-only built-in in four
+implementations with value formatting; `Inline` 198 is probably a
+`Stack direction="row"` group; `HelpText` 69 is a prop the contract already
+has; `a/b` and `../x` field refs 126 need the loader to walk `$` and a parent
+stack; then `Group` 66, `dynamic Display` 64, `Radio` 55, `Jsonata`
+validators 45 (which need the async validator path — `Validator<T>` is
+synchronous here), `AllowedOptions` 39. `action` 442 stays until the
+burndown runs with a host `actionHandler`. Every loader change is a
+translator or a prop, then `rushx burndown` again; a fixture form in
+`src/loader/demoForm.ts` and a line in the `From JSON` tab is how each was
+verified so far.
+
+**What the number does not prove.** The burndown measures *shape coverage*
+— did something claim this discriminator, did something read this property.
+It cannot see a translation that is *wrong*, and the places to expect one are
+known: a jsonata `Visible` inside an array row evaluates against whatever
+control the translator holds, with none of legacy's path prefix or
+variables; the `defaultValue`-on-becoming-visible cycle is not built
+(`FieldProps` has no `defaultValue`); `a/b` refs have to bind the *scope* to
+the right node, not only the value. Goal 6's acceptance test therefore needs a
+second instrument: render each corpus form in legacy and in v2 over fixture
+data and diff visibility, validity and values per field — the compare-app
+workstream generalised from one Fire form to the corpus. Also unbuilt:
+`LayoutStyle` (15 uses; a dynamic inline style, no contract slot), a loader
+hook for host adornments (`Spotlight`) alongside the open `Translator[]`.
 
 ## Things the POC deliberately does not answer
 
