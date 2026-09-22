@@ -26,7 +26,7 @@ rushx burndown
 ```
 
 80 forms, 3,968 controls (re-extracted for finding 51; the ServiceTas source had moved on
-by four controls); the burndown at the last commit is in finding 53.
+by four controls); the burndown at the last commit is in finding 53; finding 54 changed no numbers.
 
 ## What it builds
 
@@ -1032,6 +1032,28 @@ Numbered; each is cited at the matching line of code.
     675 → 502 (`sampleText` 123 and `emptyText` 45 gone), `expression` 10 →
     0. Sixty-two of the remaining schema warnings are forms that shipped no
     schema at all.
+
+54. **DisplayOnly is write-free — a deliberate divergence from legacy.** The
+    check was prompted by the name: a display-only control should not be
+    editing anything. Legacy's does. Its `clearHidden` cycle
+    (`formStateNode.ts`, both the old core and the settled rxc port) has no
+    display-only exception, so a hidden display-only control gets
+    `value = undefined` like any other, and its `defaultValue` cycle writes a
+    default into one just the same. The display-only special cases are
+    elsewhere — `required` skipped, `hideDisplayOnly` for an empty value
+    with no `emptyText`, a `Display` dynamic property as `overrideText`. The
+    name describes the widget, not the node.
+
+    That matters because a display-only control almost always shows a value
+    *another* field owns: 76 of the corpus's 375 are hidden by a `Visible`
+    expression, and under a `clearHidden` host each of those wipes the value
+    it was summarising the moment it hides. So `fieldRenderer` gained a
+    boundary option, `{ writes: false }`, and `DisplayOnlyField` is built
+    with it: no `clearHidden`, and no default should one ever be built, no
+    matter what the form or the definition says. A property of the boundary
+    rather than a prop, so no caller can forget it. Recorded in the
+    interfaces doc (§6) as the divergence it is. Not built, and noted there:
+    `hideDisplayOnly` and `overrideText`, both pure reads.
 
 ## Where to pick up
 

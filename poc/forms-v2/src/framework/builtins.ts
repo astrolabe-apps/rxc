@@ -90,12 +90,21 @@ export const SelectField = fieldRenderer<OptionValue, SelectExtra>({
 ) => Rendered;
 
 /**
- * The value as text, never edited — a field boundary over a read-only widget.
+ * The value as text, never edited — a field boundary over a read-only widget,
+ * and **write-free**: it never clears the data it shows when hidden, and would
+ * never apply a default, whatever the form's `clearHidden` says. A read-only
+ * view of a value owned by some other field must not be able to change it.
+ *
+ * An intentional divergence from legacy, whose clearHidden and defaultValue
+ * cycles had no display-only exception (README finding 54): 76 of the
+ * corpus's 375 DisplayOnly controls are hidden by an expression, and under a
+ * clearHidden host each of those wipes the value it was summarising.
  * Generic in `T` like the others; the widget sees `unknown`.
  */
-export const DisplayOnlyField = fieldRenderer<unknown, DisplayOnlyExtra>({
-  key: "displayOnly",
-}) as unknown as <T>(props: FieldProps<T> & DisplayOnlyExtra) => Rendered;
+export const DisplayOnlyField = fieldRenderer<unknown, DisplayOnlyExtra>(
+  { key: "displayOnly" },
+  { writes: false },
+) as unknown as <T>(props: FieldProps<T> & DisplayOnlyExtra) => Rendered;
 
 /** A stateful container whose state may live in the data. */
 export const Wizard = wizardRenderer({ key: "wizard" });

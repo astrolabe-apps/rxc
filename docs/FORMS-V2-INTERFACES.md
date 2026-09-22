@@ -642,6 +642,16 @@ enters a widget's data path: a designer's stand-in for a value that is not there
 the controller (`useDisplayValue`) so every implementation agrees. `required` is dropped by
 the loader, as legacy ignored it on a display-only control.
 
+**It is write-free, and that is a deliberate divergence from legacy (decided).** A display-only
+control usually shows a value some other field owns — a summary on a later page, a status the
+server set. Legacy's `clearHidden` and `defaultValue` cycles had no display-only exception, so
+hiding the summary under a `clearHidden` host wiped the value it summarised; 76 of the
+corpus's 375 DisplayOnly controls are hidden by an expression. In v2 the boundary is built with
+`{ writes: false }` — a property of the boundary, not a prop a caller can forget — and never
+writes the data it binds, whatever the form says. The other display-only rules stay legacy's:
+`required` is ignored, and `hideDisplayOnly` (auto-hide when empty with no `emptyText`) and the
+`Display` dynamic property as `overrideText` are still to build.
+
 ## 7. Structural primitives
 
 Resolved from the active implementation, which is what lets a third-party renderer reuse

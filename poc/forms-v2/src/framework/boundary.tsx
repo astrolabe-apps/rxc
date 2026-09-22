@@ -147,9 +147,22 @@ function designChrome(node: React.ReactNode, on: boolean): React.ReactNode {
  *    rows of a collection — read the locks the boundary folded
  *  - hand the output to the implementation's `visibility` slot (§9)
  */
+export interface FieldBoundaryOptions {
+  /**
+   * `false` for a boundary whose widget only *shows* the value: it then never
+   * writes the data it binds — no `clearHidden`, and no default when one
+   * exists — whatever the form says. A property of the boundary, not a prop,
+   * so no caller can forget it. Legacy did clear a hidden display-only
+   * control; see `DisplayOnlyField` for why v2 does not.
+   */
+  writes?: boolean;
+}
+
 export function fieldRenderer<T, P extends object = {}>(
   source: FieldImplSource<T, P>,
+  opts: FieldBoundaryOptions = {},
 ): ComponentType<FieldProps<T> & P> {
+  const writes = opts.writes !== false;
   function FieldBoundary(props: FieldProps<T> & P): Rendered {
     const { rc, rendered } = useReactive();
     const renderers = useRenderers();
@@ -179,7 +192,10 @@ export function fieldRenderer<T, P extends object = {}>(
     // that knows what to clear — see the POC README, finding 16.
     const control = field;
     const shouldClear =
-      presenceNow === "hidden" && scope.clearHidden && !dontClearHidden;
+      writes &&
+      presenceNow === "hidden" &&
+      scope.clearHidden &&
+      !dontClearHidden;
     useEffect(() => {
       if (shouldClear) ctx.update((wc) => wc.setValue(control, undefined as T));
     }, [shouldClear, control, ctx]);
