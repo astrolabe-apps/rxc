@@ -36,6 +36,8 @@ import {
   getProp,
   mergeClass,
   useFieldShell,
+  useDisplayValue,
+  type DisplayOnlyRenderProps,
   useInputFrame,
   Action,
   StandardActionIds,
@@ -275,6 +277,31 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 }
 
 /** MUI's own answer for a trailing label is a different component entirely. */
+function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useDisplayValue(p.field, p);
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      surface="custom"
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+    >
+      <Typography
+        id={p.id}
+        variant="body1"
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+        sx={p.noSelection ? { userSelect: "none" } : undefined}
+      >
+        {ctl.content}
+      </Typography>
+    </Shell>,
+  );
+}
+
 function MuiCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
@@ -531,6 +558,7 @@ export const muiRenderers: FormRenderers = {
   name: "MUI",
   textfield: MuiTextField,
   checkbox: MuiCheckbox,
+  displayOnly: MuiDisplayOnly,
   select: MuiSelect,
   text: MuiText,
   html: MuiHtml,

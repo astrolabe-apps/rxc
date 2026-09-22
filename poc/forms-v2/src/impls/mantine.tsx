@@ -20,6 +20,8 @@ import {
   getProp,
   mergeClass,
   useFieldShell,
+  useDisplayValue,
+  type DisplayOnlyRenderProps,
   useInputFrame,
   Action,
   StandardActionIds,
@@ -194,6 +196,31 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
 }
 
 /** Mantine takes the trailing label as a prop on the control. */
+function MantineDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useDisplayValue(p.field, p);
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      surface="custom"
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+    >
+      <Text
+        id={p.id}
+        size="sm"
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+        style={p.noSelection ? { userSelect: "none" } : undefined}
+      >
+        {ctl.content}
+      </Text>
+    </Shell>,
+  );
+}
+
 function MantineCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
@@ -463,6 +490,7 @@ export const mantineRenderers: FormRenderers = {
   name: "Mantine",
   textfield: MantineTextField,
   checkbox: MantineCheckbox,
+  displayOnly: MantineDisplayOnly,
   select: MantineSelect,
   text: MantineText,
   html: MantineHtml,

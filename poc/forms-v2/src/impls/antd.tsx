@@ -21,6 +21,8 @@ import {
   getProp,
   mergeClass,
   useFieldShell,
+  useDisplayValue,
+  type DisplayOnlyRenderProps,
   useInputFrame,
   Action,
   StandardActionIds,
@@ -254,6 +256,30 @@ export function AntInputReference() {
 }
 
 /** Ant puts the label *inside* the control — it is the checkbox's child. */
+function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useDisplayValue(p.field, p);
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      surface="custom"
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+    >
+      <Typography.Text
+        id={p.id}
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+        style={p.noSelection ? { userSelect: "none" } : undefined}
+      >
+        {ctl.content}
+      </Typography.Text>
+    </Shell>,
+  );
+}
+
 function AntCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
@@ -499,6 +525,7 @@ export const antdRenderers: FormRenderers = {
   name: "Ant",
   textfield: AntTextField,
   checkbox: AntCheckbox,
+  displayOnly: AntDisplayOnly,
   select: AntSelect,
   text: AntText,
   html: AntHtml,

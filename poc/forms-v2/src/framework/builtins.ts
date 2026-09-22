@@ -11,6 +11,7 @@ import { actionRenderer } from "./actions.js";
 import { displayRenderer } from "./display.js";
 import type {
   CollectionProps,
+  DisplayOnlyExtra,
   FieldProps,
   HtmlDisplayExtra,
   IconDisplayExtra,
@@ -87,6 +88,14 @@ export const SelectField = fieldRenderer<OptionValue, SelectExtra>({
 }) as unknown as <T extends OptionValue>(
   props: FieldProps<T> & SelectExtra,
 ) => Rendered;
+
+/**
+ * The value as text, never edited — a field boundary over a read-only widget.
+ * Generic in `T` like the others; the widget sees `unknown`.
+ */
+export const DisplayOnlyField = fieldRenderer<unknown, DisplayOnlyExtra>({
+  key: "displayOnly",
+}) as unknown as <T>(props: FieldProps<T> & DisplayOnlyExtra) => Rendered;
 
 /** A stateful container whose state may live in the data. */
 export const Wizard = wizardRenderer({ key: "wizard" });

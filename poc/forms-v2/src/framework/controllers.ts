@@ -3,8 +3,13 @@ import type { FormProp } from "./types.js";
 import type { ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import { useReactive, type Rendered } from "@rx-controls/react";
-import { useFieldState } from "./scope.js";
-import type { FieldOption, FieldState, OptionValue } from "./types.js";
+import { fieldState, useFieldState, useFormScope } from "./scope.js";
+import type {
+  DisplayOnlyExtra,
+  FieldOption,
+  FieldState,
+  OptionValue,
+} from "./types.js";
 
 /**
  * Platform-agnostic controller. It owns the render boundary too
@@ -127,5 +132,51 @@ export function useSelectController(
           : (options.find((o) => String(o.value) === s)?.value ?? s),
       ),
     onBlur: () => update((wc) => wc.setTouched(field, true, true)),
+  };
+}
+
+export interface DisplayValueController extends FieldController {
+  /** The value as text, or `undefined` when empty. */
+  text: string | undefined;
+  empty: boolean;
+  /** What to show: the text, else `sampleText` in design mode, else `emptyText`. */
+  content: ReactNode;
+}
+
+/**
+ * The read-only widget's controller: value → text through options and
+ * `format`, and the empty-state choice, which is the only place design mode
+ * enters — `sampleText` is a designer's stand-in for data that is not there.
+ */
+export function useDisplayValue(
+  field: Control<unknown>,
+  extra: DisplayOnlyExtra,
+): DisplayValueController {
+  const { rc, rendered } = useReactive();
+  const scope = useFormScope();
+  const value = rc.getValue(field);
+  const options = getProp(rc, extra.options) ?? [];
+  const fmt = extra.format ?? String;
+  const one = (v: unknown) =>
+    options.find((o) => o.value === v)?.name ?? fmt(v);
+  const empty =
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0);
+  const text = empty
+    ? undefined
+    : Array.isArray(value)
+      ? value.map(one).join(", ")
+      : one(value);
+  const sample = getProp(rc, extra.sampleText);
+  const emptyText = getProp(rc, extra.emptyText);
+  return {
+    rc,
+    rendered,
+    state: fieldState(rc, field, scope),
+    text,
+    empty,
+    content: text ?? (scope.designMode && sample != null ? sample : emptyText),
   };
 }

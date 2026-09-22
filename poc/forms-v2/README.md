@@ -26,7 +26,7 @@ rushx burndown
 ```
 
 80 forms, 3,968 controls (re-extracted for finding 51; the ServiceTas source had moved on
-by four controls); the burndown at the last commit is in finding 51.
+by four controls); the burndown at the last commit is in finding 53.
 
 ## What it builds
 
@@ -969,15 +969,79 @@ Numbered; each is cited at the matching line of code.
     the 11 `Date` validators left; the rest of the delta is the corpus
     having moved by four controls since finding 50.
 
+52. **Field references need a cursor — and it belongs to the loader, not the
+    contract.** Finding 19 left the binding a bare `Control`, and the open
+    question was whether the JSON path could live with that. It cannot, for
+    two reasons the corpus makes concrete: `../x` (43 uses) needs a parent a
+    `Control` does not have, and a jsonata expression inside an array row (50
+    of 418) needs the path from the root, because legacy evaluates it as
+    `pets#$i[2].(expr)` against the whole form — so `$$` is the root and `$i`
+    the row index, and 15 expressions read one or the other. The first cut
+    evaluated against the parent value with no prefix: `$$` meant the parent
+    and `$i` nothing, silently.
+
+    Built: a `DataScope` — control, schema fields, parent, path — threaded
+    through `translate` beside the control. `resolveRef` is legacy's
+    `dataRef` (`a/b`, `..`, `.`); rows get legacy's two-level chain, array
+    then element, which is what makes `../../selectedMessages` mean the root.
+    Expressions compile with the prefix and evaluate against the root through
+    a tracked proxy (`getTrackedValue` + a reconciler, legacy's shape), so
+    exactly what an expression touches re-runs it — `$$.other` included,
+    which whole-parent subscription could never see. A jsonata *validator*
+    reads the root eagerly instead, because a validator's window closes when
+    it returns (finding 51): coarse, correct, and 45 of them. Nothing here
+    reaches a boundary. That is the answer to "does v2 need a cursor": yes,
+    entirely on the JSON side, ~120 lines.
+
+    Two things the eager walk got wrong on the way. A collection's children
+    were translated against the *array* control for the warning pass, so
+    `..` from a row counted one level short; they now walk a representative
+    row scope over a detached control. And the loader preferred the schema's
+    `displayName` to the definition's `title`, backwards from legacy — fixed.
+    Verified: `address/city` writes into the compound, `../firstName` reads
+    back out of it, and two rows label themselves "Pet 1 of 2" / "Pet 2 of
+    2" from `$i` and `$count($$.pets)`.
+
+53. **DisplayOnly is a field boundary over a read-only widget.** 372 uses in
+    52 forms — the largest thing the loader did not translate — plus its
+    `sampleText` (143) and `emptyText` (60). The contract question was which
+    boundary kind: it binds data, so `hidden` must clear it and it must sit in
+    the shell with a label, which makes it a `fieldRenderer` with a widget
+    that never writes; a `displayRenderer` has no binding and would have
+    needed one bolted on. `DisplayOnlyExtra` is `options`, `emptyText`,
+    `sampleText`, `format`, `noSelection`; the controller `useDisplayValue`
+    does value → text (option name, else `format`, arrays mapped and joined)
+    and the empty-state choice, where `sampleText` wins in design mode —
+    legacy's `FormControlPreview` behaviour, and the one place design mode
+    enters a widget's data. Type formatting (dates, Yes/No) is built by the
+    loader from the schema into `format`, since the schema is loader-only;
+    `required` is dropped, as legacy ignores it here. Four implementations,
+    each a `Typography`/`Text`/`div` inside the shell. A non-collection
+    `Compound` data control also got its translator — a chrome-less group,
+    the region finding 52's `../x` climbs out of.
+
+    `noSelection` turned out to be a top-level definition flag in the corpus
+    (98 on displays, 7 on groups, 5 on DisplayOnly), not the render option
+    legacy types it as. The widget honours either spelling; the 105 on
+    displays and groups stay unread, since the display contract has no slot
+    for a selectability style and this was not the moment to add one.
+
+    Burndown 2,448 → **1,674**: `renderOptions` 824 → 382 (DisplayOnly 372 →
+    0, Group 66 → 0), `schema` 208 → 59 (path refs 105 → 3, parent refs 21 →
+    0, self refs 2 → 0; the 3 left name fields the schema lacks), `unread`
+    675 → 502 (`sampleText` 123 and `emptyText` 45 gone), `expression` 10 →
+    0. Sixty-two of the remaining schema warnings are forms that shipped no
+    schema at all.
+
 ## Where to pick up
 
-The burndown (`rushx burndown`) is the work list, top-down. At the last run:
-`DisplayOnly` 372 (+ its `sampleText` 123) needs a read-only built-in in four
-implementations with value formatting; `Inline` 198 is probably a
-`Stack direction="row"` group; `HelpText` 69 is a prop the contract already
-has; `a/b` and `../x` field refs 126 need the loader to walk `$` and a parent
-stack; then `Group` 66, `dynamic Display` 64, `Radio` 55, `Date`
-validators 11 (`Jsonata` went to 0 in finding 51), `AllowedOptions` 39. `action` 442 stays until the
+The burndown (`rushx burndown`) is the work list, top-down. At the last run
+(1,674): `Inline` 198 is probably a `Stack direction="row"` group;
+`noSelection` 105 is a top-level flag on displays and groups with no contract
+slot (the DisplayOnly widget honours it, nothing else does); `HelpText` 69 is
+a prop the contract already has; then `dynamic Display` 64, `Radio` 55,
+`AllowedOptions` 42, `Flex` 36, `Display / Custom` 36, and the array options
+`noAdd`/`noRemove`/`noReorder` ~30 each. `action` 442 stays until the
 burndown runs with a host `actionHandler`. Every loader change is a
 translator or a prop, then `rushx burndown` again; a fixture form in
 `src/loader/demoForm.ts` and a line in the `From JSON` tab is how each was
@@ -985,17 +1049,18 @@ verified so far.
 
 **What the number does not prove.** The burndown measures *shape coverage*
 — did something claim this discriminator, did something read this property.
-It cannot see a translation that is *wrong*, and the places to expect one are
-known: a jsonata `Visible` inside an array row evaluates against whatever
-control the translator holds, with none of legacy's path prefix or
-variables; the `defaultValue`-on-becoming-visible cycle is not built
-(`FieldProps` has no `defaultValue`); `a/b` refs have to bind the *scope* to
-the right node, not only the value. Goal 6's acceptance test therefore needs a
-second instrument: render each corpus form in legacy and in v2 over fixture
-data and diff visibility, validity and values per field — the compare-app
-workstream generalised from one Fire form to the corpus. Also unbuilt:
-`LayoutStyle` (15 uses; a dynamic inline style, no contract slot), a loader
-hook for host adornments (`Spotlight`) alongside the open `Translator[]`.
+It cannot see a translation that is *wrong*. Two of the three places to
+expect one are closed by finding 52 — jsonata inside a row now carries
+legacy's path prefix and `$$`/`$i`, and `a/b` / `../x` bind the right control
+*and* scope — but the `defaultValue`-on-becoming-visible cycle is still not
+built (`FieldProps` has no `defaultValue`), and nothing checks that a
+translated expression *computes* what legacy's did. Goal 6's acceptance test
+therefore needs a second instrument: render each corpus form in legacy and in
+v2 over fixture data and diff visibility, validity and values per field — the
+compare-app workstream generalised from one Fire form to the corpus. Also
+unbuilt: `LayoutStyle` (15 uses; a dynamic inline style, no contract slot), a
+loader hook for host adornments (`Spotlight`) alongside the open
+`Translator[]`.
 
 ## Things the POC deliberately does not answer
 

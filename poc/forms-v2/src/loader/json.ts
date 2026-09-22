@@ -6,7 +6,15 @@
  * claim of the design: no renderer, no boundary and no binding mentions them.
  */
 
-export type FieldType = "String" | "Int" | "Bool" | "Compound";
+export type FieldType =
+  | "String"
+  | "Int"
+  | "Double"
+  | "Bool"
+  | "Date"
+  | "DateTime"
+  | "Time"
+  | "Compound";
 
 export interface SchemaField {
   field: string;
@@ -78,6 +86,8 @@ export interface ControlDefinition {
   labelClass?: string | null;
   labelTextClass?: string | null;
   renderOptions?: { type: string; [k: string]: unknown };
+  /** Not selectable — a top-level flag in the corpus, mostly on displays. */
+  noSelection?: boolean | null;
   /** Display controls only. */
   displayData?: {
     type: string;

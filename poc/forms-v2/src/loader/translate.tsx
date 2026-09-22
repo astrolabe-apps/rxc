@@ -10,6 +10,7 @@ import {
   CheckboxField,
   Contents,
   Dialog,
+  DisplayOnlyField,
   Elements,
   getProp,
   HtmlDisplay,
@@ -24,7 +25,14 @@ import {
   type Validator,
 } from "../framework/index.js";
 import { toFormProp, toValueProp, jsonataValidator } from "./expressions.js";
-import { findField, type ControlDefinition, type SchemaField } from "./json.js";
+import type { ControlDefinition, SchemaField } from "./json.js";
+import {
+  elementScope,
+  resolveRef,
+  rootScope,
+  type DataScope,
+  type ResolvedRef,
+} from "./scope.js";
 
 /**
  * What the loader could not carry across.
@@ -80,7 +88,7 @@ export interface TranslateArgs {
   props: FieldProps<any>;
   children: ReactNode[];
   /** For a collection: the children, rendered against one element. */
-  element?: (item: Control<any>) => ReactNode;
+  element?: (item: Control<any>, index: number) => ReactNode;
   /** For an action: the click the host's `actionHandler` resolved, if any. */
   onClick?: () => void | Promise<void>;
   /**
@@ -236,6 +244,45 @@ export const defaultTranslators: Translator[] = [
     ),
   },
   {
+    // Legacy's DisplayOnly: the value as text — options by name, dates and
+    // booleans by type (the loader knows the schema; the widget gets a
+    // `format`). `required` is dropped, as legacy ignores it here.
+    // `sampleText` is what a designer sees in place of an empty value.
+    match: (d) => d.type === "Data" && d.renderOptions?.type === "DisplayOnly",
+    renderTypes: ["DisplayOnly"],
+    render: ({ props, schema, def }) => {
+      const ro: Record<string, unknown> = def.renderOptions ?? {};
+      return (
+        <DisplayOnlyField
+          {...props}
+          required={undefined}
+          options={schema?.options}
+          emptyText={str(ro.emptyText)}
+          sampleText={str(ro.sampleText)}
+          noSelection={def.noSelection === true || ro.noSelection === true}
+          format={formatFor(schema)}
+        />
+      );
+    },
+  },
+  {
+    // A compound field's control is a region over its children — the data
+    // context the children's `../x` refs climb out of.
+    match: (d, s) =>
+      d.type === "Data" && s?.type === "Compound" && !s.collection,
+    renderTypes: ["Standard", "Group"],
+    render: ({ props, children }) => (
+      <Contents
+        hidden={props.hidden}
+        disabled={props.disabled}
+        title={props.label}
+        className={props.className}
+      >
+        {children}
+      </Contents>
+    ),
+  },
+  {
     match: (d, s) => d.type === "Data" && !!s?.collection,
     renderTypes: ["Standard", "Array"],
     render: ({ props, element, def }) => {
@@ -248,7 +295,7 @@ export const defaultTranslators: Translator[] = [
           maxLength={len?.max}
           empty={<p className="ff-empty">Nothing yet.</p>}
         >
-          {(item) => element!(item)}
+          {(item, index) => element!(item, index)}
         </Elements>
       );
     },
@@ -317,16 +364,17 @@ export const defaultTranslators: Translator[] = [
  */
 function buildProps(
   ctx: ControlContext,
-  data: Control<unknown>,
+  scope: DataScope,
   def: ControlDefinition,
-  schema: SchemaField | undefined,
+  ref: ResolvedRef | undefined,
   warn: Warn,
 ): FieldProps<any> {
+  const schema = ref?.schema;
+  // A reference that walks off the data binds a detached control, so the
+  // widget renders and edits nothing rather than editing the scope's object.
   const control = def.field
-    ? ((data as Control<Record<string, unknown>>).fields[
-        def.field
-      ] as Control<unknown>)
-    : data;
+    ? (ref?.control ?? ctx.newControl<unknown>(undefined))
+    : scope.control;
   const dyn = (t: string) => def.dynamic?.find((d) => d.type === t)?.expr;
 
   const visible = dyn("Visible");
@@ -342,7 +390,7 @@ function buildProps(
     if (v.type === "Jsonata") {
       // An async validator (§5): the expression yields the message, against
       // the parent data. Keyed like legacy's `jsonata`, numbered past the first.
-      const fn = jsonataValidator(data, v.expression, expr);
+      const fn = jsonataValidator(scope, v.expression, expr);
       if (fn) validate[jsonataN ? `jsonata${jsonataN}` : "jsonata"] = fn;
       jsonataN++;
       continue;
@@ -377,11 +425,11 @@ function buildProps(
   // the returned warnings rather than in the first render — and a sync
   // expression gets one stable closure instead of a fresh one per read.
   const visibleProp = visible
-    ? toFormProp(ctx, data, visible, expr)
+    ? toFormProp(ctx, scope, visible, expr)
     : undefined;
-  const labelProp = label ? toValueProp(ctx, data, label, expr) : undefined;
+  const labelProp = label ? toValueProp(ctx, scope, label, expr) : undefined;
   const disabledProp = disabled
-    ? toFormProp(ctx, data, disabled, expr)
+    ? toFormProp(ctx, scope, disabled, expr)
     : undefined;
 
   const hiddenFromExpr: FormProp<boolean> | undefined = visibleProp
@@ -400,7 +448,7 @@ function buildProps(
       ? undefined
       : labelProp
         ? (rc) => getProp(rc, labelProp) as ReactNode
-        : (schema?.displayName ?? def.title),
+        : (def.title ?? schema?.displayName),
     required: def.required,
     requiredMessage: def.requiredErrorText,
     hidden: hiddenFromExpr ?? def.hidden,
@@ -488,6 +536,39 @@ function warnUnread(def: ControlDefinition, seen: Set<string>, warn: Warn) {
 function toClassValue(s: string | null | undefined): ClassValue | undefined {
   if (!s) return undefined;
   return s.startsWith("@ ") ? { replace: s.slice(2) } : s;
+}
+
+function str(v: unknown): string | undefined {
+  return typeof v === "string" ? v : undefined;
+}
+
+/**
+ * How one value of a schema type reads as text — legacy `textValue` minus the
+ * option lookup, which the widget does itself. Built here because the schema
+ * is loader-only; a JSX author passes their own `format` or none.
+ */
+function formatFor(
+  schema: SchemaField | undefined,
+): ((v: unknown) => string) | undefined {
+  if (!schema) return undefined;
+  switch (schema.type) {
+    case "Date":
+      return (v) => new Date(v as string).toLocaleDateString();
+    case "DateTime":
+      // A naive date-time is UTC, as legacy reads it.
+      return (v) => {
+        const s = String(v);
+        return new Date(
+          /[zZ]$|[+-]\d\d:\d\d$/.test(s) ? s : s + "Z",
+        ).toLocaleString();
+      };
+    case "Time":
+      return (v) => new Date("1970-01-01T" + v).toLocaleTimeString();
+    case "Bool":
+      return (v) => (v ? "Yes" : "No");
+    default:
+      return undefined;
+  }
 }
 
 function actionStyleOf(s: ControlDefinition["actionStyle"]) {
@@ -626,8 +707,7 @@ function warnUnhandled(
 
 export function translate(
   ctx: ControlContext,
-  data: Control<unknown>,
-  fields: SchemaField[],
+  scope: DataScope,
   rawDef: ControlDefinition,
   key: string,
   opts: LoaderOptions,
@@ -636,17 +716,30 @@ export function translate(
   const translators = opts.translators ?? defaultTranslators;
   const seen = new Set<string>();
   const def = recording(rawDef, seen);
-  const schema = def.field ? findField(fields, def.field) : undefined;
+  // `a/b` and `../x` resolve here — data and schema together, legacy's
+  // `dataRef` — so a translator only ever sees a control.
+  const ref = def.field ? resolveRef(scope, def.field) : undefined;
+  const schema = ref?.schema;
   const at: Warn = (w) => collect({ ...w, path: key });
   const t = translators.find((t) => t.match(def, schema));
   warnUnhandled(def, at, t?.renderTypes);
 
-  const childFields = schema?.children ?? fields;
-  const childData = def.field
-    ? ((data as Control<Record<string, unknown>>).fields[
-        def.field
-      ] as Control<unknown>)
-    : data;
+  // The children's data context: into the bound field, or unchanged. A
+  // collection's children live in a *row*, so the eager pass — which exists to
+  // collect their warnings once — walks them against a representative row
+  // scope over a detached control; the rows themselves are translated at
+  // render time by `element`.
+  const childScope = !ref
+    ? scope
+    : schema?.collection
+      ? elementScope(
+          ref.scope,
+          ref.name,
+          ref.schema,
+          ctx.newControl<unknown>(undefined),
+          0,
+        )
+      : ref.into;
 
   // An action's click: the host's resolver, asked now with the static payload
   // so an unclaimed id is a warning here rather than a dead button there. A
@@ -655,7 +748,7 @@ export function translate(
   if (def.type === "Action" && def.actionId) {
     const id = def.actionId;
     const dyn = def.dynamic?.find((d) => d.type === "ActionData")?.expr;
-    const dataProp = dyn ? toValueProp(ctx, data, dyn) : undefined;
+    const dataProp = dyn ? toValueProp(ctx, scope, dyn) : undefined;
     // Read unconditionally: it is consumed whether or not a handler exists.
     const staticData = def.actionData ?? undefined;
     const resolved = opts.actionHandler?.(id, staticData);
@@ -684,47 +777,51 @@ export function translate(
         : opts.actionHandler,
     };
     return (rawDef.children ?? []).map((c, i) =>
-      translate(ctx, childData, childFields, c, `${key}.${i}`, merged, collect),
+      translate(ctx, childScope, c, `${key}.${i}`, merged, collect),
     );
   };
 
-  if (def.field && !schema)
+  if (def.field && !ref)
+    at({
+      kind: "schema",
+      subject: def.field,
+      detail: `field reference "${def.field}" walks off the data — bound to nothing`,
+    });
+  else if (def.field && !schema)
     at({
       kind: "schema",
       subject: def.field,
       detail: `no schema field named "${def.field}"`,
     });
-  const props = buildProps(ctx, data, def, schema, at);
+  const props = buildProps(ctx, scope, def, ref, at);
 
   const children = (t?.ownsChildren ? [] : (def.children ?? [])).map((c, i) =>
-    translate(
-      ctx,
-      schema?.collection ? childData : childData,
-      childFields,
-      c,
-      `${key}.${i}`,
-      opts,
-      collect,
-    ),
+    translate(ctx, childScope, c, `${key}.${i}`, opts, collect),
   );
 
-  const element = schema?.collection
-    ? (item: Control<any>) => (
-        <>
-          {(def.children ?? []).map((c, i) => (
-            <ElementChild
-              key={i}
-              ctx={ctx}
-              item={item}
-              fields={childFields}
-              def={c}
-              path={`${key}.${i}`}
-              opts={opts}
-            />
-          ))}
-        </>
-      )
-    : undefined;
+  const element =
+    schema?.collection && ref
+      ? (item: Control<any>, index: number) => (
+          <>
+            {(def.children ?? []).map((c, i) => (
+              <ElementChild
+                key={i}
+                ctx={ctx}
+                scope={elementScope(
+                  ref.scope,
+                  ref.name,
+                  ref.schema,
+                  item,
+                  index,
+                )}
+                def={c}
+                path={`${key}.${i}`}
+                opts={opts}
+              />
+            ))}
+          </>
+        )
+      : undefined;
 
   if (!t) {
     at({
@@ -767,8 +864,9 @@ export function translateForm(
   opts: LoaderOptions,
 ): { tree: ReactNode[]; warnings: LoaderWarning[] } {
   const warnings: LoaderWarning[] = [];
+  const root = rootScope(data, fields);
   const tree = controls.map((c, i) =>
-    translate(ctx, data, fields, c, String(i), opts, (w) => warnings.push(w)),
+    translate(ctx, root, c, String(i), opts, (w) => warnings.push(w)),
   );
   return { tree, warnings };
 }
@@ -779,18 +877,16 @@ function TranslatedKey({ children }: { children: ReactNode }) {
 
 function ElementChild({
   ctx,
-  item,
-  fields,
+  scope,
   def,
   path,
   opts,
 }: {
   ctx: ControlContext;
-  item: Control<any>;
-  fields: SchemaField[];
+  scope: DataScope;
   def: ControlDefinition;
   path: string;
   opts: LoaderOptions;
 }) {
-  return <>{translate(ctx, item, fields, def, path, opts)}</>;
+  return <>{translate(ctx, scope, def, path, opts)}</>;
 }

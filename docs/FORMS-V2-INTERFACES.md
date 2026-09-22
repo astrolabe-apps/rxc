@@ -183,6 +183,20 @@ emits pre-labelled components — not contract surface.
 the binding itself** — a translator never binds one, or field semantics could register below
 the renderer and be dropped. `at<T>` is the untyped seam every translator crosses.
 
+**Field references need a cursor, and it is the loader's (built).** A `Control` alone cannot
+answer two things the format asks: `../x` needs a parent, and a jsonata expression inside an
+array row needs the path from the root. So the loader threads a `DataScope` — control, schema
+fields, parent, path — alongside the control, and resolves a definition's `field` through it
+exactly as legacy's `dataRef` did: `a/b` into a compound, `..` to the parent scope, `.` the
+scope itself. Rows get legacy's two-level chain (the array, then the element), which is what
+makes the corpus's `../../selectedMessages` mean the root. Expressions compile with legacy's
+prefix — `pets#$i[2].(expr)` — and evaluate against the **root** through a tracked proxy, so
+the scope's data is the expression's context, `$$` the form's root, `$i` the row index, and
+exactly what the expression touches re-runs it. None of this reaches a boundary: a `field`
+becomes a `Control<T>` at translation and a `FormProp` closes over what it read. That is the
+answer to whether v2 needs a cursor — it does, on the JSON side only. Corpus: 146 `a/b`
+references, 43 `../x`, 50 jsonata expressions inside rows, 10 reading `$i`, 5 reading `$$`.
+
 ## 4. Presence
 
 ```ts
@@ -408,8 +422,12 @@ property → the same prop as a `(rc) => …` — the spelling shifts to `readOn
 `@rx-controls/react`, which the boundary folds with; `def.dontClearHidden` →
 `dontClearHidden`; `def.required` → `required`; `def.requiredErrorText` → `requiredMessage`;
 `def.validators[]` → the keyed `validate` record, one key per entry so each clears
-independently; a `Jsonata` validator is an async validator (above), evaluated against the
-parent data — the expression's result is the message, `null` is valid.
+independently; a `Jsonata` validator is an async validator (above), evaluated with the same
+prefix and root as every other expression — the result is the message, `null` is valid;
+`renderOptions.type: "DisplayOnly"` → `<DisplayOnlyField>` (§6) with `required` dropped, as
+legacy ignores it there; a non-collection `Compound` data control → a chrome-less group over
+its children, which is the region a child's `../x` climbs out of; and `def.title` beats the
+schema's `displayName` for the label, as legacy resolves it.
 
 ## 6. The four boundaries
 
@@ -599,6 +617,30 @@ mid-edit toggle.
 **From JSON:** the design-mode substitution is not per-implementation — `Dialog → Contents`,
 `Tabs → all stacked`, `Wizard → all pages` holds for every implementation, so it is a framework
 constant that an implementation may extend.
+
+**A read-only field is a field boundary over a read-only widget (built).** Legacy's
+`DisplayOnly` render type is 372 uses across 52 corpus forms — the single largest thing the
+loader did not translate. It binds data, so it is a `fieldRenderer`, not a `displayRenderer`:
+`hidden` clears it, it attaches to the validation scope, it sits in the shell with a label and
+help text. What differs is the widget.
+
+```ts
+interface DisplayOnlyExtra {
+  options?: FormProp<FieldOption[]>;        // value → name, per element for an array
+  emptyText?: FormProp<ReactNode>;          // when the value is empty
+  sampleText?: FormProp<ReactNode>;         // in design mode, when the value is empty
+  format?: (value: unknown) => string;      // one non-option value as text; default String(v)
+  noSelection?: boolean;                    // legacy's flag: not selectable
+}
+const DisplayOnlyField = fieldRenderer<unknown, DisplayOnlyExtra>({ key: "displayOnly" });
+```
+
+Type-aware formatting — a `Date` as `toLocaleDateString()`, a `Bool` as Yes/No — is the
+loader's, built from the schema into `format`, because the schema is loader-only (§3); a JSX
+author passes a `format` or takes `String(v)`. `sampleText` is the one place design mode
+enters a widget's data path: a designer's stand-in for a value that is not there, chosen by
+the controller (`useDisplayValue`) so every implementation agrees. `required` is dropped by
+the loader, as legacy ignored it on a display-only control.
 
 ## 7. Structural primitives
 
@@ -952,6 +994,7 @@ per-element boundaries rather than a second mechanism.
 /** Closed and exhaustive. An implementation supplies every key or an explicit stub. */
 interface FormRenderers {
   textfield: ComponentType<…>; number: …; date: …; select: …; checkbox: …; radio: …;
+  displayOnly: ComponentType<DisplayOnlyRenderProps>;
   contents: …; elements: …; stack: …; grid: …;
   tabs: …; accordion: …; dialog: …; wizard: …;
   action: …; text: …; html: …; icon: …;

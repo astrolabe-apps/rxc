@@ -11,6 +11,8 @@ import {
   getProp,
   mergeClass,
   useFieldShell,
+  useDisplayValue,
+  type DisplayOnlyRenderProps,
   useInputFrame,
   Action,
   StandardActionIds,
@@ -206,6 +208,33 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
 }
 
 /** Trailing label, rendered by the shell — the widget only draws the box. */
+function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useDisplayValue(p.field, p);
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      surface="custom"
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <div
+        id={p.id}
+        className={mergeClass("ff-readonly", p.className ?? p.textClassName)}
+        style={p.noSelection ? { userSelect: "none" } : undefined}
+        aria-describedby={describedBy(p)}
+      >
+        {ctl.content}
+      </div>
+    </Shell>,
+  );
+}
+
 function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
@@ -507,6 +536,7 @@ export const htmlRenderers: FormRenderers = {
   name: "html",
   textfield: HtmlTextField,
   checkbox: HtmlCheckbox,
+  displayOnly: HtmlDisplayOnly,
   select: HtmlSelect,
   text: HtmlText,
   html: HtmlHtml,

@@ -372,6 +372,36 @@ export type SelectExtra = { options?: FormProp<FieldOption[]> };
 
 export type SelectRenderProps = FieldRenderProps<OptionValue> & SelectExtra;
 
+// ── Display-only ─────────────────────────────────────────────────────
+
+/**
+ * A bound field that shows its value as text and never edits it — legacy's
+ * `DisplayOnly` render type, 372 uses across 52 corpus forms. A **field**
+ * boundary, not a display one: it binds data, so `hidden` clears it and it
+ * attaches to the validation scope like any field, and it sits in the shell
+ * with a label. `required` means nothing on it and the loader drops it, as
+ * legacy did.
+ */
+export interface DisplayOnlyExtra {
+  /** Value → name, like Select. Applied per element for an array. */
+  options?: FormProp<FieldOption[]>;
+  /** Shown when the value is empty. */
+  emptyText?: FormProp<ReactNode>;
+  /** Shown in design mode when the value is empty — what the designer sees. */
+  sampleText?: FormProp<ReactNode>;
+  /**
+   * One non-option value as text. Default `String(v)`; an array is mapped and
+   * joined with ", ". The loader builds one from the schema type (dates,
+   * booleans); a JSX author passes their own or none.
+   */
+  format?: (value: unknown) => string;
+  /** Not selectable — legacy's `noSelection`. */
+  noSelection?: boolean;
+}
+
+export type DisplayOnlyRenderProps = FieldRenderProps<unknown> &
+  DisplayOnlyExtra;
+
 // ── Displays ─────────────────────────────────────────────────────────
 
 /**
@@ -463,6 +493,7 @@ export interface FormRenderers {
   textfield: ComponentType<TextFieldRenderProps>;
   checkbox: ComponentType<CheckboxRenderProps>;
   select: ComponentType<SelectRenderProps>;
+  displayOnly: ComponentType<DisplayOnlyRenderProps>;
   action: ComponentType<ActionRenderProps>;
   text: ComponentType<TextDisplayRenderProps>;
   html: ComponentType<HtmlDisplayRenderProps>;

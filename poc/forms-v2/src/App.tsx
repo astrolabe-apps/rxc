@@ -47,6 +47,8 @@ const initial: Person = {
   vetName: "",
   status: undefined,
   priority: undefined,
+  address: { street: "", city: "" },
+  joined: "2024-03-09",
   wizardPage: undefined,
 };
 

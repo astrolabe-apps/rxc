@@ -42,6 +42,10 @@ export interface Person {
   vetName: string;
   status: string | undefined;
   priority: number | undefined;
+  /** A compound, so the JSON tab can bind `address/city` and climb out with `../firstName`. */
+  address: { street: string; city: string };
+  /** A date, so DisplayOnly has something to format. */
+  joined: string | undefined;
   /** The wizard's page index, kept in the data rather than in a component. */
   wizardPage: number | undefined;
 }
@@ -67,6 +71,8 @@ export const personFieldNames: (keyof Person)[] = [
   "vetName",
   "status",
   "priority",
+  "address",
+  "joined",
   "wizardPage",
 ];
 

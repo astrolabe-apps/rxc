@@ -14,6 +14,16 @@ export const demoSchema: SchemaField[] = [
   },
   { field: "vetName", type: "String", displayName: "Vet's name" },
   {
+    field: "address",
+    type: "Compound",
+    displayName: "Address",
+    children: [
+      { field: "street", type: "String", displayName: "Street" },
+      { field: "city", type: "String", displayName: "City" },
+    ],
+  },
+  { field: "joined", type: "Date", displayName: "Joined" },
+  {
     field: "status",
     type: "String",
     displayName: "Status",
@@ -99,10 +109,69 @@ export const demoControls: ControlDefinition[] = [
     type: "Data",
     field: "pets",
     validators: [{ type: "Length", min: 1, max: 3 }],
-    children: [{ type: "Data", field: "name", required: true }],
+    children: [
+      { type: "Data", field: "name", required: true },
+      // Inside a row: `$i` is the row index and `$$` the form's root, as
+      // legacy prefixes the expression (`pets#$i[N].(…)`).
+      {
+        type: "Data",
+        field: "name",
+        renderOptions: { type: "DisplayOnly", emptyText: "(unnamed)" },
+        dynamic: [
+          {
+            type: "Label",
+            expr: {
+              type: "Jsonata",
+              expression: "'Pet ' & ($i + 1) & ' of ' & $count($$.pets)",
+            },
+          },
+        ],
+      },
+    ],
   },
   { type: "Data", field: "status", required: true },
   { type: "Data", field: "priority" },
+  // Field references, legacy's `dataRef`: `a/b` binds into a compound from
+  // outside it; inside the compound's region, `../x` climbs back out.
+  {
+    type: "Data",
+    field: "address/city",
+    title: "City — bound as address/city",
+  },
+  {
+    type: "Data",
+    field: "address",
+    children: [
+      { type: "Data", field: "street" },
+      {
+        type: "Data",
+        field: "../firstName",
+        title: "First name — bound as ../firstName",
+        renderOptions: {
+          type: "DisplayOnly",
+          emptyText: "(no first name yet)",
+        },
+      },
+    ],
+  },
+  // DisplayOnly: options by name, a date by type, a boolean as Yes/No.
+  {
+    type: "Data",
+    field: "status",
+    title: "Status (read-only)",
+    renderOptions: { type: "DisplayOnly", emptyText: "No status chosen" },
+  },
+  {
+    type: "Data",
+    field: "joined",
+    renderOptions: { type: "DisplayOnly", sampleText: "1/1/2024" },
+  },
+  {
+    type: "Data",
+    field: "hasPets",
+    title: "Has pets (read-only)",
+    renderOptions: { type: "DisplayOnly" },
+  },
   {
     type: "Display",
     displayData: { type: "Text", text: "A text display — no binding at all." },
