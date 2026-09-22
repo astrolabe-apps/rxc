@@ -1,9 +1,26 @@
-import type { ReadContext, WriteContext } from "@rx-controls/core";
-import type { ArrayActions, FormField } from "./types.js";
+import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
+import { getExternalEdit } from "./externalEdit.js";
+import type { ScopeState } from "./scope.js";
+import type { ArrayActions } from "./types.js";
 
 export interface ArrayBounds {
   minLength?: number;
   maxLength?: number;
+}
+
+export interface ArrayActionOptions extends ArrayBounds {
+  /**
+   * The scope of the boundary these actions belong to; its locks fold into
+   * the `can*` flags. A host building actions outside any boundary has none
+   * to pass.
+   */
+  scope?: ScopeState;
+  /**
+   * An opaque token for that boundary. `edit` stamps it on the session, and
+   * the boundary cancels a session carrying its own token when it locks or
+   * hides.
+   */
+  origin?: unknown;
 }
 
 /**
@@ -14,23 +31,26 @@ export interface ArrayBounds {
  */
 export function arrayActions<T>(
   rc: ReadContext,
-  update: (cb: (wc: WriteContext) => void) => void,
-  field: FormField<T[]>,
-  bounds: ArrayBounds = {},
+  ctx: ControlContext,
+  control: Control<T[]>,
+  opts: ArrayActionOptions = {},
 ): ArrayActions {
-  const control = field.control;
   const elements = rc.isNull(control) ? [] : rc.getElements(control);
   const length = elements.length;
-  const { minLength, maxLength } = bounds;
+  const { minLength, maxLength, scope, origin } = opts;
+  const locked =
+    rc.isDisabled(control) ||
+    (scope ? scope.disabled(rc) || scope.readOnly(rc) : false);
   return {
     length,
-    canAdd: maxLength === undefined || length < maxLength,
-    canRemove: minLength === undefined || length > minLength,
+    canAdd: !locked && (maxLength === undefined || length < maxLength),
+    canRemove: !locked && (minLength === undefined || length > minLength),
+    canEdit: !locked,
     add: (value, index) =>
-      update((wc) => wc.addElement(control, value as T, index)),
-    remove: (index) => update((wc) => wc.removeElement(control, index)),
+      ctx.update((wc) => wc.addElement(control, value as T, index)),
+    remove: (index) => ctx.update((wc) => wc.removeElement(control, index)),
     move: (from, to) =>
-      update((wc) =>
+      ctx.update((wc) =>
         wc.updateElements(control, (elems) => {
           const next = elems.slice();
           const [moved] = next.splice(from, 1);
@@ -38,6 +58,7 @@ export function arrayActions<T>(
           return next;
         }),
       ),
+    edit: (index) => getExternalEdit(ctx, control).beginEdit(index, origin),
   };
 }
 

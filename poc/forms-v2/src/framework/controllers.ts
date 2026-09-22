@@ -1,20 +1,19 @@
 import { getProp } from "./prop.js";
 import type { FormProp } from "./types.js";
 import type { ReactNode } from "react";
-import type { ReadContext } from "@rx-controls/core";
+import type { Control, ReadContext } from "@rx-controls/core";
 import { useReactive, type Rendered } from "@rx-controls/react";
-import type {
-  FieldOption,
-  FieldState,
-  FormField,
-  OptionValue,
-} from "./types.js";
+import { useFieldState } from "./scope.js";
+import type { FieldOption, FieldState, OptionValue } from "./types.js";
 
 /**
  * Platform-agnostic controller. It owns the render boundary too
  * (README finding 7): an implementation is one component with one tracking
  * window, so handing back `rc` / `rendered` saves every implementation the
  * `useReactive()` ceremony and removes a way to get it wrong.
+ *
+ * `state` comes from `useFieldState`: the control plus the scope the boundary
+ * published around this implementation.
  */
 export interface FieldController {
   rc: ReadContext;
@@ -30,18 +29,18 @@ export interface TextInputController extends FieldController {
 }
 
 export function useTextInput(
-  field: FormField<string | undefined | null>,
+  field: Control<string | undefined | null>,
 ): TextInputController {
   const { rc, rendered, update } = useReactive();
-  const value = rc.getValue(field.control) ?? "";
+  const value = rc.getValue(field) ?? "";
   return {
     rc,
     rendered,
-    state: field.state(rc),
+    state: useFieldState(rc, field),
     value,
     filled: value !== "",
-    setValue: (v) => update((wc) => wc.setValue(field.control, v)),
-    onBlur: () => update((wc) => wc.setTouched(field.control, true, true)),
+    setValue: (v) => update((wc) => wc.setValue(field, v)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
   };
 }
 
@@ -53,18 +52,18 @@ export interface NumberInputController extends FieldController {
 }
 
 export function useNumberInput(
-  field: FormField<number | undefined | null>,
+  field: Control<number | undefined | null>,
 ): NumberInputController {
   const { rc, rendered, update } = useReactive();
-  const value = rc.getValue(field.control) ?? undefined;
+  const value = rc.getValue(field) ?? undefined;
   return {
     rc,
     rendered,
-    state: field.state(rc),
+    state: useFieldState(rc, field),
     value,
     filled: value !== undefined,
-    setValue: (v) => update((wc) => wc.setValue(field.control, v)),
-    onBlur: () => update((wc) => wc.setTouched(field.control, true, true)),
+    setValue: (v) => update((wc) => wc.setValue(field, v)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
   };
 }
 
@@ -75,16 +74,16 @@ export interface CheckboxController extends FieldController {
 }
 
 export function useCheckbox(
-  field: FormField<boolean | undefined | null>,
+  field: Control<boolean | undefined | null>,
 ): CheckboxController {
   const { rc, rendered, update } = useReactive();
   return {
     rc,
     rendered,
-    state: field.state(rc),
-    checked: rc.getValue(field.control) ?? false,
-    setChecked: (v) => update((wc) => wc.setValue(field.control, v)),
-    onBlur: () => update((wc) => wc.setTouched(field.control, true, true)),
+    state: useFieldState(rc, field),
+    checked: rc.getValue(field) ?? false,
+    setChecked: (v) => update((wc) => wc.setValue(field, v)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
   };
 }
 
@@ -105,20 +104,19 @@ export interface SelectController extends FieldController {
  * `Number(s)` is what keeps a numeric option numeric without guessing.
  */
 export function useSelectController(
-  field: FormField<OptionValue>,
+  field: Control<OptionValue>,
   optionsProp?: FormProp<FieldOption[]>,
 ): SelectController {
   const { rc, rendered, update } = useReactive();
   // Resolved here, in the implementation's window — the boundary hands
   // renderer-specific props through untouched.
   const options = getProp(rc, optionsProp) ?? [];
-  const value = rc.getValue(field.control);
-  const setValue = (v: OptionValue) =>
-    update((wc) => wc.setValue(field.control, v));
+  const value = rc.getValue(field);
+  const setValue = (v: OptionValue) => update((wc) => wc.setValue(field, v));
   return {
     rc,
     rendered,
-    state: field.state(rc),
+    state: useFieldState(rc, field),
     options,
     stringValue: value === undefined || value === null ? "" : String(value),
     setValue,
@@ -128,6 +126,6 @@ export function useSelectController(
           ? undefined
           : (options.find((o) => String(o.value) === s)?.value ?? s),
       ),
-    onBlur: () => update((wc) => wc.setTouched(field.control, true, true)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
   };
 }

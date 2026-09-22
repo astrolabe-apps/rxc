@@ -22,10 +22,8 @@ import {
   FormScopeProvider,
   narrowScope,
   TextField,
-  useFormField,
   useFormScope,
   useStack,
-  type FormField,
   type Presence,
 } from "./framework/index.js";
 import { Stars } from "./widgets/Stars.js";
@@ -96,28 +94,32 @@ function Panel({
 type Pets = { name: string }[];
 
 /**
- * The staged-edit host. Deliberately rendered **outside** the region the array
- * lives in, which is the whole point of the experiment: the draft belongs to
- * the array's scope, and this is somewhere else entirely.
+ * The staged-edit host. Rendered **outside** the region the array lives in,
+ * and it reads the scope at its own position like any other component — the
+ * draft is not bound to the array's region. If the region the edit began in
+ * locks or hides while a session is open, the controller cancels the session
+ * and this closes (README finding 19).
  */
-function DraftHost({ field }: { field: FormField<Pets> }) {
+function DraftHost({ field }: { field: Control<Pets> }) {
   const { rc, rendered } = useReactive();
   const ctx = useControlContext();
   const edit = getExternalEdit(ctx, field);
   const session = edit.session(rc);
-  const here = useFormScope();
   const ApplyBtn = useAction(StandardActionIds.apply);
   const CancelBtn = useAction(StandardActionIds.cancel);
   if (!session) return rendered(null);
-  const bindTime = session.field.state(rc).readOnly;
-  const atRenderLocation = here.readOnly(rc);
   return rendered(
     <div className="ff-dialog">
       <strong>Editing pet {session.index + 1}</strong>
-      <TextField field={session.field.$.name} label="Name (draft)" required />
+      <TextField
+        field={session.draft.fields.name}
+        label="Name (draft)"
+        required
+      />
       <p className="hint">
-        bind-time scope says readOnly <b>{String(bindTime)}</b> · the scope
-        where this modal renders says <b>{String(atRenderLocation)}</b>
+        Lock the pets region while this is open and it closes: the edit began
+        there, so that region's lock ends it. An edit begun from the Cards tab
+        is not affected, because its origin is a different boundary.
       </p>
       <div className="ff-row">
         <ApplyBtn
@@ -166,8 +168,7 @@ export function PersonForm({
 }): Rendered {
   const { rc, rendered, update } = useReactive();
   const ctx = useControlContext();
-  const f = useFormField(data);
-  const edit = getExternalEdit(ctx, f.$.pets);
+  const f = data.fields;
   // Composed, not dispatched: chrome from the implementation, no boundary
   // guarantees — see `useAction`.
   const AddBtn = useAction(StandardActionIds.add);
@@ -175,7 +176,7 @@ export function PersonForm({
   const EditBtn = useAction(StandardActionIds.edit);
   const Stack = useStack();
   // Buttons outside the list: mutation is not the collection renderer's job.
-  const pets = arrayActions(rc, update, f.$.pets, petBounds);
+  const pets = arrayActions(rc, ctx, f.pets, petBounds);
   // The dialog's open state is a control, so `open` binds to it directly —
   // the Control arm of FormProp, no wrapper.
   const detailsOpen = useControl(false);
@@ -197,23 +198,21 @@ export function PersonForm({
               <Stack gap={4}>
                 <Stack direction="row" gap={16}>
                   <TextField
-                    field={f.$.firstName}
+                    field={f.firstName}
                     label="First name"
                     required
                     placeholder="Ada"
                   />
-                  <TextField field={f.$.lastName} label="Last name" />
+                  <TextField field={f.lastName} label="Last name" />
                 </Stack>
 
                 <Panel presence={emailPresence}>
                   <TextField
-                    field={f.$.email}
+                    field={f.email}
                     label="Email"
                     startIcon="@"
                     endIcon={(rc) =>
-                      (rc.getValue(f.$.email.control) ?? "").includes("@")
-                        ? "✓"
-                        : null
+                      (rc.getValue(f.email) ?? "").includes("@") ? "✓" : null
                     }
                     helpText="Validates even while it is not on screen."
                     inputType="email"
@@ -228,15 +227,15 @@ export function PersonForm({
                 </Panel>
 
                 <TextField
-                  field={f.$.notes}
+                  field={f.notes}
                   multiline
                   label={(rc) =>
-                    `Notes (${(rc.getValue(f.$.notes.control) ?? "").length} chars)`
+                    `Notes (${(rc.getValue(f.notes) ?? "").length} chars)`
                   }
                 />
 
                 <SelectField
-                  field={f.$.status}
+                  field={f.status}
                   label="Status"
                   options={statusOptions}
                   required
@@ -250,20 +249,16 @@ export function PersonForm({
                   <IconDisplay
                     icon="person"
                     accessibleName="The operator is a person."
-                    hidden={(rc) =>
-                      rc.getValue(f.$.status.control) === "inactive"
-                    }
+                    hidden={(rc) => rc.getValue(f.status) === "inactive"}
                   />
                   <IconDisplay
                     icon="building"
                     accessibleName="The operator is a business or group."
-                    hidden={(rc) =>
-                      rc.getValue(f.$.status.control) !== "inactive"
-                    }
+                    hidden={(rc) => rc.getValue(f.status) !== "inactive"}
                   />
                   <TextDisplay
                     text={(rc) =>
-                      rc.getValue(f.$.status.control) === "inactive"
+                      rc.getValue(f.status) === "inactive"
                         ? "Business — set status back to Active for the person."
                         : "Person — set status to Inactive for the business."
                     }
@@ -281,8 +276,8 @@ export function PersonForm({
                   />
                   <TextDisplay
                     text={(rc) =>
-                      rc.getValue(f.$.lastName.control)
-                        ? `Last name: ${rc.getValue(f.$.lastName.control)}`
+                      rc.getValue(f.lastName)
+                        ? `Last name: ${rc.getValue(f.lastName)}`
                         : "Last name missing — required, inside the dialog."
                     }
                   />
@@ -294,13 +289,13 @@ export function PersonForm({
                 >
                   <Stack gap={4}>
                     <TextField
-                      field={f.$.lastName}
+                      field={f.lastName}
                       label="Last name"
                       required
                       helpText="Required, and validated while the dialog is closed."
                     />
                     <SelectField
-                      field={f.$.priority}
+                      field={f.priority}
                       label="Priority"
                       options={[
                         { name: "Low", value: 1 },
@@ -310,7 +305,7 @@ export function PersonForm({
                   </Stack>
                 </Dialog>
                 <Stars
-                  field={f.$.rating}
+                  field={f.rating}
                   label="How did we do?"
                   maxStars={5}
                   required
@@ -331,16 +326,16 @@ export function PersonForm({
             with a validation scope — the red bar is its aggregate. */}
                 <Section readOnly={lockPets}>
                   <Elements
-                    field={f.$.pets}
+                    field={f.pets}
                     label="Pets"
                     {...petBounds}
                     helpText="Length 1–3, validated on the array itself."
                     empty={<p className="ff-empty">No pets yet.</p>}
                   >
-                    {(pet, i) => (
+                    {(pet, i, row) => (
                       <div className="ff-row">
                         <TextField
-                          field={pet.$.name}
+                          field={pet.fields.name}
                           required
                           label={`Pet ${i + 1}`}
                           placeholder="Rex"
@@ -349,17 +344,17 @@ export function PersonForm({
                           actionId={StandardActionIds.edit}
                           text="Edit"
                           style="secondary"
-                          disabled={false}
+                          disabled={!row.canEdit}
                           busy={false}
-                          onClick={() => edit.beginEdit(i, pet)}
+                          onClick={() => row.edit(i)}
                         />
                         <RemoveBtn
                           actionId={StandardActionIds.remove}
                           text="Remove"
                           style="secondary"
-                          disabled={!pets.canRemove}
+                          disabled={!row.canRemove}
                           busy={false}
-                          onClick={() => pets.remove(i)}
+                          onClick={() => row.remove(i)}
                         />
                       </div>
                     )}
@@ -374,11 +369,12 @@ export function PersonForm({
                   />
                 </Section>
 
-                {/* Outside the locked region, on purpose. */}
-                <DraftHost field={f.$.pets} />
+                {/* Outside the region. It reads its own scope; the region's
+            lock reaches it only by ending the session it started. */}
+                <DraftHost field={f.pets} />
 
                 <CheckboxField
-                  field={f.$.hasPets}
+                  field={f.hasPets}
                   label="Has pets"
                   helpText="A widget that labels itself — the shell never sees the label."
                 />
@@ -386,9 +382,9 @@ export function PersonForm({
                 {/* What replaced <Show>: an ordinary chrome-less group. Its children
             stay mounted while hidden — each boundary clears its own field —
             and the group hides them with CSS, so plain JSX inside it goes too. */}
-                <Contents hidden={(rc) => !rc.getValue(f.$.hasPets.control)}>
+                <Contents hidden={(rc) => !rc.getValue(f.hasPets)}>
                   <TextField
-                    field={f.$.vetName}
+                    field={f.vetName}
                     label="Vet's name"
                     required
                     helpText="Cleared by clearHidden when the region is hidden."
@@ -415,7 +411,7 @@ export function PersonForm({
                   controller (the modal on the Pets tab opens it).
                 </p>
                 <PetCards
-                  field={f.$.pets}
+                  field={f.pets}
                   label="Pets as cards"
                   {...petBounds}
                   columns={2}
@@ -424,13 +420,13 @@ export function PersonForm({
                 >
                   {(pet, i) => (
                     <TextField
-                      field={pet.$.name}
+                      field={pet.fields.name}
                       required
                       label={`Pet ${i + 1}`}
                     />
                   )}
                 </PetCards>
-                <DraftHost field={f.$.pets} />
+                <DraftHost field={f.pets} />
               </Stack>
             ),
           },
@@ -439,7 +435,7 @@ export function PersonForm({
             title: "Wizard",
             children: (
               <Wizard
-                page={f.$.wizardPage}
+                page={f.wizardPage}
                 items={[
                   {
                     key: "who",
@@ -447,13 +443,13 @@ export function PersonForm({
                     children: (
                       <Stack gap={4}>
                         <TextField
-                          field={f.$.lastName}
+                          field={f.lastName}
                           label="Last name"
                           required
                           helpText="Next is refused until this page is valid."
                         />
                         <SelectField
-                          field={f.$.status}
+                          field={f.status}
                           label="Status"
                           options={statusOptions}
                           required
@@ -466,8 +462,8 @@ export function PersonForm({
                     title: "Detail",
                     children: (
                       <Stack gap={4}>
-                        <TextField field={f.$.email} label="Email" />
-                        <TextField field={f.$.notes} label="Notes" multiline />
+                        <TextField field={f.email} label="Email" />
+                        <TextField field={f.notes} label="Notes" multiline />
                       </Stack>
                     ),
                   },

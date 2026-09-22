@@ -69,7 +69,7 @@ Nothing below is settled. In rough order of how much else depends on it:
    not element-level — see *The contract is semantic* below) and so is the shape: a renderer
    owns the **whole field**, and gets
 
-   1. the binding — `FormField<T>`, `state(rc)`;
+   1. the binding — a `Control<T>`, with `useFieldState`;
    2. the controllers — `useTextInput`, `useNumberInput`, `useSelectController`, … (already
       extracted in the POC);
    3. flat POJO props — `field`, `id`, `label`, `required`, `helpText`,
@@ -405,7 +405,7 @@ designer knows about it.
 JSX, which the dispatch layer cannot inspect. That is fine for design-mode chrome and for
 `silent` — both wrap or suppress — but **not** if the returned component is what registers the
 field's validators, since a third-party renderer could then drop them and break goal 3. So:
-**the `FormField` is created by the library and handed to the renderer as a prop; a translator
+**the binding is created by the library and handed to the renderer as a prop; a translator
 never binds one.** Semantics register at binding time, above the element, and survive whatever
 the translator returns.
 
@@ -496,15 +496,15 @@ happen, but nothing requires it, so nothing is designed for it. The cost it woul
 worth recording so the decision is re-made deliberately rather than drifted into: an embedded
 section is not two forms side by side — validity, presence, disabled and touched would have to
 cascade across the seam in both directions, which means **the loader must be rootable at an
-arbitrary `FormField`**, not only at a form root. That is the expensive requirement, and
+arbitrary `Control`**, not only at a form root. That is the expensive requirement, and
 dropping the goal drops it.
 
 **The other direction was never part of it.** "A JSON form dispatches to a hand-written
 component" is just a translator — so it is goal 6 plus the extension model, not an interop feature, and it is not optional.
 
 One thing that survives regardless, because it belongs to translators rather than to embedding:
-**the JSON↔TypeScript seam is untyped.** A `FormField` off a `FormNode` is
-`FormField<unknown>`; a translator handing it to a typed renderer cannot prove the match. The
+**the JSON↔TypeScript seam is untyped.** A control off a `FormNode` is
+`Control<unknown>`; a translator handing it to a typed renderer cannot prove the match. The
 narrowing step is a **checked** cast that throws naming the path and both types — not a bare
 `as`. One helper, used at every translator boundary.
 
@@ -518,11 +518,13 @@ in.
 Decided, and the input to the interfaces doc. Reasoning is in the conversation, not repeated
 here.
 
-- **Two handles.** `FormField<T>` = `{ control, state(rc), $ }` — a scoped control handle
-  that knows nothing of `ControlDefinition` **or `SchemaField`** (built: the only thing this
-  layer ever read off a schema was a default label, and a label is a prop). `FormNode extends
-  FormField<unknown>` adds `definition`, `children(rc)` and `at<T>(path)`; only the loader
-  produces these.
+- **One handle, and it is the loader's.** The binding is a bare `Control<T>`; field state is
+  `fieldState(rc, control, scope)` against the scope where the field renders. A scoped handle
+  (`FormField<T>` = `{ control, state(rc), $ }`) was built and removed — interfaces §3, build
+  finding 19. Neither reads `ControlDefinition` **or `SchemaField`** (built: the only thing
+  this layer ever read off a schema was a default label, and a label is a prop). `FormNode`
+  adds `definition`, `children(rc)` and `at<T>(path)` over a `Control<unknown>`; only the
+  loader produces these.
 - **Two trees, not three** — definition and data — plus a thin residual (below); there is no
   `FormStateNode`. Children resolution goes to the loader's recursion, data-node
   resolution to the cursor, scripted overrides to `FormProp`s resolved at translation.
@@ -561,7 +563,7 @@ here.
   scope always holds both a control and a descendant of it, so a group that wrote values
   back down would write stale data.
 - **`FormProp<T> = T | ((rc) => T) | Control<T>`.** Read-only: the value binding stays a
-  `FormField`. Resolve with one helper in the *consuming* renderer's tracking window. Check
+  `Control`. Resolve with one helper in the *consuming* renderer's tracking window. Check
   `Control` first, then `typeof === "function"`; `FormProp<SomeFn>` is unsupported.
 - **Two structural primitives, plus a layout box.** `FieldShell` (label / required / help /
   error) and `InputFrame` (the editable surface, with its slots *inside* the border), both
@@ -580,7 +582,7 @@ here.
 @rx-controls/core           unchanged, published
 @rx-controls/react          unchanged, published
 @rx-controls/forms-schema   SchemaField + ControlDefinition JSON types, builders. No React.
-@rx-controls/forms-state    FormField/FormNode, cascades, validators, expressions. No React.
+@rx-controls/forms-state    FormNode, fieldState, cascades, validators, expressions. No React.
 @rx-controls/forms-react    THE contract: dispatch components, structural primitives,
                             controllers, prop types, the loader's registry. No DOM,
                             no class strings.

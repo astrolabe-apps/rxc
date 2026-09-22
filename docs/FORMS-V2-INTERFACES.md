@@ -59,13 +59,13 @@ type FormProp<T> = T | ((rc: ReadContext) => T) | Control<T>;
 function getProp<T>(rc: ReadContext, p: FormProp<T> | undefined): T | undefined;
 ```
 
-Read-only by construction — a value the renderer *writes* is a `FormField`, never a
+Read-only by construction — a value the renderer *writes* is a `Control<T>` binding, never a
 `FormProp`. Discrimination checks `Control` first, then `typeof === "function"`, so
 `FormProp<SomeFn>` is unsupported; nothing needs it.
 
 `getProp`, not `use…`: it takes an `rc` and returns a value, with no React involved, and a
 `use` prefix on a non-hook trips `react-hooks/rules-of-hooks`. Both it and `FormProp` belong in
-the **non-React** layer alongside `FormField` — React only ever supplies the `rc`.
+the **non-React** layer alongside `fieldState` — React only ever supplies the `rc`.
 
 **From JSON:** this is where the expression engine terminates, and the build confirms it —
 `$scripts`, `dynamic`, `EntityExpression` and jsonata get no further than the loader. A literal
@@ -104,15 +104,11 @@ with the container's class* — which is what lets every web implementation merg
 `combineClass` and add no markup, while `forms-native` puts one on the `View` and one on the
 `Text`. Corpus evidence for the label pair: `labelTextClass` 248 uses to `labelClass` 39.
 
-## 3. The two handles
+## 3. The binding
 
 ```ts
-interface FormField<T> {
-  readonly control: Control<T>;
-  state(rc: ReadContext): FieldState;
-  /** Typed navigation into a compound value; arrays go through a collection. */
-  readonly $: FormFields<T>;
-}
+/** The binding is a core control — nothing wraps it. */
+type Binding<T> = Control<T>;
 
 interface FieldState {
   disabled: boolean;
@@ -121,42 +117,47 @@ interface FieldState {
   dirty: boolean;
   errors: string[];
 }
+
+/** Control + the scope the field is rendered in. A boundary calls it with the scope it narrowed. */
+function fieldState<T>(rc: ReadContext, control: Control<T>, scope: ScopeState): FieldState;
+/** The same, against the scope at the calling component's position. */
+function useFieldState<T>(rc: ReadContext, control: Control<T>): FieldState;
 ```
 
 Presence is **not** on `FieldState`: by the time an implementation runs, presence is always
 `rendered` — the boundary handled the other two. Design mode showing a hidden field is
 `useDesignMode()`, not a value that is constant in production.
 
-`state(rc)` cannot be answered from the `Control` alone (**built**): `readOnly` has no home
-there, and `disabled` has to fold in the enclosing scope's. So **the field an implementation
-receives is not the one the author wrote** — the boundary re-binds it to the scope and hands
-that down, and `$` carries the binding, so a child field is scoped too. Same move the loader
-already makes, for the same reason: whoever creates the binding decides what it means.
+`state` cannot be answered from the `Control` alone (**built**): `readOnly` has no home there,
+and `disabled` has to fold in the enclosing scope's. So it is a function of the control **and**
+the scope the field is rendered in. The boundary computes it with the scope it just narrowed and
+**publishes that scope** around the implementation, so an implementation's `useFieldState`
+agrees with the boundary that dispatched it — and so do the rows of a collection, which before
+this read the scope *outside* their collection.
 
-**Why this is a handle at all, rather than a `Control` plus a hook (built).** Everything above
-could be `useFieldState(rc, control)` reading the scope from context — and for a field rendered
-where it was bound, the two are identical. They part company the moment an implementation
-renders a bound node somewhere else, which is exactly what the staged-edit flow does: a draft
-row belongs to the array's scope, and the modal that edits it is hosted by a sibling, outside
-that region. **A handle captures the scope at bind time; context reads it at render time.**
-Built and measured: with the array's region locked and the modal rendering outside it, the
-draft field reports `readOnly: true` while the scope at the modal's own position reports
-`false`. Under a context-only design that draft is editable, and applying it writes through a
-lock the user can see on screen.
-
-Where the two meet, they combine **restriction-only in both directions** — a bind-time lock and
-a render-location lock can each add, neither can re-enable. The same rule as everywhere else in
-§4, applied to a second axis.
+**There is no handle around the control (built, then removed).** The first cut had
+`FormField<T>` = `{ control, state(rc), $ }`: `$` a typed mirror of `control.fields`, `state` a
+method, both there so a scope captured at *bind* time travelled with the binding through
+navigation. The case it was built for — a staged-edit draft, rendered by a host outside the
+region it came from, still honouring that region's lock — did not survive scrutiny. A collection
+that honours the cascade disables Edit under a lock, so a session cannot begin locked; when the
+lock arrives *during* a session the right behaviour is for the dialog to close, not for a visible
+draft to turn read-only; and for `silent` the handle was actively wrong, blanking a dialog the
+moment the user switched tabs. The build's README, finding 19, has the measurements. What
+remained of the handle was `Control<T>` plus a helper, so that is the contract. The dialog reads
+the scope where it renders, like everything else; the region's lock reaches the session through
+the collection boundary (§8).
 
 `focused` and `filled` are not here either, though several UI libraries publish them alongside
 the rest. They are the frame's business, not the form's — see `FrameState` in §7.
 
 ```ts
-interface FormNode extends FormField<unknown> {
+interface FormNode {
+  readonly control: Control<unknown>;
   readonly definition: ControlDefinition;
   children(rc: ReadContext): FormNode[];
   /** Checked narrowing. Throws naming the path and both types — never a bare cast. */
-  at<T>(path: string): FormField<T>;
+  at<T>(path: string): Control<T>;
 }
 ```
 
@@ -171,14 +172,14 @@ that needs care: `<select>` and every library built on one speak **strings**, so
 restores the original by looking the string back up in the option list rather than guessing with
 `Number()`, which would turn a legitimate `"3"` into `3`. Verified both ways: a numeric option
 stores a number, a string option stores a string. So
-`SchemaField` becomes loader-only, exactly as `ControlDefinition` already is — and the typed
-`$` needs none of it, because `T` comes from the `Control`, which is where TypeScript was
-getting it from all along. `buildSchema` leaves the JSX path with it.
+`SchemaField` becomes loader-only, exactly as `ControlDefinition` already is — and typed
+navigation needs none of it, because `control.fields` is typed from `T`, which is where
+TypeScript was getting it from all along. `buildSchema` leaves the JSX path with it.
 
 What is lost is free labels over a large hand-written form. That is host code — a helper that
 emits pre-labelled components — not contract surface.
 
-**From JSON:** the loader produces `FormNode`s and hands renderers a `FormField`. It **creates
+**From JSON:** the loader produces `FormNode`s and hands renderers a `Control`. It **creates
 the binding itself** — a translator never binds one, or field semantics could register below
 the renderer and be dropped. `at<T>` is the untyped seam every translator crosses.
 
@@ -261,7 +262,7 @@ the boundary has resolved every `FormProp` and consumed what it owns.
 type Validator<T> = (value: T, rc: ReadContext) => string | null | Promise<string | null>;
 
 interface FieldProps<T> {
-  field: FormField<T>;
+  field: Control<T>;
   id?: string;                                   // generated if absent
   hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
@@ -283,7 +284,7 @@ interface FieldProps<T> {
 
 /** What an implementation sees. Flat and resolved, so `<Shell {...p}>` composes. */
 interface FieldRenderProps<T> {
-  field: FormField<T>;
+  field: Control<T>;
   id: string;
   label?: ReactNode;
   required: boolean;
@@ -301,7 +302,7 @@ interface FieldRenderProps<T> {
 
 `validate`, `requiredMessage`, `hidden`, `disabled`, `readOnly` and `dontClearHidden` are
 absent from the render props — the boundary consumed them. A renderer cannot see, and
-therefore cannot drop, a validator; the two locks arrive folded into `field.state(rc)` instead,
+therefore cannot drop, a validator; the two locks arrive folded into `useFieldState(rc, field)` instead,
 already combined with everything inherited.
 
 **The three flags are props because the format has them per control** — `hidden`, `disabled`
@@ -493,8 +494,8 @@ hidden group in §8 is the same rule.
 
 **The produced component has to stay generic in the value type (built).** A boundary is built
 for one concrete `T`, but a schema legitimately yields `string`, `string | undefined` or
-`string | null` for the same widget, and `FormField<string>` is not a
-`FormField<string | undefined | null>`. Fixed to one `T`, every schema has to spell out the
+`string | null` for the same widget, and `Control<string>` is not a
+`Control<string | undefined | null>`. Fixed to one `T`, every schema has to spell out the
 widget's exact union instead.
 
 **Renderer-specific props reach the implementation as the author wrote them (built).** The
@@ -548,7 +549,7 @@ downward would write a stale copy of that datum back into the child. See
 **A stateful container offers two homes for its state, and the author picks (built).** A tab
 strip keeps its active key in component state, which is right. A wizard's page index usually
 must not: it wants to survive a remount, a deep link, or save-and-resume. So `WizardProps` takes
-an optional `page?: FormField<number>` — bound, the index lives in the data and shows up in the
+an optional `page?: Control<number>` — bound, the index lives in the data and shows up in the
 payload; omitted, it is component state. A container that only offers the second is unusable for
 half its cases, and one that only offers the first pollutes the schema for the other half.
 
@@ -839,7 +840,7 @@ component of its own kind.
 
 ```ts
 interface CollectionProps<T> extends FieldProps<T[]> {
-  children: (item: FormField<T>, index: number) => ReactNode;
+  children: (item: Control<T>, index: number, actions: ArrayActions) => ReactNode;
   empty?: ReactNode;
   /** The JSX spelling of a `Length` validator; the boundary registers it and derives the bounds. */
   minLength?: number;
@@ -850,14 +851,14 @@ interface CollectionProps<T> extends FieldProps<T[]> {
 interface CollectionElement<T> {
   key: number;             // the element control's uniqueId
   index: number;
-  field: FormField<T>;     // the element's scoped binding — what a staged edit starts from
+  field: Control<T>;       // the element's control
   node: ReactNode;         // the author's row, rendered in its own scope
 }
 
 /** What the implementation gets. The hard parts are already done. */
 interface CollectionRenderProps<T> extends FieldRenderProps<T[]> {
   elements: CollectionElement<T>[];
-  actions: ArrayActions;   // add / remove / move + the Length-derived bounds
+  actions: ArrayActions;   // add / remove / move / edit, the boundary's locks folded in
   empty?: ReactNode;
 }
 ```
@@ -867,6 +868,19 @@ because the three things that must not be got wrong are not obvious — but it h
 **structured** (built): a third-party collection that draws per-row chrome (a card's Edit, a
 grid's remove column) has to know each row's index and field, and an opaque `ReactNode[]`
 carried neither.
+
+**Staged edit is an array action, and the boundary gates it (built).** `ArrayActions` carries
+`canEdit` and `edit(index)` beside add / remove / move. The boundary builds its actions with its
+own scope, so under a lock every `can*` is false — an author's row buttons get them as the
+callback's third argument, an implementation's from `actions`, and neither can start a session
+in a locked region. `edit` stages a draft through the external-edit controller (cached on the
+array control, so the sibling that hosts the dialog shares the session) and stamps it with the
+boundary's token; an effect on the boundary cancels a session carrying its token when the
+boundary locks or hides. That is what closes the dialog if the lock arrives mid-edit, and what
+leaves alone a session begun from a *different* boundary over the same array. It has to be the
+boundary's render that judges this, not a core `effect` over the scope's resolvers: a lock that
+arrives as a React prop is delivered by rebuilding the scope object, which an effect holding
+the old one never sees (build finding 19).
 
 - subscribe to the array's **structure** only, so adding an element re-renders the list while
   editing one re-renders one field;
@@ -990,14 +1004,14 @@ editor panel would be additional work, not a substitute.
 
 ```tsx
 function PersonForm({ data, view }: { data: Control<Person>; view: boolean }) {
-  const f = useFormField(data);
+  const f = data.fields;
   return (
     <Form clearHidden readOnly={view}>
       <Stack>
-        <TextField field={f.$.firstName} label="First name" />
-        <Contents hidden={(rc) => !rc.getValue(f.$.hasPets.control)}>
-          <Elements field={f.$.pets} minLength={1}>
-            {(pet) => <TextField field={pet.$.name} required />}
+        <TextField field={f.firstName} label="First name" />
+        <Contents hidden={(rc) => !rc.getValue(f.hasPets)}>
+          <Elements field={f.pets} minLength={1}>
+            {(pet) => <TextField field={pet.fields.name} required />}
           </Elements>
         </Contents>
       </Stack>

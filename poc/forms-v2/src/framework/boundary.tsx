@@ -7,11 +7,12 @@ import {
   useReactive,
   type Rendered,
 } from "@rx-controls/react";
-import type { ReadContext } from "@rx-controls/core";
+import { untrackedRead, type ReadContext } from "@rx-controls/core";
 import { getProp } from "./prop.js";
-import { bindScope, elementField } from "./schema.js";
 import { arrayActions, lengthValidator } from "./collections.js";
+import { peekExternalEdit } from "./externalEdit.js";
 import {
+  fieldState,
   FormScopeProvider,
   narrowScope,
   useFormScope,
@@ -30,7 +31,6 @@ import type {
   CollectionRenderProps,
   FieldProps,
   FieldRenderProps,
-  FormField,
   FormProp,
   FormRenderers,
   GroupProps,
@@ -141,7 +141,10 @@ function designChrome(node: React.ReactNode, on: boolean): React.ReactNode {
  *  - narrow presence from `hidden`, fold the two locks (§4, §5)
  *  - register validators, which therefore survive whatever the impl does (§3)
  *  - run `clearHidden` on its own binding — nothing can do that for it (§8)
- *  - bind the field to the scope, route class slots, resolve the error
+ *  - fold the field's state from control + scope, route class slots,
+ *    resolve the error
+ *  - publish its scope, so `useFieldState` in the implementation — and the
+ *    rows of a collection — read the locks the boundary folded
  *  - hand the output to the implementation's `visibility` slot (§9)
  */
 export function fieldRenderer<T, P extends object = {}>(
@@ -166,11 +169,11 @@ export function fieldRenderer<T, P extends object = {}>(
       required,
       requiredMessage,
     });
-    useFieldValidation(field.control, validate, cfg);
+    useFieldValidation(field, validate, cfg);
 
     // Per-boundary, because the boundary that bound the data is the only thing
     // that knows what to clear — see the POC README, finding 16.
-    const control = field.control;
+    const control = field;
     const shouldClear =
       presenceNow === "hidden" && scope.clearHidden && !dontClearHidden;
     useEffect(() => {
@@ -182,12 +185,11 @@ export function fieldRenderer<T, P extends object = {}>(
     const vscope = useValidationScope();
     useEffect(() => vscope?.register(control), [vscope, control]);
 
-    const bound = useMemo(() => bindScope(field, scope), [field, scope]);
-    const state = bound.state(rc);
+    const state = fieldState(rc, control, scope);
     const showError = state.touched && state.errors.length > 0;
 
     const renderProps: FieldRenderProps<T> = {
-      field: bound,
+      field,
       id: id ?? autoId,
       label: getProp(rc, props.label),
       required,
@@ -215,10 +217,12 @@ export function fieldRenderer<T, P extends object = {}>(
     const Visibility = renderers.visibility;
 
     const el = republish(
-      <Impl
-        {...(renderProps as unknown as Record<string, unknown>)}
-        {...extra}
-      />,
+      <FormScopeProvider scope={scope}>
+        <Impl
+          {...(renderProps as unknown as Record<string, unknown>)}
+          {...extra}
+        />
+      </FormScopeProvider>,
       state.disabled,
       state.readOnly,
     );
@@ -332,7 +336,7 @@ export function collectionRenderer<T, P extends object = {}>(
   source: CollectionImplSource<T, P>,
 ): ComponentType<CollectionProps<T> & P> {
   function CollectionBoundary(props: CollectionProps<T> & P): Rendered {
-    const { rc, rendered, update } = useReactive();
+    const { rc, rendered } = useReactive();
     const renderers = useRenderers();
     const ctx = useControlContext();
     const autoId = useId();
@@ -369,9 +373,9 @@ export function collectionRenderer<T, P extends object = {}>(
       required,
       requiredMessage,
     });
-    useFieldValidation(field.control, validators, cfg);
+    useFieldValidation(field, validators, cfg);
 
-    const control = field.control;
+    const control = field;
     const shouldClear =
       presenceNow === "hidden" && scope.clearHidden && !dontClearHidden;
     useEffect(() => {
@@ -382,36 +386,49 @@ export function collectionRenderer<T, P extends object = {}>(
     const vscope = useValidationScope();
     useEffect(() => vscope?.register(control), [vscope, control]);
 
-    const bound = useMemo(
-      () => bindScope(field, scope) as FormField<T[]>,
-      [field, scope],
-    );
-    const state = bound.state(rc);
+    const state = fieldState(rc, control, scope);
     const showError = state.touched && state.errors.length > 0;
+
+    // The boundary's own actions know its scope: a locked region reports
+    // every `can*` false, and `edit` stamps the session with this boundary.
+    const actions = arrayActions(rc, ctx, control, {
+      minLength,
+      maxLength,
+      scope,
+      origin: autoId,
+    });
+
+    // A staged edit this boundary began ends when the boundary locks or
+    // hides. Judged here rather than in the controller because this render is
+    // what observes the lock however it arrives — a control write re-renders
+    // it through `rc`, a React prop through the parent — where a core
+    // `effect` holding the scope object would miss the second kind.
+    const endsEdits =
+      state.disabled || state.readOnly || presenceNow === "hidden";
+    useEffect(() => {
+      if (!endsEdits) return;
+      const edit = peekExternalEdit(control);
+      if (edit && edit.session(untrackedRead)?.origin === autoId) edit.cancel();
+    }, [endsEdits, control, autoId]);
 
     // Structure only: adding or removing re-renders the list, editing one
     // element re-renders that element's scope.
     const elementControls = rc.isNull(control) ? [] : rc.getElements(control);
     const elements: CollectionElement<T>[] = elementControls.map(
-      (elem, index) => {
-        const field = elementField(bound, elem);
-        return {
-          key: elem.uniqueId,
-          index,
-          field,
-          node: (
-            <Reactive key={elem.uniqueId}>
-              {() => children(field, index)}
-            </Reactive>
-          ),
-        };
-      },
+      (elem, index) => ({
+        key: elem.uniqueId,
+        index,
+        field: elem,
+        node: (
+          <Reactive key={elem.uniqueId}>
+            {() => children(elem, index, actions)}
+          </Reactive>
+        ),
+      }),
     );
 
-    const actions = arrayActions(rc, update, bound, { minLength, maxLength });
-
     const renderProps: CollectionRenderProps<T> = {
-      field: bound,
+      field,
       id: id ?? autoId,
       label: getProp(rc, props.label),
       required,
@@ -442,10 +459,12 @@ export function collectionRenderer<T, P extends object = {}>(
         extra[k] = (props as Record<string, unknown>)[k];
 
     const el = republish(
-      <Impl
-        {...(renderProps as unknown as Record<string, unknown>)}
-        {...extra}
-      />,
+      <FormScopeProvider scope={scope}>
+        <Impl
+          {...(renderProps as unknown as Record<string, unknown>)}
+          {...extra}
+        />
+      </FormScopeProvider>,
       state.disabled,
       state.readOnly,
     );

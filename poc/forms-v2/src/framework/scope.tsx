@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import { useControl } from "@rx-controls/react";
 import { getProp, narrowPresence } from "./prop.js";
-import type { FormProp, Presence } from "./types.js";
+import type { FieldState, FormProp, Presence } from "./types.js";
 
 /**
  * The scope holds **rc-resolvers, not values** — a facet driven by form data
@@ -11,6 +11,10 @@ import type { FormProp, Presence } from "./types.js";
  *
  * `presence` is derived, never authored: a `hidden` prop narrows it, and only
  * a container implementation narrows it to `silent`.
+ *
+ * It is React context and nothing else: a component reads the scope at its
+ * own position in the tree. A binding does not carry one — see README
+ * finding 19 for the design that did, and why it was removed.
  */
 export interface ScopeState {
   presence(rc: ReadContext): Presence;
@@ -41,6 +45,35 @@ export function useFormScope(): ScopeState {
   return useContext(ScopeContext);
 }
 
+/**
+ * What a `Control` cannot answer alone: `readOnly` has no home on one, and
+ * `disabled` folds in the enclosing scope's. A function of the control *and*
+ * the scope where the field is rendered — every boundary calls it with the
+ * scope it just narrowed, and publishes that scope so an implementation's
+ * `useFieldState` agrees with it.
+ */
+export function fieldState<T>(
+  rc: ReadContext,
+  control: Control<T>,
+  scope: ScopeState,
+): FieldState {
+  return {
+    disabled: rc.isDisabled(control) || scope.disabled(rc),
+    readOnly: scope.readOnly(rc),
+    touched: rc.isTouched(control),
+    dirty: rc.isDirty(control),
+    errors: Object.values(rc.getErrors(control)).filter(Boolean),
+  };
+}
+
+/** `fieldState` against the scope at this component's position. */
+export function useFieldState<T>(
+  rc: ReadContext,
+  control: Control<T>,
+): FieldState {
+  return fieldState(rc, control, useFormScope());
+}
+
 export interface ScopeNarrowing {
   /** What a boundary passes: its own `hidden` prop, already resolved. */
   presence?: FormProp<Presence>;
@@ -62,23 +95,6 @@ export function narrowScope(parent: ScopeState, n: ScopeNarrowing): ScopeState {
     clearHidden: n.clearHidden ?? parent.clearHidden,
     designMode: n.designMode ?? parent.designMode,
     globalLock: parent.globalLock,
-  };
-}
-
-/**
- * Restriction-only in both directions: used when a field's *bind-time* scope
- * meets the scope where an implementation decided to render it. Neither can
- * re-enable what the other locked.
- */
-export function combineScopes(a: ScopeState, b: ScopeState): ScopeState {
-  if (a === b) return a;
-  return {
-    presence: (rc) => narrowPresence(a.presence(rc), b.presence(rc)),
-    disabled: (rc) => a.disabled(rc) || b.disabled(rc),
-    readOnly: (rc) => a.readOnly(rc) || b.readOnly(rc),
-    clearHidden: a.clearHidden || b.clearHidden,
-    designMode: a.designMode || b.designMode,
-    globalLock: a.globalLock ?? b.globalLock,
   };
 }
 

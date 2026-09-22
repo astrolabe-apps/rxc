@@ -35,7 +35,7 @@ export type FormProp<T> = T | ((rc: ReadContext) => T) | Control<T>;
 
 export type ClassValue = string | { replace: string };
 
-// ── §3 The two handles ───────────────────────────────────────────────
+// ── §3 The binding ───────────────────────────────────────────────
 
 export interface FieldState {
   disabled: boolean;
@@ -45,26 +45,18 @@ export interface FieldState {
   errors: string[];
 }
 
-export type FormFields<T> = {
-  [K in keyof NonNullable<T>]-?: FormField<NonNullable<T>[K]>;
-};
-
 /**
- * A **scoped control handle**. No schema: the only thing this layer ever read
- * off one was a default label, and a label is a prop — the author writes it,
- * or a loader passes it from `displayName`. Options are the same, and belong
- * to the widgets that have them rather than to every binding.
+ * The binding is a plain `Control<T>`; there is no handle around it. `state`
+ * is what a `Control` cannot answer alone — `readOnly` has no home on one, and
+ * `disabled` folds in the enclosing scope's — so it is a function of the
+ * control *and* the scope where the field is rendered (`fieldState` /
+ * `useFieldState` in scope.tsx), not a method on the binding. Typed
+ * navigation is `control.fields.x`. No schema: the only thing this layer ever
+ * read off one was a default label, and a label is a prop.
  *
- * What it is *not* is a `Control` plus a hook: the scope is captured here, at
- * bind time, which is what keeps a staged-edit draft locked when its modal
- * renders outside the region the row was bound in.
+ * A scoped handle (`FormField<T>` = `{ control, state(rc), $ }`) was built and
+ * removed — README finding 19.
  */
-export interface FormField<T> {
-  readonly control: Control<T>;
-  state(rc: ReadContext): FieldState;
-  /** Typed navigation into a compound value; arrays go through a collection. */
-  readonly $: FormFields<T>;
-}
 
 // ── §4 Presence ──────────────────────────────────────────────────────
 
@@ -78,7 +70,7 @@ export type Validator<T> = (
 ) => string | null | undefined;
 
 export interface FieldProps<T> {
-  field: FormField<T>;
+  field: Control<T>;
   id?: string;
   /**
    * The three per-control flags, one per `ControlDefinition` field. Presence
@@ -113,7 +105,7 @@ export interface FieldProps<T> {
 
 /** What an implementation sees. Flat and resolved, so `<Shell {...p}>` composes. */
 export interface FieldRenderProps<T> {
-  field: FormField<T>;
+  field: Control<T>;
   id: string;
   label?: ReactNode;
   required: boolean;
@@ -220,14 +212,23 @@ export interface GroupProps {
   children: ReactNode;
 }
 
-/** Add / remove / move, plus the bounds the `Length` validator implies. */
+/**
+ * Add / remove / move / edit, plus the bounds the `Length` validator implies.
+ * The collection boundary builds these with its own scope, so a locked region
+ * reports every `can*` false; `edit` stages a draft through the external-edit
+ * controller and records that scope as the session's origin, which is what
+ * closes the dialog if the region locks mid-edit.
+ */
 export interface ArrayActions {
   length: number;
   canAdd: boolean;
   canRemove: boolean;
+  canEdit: boolean;
   add(value?: unknown, index?: number): void;
   remove(index: number): void;
   move(from: number, to: number): void;
+  /** Begin a staged edit of one element. The dialog is hosted elsewhere. */
+  edit(index: number): void;
 }
 
 /**
@@ -237,7 +238,12 @@ export interface ArrayActions {
  * locks.
  */
 export interface CollectionProps<T> extends FieldProps<T[]> {
-  children: (item: FormField<T>, index: number) => ReactNode;
+  /** The row. `actions` are the boundary's own — the scope-aware set. */
+  children: (
+    item: Control<T>,
+    index: number,
+    actions: ArrayActions,
+  ) => ReactNode;
   empty?: ReactNode;
   /** Stand-in for the JSON `Length` validator; registered by the boundary. */
   minLength?: number;
@@ -249,13 +255,12 @@ export interface CollectionProps<T> extends FieldProps<T[]> {
  * already rendered in its own tracking scope; the rest is what an
  * implementation needs to put chrome *on* that row — a DataGrid's remove
  * column, a card's Edit button — which an opaque `ReactNode[]` could not
- * carry. `field` is the element's scoped binding, so a staged edit begun from
- * here captures the array's scope.
+ * carry. `field` is the element's control.
  */
 export interface CollectionElement<T> {
   key: number;
   index: number;
-  field: FormField<T>;
+  field: Control<T>;
   node: ReactNode;
 }
 
@@ -364,7 +369,7 @@ export type SelectRenderProps = FieldRenderProps<OptionValue> & SelectExtra;
 /**
  * A boundary with **no binding**. It keeps presence, the class slots and
  * design chrome, and drops everything that needs a field: validators,
- * `clearHidden`, the locks, `state(rc)`.
+ * `clearHidden`, the locks, the field state.
  */
 export interface DisplayProps {
   hidden?: FormProp<boolean>;

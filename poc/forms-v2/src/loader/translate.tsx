@@ -10,7 +10,6 @@ import {
   CheckboxField,
   Contents,
   Dialog,
-  createFormField,
   Elements,
   getProp,
   HtmlDisplay,
@@ -21,7 +20,6 @@ import {
   TextField,
   type ClassValue,
   type FieldProps,
-  type FormField,
   type FormProp,
   type Validator,
 } from "../framework/index.js";
@@ -82,7 +80,7 @@ export interface TranslateArgs {
   props: FieldProps<any>;
   children: ReactNode[];
   /** For a collection: the children, rendered against one element. */
-  element?: (item: FormField<any>) => ReactNode;
+  element?: (item: Control<any>) => ReactNode;
   /** For an action: the click the host's `actionHandler` resolved, if any. */
   onClick?: () => void | Promise<void>;
   /**
@@ -388,7 +386,7 @@ function buildProps(
     (def.type === "Group" && def.groupOptions?.hideTitle === true);
 
   return {
-    field: createFormField(control),
+    field: control,
     label: hideTitle
       ? undefined
       : labelProp
@@ -702,7 +700,7 @@ export function translate(
   );
 
   const element = schema?.collection
-    ? (item: FormField<any>) => (
+    ? (item: Control<any>) => (
         <>
           {(def.children ?? []).map((c, i) => (
             <ElementChild
@@ -779,11 +777,11 @@ function ElementChild({
   opts,
 }: {
   ctx: ControlContext;
-  item: FormField<any>;
+  item: Control<any>;
   fields: SchemaField[];
   def: ControlDefinition;
   path: string;
   opts: LoaderOptions;
 }) {
-  return <>{translate(ctx, item.control, fields, def, path, opts)}</>;
+  return <>{translate(ctx, item, fields, def, path, opts)}</>;
 }

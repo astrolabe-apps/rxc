@@ -1,4 +1,5 @@
 import { useMemo, type ComponentType, type ReactNode } from "react";
+import type { Control } from "@rx-controls/core";
 import {
   useControl,
   useControlContext,
@@ -15,13 +16,7 @@ import {
   ValidationScopeProvider,
   type ValidationScope,
 } from "./validationScope.js";
-import type {
-  ClassValue,
-  FormField,
-  FormProp,
-  FormRenderers,
-  Presence,
-} from "./types.js";
+import type { ClassValue, FormProp, FormRenderers, Presence } from "./types.js";
 
 export interface WizardPage {
   key: string;
@@ -37,7 +32,7 @@ export interface WizardProps {
    * default and the wrong one for a form you can come back to. A stateful
    * container has to offer both, and the choice is the author's.
    */
-  page?: FormField<number | undefined>;
+  page?: Control<number | undefined>;
   hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
@@ -81,7 +76,7 @@ export function wizardRenderer(
     const { items, page } = props;
 
     const internal = useControl(0);
-    const indexControl = page?.control ?? internal;
+    const indexControl = page ?? internal;
     const index = Math.min(
       Math.max(rc.getValue(indexControl) ?? 0, 0),
       Math.max(items.length - 1, 0),

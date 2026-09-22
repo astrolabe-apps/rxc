@@ -32,7 +32,7 @@ rushx burndown
 All six boundaries — `fieldRenderer`, `collectionRenderer`, `groupRenderer`
 (with and without `{ scope: true }`), `actionRenderer`, `displayRenderer` and
 the options widgets — over the contract: `FormProp`/`getProp`,
-`ClassValue`/`mergeClass`, `FormField`/`FieldState`, derived `Presence` with
+`ClassValue`/`mergeClass`, `Control<T>` bindings with `FieldState`/`useFieldState`, derived `Presence` with
 the `hidden`/`disabled`/`readOnly` props, `<Form>`, `<Contents>`, `<Elements>`,
 the validation scope on core's `createDerivedGroup`, keyed validators,
 per-boundary `clearHidden`, `arrayActions`, `useAction` + `StandardActionIds`,
@@ -101,11 +101,13 @@ Numbered; each is cited at the matching line of code.
      then feeds `InputBase` a placeholder `value` purely to drive that state —
      ugly, private, and contained.
 
-4. **The field an implementation receives is not the one the author wrote.**
-   `FieldState.readonly` has no home on a `Control`, so `state(rc)` cannot be
-   computed from the control alone. The boundary re-binds the field to the
-   scope (`bindScope`) and hands *that* down — the same move the doc already
-   makes for the loader ("a translator never binds one").
+4. **Field state is control plus scope, not a property of the control.**
+   `FieldState.readOnly` has no home on a `Control`, and `disabled` folds in
+   the enclosing scope's, so the boundary computes it from both
+   (`fieldState(rc, control, scope)`) and publishes its scope around the
+   implementation so a `useFieldState` there agrees with it. An earlier cut
+   carried the scope on the binding instead — finding 19 is where that was
+   undone.
 
 5. **The scope holds rc-resolvers, not values.** The win is narrower than it
    first looks — every boundary reads every facet, so a flip re-renders them
@@ -173,7 +175,7 @@ Numbered; each is cited at the matching line of code.
 13. **Built-ins must be generic in the value type.** `fieldRenderer` produces a
     component for one concrete `T`, but a schema legitimately yields `string`,
     `string | undefined` or `string | null` for the same widget, and
-    `FormField<string>` is not `FormField<string | undefined | null>`. `TextField`
+    `Control<string>` is not `Control<string | undefined | null>`. `TextField`
     is declared with a generic call signature over one cast. §6's signature
     should say so.
 
@@ -244,28 +246,53 @@ Numbered; each is cited at the matching line of code.
     rather than a hook, so add/remove buttons can live outside the list — which
     is where the demo puts them.
 
-19. **The staged-edit case is what justifies `FormField` existing.** Once the
-    schema is out of it (see below), the handle is `{ control, state(rc), $ }`
-    — which looks like `Control` plus a `useFieldState` hook reading the scope
-    from context. For a field rendered where it was bound the two are
-    indistinguishable. They diverge exactly where the doc said it had not
-    walked: a staged-edit draft belongs to the array's scope, while the modal
-    editing it is hosted by a sibling outside that region.
+19. **The staged-edit case does not justify `FormField` existing — tested,
+    then removed.** Once the schema was out of it (finding 20) the handle was
+    `{ control, state(rc), $ }`: a `Control` plus a `useFieldState` hook
+    reading the scope from context, with one difference — it captured the
+    scope at *bind* time, so a staged-edit draft rendered by a host outside
+    the array's region still reported that region's lock. The build showed
+    exactly that: region locked, modal outside it, the draft `readOnly: true`
+    while the scope at the modal said `false`.
 
-    Built it: `getExternalEdit` caches a controller on the array control's meta
-    (so the collection and the host share a session without being near each
-    other in the tree), `beginEdit(index, rowField)` captures the scope from the
-    row's own field, and the host renders outside the locked region. Measured
-    with the region locked: the draft reports `readOnly: true` while the scope
-    at the modal's position reports `false`. Context alone gets this wrong and
-    hands the user an editable draft that applies through a visible lock.
+    The demonstration was propped up. Both Edit buttons were hardcoded
+    `disabled={false}`; a collection that honours the cascade disables Edit
+    under a lock, the session never begins, and the readout is unreachable.
+    What is left is the region locking or hiding *while* a session is open —
+    and the right answer there is not a draft turning read-only inside a
+    dialog the user is looking at, it is the dialog closing. For `silent` the
+    handle was actively wrong: an edit begun in a tab would have blanked its
+    dialog the moment the user switched tabs.
 
-    Two consequences. `bindScope` had to **combine** rather than replace — a
-    bind-time scope and a render-location scope are both restriction-only, and
-    replacing was silently throwing the first one away. And the controller has
-    to take the *row's* field, not the array field a host holds: the array field
-    outside the boundary carries no scope at all, which the first version of
-    this got wrong and the readout caught.
+    So: the binding is a bare `Control<T>`. `$` — a typed mirror of
+    `control.fields` that existed only to keep the scope attached through
+    navigation — is gone, with `bindScope`, `combineScopes`, `elementField`
+    and `scopeOf`. `state` is `fieldState(rc, control, scope)`, and the
+    boundary publishes its scope around the implementation so `useFieldState`
+    there agrees with it (which also means a collection's rows now read the
+    collection's scope rather than the one outside it). The dialog reads the
+    scope where it renders, like everything else.
+
+    The lock reaches the session through the **collection boundary**, not
+    the binding. `ArrayActions` gained `canEdit` and `edit(index)`; the
+    boundary builds its actions with its own scope, so every `can*` is false
+    under a lock, and `edit` stamps the session with a per-instance token; an
+    effect on the boundary cancels a session carrying its token when it locks
+    or hides. The row callback receives those actions as a third argument so
+    an author's own buttons are gated the same way, and `PetCards` no longer
+    touches the controller at all. Verified in the browser: Edit and Remove
+    grey out under the lock; an open edit closes the instant the lock arrives;
+    an edit begun from the Cards tab — a different boundary, not inside the
+    locked section — is left alone while that lock toggles.
+
+    One more thing this found, about finding 5. The first version put the
+    cancel in the controller, as a core `effect` over the origin scope's
+    resolvers — and it never fired. A lock that arrives as a **React prop** is
+    delivered by the boundary rebuilding its scope object on re-render; the
+    effect held the old object, whose `readOnly` closed over `false`.
+    rc-resolvers carry a data-driven facet for free and a prop-driven one not
+    at all. The boundary's own render is the only place that sees both, which
+    is why the judgement lives there.
 
 20. **`SchemaField` is not needed at this layer.** The build settled it by
     measurement: across four implementations and both data boundaries, the only
@@ -275,9 +302,10 @@ Numbered; each is cited at the matching line of code.
     Options would have been the second reader; validators are already ruled out,
     since they are declared at the usage and never inherited from the field.
 
-    So `FormField<T>` is `{ control, state(rc), $ }` — a scoped control handle,
-    nothing more — and `buildSchema` left the JSX path with the schema, because
-    `$` was typed from `T` all along, not from the metadata. Labels are props
+    So the binding carries no schema — and, since finding 19, no handle either:
+    it is a bare `Control<T>`. `buildSchema` left the JSX path with the
+    schema, because typed navigation (`control.fields`) was typed from `T`
+    all along, not from the metadata. Labels are props
     now; the demo passes them, a loader would pass `displayName`. Removing it
     deleted the child-schema lookup, the element clone and the re-bind copy, and
     cost six `label=` attributes.
@@ -479,7 +507,7 @@ Numbered; each is cited at the matching line of code.
     picks.** Tabs keep the active key in component state, which is right for a
     tab strip. A wizard's page index usually must not — it wants to survive a
     remount, a deep link, or save-and-resume — so `WizardProps` takes an
-    optional `page?: FormField<number>`. The demo binds it, and `wizardPage: 1`
+    optional `page?: Control<number>`. The demo binds it, and `wizardPage: 1`
     duly appears in the state table alongside the form's real data. Offer only
     component state and half the cases are unbuildable; offer only the bound
     form and the other half pollute their schema with UI state.
@@ -598,11 +626,11 @@ Numbered; each is cited at the matching line of code.
     built-in `ElementsList` just maps `e.node`. The boundary's three
     guarantees (structure-only subscription, a scope per element, keyed by
     `uniqueId`) are untouched; the implementation simply gets to know what
-    the rows *are*. `field` is the element's scoped binding, so
-    `edit.beginEdit(e.index, e.field)` from inside a card captures the
-    array's scope exactly as the Pets tab's buttons do — verified: Edit on a
-    card opens the same draft the Pets tab's host shows, because the
-    controller is cached on the array control and both hosts read it.
+    the rows *are*. `field` is the element's control, and Edit on a card goes
+    through `p.actions.edit(e.index)` — the boundary's scope-aware actions,
+    so a locked region disables it (finding 19) — and opens the same draft
+    the Pets tab's host shows, because the controller is cached on the array
+    control and both hosts read it. The card never meets the controller.
 
     Smaller, and worth knowing: a **non-field** implementation has no
     controller to hand it `rc` and `rendered`. `Stars` got its window from

@@ -74,6 +74,16 @@
      * (legacy-demos, legacy-compare) deliberately stay on the published 4.6
      * baseline (decoupledLocalDependencies in rush.json).
      */
-    "@react-typed-forms/core": ["^4.6.0", "workspace:*"]
+    "@react-typed-forms/core": ["^4.6.0", "workspace:*"],
+
+    /**
+     * poc/forms-v2 only. @mantine/core 9.6 peers on react ^19.2 (it calls
+     * useEffectEvent), so the throwaway POC runs a newer React than the rest
+     * of the repo. Separate app, separate install — nothing else sees it.
+     */
+    "react": ["~19.2.0"],
+    "react-dom": ["~19.2.0"],
+    "@types/react": ["~19.2.0"],
+    "@types/react-dom": ["~19.2.0"]
   }
 }

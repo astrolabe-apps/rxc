@@ -1,7 +1,6 @@
 export * from "./types.js";
 export * from "./prop.js";
 export * from "./a11y.js";
-export * from "./schema.js";
 export * from "./scope.js";
 export * from "./validation.js";
 export * from "./renderers.js";
