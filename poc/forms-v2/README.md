@@ -19,13 +19,14 @@ the extractor at each legacy app's source directory (the one holding
 `schemas.ts` and its pairing file). On the machine this was built on:
 
 ```bash
-rushx extract-corpus servicetas   ~/astrolabe/myServiceTasIntegrationLayer/ServiceTasAPI/NewClientApp/client-common
+rushx extract-corpus servicetas   ~/astrolabe/ServiceTas/ServiceTasAPI/NewClientApp/client-common
 rushx extract-corpus forms-app    ~/astrolabe/astrolabe-common/forms-app/src
 rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTemplate/ClientApp/sites/formServer/src
 rushx burndown
 ```
 
-80 forms, 3,972 controls; the burndown at the last commit is in finding 50.
+80 forms, 3,968 controls (re-extracted for finding 51; the ServiceTas source had moved on
+by four controls); the burndown at the last commit is in finding 51.
 
 ## What it builds
 
@@ -533,6 +534,10 @@ Numbered; each is cited at the matching line of code.
     libraries drew their own stepper (`MuiStepper`, `ant-steps`, Mantine's,
     and the html one) with no contract change.
 
+    Revisited for async validators: Next now awaits the page's `settled()`
+    before it decides, and because `next()` returns that promise the
+    `<Action>` drawing it shows busy for the wait — finding 51.
+
 37. **The validation scope needed a change in core — the first thing this whole
     exercise has asked of it.** The scope wants to be a real `Control`: then
     validity is an ordinary tracked read, `touchAll` is a `setTouched` cascade,
@@ -932,6 +937,38 @@ Numbered; each is cited at the matching line of code.
     `renderOptions.groupOptions` 45), each of which belongs to a translator
     that does not exist yet and will go when it does.
 
+51. **Async validators, and the "settled" primitive the wizard gate needed.**
+    `Validator<T>` promised a `Promise` return in the doc and the build never
+    delivered it; the legacy `Jsonata` validator (45 uses in 9 forms) needs
+    it, and legacy's own wizard gate papered over the same gap with a 100 ms
+    sleep. Built: a validator's run keeps its tracking window only until the
+    function returns — reads before the first `await` are the dependencies —
+    and publishes on resolve unless a newer run has superseded it. The
+    previous message stays until the answer lands. No debounce in the
+    contract; a validator that is expensive wraps itself.
+
+    The new piece is on the validation scope: `beginPending()` counts an
+    outstanding promise here and in every enclosing scope, `pending(rc)`
+    reads it, `settled()` resolves at zero. `isValid` stays optimistic while
+    pending, deliberately — a step marker that flashed invalid on every
+    keystroke would be worse than one that is briefly wrong — so a gate
+    awaits `settled()` and then reads validity. The wizard does exactly
+    that, and because `next()` now returns the promise, the `<Action>`
+    drawing Next shows busy for the wait with no wizard code involved: the
+    first payoff of finding 27's "every button is an Action".
+
+    Verified: an 800 ms name check on the wizard's first page holds Next
+    busy and refuses when it answers with an error; the JSON tab's `Jsonata`
+    validator on notes reports when the text contains `TODO`, evaluated
+    against the parent data as legacy does. Not built: a field-level
+    `pending` on `FieldState` for a spinner in the frame — nothing needed it
+    yet.
+
+    Burndown 2,483 → **2,448** over a freshly extracted corpus: the
+    `validator` kind goes 56 → 11, which is `validator:Jsonata` 45 → 0 with
+    the 11 `Date` validators left; the rest of the delta is the corpus
+    having moved by four controls since finding 50.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down. At the last run:
@@ -939,9 +976,8 @@ The burndown (`rushx burndown`) is the work list, top-down. At the last run:
 implementations with value formatting; `Inline` 198 is probably a
 `Stack direction="row"` group; `HelpText` 69 is a prop the contract already
 has; `a/b` and `../x` field refs 126 need the loader to walk `$` and a parent
-stack; then `Group` 66, `dynamic Display` 64, `Radio` 55, `Jsonata`
-validators 45 (which need the async validator path — `Validator<T>` is
-synchronous here), `AllowedOptions` 39. `action` 442 stays until the
+stack; then `Group` 66, `dynamic Display` 64, `Radio` 55, `Date`
+validators 11 (`Jsonata` went to 0 in finding 51), `AllowedOptions` 39. `action` 442 stays until the
 burndown runs with a host `actionHandler`. Every loader change is a
 translator or a prop, then `rushx burndown` again; a fixture form in
 `src/loader/demoForm.ts` and a line in the `From JSON` tab is how each was

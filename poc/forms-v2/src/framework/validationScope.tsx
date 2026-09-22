@@ -1,6 +1,8 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
 import {
+  ControlChange,
+  untrackedRead,
   attachFields,
   createDerivedGroup,
   detachFields,
@@ -26,9 +28,24 @@ import {
  */
 export interface ValidationScope {
   register(control: Control<unknown>): () => void;
+  /**
+   * No *published* error under me. Optimistic while async validators are
+   * still running — a step marker must not flash invalid on every keystroke —
+   * so a gate awaits `settled()` first.
+   */
   isValid(rc: ReadContext): boolean;
   /** Show the errors that are already there — what a refused Next needs. */
   touchAll(): void;
+  /** An async validator under me has not answered yet. */
+  pending(rc: ReadContext): boolean;
+  /** Resolves once nothing under me is pending. Immediately, if nothing is. */
+  settled(): Promise<void>;
+  /**
+   * A field's boundary calls this when one of its validators returns a
+   * promise, and the returned function when it answers or is superseded.
+   * Counts here and in every enclosing scope.
+   */
+  beginPending(): () => void;
 }
 
 // TEMP: a window hook so the registration tree can be inspected.
@@ -56,6 +73,9 @@ export function createValidationScope(
   // makes overlapping membership safe, and a scope always overlaps: a
   // collection registers its array, its rows register fields inside it.
   const group = createDerivedGroup(ctx);
+  // Pending async validators, as a control so `pending(rc)` is an ordinary
+  // tracked read and `settled()` a subscription.
+  const pendingCount = ctx.newControl(0);
   let keys = 0;
   let attachedUp: (() => void) | undefined;
 
@@ -76,6 +96,28 @@ export function createValidationScope(
     isValid: (rc) => rc.isValid(group),
     // Cascades to the members natively.
     touchAll: () => ctx.update((wc) => wc.setTouched(group, true)),
+    pending: (rc) => rc.getValue(pendingCount) > 0,
+    settled: () =>
+      new Promise<void>((resolve) => {
+        if (untrackedRead.getValue(pendingCount) === 0) return resolve();
+        const sub = pendingCount.subscribe(() => {
+          if (untrackedRead.getValue(pendingCount) === 0) {
+            pendingCount.unsubscribe(sub);
+            resolve();
+          }
+        }, ControlChange.Value);
+      }),
+    beginPending: () => {
+      const up = parent?.beginPending();
+      ctx.update((wc) => wc.updateValue(pendingCount, (n) => n + 1));
+      let done = false;
+      return () => {
+        if (done) return;
+        done = true;
+        ctx.update((wc) => wc.updateValue(pendingCount, (n) => n - 1));
+        up?.();
+      };
+    },
   };
   allScopes.push({ label, parent, self: scope, members });
   return scope;

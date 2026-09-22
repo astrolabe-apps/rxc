@@ -34,11 +34,19 @@ export interface DynamicProperty {
   expr: EntityExpression;
 }
 
-export interface ValidatorDef {
-  type: "Length";
-  min?: number;
-  max?: number;
-}
+export type ValidatorDef =
+  | {
+      type: "Length";
+      min?: number;
+      max?: number;
+    }
+  | { type: "Jsonata"; expression: string }
+  | {
+      type: "Date";
+      comparison?: string;
+      fixedDate?: string;
+      daysFromCurrent?: number;
+    };
 
 /**
  * Deliberately open: the real format has six adornment types and hosts add

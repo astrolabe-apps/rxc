@@ -23,7 +23,7 @@ import {
   type FormProp,
   type Validator,
 } from "../framework/index.js";
-import { toFormProp, toValueProp } from "./expressions.js";
+import { toFormProp, toValueProp, jsonataValidator } from "./expressions.js";
 import { findField, type ControlDefinition, type SchemaField } from "./json.js";
 
 /**
@@ -337,7 +337,16 @@ function buildProps(
     warn({ kind: "expression", subject: def.field ?? def.title, detail });
 
   const validate: Record<string, Validator<any>> = {};
+  let jsonataN = 0;
   for (const v of def.validators ?? []) {
+    if (v.type === "Jsonata") {
+      // An async validator (§5): the expression yields the message, against
+      // the parent data. Keyed like legacy's `jsonata`, numbered past the first.
+      const fn = jsonataValidator(data, v.expression, expr);
+      if (fn) validate[jsonataN ? `jsonata${jsonataN}` : "jsonata"] = fn;
+      jsonataN++;
+      continue;
+    }
     if (v.type !== "Length") {
       warn({
         kind: "validator",

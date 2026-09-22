@@ -75,11 +75,19 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
-  // A synchronous one, which becomes `(rc) => …`.
+  // A synchronous one, which becomes `(rc) => …` — and a Jsonata validator,
+  // which is an async validator evaluated against the parent data.
   {
     type: "Data",
     field: "notes",
     renderOptions: { type: "Multiline" },
+    validators: [
+      {
+        type: "Jsonata",
+        expression:
+          "$contains(notes, 'TODO') ? 'Notes still contain a TODO' : null",
+      },
+    ],
     dynamic: [
       {
         type: "Disabled",

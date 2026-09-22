@@ -64,10 +64,18 @@ export type Presence = "rendered" | "silent" | "hidden";
 
 // ── §5 Contract props ────────────────────────────────────────────────
 
+export type ValidatorResult = string | null | undefined;
+
+/**
+ * Sync or async. A promise publishes when it resolves; a run superseded by a
+ * newer one is dropped. Reads through `rc` **before the first `await`** are
+ * tracked and re-run the validator when they move; reads after it are not.
+ * No debounce — wrap the function if a call is expensive.
+ */
 export type Validator<T> = (
   value: T,
   rc: ReadContext,
-) => string | null | undefined;
+) => ValidatorResult | Promise<ValidatorResult>;
 
 export interface FieldProps<T> {
   field: Control<T>;

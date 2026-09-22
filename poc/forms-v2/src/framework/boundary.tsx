@@ -169,7 +169,11 @@ export function fieldRenderer<T, P extends object = {}>(
       required,
       requiredMessage,
     });
-    useFieldValidation(field, validate, cfg);
+    // Attach to the nearest validation scope. In the boundary, so it happens
+    // whether or not the field is on screen — an inactive tab still reports.
+    // The same scope counts this field's async validators as pending.
+    const vscope = useValidationScope();
+    useFieldValidation(field, validate, cfg, vscope);
 
     // Per-boundary, because the boundary that bound the data is the only thing
     // that knows what to clear — see the POC README, finding 16.
@@ -180,9 +184,6 @@ export function fieldRenderer<T, P extends object = {}>(
       if (shouldClear) ctx.update((wc) => wc.setValue(control, undefined as T));
     }, [shouldClear, control, ctx]);
 
-    // Attach to the nearest validation scope. In the boundary, so it happens
-    // whether or not the field is on screen — an inactive tab still reports.
-    const vscope = useValidationScope();
     useEffect(() => vscope?.register(control), [vscope, control]);
 
     const state = fieldState(rc, control, scope);
@@ -373,7 +374,8 @@ export function collectionRenderer<T, P extends object = {}>(
       required,
       requiredMessage,
     });
-    useFieldValidation(field, validators, cfg);
+    const vscope = useValidationScope();
+    useFieldValidation(field, validators, cfg, vscope);
 
     const control = field;
     const shouldClear =
@@ -383,7 +385,6 @@ export function collectionRenderer<T, P extends object = {}>(
         ctx.update((wc) => wc.setValue(control, undefined as unknown as T[]));
     }, [shouldClear, control, ctx]);
 
-    const vscope = useValidationScope();
     useEffect(() => vscope?.register(control), [vscope, control]);
 
     const state = fieldState(rc, control, scope);

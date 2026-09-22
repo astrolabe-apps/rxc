@@ -1,5 +1,5 @@
 import { useMemo, type ComponentType, type ReactNode } from "react";
-import type { Control } from "@rx-controls/core";
+import { untrackedRead, type Control } from "@rx-controls/core";
 import {
   useControl,
   useControlContext,
@@ -51,8 +51,13 @@ export interface WizardRenderProps {
   index: number;
   canBack: boolean;
   canNext: boolean;
-  /** Refused when the current page is invalid, which touches it instead. */
-  next(): void;
+  /**
+   * Waits for the page's async validators to settle, then advances — or, if
+   * the page is invalid, touches it so its errors show and stays put. Returns
+   * the promise so the button drawing it can show busy: an `<Action>` does
+   * that for any `onClick` that returns one.
+   */
+  next(): Promise<void>;
   back(): void;
   goTo(index: number): void;
   stacked: boolean;
@@ -117,7 +122,6 @@ export function wizardRenderer(
       };
     });
 
-    const currentValid = rendering[index] ? !rendering[index].invalid : true;
     const goTo = (i: number) =>
       update((wc) =>
         wc.setValue(indexControl, Math.min(Math.max(i, 0), items.length - 1)),
@@ -135,9 +139,11 @@ export function wizardRenderer(
         index={index}
         canBack={index > 0}
         canNext={index < items.length - 1}
-        next={() => {
-          if (!currentValid) {
-            scopes.get(items[index].key)!.touchAll();
+        next={async () => {
+          const vscope = scopes.get(items[index].key)!;
+          await vscope.settled();
+          if (!vscope.isValid(untrackedRead)) {
+            vscope.touchAll();
             return;
           }
           goTo(index + 1);

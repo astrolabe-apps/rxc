@@ -6,7 +6,8 @@ import {
   TrackingReadContext,
 } from "@rx-controls/core/internal";
 import { useControl, useControlContext } from "@rx-controls/react";
-import type { Validator } from "./types.js";
+import type { Validator, ValidatorResult } from "./types.js";
+import type { ValidationScope } from "./validationScope.js";
 
 export interface ValidationConfig {
   active: boolean;
@@ -44,11 +45,20 @@ function isEmpty(v: unknown): boolean {
  * One key per validator, so each clears independently. `useValidator` from
  * `@rx-controls/react` does exactly this for a *fixed* key; the record makes
  * the key set dynamic, which is why this is hand-rolled.
+ *
+ * A validator may return a promise. The run's tracking window closes when the
+ * function returns — reads before the first `await` are what re-run it — and
+ * the result publishes on resolve unless a newer run has started, in which
+ * case it is dropped. The previous error stays up until the answer lands, so
+ * nothing flickers. While a promise is outstanding the field counts as
+ * *pending* in `scope` and every scope above it; that is what `settled()`
+ * waits on. No debounce here — that is the validator's own business.
  */
 export function useFieldValidation<T>(
   control: Control<T>,
   validate: Validator<T> | Record<string, Validator<T>> | undefined,
   cfg: Control<ValidationConfig>,
+  scope?: ValidationScope,
 ): void {
   const ctx = useControlContext();
   const entries: Record<string, Validator<T>> = typeof validate === "function"
@@ -65,28 +75,59 @@ export function useFieldValidation<T>(
     const disposers = keys.map((key) => {
       const rc = new TrackingReadContext();
       const reconciler = new SubscriptionReconciler();
+      let runId = 0;
+      let release: (() => void) | undefined;
+      const settle = () => {
+        release?.();
+        release = undefined;
+      };
+      const publish = (m: ValidatorResult) =>
+        ctx.update((wc) => wc.setError(control, key, m ?? null));
       const run = () => {
+        // A newer run supersedes an outstanding one: it stops counting as
+        // pending now, and its answer is dropped when it arrives.
+        settle();
+        const id = ++runId;
         rc.beginTracking();
         rc.trackValidate(control);
         const { active, required, requiredMessage } = rc.getValue(cfg);
         const value = rc.getValue(control);
-        let message: string | null | undefined = null;
+        let result: ValidatorResult | Promise<ValidatorResult> = null;
         if (active) {
           if (key === "required")
-            message = required && isEmpty(value) ? requiredMessage : null;
-          else message = ref.current[key]?.(value, rc);
+            result = required && isEmpty(value) ? requiredMessage : null;
+          else result = ref.current[key]?.(value, rc);
         }
         reconciler.reconcile(rc.tracked);
-        ctx.update((wc) => wc.setError(control, key, message ?? null));
+        // Reads after an `await` land here — past the window, untracked.
+        rc.finalize();
+        if (result instanceof Promise) {
+          release = scope?.beginPending();
+          result.then(
+            (m) => {
+              if (id !== runId) return;
+              settle();
+              publish(m);
+            },
+            (e) => {
+              if (id !== runId) return;
+              settle();
+              publish(null);
+              console.error(`validator "${key}" rejected`, e);
+            },
+          );
+        } else publish(result);
       };
       reconciler.setListener(run);
       run();
       return () => {
+        runId++; // drop any answer still in flight
+        settle();
         reconciler.cleanup();
         ctx.update((wc) => wc.setError(control, key, null));
       };
     });
     return () => disposers.forEach((d) => d());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, control, cfg, keyId]);
+  }, [ctx, control, cfg, keyId, scope]);
 }

@@ -433,7 +433,15 @@ export function PersonForm({
                           field={f.lastName}
                           label="Last name"
                           required
-                          helpText="Next is refused until this page is valid."
+                          helpText="Async: an 800 ms name check. Next waits for it, then refuses if it fails — try Smith."
+                          validate={{
+                            taken: async (v) => {
+                              await new Promise((r) => setTimeout(r, 800));
+                              return v?.trim().toLowerCase() === "smith"
+                                ? "Smith is taken — try another"
+                                : null;
+                            },
+                          }}
                         />
                         <SelectField
                           field={f.status}

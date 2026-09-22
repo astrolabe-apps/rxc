@@ -5,7 +5,7 @@ import {
   ensureMetaValue,
   untrackedRead,
 } from "@rx-controls/core";
-import { getProp, type FormProp } from "../framework/index.js";
+import { getProp, type FormProp, type Validator } from "../framework/index.js";
 import type { EntityExpression } from "./json.js";
 
 function child(data: Control<unknown>, path: string): Control<unknown> {
@@ -144,4 +144,35 @@ export function toValueProp(
       return (rc: ReadContext) =>
         !!getProp(rc, toFormProp(ctx, data, expr, warn));
   }
+}
+
+/**
+ * A legacy `Jsonata` validator: the expression yields the message, or nothing.
+ * Evaluated against the **parent** data, as legacy does, so `firstName` in the
+ * expression is the sibling field. The tracked read of the whole parent is what
+ * re-runs it — the same coarse dependency the expression props use.
+ * `null`/`undefined` is "valid"; anything else is stringified, legacy's rule.
+ */
+export function jsonataValidator(
+  data: Control<unknown>,
+  expression: string,
+  warn?: ExprWarn,
+): Validator<unknown> | undefined {
+  let compiled: ReturnType<typeof jsonata>;
+  try {
+    compiled = jsonata(expression);
+  } catch (e) {
+    warn?.(`jsonata validator does not compile: ${expression} (${e})`);
+    return undefined;
+  }
+  return (_value, rc) => {
+    const input = rc.getValue(data) as object;
+    return compiled.evaluate(input).then(
+      (v: unknown) => (v == null ? null : String(v)),
+      (e: unknown) => {
+        warn?.(`jsonata validator failed: ${expression} (${e})`);
+        return null;
+      },
+    );
+  };
 }

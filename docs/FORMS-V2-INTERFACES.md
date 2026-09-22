@@ -319,6 +319,15 @@ policy; the implementation draws what it is given.
 `required` is a flag, never baked into `label`: MUI renders its own asterisk from
 `<FormControl required>`.
 
+**Validators may be async (built).** `Validator<T>` returns a message or a promise of one. The
+boundary runs each keyed validator in its own tracking window, which closes when the function
+returns: reads through `rc` before the first `await` are the dependencies, reads after it are
+untracked. A promise publishes on resolve; a run superseded by a newer one is dropped, and the
+previous message stays up until the answer lands, so nothing flickers. There is no debounce in
+the contract — a validator that is expensive wraps itself. While a promise is outstanding the
+field is **pending** in its validation scope and every scope above it (§8), which is what a
+gate awaits before it decides.
+
 **A trailing label is still the shell's business (built).** A checkbox's label sits after the
 control, and every library attaches it differently: an html `<label>` wrapping the input, MUI's
 `FormControlLabel` wrapping both, Mantine a `label` prop on the control, Ant the checkbox's own
@@ -399,8 +408,8 @@ property → the same prop as a `(rc) => …` — the spelling shifts to `readOn
 `@rx-controls/react`, which the boundary folds with; `def.dontClearHidden` →
 `dontClearHidden`; `def.required` → `required`; `def.requiredErrorText` → `requiredMessage`;
 `def.validators[]` → the keyed `validate` record, one key per entry so each clears
-independently; a `Jsonata` validator returns a promise and routes through the debounce/abort
-path.
+independently; a `Jsonata` validator is an async validator (above), evaluated against the
+parent data — the expression's result is the message, `null` is valid.
 
 ## 6. The four boundaries
 
@@ -534,7 +543,10 @@ really is enough.
 scope; a scope attaches itself to *its* parent, so validity reaches every enclosing scope and
 nesting is just another member. `{ scope: true }` is a boundary option, not a renderer one —
 `<Contents>` and `<Section>` in the build are the same implementation with and without it, and
-the implementation sees the result as `invalid` in its render props.
+the implementation sees the result as `invalid` in its render props. A scope also reports
+**pending** — an async validator under it has not answered — and `settled()` resolves once none
+is. `isValid` stays optimistic while pending, so a step marker does not flash invalid on every
+keystroke; anything that has to *decide* awaits `settled()` first.
 
 The scope **is** a real `Control` — which is what makes validity an ordinary tracked read,
 `touchAll` a `setTouched` cascade, and nesting just another member — built on core's
@@ -554,7 +566,10 @@ half its cases, and one that only offers the first pollutes the schema for the o
 
 **Gating is what a validation scope is actually for.** The wizard refuses Next while the current
 page's scope reports invalid, and a refusal `touchAll()`s that page so the errors it already had
-become visible. That needs one method beyond `isValid`, and it only works because an unreached
+become visible. Next first awaits the page's `settled()`, so an async validator that has not
+answered cannot let it through — and because `next()` returns that promise, the `<Action>`
+drawing it shows busy for the wait with no wizard code involved. That needs two methods beyond
+`isValid` (`touchAll`, `settled`), and it only works because an unreached
 page is `silent` — validating without rendering, so the step marker can show a page invalid
 before the user has ever seen it. Everything else the wizard needed already existed: presence,
 the scope, actions, structured `items`. The two buttons it draws use the documented ids `next`
