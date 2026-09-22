@@ -41,18 +41,6 @@ export function ActionOverrideProvider({
   return <OverridesCtx value={merged}>{children}</OverridesCtx>;
 }
 
-/**
- * The button for an id, for a renderer that needs to draw one — a collection's
- * Add, a modal's Apply. **Chrome only**: everything the framework guarantees
- * lives in the boundary below, so a button needing busy state or design-mode
- * stubbing is an `<Action>`, not this.
- */
-export function useAction(actionId: string): ComponentType<ActionRenderProps> {
-  const overrides = useActionOverrides();
-  const { action } = useRenderers();
-  return overrides[actionId] ?? action;
-}
-
 export type ActionImplSource =
   | ComponentType<ActionRenderProps>
   | { key: keyof FormRenderers };
@@ -60,6 +48,14 @@ export type ActionImplSource =
 /**
  * The action boundary: resolves `FormProp`s, folds the lock cascade, holds
  * busy state across an async handler, and stubs the handler in design mode.
+ *
+ * Every button anyone draws is one of these — an author's `<Action>`, a
+ * collection's Add, a modal's Apply, a wizard's Next. There is no chrome-only
+ * path: a `useAction(id)` that returned the implementation's button for other
+ * renderers to compose was tried and removed, because every composed button
+ * turned out to want exactly what the boundary provides (busy, the lock, the
+ * design-mode stub, the override map), and its call sites repeated the id and
+ * filled in `busy={false}` by hand. README finding 27.
  */
 export function actionRenderer(
   source: ActionImplSource,

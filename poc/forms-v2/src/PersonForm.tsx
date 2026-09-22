@@ -17,7 +17,6 @@ import {
   getExternalEdit,
   StandardActionIds,
   Tabs,
-  useAction,
   Form,
   FormScopeProvider,
   narrowScope,
@@ -105,8 +104,6 @@ function DraftHost({ field }: { field: Control<Pets> }) {
   const ctx = useControlContext();
   const edit = getExternalEdit(ctx, field);
   const session = edit.session(rc);
-  const ApplyBtn = useAction(StandardActionIds.apply);
-  const CancelBtn = useAction(StandardActionIds.cancel);
   if (!session) return rendered(null);
   return rendered(
     <div className="ff-dialog">
@@ -122,20 +119,18 @@ function DraftHost({ field }: { field: Control<Pets> }) {
         is not affected, because its origin is a different boundary.
       </p>
       <div className="ff-row">
-        <ApplyBtn
+        <Action
           actionId={StandardActionIds.apply}
           text="Apply"
           style="primary"
           disabled={false}
-          busy={false}
           onClick={() => edit.apply()}
         />
-        <CancelBtn
+        <Action
           actionId={StandardActionIds.cancel}
           text="Cancel"
           style="link"
           disabled={false}
-          busy={false}
           onClick={() => edit.cancel()}
         />
       </div>
@@ -169,11 +164,6 @@ export function PersonForm({
   const { rc, rendered, update } = useReactive();
   const ctx = useControlContext();
   const f = data.fields;
-  // Composed, not dispatched: chrome from the implementation, no boundary
-  // guarantees — see `useAction`.
-  const AddBtn = useAction(StandardActionIds.add);
-  const RemoveBtn = useAction(StandardActionIds.remove);
-  const EditBtn = useAction(StandardActionIds.edit);
   const Stack = useStack();
   // Buttons outside the list: mutation is not the collection renderer's job.
   const pets = arrayActions(rc, ctx, f.pets, petBounds);
@@ -340,31 +330,28 @@ export function PersonForm({
                           label={`Pet ${i + 1}`}
                           placeholder="Rex"
                         />
-                        <EditBtn
+                        <Action
                           actionId={StandardActionIds.edit}
                           text="Edit"
                           style="secondary"
                           disabled={!row.canEdit}
-                          busy={false}
                           onClick={() => row.edit(i)}
                         />
-                        <RemoveBtn
+                        <Action
                           actionId={StandardActionIds.remove}
                           text="Remove"
                           style="secondary"
                           disabled={!row.canRemove}
-                          busy={false}
                           onClick={() => row.remove(i)}
                         />
                       </div>
                     )}
                   </Elements>
-                  <AddBtn
+                  <Action
                     actionId={StandardActionIds.add}
                     text={`Add pet (${pets.length}/${petBounds.maxLength})`}
                     style="primary"
                     disabled={!pets.canAdd}
-                    busy={false}
                     onClick={() => pets.add({ name: "" })}
                   />
                 </Section>

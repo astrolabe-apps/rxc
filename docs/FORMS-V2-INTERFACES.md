@@ -353,7 +353,6 @@ interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () =
 
 /** Per-id appearance, provided by the app rather than the implementation. */
 type ActionOverrides = Record<string, ComponentType<ActionRenderProps>>;
-function useAction(actionId: string): ComponentType<ActionRenderProps>;
 ```
 
 **No `actionData` (decided, built).** JSON gives a button an id and a payload because it
@@ -603,21 +602,24 @@ the frame.
 implementation provides lives in one registry (§9) and is resolved by a hook. What differs is
 who looks it up, and what they get:
 
-- **Dispatched** — a boundary picks it on the author's behalf (`textfield`, `tabs`, an authored
-  `<Action>`). It arrives with everything the framework guarantees: validators, presence, the
-  lock cascade, `clearHidden`, design-mode stubbing.
-- **Composed** — another renderer draws it (`fieldShell`, `inputFrame`, a collection reaching
-  for `action` to draw its Add button). It gets **appearance and nothing else**.
+- **Dispatched** — a boundary picks it on the author's behalf (`textfield`, `tabs`, `action`).
+  It arrives with everything the framework guarantees: validators, presence, the lock cascade,
+  `clearHidden`, design-mode stubbing.
+- **Composed** — another renderer draws it (`fieldShell`, `inputFrame`). It gets **appearance
+  and nothing else**.
 
 So the test for adding a registry entry is simply: **does anything other than this component
 need to draw it?** The shell and frame pass, because a third-party widget needs the chrome;
-`visibility` passes, because every boundary needs it; `action` passes twice over, being both
-dispatched and composed. `Text`, `Pressable` and `View` fail — nothing composes them, and goal
-4 scopes portability to the built-in set.
+`visibility` passes, because every boundary needs it; `action` passes because every renderer
+that draws a button dispatches to it. `Text`, `Pressable` and `View` fail — nothing composes
+them, and goal 4 scopes portability to the built-in set.
 
-The line that matters in practice is the second bullet: a composed button has no busy state and
-no design-mode stub, because those live in the boundary. A button that needs them is an
-`<Action>`, not a `useAction(id)`.
+**Buttons are never composed (built, then corrected).** A collection's Add, a modal's Apply, a
+wizard's Next are all `<Action>`s — the same boundary an author writes. The build first gave
+those renderers a `useAction(id)` returning the implementation's button as chrome, and removed
+it: every call site repeated the id and filled in `busy={false}` by hand, and every such button
+wanted what the boundary provides — busy state on Apply, the design-mode stub on Add and
+Remove, the lock on Next, and the per-id override map, which the boundary consults anyway.
 
 ### Survey: eight UI libraries
 

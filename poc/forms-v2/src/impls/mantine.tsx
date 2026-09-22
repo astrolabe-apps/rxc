@@ -21,8 +21,8 @@ import {
   mergeClass,
   useFieldShell,
   useInputFrame,
+  Action,
   StandardActionIds,
-  useAction,
   useCheckbox,
   useSelectController,
   useTextInput,
@@ -385,8 +385,6 @@ function MantineSelect(p: SelectRenderProps): Rendered {
 }
 
 function MantineWizard(p: WizardRenderProps) {
-  const NextBtn = useAction(StandardActionIds.next);
-  const BackBtn = useAction(StandardActionIds.back);
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
       <Stepper active={p.index} onStepClick={p.goTo} mb="md" size="sm">
@@ -409,20 +407,18 @@ function MantineWizard(p: WizardRenderProps) {
         </div>
       ))}
       <div className="ff-row" style={{ marginTop: 12 }}>
-        <BackBtn
+        <Action
           actionId={StandardActionIds.back}
           text="Back"
           style="secondary"
           disabled={!p.canBack}
-          busy={false}
           onClick={p.back}
         />
-        <NextBtn
+        <Action
           actionId={StandardActionIds.next}
           text="Next"
           style="primary"
           disabled={!p.canNext}
-          busy={false}
           onClick={p.next}
         />
       </div>

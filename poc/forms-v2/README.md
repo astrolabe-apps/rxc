@@ -35,7 +35,7 @@ the options widgets — over the contract: `FormProp`/`getProp`,
 `ClassValue`/`mergeClass`, `Control<T>` bindings with `FieldState`/`useFieldState`, derived `Presence` with
 the `hidden`/`disabled`/`readOnly` props, `<Form>`, `<Contents>`, `<Elements>`,
 the validation scope on core's `createDerivedGroup`, keyed validators,
-per-boundary `clearHidden`, `arrayActions`, `useAction` + `StandardActionIds`,
+per-boundary `clearHidden`, `arrayActions`, `<Action>` for every button + `StandardActionIds`,
 the two structural primitives, the `visibility` slot, and the registry. On top
 of that: a tab container, a wizard, the staged-edit modal, and a JSON loader
 that returns what it could not translate.
@@ -408,12 +408,18 @@ Numbered; each is cited at the matching line of code.
     rendering as raw HTML next to properly-themed controls under MUI and
     Mantine. The same drift as the checkbox's hand-rolled label.
 
-    `useAction(id)` resolves the implementation's button for composition,
-    mirroring `useFieldShell()`. The distinction that matters is not the name
-    but what each caller gets: **dispatched** components (a boundary picked
-    them) arrive with validators, presence, locks, `clearHidden` and
-    design-mode stubbing; **composed** ones get appearance only. A button
-    needing busy state goes through `<Action>`, not `useAction`.
+    The first cut gave those renderers `useAction(id)`, a hook returning the
+    implementation's button for composition — "appearance only", on the
+    theory that a composed button must not get the boundary's behaviour.
+    Removed: every one of its sixteen call sites repeated the id the hook had
+    just been given and filled in `busy={false}` by hand, and every composed
+    button turned out to want exactly what the boundary provides — Apply
+    wants busy state, Add and Remove want the design-mode stub, Next wants
+    the lock folded in, and all of them want the override map, which the
+    boundary consults anyway. So every button anyone draws is an `<Action>`;
+    the registry's `action` slot is what it dispatches to, and nothing
+    composes it directly. `fieldShell` and `inputFrame` remain the composed
+    primitives.
 
     Per-id overrides are app-side context rather than a registry slot, since
     the registry is the implementation and the override is the app's opinion

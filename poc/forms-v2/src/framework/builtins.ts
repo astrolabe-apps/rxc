@@ -69,7 +69,7 @@ export const CheckboxField = fieldRenderer<boolean | undefined | null>({
 /** The container that sets `silent`. */
 export const Tabs = tabsRenderer({ key: "tabs" });
 
-/** The authored button. Composed ones go through `useAction(id)` instead. */
+/** The button — the author's, and every one another renderer draws. */
 export const Action = actionRenderer({ key: "action" });
 
 /** Static content. No binding, so no validators and nothing to clear. */

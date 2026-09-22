@@ -2,8 +2,8 @@ import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   collectionRenderer,
   getProp,
+  Action,
   StandardActionIds,
-  useAction,
   useFieldShell,
   type CollectionProps,
   type CollectionRenderProps,
@@ -30,9 +30,6 @@ function PetCardsImpl<T>(
   p: CollectionRenderProps<T> & PetCardsExtra,
 ): Rendered {
   const Shell = useFieldShell();
-  const AddBtn = useAction(StandardActionIds.add);
-  const EditBtn = useAction(StandardActionIds.edit);
-  const RemoveBtn = useAction(StandardActionIds.remove);
   // No controller for a collection, so the implementation opens its own
   // tracking window — a field implementation gets this from `useTextInput`.
   const { rc, rendered } = useReactive();
@@ -65,20 +62,18 @@ function PetCardsImpl<T>(
             <div className="ff-card-body">{e.node}</div>
             {!locked && (
               <div className="ff-card-actions">
-                <EditBtn
+                <Action
                   actionId={StandardActionIds.edit}
                   text="Edit"
                   style="secondary"
                   disabled={false}
-                  busy={false}
                   onClick={() => p.actions.edit(e.index)}
                 />
-                <RemoveBtn
+                <Action
                   actionId={StandardActionIds.remove}
                   text="Remove"
                   style="link"
                   disabled={!p.actions.canRemove}
-                  busy={false}
                   onClick={() => p.actions.remove(e.index)}
                 />
               </div>
@@ -87,12 +82,11 @@ function PetCardsImpl<T>(
         ))}
       </div>
       {!locked && (
-        <AddBtn
+        <Action
           actionId={StandardActionIds.add}
           text="Add card"
           style="primary"
           disabled={!p.actions.canAdd}
-          busy={false}
           onClick={() => p.actions.add({ name: "" })}
         />
       )}
