@@ -108,8 +108,11 @@ Nothing below is settled. In rough order of how much else depends on it:
    collection with per-row chrome and a staged edit — reuse each implementation's chrome
    without importing it. The collection did bend the contract once, as predicted: an
    implementation cannot put a button on a row it receives as an opaque node, so elements
-   arrive as `{ key, index, field, node }`. A third-party group or action renderer has not
-   been written.
+   arrive as `{ key, index, field, node }`. Since then every boundary kind has been written from outside: an action
+   (`FancyAdd`, through the override map) bent nothing, and a group (`Collapsible`) bent one
+   type — `groupRenderer` gained the renderer-specific-props generic the other factories had —
+   and surfaced one rule the contract cannot enforce: a group implementation must keep collapsed
+   content mounted, since its children *are* the boundaries (README finding 55).
 
    **The named-prop set is the minimum, decided:** `field, id, label, required, helpText,
    startIcon, endIcon` + the four class slots. `optional` is out — the survey found it in no

@@ -61,10 +61,11 @@ that returns what it could not translate.
 | `src/impls/mantine.tsx` | family 2 — `Input.Wrapper` wired by `id`, polymorphic `Input` |
 | `src/widgets/Stars.tsx` | a **third-party** widget: no UI library, own surface, `fieldRenderer(MyImpl)` |
 | `src/widgets/PetCards.tsx` | a **third-party collection**: per-row chrome from the implementation's buttons, staged edit, a callback prop |
+| `src/widgets/Collapsible.tsx` | a **third-party group**: a disclosure section over the implementation's `contents`, invalid badge from `{ scope: true }`, forced open in design mode |
+| `src/App.tsx` (`FancyAdd`) | a **third-party action**, installed for one id through `ActionOverrideProvider` |
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
-Not built, and not pretended: Base UI; a third-party group or action renderer;
-the loader's `Dialog` group translator.
+Not built, and not pretended: Base UI; the loader's `Dialog` group translator.
 
 ## What held up
 
@@ -72,7 +73,10 @@ the loader's `Dialog` group translator.
   library; the switcher swaps all four at runtime.
 - **The primitives carry a third party.** `Stars` imports nothing from MUI, Ant
   or Mantine and gets each one's label, required marker, help text and error
-  chrome. This is §7's central claim and it survives contact.
+  chrome. This is §7's central claim and it survives contact. Every boundary
+  kind has now been written from outside the package — a field, a collection,
+  an action and a group — and the group was the one that bent something
+  (finding 55).
 - **MUI's notch works through a private context**, exactly as §7 predicted:
   `forms-mui` passes the label shell→frame itself, and the contract stays clean.
 - **Presence is real, and derived.** A `hidden` prop narrows it; a container —
@@ -1065,6 +1069,84 @@ Numbered; each is cited at the matching line of code.
     interfaces doc (§6) as the divergence it is. Not built, and noted there:
     `hideDisplayOnly` and `overrideText`, both pure reads.
 
+55. **A third-party group renderer: one type bend, one rule the contract
+    cannot enforce.** `Collapsible` — a disclosure section with a header the
+    user toggles, an invalid badge on it while the content is off screen, and
+    a live summary of what is inside — is the last boundary kind written from
+    outside the package, after `Stars` (field), `PetCards` (collection) and
+    `FancyAdd` (action, through the override map). Imports no UI library.
+    Verified in all four implementations: collapsing keeps the input inside
+    mounted (same DOM node before and after), the badge tracks `invalid` live
+    while collapsed and clears when the name inside is filled, the summary
+    re-renders from `pets`, `readOnly` locks the field inside without locking
+    the toggle, design mode forces it open and ignores clicks, and the
+    boundary's `hidden` takes the whole section out (`display: none`, `inert`)
+    while the fields inside clear themselves.
+
+    **The type bend.** `groupRenderer` had no renderer-specific-props generic —
+    `fieldRenderer<T, P>` and `collectionRenderer<T, P>` did, and finding 42
+    settled how `P` reaches the implementation — so `defaultOpen` and `summary`
+    did not compile. It has one now, with the same pass-through: anything that
+    is not a group contract key (`hidden`, `disabled`, `readOnly`, `title`,
+    `className`, `children`) reaches the implementation unresolved. Ten lines
+    in the boundary; nothing else moved. The doc had also promised a
+    `designAs` option on `groupRenderer` that was never built — layer 2's
+    built-in substitution went through `inline` on the dialog boundary
+    (finding 43) instead, and for a third party the answer is below — so the
+    signature now says what exists.
+
+    **What a group reuses.** A group has no structural primitive and turns out
+    not to need one: the implementation's `contents` slot *is* the group shell.
+    `Collapsible` renders its body through `useRenderers().contents` and gets
+    the implementation's collapse treatment — the grid-rows transition,
+    `inert` — without importing it, the way `Stars` gets a shell. Honest
+    caveat: this POC's four implementations share one `Contents`
+    (`impls/shared.tsx`), so the reuse proved the plumbing, not per-library
+    chrome; a real MUI implementation putting `Paper` there is what would
+    prove the claim the way `Stars` did. Whether the slot deserves a named
+    hook beside `useFieldShell` is a naming question, left.
+
+    **The rule.** A collapsed section is `rendered`, not `hidden`: it keeps
+    validating and nothing clears — legacy's Accordion semantics, and what
+    lets the badge mean anything. So the implementation must keep collapsed
+    content mounted and hide it with CSS, and nothing but a doc comment makes
+    it. For a *field*, validators register above the boundary and an
+    implementation cannot drop them; for a *group*, the children **are** the
+    boundaries, so an implementation that writes `{open && children}`
+    unregisters every validator beneath it and clears nothing — finding 25's
+    `<Activity>` state by another route, and a guard cannot tell that unmount
+    from a legitimate one. Same class of rule as "a tabs implementation may
+    not lazily mount panels" (finding 23), and the group case is worse only
+    because it is the *obvious* way to write a disclosure. Recorded in
+    interfaces §6.
+
+    **Navigation chrome is the widget's own.** The header is a plain
+    `<button>`, not an `<Action>`: the action boundary folds the lock cascade
+    and stubs its handler in design mode, and a disclosure toggle must do
+    neither — a read-only section still opens to be read, and the designer
+    still wants to toggle it. The tab strip draws its own buttons for the same
+    reason. So there is no themed primitive for a navigation button and the
+    widget draws its own, as `Stars` draws its stars; the trade-off finding 27
+    named (raw HTML beside themed controls) is accepted here on purpose.
+
+    **Design mode's layer 3 costs a third party one line** — `open ||
+    designMode` — and the opt-in is the renderer's, not a dispatcher table's,
+    exactly as the goals doc described it. Verified: the section opens and
+    the header ignores clicks while design mode is on.
+
+    **One trap, hit while building it.** Hiding the group clears the whole
+    `pets` array, not just the names: the collection inside is a field
+    boundary bound to the array and runs its own `clearHidden` (finding 16).
+    Correct and legacy-shaped — but the group's `summary` prop reads that
+    array, and the implementation evaluates it whether or not it is shown,
+    so `.length` of `undefined` took the demo down (no error boundary).
+    A `FormProp` on a group can read data that hiding the *same* group
+    clears; `?.` is the fix, and worth knowing before writing one.
+
+    Small residue: `GroupRenderProps` has `invalid` but not `pending`, so a
+    header badge cannot say "checking…" while an async validator under it is
+    outstanding. Not asked for yet.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down. At the last run
@@ -1108,8 +1190,7 @@ loader hook for host adornments (`Spotlight`) alongside the open
 ## Things the POC deliberately does not answer
 
 Whether Base UI (family 3, the shape the primitives are modelled on) confirms
-or embarrasses them; whether a *third-party* group or action renderer can be
-written against the contract the way `Stars` and `PetCards` were for a field
-and a collection; and design mode's layer 3 — a third-party portal renderer
-selected from the tree rather than the canvas — which is a designer policy,
-not something this build can test.
+or embarrasses them; and design mode's layer 3 for a *portal* renderer — a
+third-party dialog selected from the tree rather than the canvas — which is a
+designer policy, not something this build can test (the non-portal case is
+finding 55's one line).

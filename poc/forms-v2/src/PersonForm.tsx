@@ -27,6 +27,7 @@ import {
 } from "./framework/index.js";
 import { Stars } from "./widgets/Stars.js";
 import { PetCards } from "./widgets/PetCards.js";
+import { Collapsible } from "./widgets/Collapsible.js";
 import { JsonForm } from "./loader/JsonForm.js";
 import { demoControls, demoSchema } from "./loader/demoForm.js";
 import { AntInputReference } from "./impls/antd.js";
@@ -178,6 +179,8 @@ export function PersonForm({
   const detailsOpen = useControl(false);
   const setDetailsOpen = (v: boolean) =>
     update((wc) => wc.setValue(detailsOpen, v));
+  // Drives the third-party group's `hidden` on the Cards tab.
+  const showCards = useControl(true);
   return rendered(
     <Form
       readOnly={readOnly}
@@ -401,24 +404,43 @@ export function PersonForm({
                   The same pets array through a third-party collection renderer
                   — no UI library imported, per-row chrome composed from the
                   implementation's buttons, Edit through the shared staged-edit
-                  controller (the modal on the Pets tab opens it).
+                  controller (the modal on the Pets tab opens it). Inside a
+                  third-party <em>group</em>: collapse it and the cards keep
+                  validating (the badge), hide it and they clear.
                 </p>
-                <PetCards
-                  field={f.pets}
-                  label="Pets as cards"
-                  {...petBounds}
-                  columns={2}
-                  onCardClick={(i) => console.log("card", i)}
-                  empty={<p className="ff-empty">No cards.</p>}
+                <CheckboxField
+                  field={showCards}
+                  label="Show cards"
+                  helpText="Drives the group's hidden prop — not its collapsed state."
+                />
+                <Collapsible
+                  title="Pets as cards"
+                  hidden={(rc) => !rc.getValue(showCards)}
+                  defaultOpen
+                  summary={(rc) => {
+                    // `?.` because hiding this group clears the array: the
+                    // collection inside is a field boundary bound to `pets`.
+                    const n = rc.getValue(f.pets)?.length ?? 0;
+                    return `${n} pet${n === 1 ? "" : "s"}`;
+                  }}
                 >
-                  {(pet, i) => (
-                    <TextField
-                      field={pet.fields.name}
-                      required
-                      label={`Pet ${i + 1}`}
-                    />
-                  )}
-                </PetCards>
+                  <PetCards
+                    field={f.pets}
+                    label="Pets as cards"
+                    {...petBounds}
+                    columns={2}
+                    onCardClick={(i) => console.log("card", i)}
+                    empty={<p className="ff-empty">No cards.</p>}
+                  >
+                    {(pet, i) => (
+                      <TextField
+                        field={pet.fields.name}
+                        required
+                        label={`Pet ${i + 1}`}
+                      />
+                    )}
+                  </PetCards>
+                </Collapsible>
                 <DraftHost field={f.pets} />
               </Stack>
             ),

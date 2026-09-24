@@ -254,20 +254,34 @@ export function fieldRenderer<T, P extends object = {}>(
   return FieldBoundary as ComponentType<FieldProps<T> & P>;
 }
 
-export type GroupImplSource =
-  | ComponentType<GroupRenderProps>
+export type GroupImplSource<P extends object> =
+  | ComponentType<GroupRenderProps & P>
   | { key: keyof FormRenderers };
+
+const groupContractKeys = new Set([
+  "hidden",
+  "disabled",
+  "readOnly",
+  "title",
+  "className",
+  "children",
+]);
 
 /**
  * A group boundary: scope narrowing plus chrome. It never unmounts its
  * children — they each have their own binding to clear, and an unmounted
  * boundary clears nothing. See README finding 17 for what that costs.
+ *
+ * Generic in `P` like the field and collection factories: anything that is
+ * not a contract key reaches the implementation unresolved (finding 42). It
+ * was not, until the first third-party group needed a `defaultOpen` — README
+ * finding 55.
  */
-export function groupRenderer(
-  source: GroupImplSource,
+export function groupRenderer<P extends object = {}>(
+  source: GroupImplSource<P>,
   opts?: { scope?: boolean },
-): ComponentType<GroupProps> {
-  function GroupBoundary(props: GroupProps): Rendered {
+): ComponentType<GroupProps & P> {
+  function GroupBoundary(props: GroupProps & P): Rendered {
     const { rc, rendered } = useReactive();
     const renderers = useRenderers();
     const ctx = useControlContext();
@@ -287,23 +301,31 @@ export function groupRenderer(
 
     const Impl = (
       "key" in source
-        ? (renderers[source.key] as ComponentType<GroupRenderProps>)
+        ? (renderers[source.key] as ComponentType<unknown>)
         : source
-    ) as ComponentType<GroupRenderProps>;
+    ) as ComponentType<Record<string, unknown>>;
+
+    const extra: Record<string, unknown> = {};
+    for (const k of Object.keys(props))
+      if (!groupContractKeys.has(k))
+        extra[k] = (props as Record<string, unknown>)[k];
 
     // One structure, always. Rendering `{children}` bare when hidden was the
     // obvious thing and it was wrong twice over: it remounted the subtree, and
     // it left every non-boundary child — a plain <button>, a paragraph —
     // visible, because only a boundary knows how to suppress itself.
+    const renderProps: GroupRenderProps = {
+      title: getProp(rc, props.title),
+      className: getProp(rc, props.className),
+      hidden: presenceNow !== "rendered",
+      invalid: validation ? !validation.isValid(rc) : undefined,
+      children: props.children,
+    };
     const body = (
       <Impl
-        title={getProp(rc, props.title)}
-        className={getProp(rc, props.className)}
-        hidden={presenceNow !== "rendered"}
-        invalid={validation ? !validation.isValid(rc) : undefined}
-      >
-        {props.children}
-      </Impl>
+        {...(renderProps as unknown as Record<string, unknown>)}
+        {...extra}
+      />
     );
 
     const scoped = validation ? (
@@ -323,7 +345,7 @@ export function groupRenderer(
   GroupBoundary.displayName = `GroupBoundary(${
     "key" in source ? source.key : (source.displayName ?? source.name)
   })`;
-  return GroupBoundary;
+  return GroupBoundary as ComponentType<GroupProps & P>;
 }
 
 const collectionContractKeys = new Set([

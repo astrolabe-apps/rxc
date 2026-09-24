@@ -9,7 +9,7 @@ and display boundaries, a tab container, a wizard, a staged-edit modal and a JSO
 in four implementations (plain HTML, MUI, Ant, Mantine), plus a third-party widget that reuses
 each one's chrome without importing it. Everything below marked **(built)** is a
 change that build forced, and its README carries the long form of each. What it never touched
-— Base UI, a third-party group or action renderer — is listed under *Still open*.
+— Base UI — is listed under *Still open*.
 (`FORMS-V2-GOALS.md` reserves "the POC" for `@rx-controls/forms`, so this one is "the build"
 throughout, whatever its folder is called.)
 
@@ -443,7 +443,12 @@ function fieldRenderer<T, P = {}>(builtIn: { key: keyof FormRenderers })
 function collectionRenderer<T, P = {}>(impl: ComponentType<CollectionRenderProps<T> & P>)
   : <V extends T>(props: CollectionProps<V> & P) => Rendered;
 
-function groupRenderer(impl, opts?: { scope?: boolean; designAs?: keyof FormRenderers });
+function groupRenderer<P = {}>(impl: ComponentType<GroupRenderProps & P>, opts?: { scope?: boolean })
+  : ComponentType<GroupProps & P>;
+// `P` reaches the implementation unresolved, as for the field and collection factories (built —
+// the first third-party group needed a `defaultOpen`; README finding 55). A `designAs` option
+// was planned here and never built: the built-in substitution went through `inline` on the
+// dialog boundary, and a third-party container opts in itself with `open || designMode`.
 function actionRenderer(impl);
 function displayRenderer(impl);
 ```
@@ -457,7 +462,7 @@ swap. They differ in what framework work each kind needs:
 |---|---|---|---|
 | `fieldRenderer` | yes | `null` | register validators, attach to the nearest scope |
 | `collectionRenderer` | yes | `null` | the above, plus resolve elements into per-element scopes |
-| `groupRenderer` | no | `<>{children}</>` | derive the scope context, optional validation scope, design substitution |
+| `groupRenderer` | no | `<>{children}</>` | derive the scope context, optional validation scope |
 | `actionRenderer` | no | `null` | async/busy, disabler acquisition, handler stubbing in design mode |
 | `displayRenderer` | no | `null` | content and presence only |
 
@@ -556,6 +561,16 @@ because the boundary runs even when nothing renders.
 (a tab header, a step marker). A collection needs none: array elements are already children of
 the array control, so element validity bubbles natively. That is the one case where the data tree
 really is enough.
+
+**A group implementation must keep its children mounted (built, and unenforceable).** A
+collapsed disclosure is `rendered`, not `hidden`: it keeps validating and clears nothing, which
+is what lets its header badge mean anything. The children of a group *are* the boundaries, so an
+implementation that renders `{open && children}` unregisters every validator beneath it and
+clears nothing — the `<Activity>` state (§4) by another route, and no guard can tell that
+unmount from a legitimate one. For a field the contract makes the equivalent mistake impossible
+(validators register above the boundary); for a group it is a rule, the same class as "a tabs
+implementation may not lazily mount panels". The third-party `Collapsible` in the POC is the
+worked example; README finding 55.
 
 **Built (built).** A field's boundary attaches its validity-bearing control to the nearest
 scope; a scope attaches itself to *its* parent, so validity reaches every enclosing scope and
@@ -1130,14 +1145,21 @@ defeats a memo.
 
 ## Still open
 
-- **A third-party group or action renderer.** Every boundary kind exists in four
-  implementations and two have been written from outside the package (`Stars`, `PetCards`);
-  a group and an action have not. Neither is expected to bend anything.
 - **Whether `forms-html` and `forms-native` share renderer source** — decidable when the second
   package exists, and it changes nothing above.
+- **Base UI** (family 3, the shape the primitives are modelled on) has not been built against.
+
+Every boundary kind has now been written from outside the package — `Stars` (field), `PetCards`
+(collection), `FancyAdd` (action, through the override map, which receives the same
+`ActionRenderProps` as the registry slot) and `Collapsible` (group). Two small residues, neither
+asked for yet: `FancyAdd` reads only `disabled`, `onClick` and `text`, so `busy`, `icon` and
+`style` from outside are unexercised; and `GroupRenderProps` carries `invalid` but not
+`pending`, so a group header cannot show "checking…" for an async validator beneath it.
 
 The §7 primitives themselves are no longer paper: `poc/forms-v2` builds them four times over,
 and both shapes flagged there as most likely to move were the right two — the MUI shell→frame
-private channel held exactly as predicted, and `filled` turned out to need telling. But that
-is evidence about a *field*, and only a field. Everything in the bullets above is still
-untested by anything.
+private channel held exactly as predicted, and `filled` turned out to need telling. The group
+trial added one thing to them: a group needs no primitive of its own, because the
+implementation's `contents` slot is its shell (README finding 55) — with the caveat that the
+POC's four implementations share one `Contents`, so that reuse is proved as plumbing, not yet
+as per-library chrome.
