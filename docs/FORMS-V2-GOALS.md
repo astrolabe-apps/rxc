@@ -167,8 +167,10 @@ Nothing below is settled. In rough order of how much else depends on it:
    this document does not repeat the figure.
 
    **What the number does not prove.** It measures shape coverage — did something claim this
-   discriminator, did something read this property — and cannot see a translation that is
-   *wrong*. Three places to expect one, two of them since closed (README finding 52): a
+   discriminator, did something read this property, did the translator pass on what was built
+   for it — and cannot see a translation that is *wrong*. It reaches further than that sounds:
+   the read audit, once it looked inside expression entries, caught 296 visibility conditions
+   the loader had silently never evaluated (README finding 62). Three places to expect one, two of them since closed (README finding 52): a
    jsonata expression inside an array row now carries legacy's path prefix and `$$`/`$i`, and
    a `../x` or `a/b` reference binds the right control *and* scope; the
    `defaultValue`-on-becoming-visible cycle is still not built. So "identical
@@ -248,7 +250,11 @@ Nothing below is settled. In rough order of how much else depends on it:
    (`className` / `textClassName`); the label now has it too (`labelClassName` /
    `labelTextClassName`), defined so a single-element label merges the pair and only
    `forms-native` separates them. All five map, `"@ "` becomes `{ replace }`, both modes are
-   verified in the DOM (interfaces §2, README findings 48–49).
+   verified in the DOM (interfaces §2, README findings 48–49). **And they belong to every
+   boundary kind, not only fields (built):** the corpus styled displays, actions and groups
+   against the wrapper and the title slots 712 times, which the loader audit surfaced and
+   README finding 63 closed — `GroupProps` carries all five, `DisplayProps` and `ActionProps`
+   the wrapper.
 
    Left open, and `forms-html`'s business rather than the contract's: whether to merge with
    `tailwind-merge` so an appended class actually wins. Authors currently force it with `!`

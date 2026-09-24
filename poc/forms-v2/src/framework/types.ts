@@ -127,6 +127,8 @@ export interface FieldRenderProps<T> {
   helpText?: ReactNode;
   startIcon?: ReactNode;
   endIcon?: ReactNode;
+  /** Inside an inline container: draw a bare span, no shell (README finding 60). */
+  inline?: boolean;
   className?: ClassValue;
   labelClassName?: ClassValue;
   labelTextClassName?: ClassValue;
@@ -216,7 +218,18 @@ export interface GroupProps {
   readOnly?: FormProp<boolean>;
   /** A heading over the content; absent means none. */
   title?: FormProp<ReactNode>;
+  /**
+   * The same five slots a field has, for the same anatomy: the wrapper
+   * (`shellClassName`), the title's container and text (`labelClassName`,
+   * `labelTextClassName`) and the body (`className`). Legacy styled groups
+   * against all of them — 224 `layoutClass`, 127 `labelTextClass`, 39
+   * `labelClass` in the corpus — and the contract had only the body
+   * (README finding 63).
+   */
   className?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;
+  labelClassName?: FormProp<ClassValue>;
+  labelTextClassName?: FormProp<ClassValue>;
   children: ReactNode;
 }
 
@@ -286,7 +299,13 @@ export interface CollectionRenderProps<T> extends FieldRenderProps<T[]> {
 /** What a group implementation receives. */
 export interface GroupRenderProps {
   title?: ReactNode;
+  /** The body. */
   className?: ClassValue;
+  /** The wrapper around title and body. */
+  shellClassName?: ClassValue;
+  /** The title's container and its text; a single-element title merges the pair. */
+  labelClassName?: ClassValue;
+  labelTextClassName?: ClassValue;
   /**
    * Hide without unmounting. The children have to stay mounted — each clears
    * its own field — but plain JSX among them has nothing that suppresses
@@ -362,11 +381,18 @@ export type CheckboxRenderProps = FieldRenderProps<boolean | undefined | null>;
  */
 export interface FieldOption {
   name: string;
-  value: string | number;
+  /**
+   * `boolean` because the corpus says so: legacy's `FieldOption.value` is
+   * `any`, and its `AllowedOptions` expressions build Yes/No radios over
+   * `Bool` fields as `[{ name: "Yes", value: true }, …]` (README finding 59).
+   * The DOM erases all three to strings; the controller round-trips through
+   * the option list, so nothing else changes.
+   */
+  value: string | number | boolean;
   disabled?: boolean;
 }
 
-export type OptionValue = string | number | undefined | null;
+export type OptionValue = string | number | boolean | undefined | null;
 
 export type SelectExtra = { options?: FormProp<FieldOption[]> };
 
@@ -438,15 +464,20 @@ export interface DisplayProps {
    * implementation's call: a `title`, its own Tooltip, or nothing.
    */
   accessibleName?: FormProp<string>;
+  /** The element, its text, and the wrapper around it — legacy's three (finding 63). */
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;
   children?: ReactNode;
 }
 
 export interface DisplayRenderProps {
   accessibleName?: string;
+  /** Inside an inline container: a span in prose, not a block. */
+  inline?: boolean;
   className?: ClassValue;
   textClassName?: ClassValue;
+  shellClassName?: ClassValue;
   children?: ReactNode;
 }
 
@@ -482,9 +513,10 @@ export interface ActionProps {
   disabled?: FormProp<boolean>;
   disableType?: DisableType;
   style?: FormProp<ActionStyle>;
-  /** The two class slots a button has: the control, and its text. */
+  /** The button, its text, and the wrapper around it (finding 63). */
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;
   children?: ReactNode;
 }
 
@@ -506,6 +538,7 @@ export interface ActionRenderProps {
   style: ActionStyle;
   className?: ClassValue;
   textClassName?: ClassValue;
+  shellClassName?: ClassValue;
   children?: ReactNode;
 }
 
@@ -520,6 +553,8 @@ export interface FormRenderers {
   html: ComponentType<HtmlDisplayRenderProps>;
   icon: ComponentType<IconDisplayRenderProps>;
   contents: ComponentType<GroupRenderProps>;
+  /** Legacy's Inline group: a bare span whose children render inline. */
+  inline: ComponentType<GroupRenderProps>;
   tabs: ComponentType<import("./tabs.js").TabsRenderProps>;
   wizard: ComponentType<import("./wizard.js").WizardRenderProps>;
   dialog: ComponentType<import("./dialog.js").DialogRenderProps>;

@@ -67,9 +67,11 @@ import {
 } from "../framework/index.js";
 import {
   Contents,
+  Inline,
   ElementsList,
   DefaultVisibility,
   glyphFor,
+  DisplayShell,
 } from "./shared.js";
 
 /**
@@ -283,6 +285,17 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  if (p.inline)
+    return ctl.rendered(
+      <Typography
+        id={p.id}
+        component="span"
+        variant="body2"
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+      >
+        {ctl.content}
+      </Typography>,
+    );
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -380,45 +393,52 @@ function MuiTabs(p: TabsRenderProps) {
 
 function MuiAction(p: ActionRenderProps) {
   return (
-    <Button
-      variant={
-        p.style === "primary"
-          ? "contained"
-          : p.style === "link"
-            ? "text"
-            : "outlined"
-      }
-      size="small"
-      className={mergeClass(undefined, p.className)}
-      disabled={p.disabled}
-      loading={p.busy}
-      startIcon={
-        (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
-      }
-      endIcon={p.iconPlacement === "after" ? p.icon : undefined}
-      onClick={p.onClick}
-      aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
-    >
-      {p.iconPlacement === "replace"
-        ? p.icon
-        : (p.children ?? (
-            <span className={mergeClass(undefined, p.textClassName)}>
-              {p.text}
-            </span>
-          ))}
-    </Button>
+    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+      <Button
+        variant={
+          p.style === "primary"
+            ? "contained"
+            : p.style === "link"
+              ? "text"
+              : "outlined"
+        }
+        size="small"
+        className={mergeClass(undefined, p.className)}
+        disabled={p.disabled}
+        loading={p.busy}
+        startIcon={
+          (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
+        }
+        endIcon={p.iconPlacement === "after" ? p.icon : undefined}
+        onClick={p.onClick}
+        aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
+      >
+        {p.iconPlacement === "replace"
+          ? p.icon
+          : (p.children ?? (
+              <span className={mergeClass(undefined, p.textClassName)}>
+                {p.text}
+              </span>
+            ))}
+      </Button>
+    </DisplayShell>
   );
 }
 
 function MuiText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <Typography
-      variant="body2"
-      className={mergeClass(undefined, p.className ?? p.textClassName)}
-    >
-      {getProp(rc, p.text) ?? p.children}
-    </Typography>,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Typography
+        variant="body2"
+        component={p.inline ? "span" : "p"}
+        className={mergeClass(undefined, p.className)}
+      >
+        <span className={mergeClass(undefined, p.textClassName)}>
+          {getProp(rc, p.text) ?? p.children}
+        </span>
+      </Typography>
+    </DisplayShell>,
   );
 }
 
@@ -430,30 +450,40 @@ function MuiIcon(p: IconDisplayRenderProps) {
       component="span"
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(undefined, p.className)}
+      className={mergeClass(
+        undefined,
+        combineClass(p.className, p.textClassName),
+      )}
       sx={{ fontSize: 24, lineHeight: 1 }}
     >
       {glyphFor(getProp(rc, p.icon))}
     </Typography>
   );
   return rendered(
-    p.accessibleName ? (
-      <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
-    ) : (
-      glyph
-    ),
+    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+      {p.accessibleName ? (
+        <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
+      ) : (
+        glyph
+      )}
+    </DisplayShell>,
   );
 }
 
 function MuiHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <Typography
-      variant="body2"
-      component="div"
-      className={mergeClass(undefined, p.className)}
-      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
-    />,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Typography
+        variant="body2"
+        component="div"
+        className={mergeClass(
+          undefined,
+          combineClass(p.className, p.textClassName),
+        )}
+        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+      />
+    </DisplayShell>,
   );
 }
 
@@ -488,7 +518,11 @@ function MuiSelect(p: SelectRenderProps): Rendered {
           <em>—</em>
         </MenuItem>
         {ctl.options.map((o) => (
-          <MenuItem key={o.value} value={String(o.value)} disabled={o.disabled}>
+          <MenuItem
+            key={String(o.value)}
+            value={String(o.value)}
+            disabled={o.disabled}
+          >
             {o.name}
           </MenuItem>
         ))}
@@ -622,6 +656,7 @@ export const muiRenderers: FormRenderers = {
   icon: MuiIcon,
   action: MuiAction,
   contents: Contents,
+  inline: Inline,
   wizard: MuiWizard,
   dialog: MuiDialogImpl,
   tabs: MuiTabs,

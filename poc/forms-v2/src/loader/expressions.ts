@@ -68,22 +68,37 @@ export function toFormProp(
   scope: DataScope,
   expr: EntityExpression,
   warn?: ExprWarn,
-): FormProp<boolean> {
+): FormProp<boolean> | undefined {
   switch (expr.type) {
     case "Data": {
-      const read = refReader(scope, expr.field, warn);
+      const read = refReader(scope, expr.field as string, warn);
       return (rc) => !!read(rc);
     }
     case "NotEmpty": {
-      const read = refReader(scope, expr.field, warn);
-      return (rc) => isEmpty(read(rc)) === !!expr.empty;
+      const read = refReader(scope, expr.field as string, warn);
+      // Read now, not in the closure: the loader's audit runs at translate
+      // time, and a property first read on evaluation counts as dropped.
+      const empty = !!expr.empty;
+      return (rc) => isEmpty(read(rc)) === empty;
     }
-    case "DataMatch": {
-      const read = refReader(scope, expr.field, warn);
-      return (rc) => read(rc) === expr.value;
+    case "DataMatch":
+    case "FieldValue": {
+      // `FieldValue` is what the server writes for `DataMatch`. The loader
+      // had no case for it and no default, so 296 Visible / Disabled
+      // conditions were silently static until the audit saw their `field`
+      // and `value` go unread (README finding 62).
+      const e = expr as { field: string; value: unknown };
+      const read = refReader(scope, e.field, warn);
+      const value = e.value;
+      return (rc) => read(rc) === value;
     }
     case "Jsonata":
-      return jsonataProp(ctx, scope, expr.expression, warn);
+      return jsonataProp(ctx, scope, expr.expression as string, warn);
+    default:
+      warn?.(
+        `expression kind "${String((expr as { type?: unknown }).type ?? "(none)")}" is not supported — the value stays static`,
+      );
+      return undefined;
   }
 }
 
@@ -93,15 +108,15 @@ export function toValueProp(
   scope: DataScope,
   expr: EntityExpression,
   warn?: ExprWarn,
-): FormProp<unknown> {
+): FormProp<unknown> | undefined {
   switch (expr.type) {
     case "Data":
-      return refReader(scope, expr.field, warn);
+      return refReader(scope, expr.field as string, warn);
     case "Jsonata":
-      return jsonataValue(ctx, scope, expr.expression, warn);
+      return jsonataValue(ctx, scope, expr.expression as string, warn);
     default: {
       const p = toFormProp(ctx, scope, expr, warn);
-      return (rc: ReadContext) => !!getProp(rc, p);
+      return p && ((rc: ReadContext) => !!getProp(rc, p));
     }
   }
 }
@@ -117,6 +132,12 @@ function compile(
   expression: string,
   warn?: ExprWarn,
 ): jsonata.Expression | undefined {
+  // The corpus has one of these: an `AllowedOptions` whose expression was
+  // never filled in. Report it as what it is, not as a compiler TypeError.
+  if (!expression || !expression.trim()) {
+    warn?.("jsonata expression is empty");
+    return undefined;
+  }
   const prefix = jsonataPrefix(scope.path);
   const full = prefix ? `${prefix}.(${expression})` : expression;
   try {

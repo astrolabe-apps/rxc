@@ -224,6 +224,14 @@ narrow it, and neither of them is an author writing `presence=`:
 
 That is the whole mechanism; there is no separate visibility system.
 
+**`inline` is a scope facet too (built).** Legacy's Inline group is prose — a bare span whose
+children render with no shell and no block. A group receives opaque `children`, so the only
+channel to them is the scope: `inline` sits beside `presence` and `designMode`, is set by a
+`groupRenderer` built with `{ inline: true }`, and reaches an implementation as `inline` on
+the field and display render props, where it means "draw a span, skip the shell". Anything a
+boundary wraps its output in (the `visibility` slot, the design chrome) must be inline-safe.
+README finding 60.
+
 **A `silent` producer can be written outside the package (built).** `useBoundScope`,
 `narrowScope` and `FormScopeProvider` are public, and that is all a container needs to put a
 branch off screen and keep it validating — the POC's third-party `SelectChild` (legacy's
@@ -360,7 +368,10 @@ rendered *next to* the control — a renderer drawing its own, or a standalone `
 can express it.
 
 ```ts
-interface GroupProps  { hidden?; disabled?; readOnly?; title?; className?; children: ReactNode }
+interface GroupProps  { hidden?; disabled?; readOnly?; title?; children: ReactNode;
+                        className?; shellClassName?; labelClassName?; labelTextClassName? }
+// The same slots a field has, for the same anatomy — body, wrapper, title container, title text.
+// Legacy styled groups against all of them (224 / 127 / 39 uses); built, README finding 63.
 // `title` is a heading the implementation draws when given (built); a JSON group's `title`
 // arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
 
@@ -372,6 +383,8 @@ interface RadioExtra extends SelectExtra {
   selectedClassName?: FormProp<ClassValue>;      // … and its two states
   notSelectedClassName?: FormProp<ClassValue>;
 }
+// `FieldOption.value` is `string | number | boolean` — legacy's is `any`, and its `AllowedOptions`
+// expressions build Yes/No radios over Bool fields with no schema options at all (README finding 59).
 
 /** A container needing per-child metadata takes it structured, not as children. */
 interface TabsProps  { items: { key: string; title: ReactNode; children: ReactNode }[]; … }
@@ -387,6 +400,7 @@ interface ActionProps {
   style?: FormProp<ActionStyle>;
   className?: FormProp<ClassValue>;              // the control (the button)
   textClassName?: FormProp<ClassValue>;          // its text
+  shellClassName?: FormProp<ClassValue>;         // the wrapper it sits in — legacy's layout element (finding 63)
   children?: ReactNode;                          // any style, not just Group
 }
 interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () => void }
@@ -499,6 +513,7 @@ interface DisplayProps {
   accessibleName?: FormProp<string>;
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;   // the wrapper it sits in — legacy's layout element (finding 63)
   children?: ReactNode;
 }
 ```
@@ -944,6 +959,9 @@ nothing else. `LabelStart` / `LabelEnd` are the shell's business. Legacy put all
 flat fragment beside the input (`layoutKeyForPlacement` → `controlStart`/`controlEnd` in
 `DefaultLayout`), so a JSON form that read as "icon next to the field" will now read as "icon
 inside the field": intended, and the one visible difference this section causes.
+
+`Stack` is also exported as a component over the `stack` slot, for code that cannot call the
+hook — the loader's translators, which build elements rather than render them (README finding 64).
 
 ## 8. Collections
 

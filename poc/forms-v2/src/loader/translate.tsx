@@ -4,9 +4,17 @@ import {
   type Control,
   type ControlContext,
 } from "@rx-controls/core";
-import { useControlContext } from "@rx-controls/react";
+import {
+  useControlContext,
+  useReactive,
+  type Rendered,
+} from "@rx-controls/react";
 import {
   Action,
+  arrayActions,
+  Stack,
+  StandardActionIds,
+  useFormScope,
   CheckboxField,
   Contents,
   Dialog,
@@ -15,12 +23,14 @@ import {
   getProp,
   HtmlDisplay,
   IconDisplay,
+  InlineGroup,
   RadioField,
   SelectField,
   Tabs,
   TextDisplay,
   TextField,
   type ClassValue,
+  type FieldOption,
   type FieldProps,
   type FormProp,
   type Validator,
@@ -170,6 +180,55 @@ const defaultUnsupported = (def: ControlDefinition) => (
   </p>
 );
 
+const hasDynamic = (d: ControlDefinition, t: string) =>
+  !!d.dynamic?.some((x) => x.type === t);
+
+/**
+ * Legacy's `fieldOptions` rule, verbatim (`formStateNode.ts`): the expression
+ * yields an array (a scalar is wrapped); an object entry *is* an option, a
+ * primitive names one of the schema's by loose equality or becomes
+ * `{ name: String(x), value: x }`; nulls drop out; and an empty list means
+ * every schema option. The corpus uses both halves — a filter over the
+ * schema's options (Fire) and a list of whole `{ name, value }` objects with
+ * nothing in the schema at all (MastEoi's Yes/No radios).
+ */
+export function allowedOptions(
+  all: FieldOption[],
+  allowed: unknown,
+): FieldOption[] {
+  const list: unknown[] =
+    allowed == null ? [] : Array.isArray(allowed) ? allowed : [allowed];
+  if (list.length === 0) return all;
+  return list
+    .map((x) =>
+      typeof x === "object"
+        ? (x as FieldOption | null)
+        : (all.find((o) => o.value == x) ?? {
+            name: String(x),
+            value: x as FieldOption["value"],
+          }),
+    )
+    .filter((x): x is FieldOption => x != null);
+}
+
+/**
+ * The options an options widget gets: the schema's, narrowed or replaced by
+ * an `AllowedOptions` expression when the definition carries one. A
+ * `FormProp`, so a data-driven list re-filters as the data moves.
+ */
+function optionsFor(
+  schema: SchemaField | undefined,
+  dynamicValue: TranslateArgs["dynamicValue"],
+): FormProp<FieldOption[]> | undefined {
+  const all = schema?.options ?? [];
+  const allowed = dynamicValue("AllowedOptions");
+  if (!allowed) return all.length ? all : undefined;
+  return (rc) => allowedOptions(all, getProp(rc, allowed));
+}
+
+const hasOptions = (d: ControlDefinition, s?: SchemaField) =>
+  !!s?.options?.length || hasDynamic(d, "AllowedOptions");
+
 /** The built-in translators, in match order. */
 export const defaultTranslators: Translator[] = [
   {
@@ -182,6 +241,7 @@ export const defaultTranslators: Translator[] = [
         hidden={props.hidden}
         disabled={props.disabled}
         className={props.className}
+        shellClassName={props.shellClassName}
         textClassName={props.textClassName}
         style={actionStyleOf(def.actionStyle)}
         icon={
@@ -246,6 +306,7 @@ export const defaultTranslators: Translator[] = [
           }
           hidden={props.hidden}
           className={props.className}
+          shellClassName={props.shellClassName}
           textClassName={props.textClassName}
         />
       );
@@ -263,6 +324,7 @@ export const defaultTranslators: Translator[] = [
           }
           hidden={props.hidden}
           className={props.className}
+          shellClassName={props.shellClassName}
           textClassName={props.textClassName}
         />
       );
@@ -278,6 +340,7 @@ export const defaultTranslators: Translator[] = [
         accessibleName={tooltipOf(def)}
         hidden={props.hidden}
         className={props.className}
+        shellClassName={props.shellClassName}
         textClassName={props.textClassName}
       />
     ),
@@ -289,13 +352,14 @@ export const defaultTranslators: Translator[] = [
     // `sampleText` is what a designer sees in place of an empty value.
     match: (d) => d.type === "Data" && d.renderOptions?.type === "DisplayOnly",
     renderTypes: ["DisplayOnly"],
-    render: ({ props, schema, def }) => {
+    dynamics: ["AllowedOptions"],
+    render: ({ props, schema, def, dynamicValue }) => {
       const ro: Record<string, unknown> = def.renderOptions ?? {};
       return (
         <DisplayOnlyField
           {...props}
           required={undefined}
-          options={schema?.options}
+          options={optionsFor(schema, dynamicValue)}
           emptyText={str(ro.emptyText)}
           sampleText={str(ro.sampleText)}
           noSelection={def.noSelection === true || ro.noSelection === true}
@@ -306,36 +370,100 @@ export const defaultTranslators: Translator[] = [
   },
   {
     // A compound field's control is a region over its children — the data
-    // context the children's `../x` refs climb out of.
+    // context the children's `../x` refs climb out of. Rendered as a group,
+    // and legacy lets `renderOptions.groupOptions` say which kind: 46 in
+    // the corpus, 33 of them Standard.
     match: (d, s) =>
       d.type === "Data" && s?.type === "Compound" && !s.collection,
-    renderTypes: ["Standard", "Group"],
-    render: ({ props, children }) => (
-      <Contents
-        hidden={props.hidden}
-        disabled={props.disabled}
-        title={props.label}
-        className={props.className}
-      >
-        {children}
-      </Contents>
-    ),
+    renderTypes: ["Standard", "Group", "Contents", "Inline", "Flex"],
+    render: ({ props, children, def }) => {
+      const nested = (def.renderOptions?.groupOptions ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const kind = nested.type as string | undefined;
+      const groupProps = {
+        hidden: props.hidden,
+        disabled: props.disabled,
+        title: props.label,
+        className: props.className,
+        shellClassName: props.shellClassName,
+        labelClassName: props.labelClassName,
+        labelTextClassName: props.labelTextClassName,
+      };
+      if (kind === "Inline")
+        return <InlineGroup {...groupProps}>{children}</InlineGroup>;
+      return (
+        <Contents {...groupProps}>
+          {kind === "Flex" ? (
+            <Stack
+              direction={(nested.direction as "row" | "column") ?? "row"}
+              gap={nested.gap as string | undefined}
+            >
+              {children}
+            </Stack>
+          ) : (
+            children
+          )}
+        </Contents>
+      );
+    },
   },
   {
+    // Legacy's Array renderer: the rows, a Remove on each, an Add below —
+    // unless `noRemove` / `noAdd`, which 21 of the corpus's 25 arrays set
+    // (read-only lists). `noReorder` is read and does nothing, exactly as
+    // legacy's Array renderer did: it had no reorder UI, the flag rode along.
     match: (d, s) => d.type === "Data" && !!s?.collection,
     renderTypes: ["Standard", "Array"],
-    render: ({ props, element, def }) => {
+    render: ({ props, element, def, schema }) => {
       const len = def.validators?.find((v) => v.type === "Length");
+      const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
+      void ro.noReorder;
+      const noAdd = ro.noAdd === true;
+      const noRemove = ro.noRemove === true;
+      const removeText = (ro.removeText as string | undefined) ?? "Remove";
+      const addText = (ro.addText as string | undefined) ?? "Add";
+      const removeActionId =
+        (ro.removeActionId as string | undefined) ?? StandardActionIds.remove;
+      const addActionId =
+        (ro.addActionId as string | undefined) ?? StandardActionIds.add;
+      const bounds = { minLength: len?.min, maxLength: len?.max };
       const collectionProps = props as FieldProps<unknown[]>;
+      const newElement = schema?.type === "Compound" ? {} : undefined;
       return (
-        <Elements
-          {...collectionProps}
-          minLength={len?.min}
-          maxLength={len?.max}
-          empty={<p className="ff-empty">Nothing yet.</p>}
-        >
-          {(item, index) => element!(item, index)}
-        </Elements>
+        <>
+          <Elements
+            {...collectionProps}
+            {...bounds}
+            empty={<p className="ff-empty">Nothing yet.</p>}
+          >
+            {(item, index, actions) => (
+              <div className="ff-row">
+                <div className="ff-row-main">{element!(item, index)}</div>
+                {!noRemove && (
+                  <Action
+                    actionId={removeActionId}
+                    text={removeText}
+                    style="secondary"
+                    disabled={!actions.canRemove}
+                    onClick={() => actions.remove(index)}
+                  />
+                )}
+              </div>
+            )}
+          </Elements>
+          {!noAdd && (
+            <ArrayAdd
+              control={collectionProps.field}
+              bounds={bounds}
+              actionId={addActionId}
+              text={addText}
+              value={newElement}
+              hidden={props.hidden}
+            />
+          )}
+        </>
       );
     },
   },
@@ -348,12 +476,17 @@ export const defaultTranslators: Translator[] = [
     match: (d, s) =>
       d.type === "Data" &&
       d.renderOptions?.type === "Radio" &&
-      !!s?.options?.length,
+      hasOptions(d, s),
     renderTypes: ["Radio"],
+    dynamics: ["AllowedOptions"],
     ownsChildren: true,
-    render: ({ def, props, schema, retranslate }) => {
+    render: ({ def, props, schema, retranslate, dynamicValue }) => {
       const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
-      const options = schema!.options!;
+      // Per-option children are built over the *schema's* options — the
+      // static set an `AllowedOptions` filter narrows at render time. An
+      // expression that invents options the schema lacks gets no children
+      // for them; legacy expanded children from the same static list.
+      const options = schema?.options ?? [];
       const hasChildren = !!def.children?.length;
       const perOption = new Map(
         options.map((o, i) => [
@@ -382,7 +515,7 @@ export const defaultTranslators: Translator[] = [
       return (
         <RadioField
           {...props}
-          options={options}
+          options={optionsFor(schema, dynamicValue)}
           entryClassName={toClassValue(ro.entryWrapperClass as string)}
           selectedClassName={toClassValue(ro.selectedClass as string)}
           notSelectedClassName={toClassValue(ro.notSelectedClass as string)}
@@ -397,10 +530,13 @@ export const defaultTranslators: Translator[] = [
   {
     // Options come off the schema here and become a prop there; nothing below
     // this line knows a schema exists.
-    match: (d, s) => d.type === "Data" && !!s?.options?.length,
+    match: (d, s) =>
+      d.type === "Data" &&
+      (hasOptions(d, s) || d.renderOptions?.type === "Dropdown"),
     renderTypes: ["Standard", "Dropdown"],
-    render: ({ props, schema }) => (
-      <SelectField {...props} options={schema!.options} />
+    dynamics: ["AllowedOptions"],
+    render: ({ props, schema, dynamicValue }) => (
+      <SelectField {...props} options={optionsFor(schema, dynamicValue)} />
     ),
   },
   {
@@ -415,6 +551,7 @@ export const defaultTranslators: Translator[] = [
       <TextField
         {...props}
         multiline={def.renderOptions?.type === "Multiline"}
+        placeholder={def.renderOptions?.placeholder as string | undefined}
       />
     ),
   },
@@ -434,6 +571,54 @@ export const defaultTranslators: Translator[] = [
     ),
   },
   {
+    // Legacy's Inline: prose. Not a row — a span whose children render
+    // inline through the scope (a text display becomes a span, a bound
+    // value loses its shell). 222 in the corpus, 214 with the title hidden.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Inline",
+    renderTypes: ["Inline"],
+    render: ({ props, children }) => (
+      <InlineGroup
+        hidden={props.hidden}
+        disabled={props.disabled}
+        title={props.label}
+        className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
+      >
+        {children}
+      </InlineGroup>
+    ),
+  },
+  {
+    // Legacy's Flex group: a flex box, `direction` (default row) and `gap`.
+    // 36 in the corpus, 35 of them on the defaults. A group boundary around
+    // the layout box, so it keeps title, hidden and the class slots.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Flex",
+    renderTypes: ["Flex"],
+    render: ({ def, props, children }) => (
+      <Contents
+        hidden={props.hidden}
+        disabled={props.disabled}
+        title={props.label}
+        className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
+      >
+        <Stack
+          direction={
+            (def.groupOptions?.direction as "row" | "column" | undefined) ??
+            "row"
+          }
+          gap={def.groupOptions?.gap as string | undefined}
+        >
+          {children}
+        </Stack>
+      </Contents>
+    ),
+  },
+  {
     match: (d) => d.type === "Group",
     renderTypes: ["Standard", "Contents"],
     render: ({ props, children }) => (
@@ -442,6 +627,9 @@ export const defaultTranslators: Translator[] = [
         disabled={props.disabled}
         title={props.label}
         className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
       >
         {children}
       </Contents>
@@ -462,6 +650,7 @@ function buildProps(
   def: ControlDefinition,
   ref: ResolvedRef | undefined,
   warn: Warn,
+  seen: Set<string>,
 ): FieldProps<any> {
   const schema = ref?.schema;
   // A reference that walks off the data binds a detached control, so the
@@ -490,6 +679,7 @@ function buildProps(
       continue;
     }
     if (v.type !== "Length") {
+      markSeen(seen, `validators.${v.type}`, v);
       warn({
         kind: "validator",
         subject: def.field ?? def.title,
@@ -529,32 +719,56 @@ function buildProps(
   const hiddenFromExpr: FormProp<boolean> | undefined = visibleProp
     ? (rc) => !getProp(rc, visibleProp)
     : undefined;
+  // The static flags are the fallbacks when an expression exists — read
+  // them first, so the audit counts them as consumed (a `hidden: true` with
+  // a Visible expression is "hidden unless…", and legacy reads it the same).
+  const staticHidden = def.hidden;
+  const staticDisabled = def.disabled;
 
   // `hideTitle` is legacy's "render no label"; a group keeps the same flag
   // under `groupOptions`. Read both so the audit sees them either way.
   const hideTitle =
     def.hideTitle === true ||
-    (def.type === "Group" && def.groupOptions?.hideTitle === true);
+    (def.type === "Group" && def.groupOptions?.hideTitle === true) ||
+    (def.renderOptions?.groupOptions as { hideTitle?: boolean } | undefined)
+      ?.hideTitle === true;
 
+  // The HelpText adornment is the contract's `helpText` prop. Its
+  // `placement` is dropped on purpose: where help text sits is the shell's
+  // business, and the eight libraries surveyed each fix it somewhere
+  // (§7). On a Group or a Display there is no prop for it to become.
+  const help = def.adornments?.find((a) => a.type === "HelpText");
+  const helpText =
+    def.type === "Data" && typeof help?.helpText === "string"
+      ? help.helpText
+      : undefined;
+
+  // Legacy renders a label for Data and Group controls only: a Display's
+  // `title` is the designer's name for it, an Action's is the button text
+  // fallback (read by the action translator). Building a label for them
+  // would be reported as dropped by every translator — and rightly.
+  const labelled = def.type === "Data" || def.type === "Group";
   return {
     field: control,
-    label: hideTitle
-      ? undefined
-      : labelProp
-        ? (rc) => getProp(rc, labelProp) as ReactNode
-        : (def.title ?? schema?.displayName),
+    label:
+      !labelled || hideTitle
+        ? undefined
+        : labelProp
+          ? (rc) => getProp(rc, labelProp) as ReactNode
+          : (def.title ?? schema?.displayName),
     required: def.required,
     requiredMessage: def.requiredErrorText,
-    hidden: hiddenFromExpr ?? def.hidden,
-    disabled: disabledProp ?? def.disabled,
+    helpText,
+    hidden: hiddenFromExpr ?? staticHidden,
+    disabled: disabledProp ?? staticDisabled,
     readOnly: def.readonly,
     dontClearHidden: def.dontClearHidden,
     validate: Object.keys(validate).length ? validate : undefined,
     className: toClassValue(def.styleClass),
     textClassName: toClassValue(def.textClass),
     shellClassName: toClassValue(def.layoutClass),
-    labelClassName: toClassValue(def.labelClass),
-    labelTextClassName: toClassValue(def.labelTextClass),
+    labelClassName: labelled ? toClassValue(def.labelClass) : undefined,
+    labelTextClassName: labelled ? toClassValue(def.labelTextClass) : undefined,
   };
 }
 
@@ -569,6 +783,36 @@ function buildProps(
  * writes `defaultValue: null` and `fieldDef: {}` on every control.
  */
 const nestedKeys = ["renderOptions", "groupOptions", "displayData"] as const;
+/**
+ * The definition's arrays of *entries* — each an object with a `type`. Their
+ * properties were invisible to the audit: the proxy stopped at the array, so
+ * a dropped `adornments[0].placement` never showed (README finding 62). An
+ * entry is recorded as `adornments.HelpText.placement` — by its `type`, since
+ * that is how a reader finds it — and everything under it is recorded too
+ * (`dynamic.Visible.expr.field`). `children` are definitions of their own
+ * and are translated, and audited, separately.
+ */
+const entryArrayKeys = ["adornments", "validators", "dynamic"] as const;
+
+/**
+ * An entry nothing handles is reported once, as itself; its properties are
+ * then not audited one by one — that would count the same gap five times.
+ */
+function markSeen(seen: Set<string>, prefix: string, obj: unknown): void {
+  if (!obj || typeof obj !== "object") return;
+  for (const [k, v] of Object.entries(obj as object)) {
+    seen.add(`${prefix}.${k}`);
+    if (v && typeof v === "object" && !Array.isArray(v))
+      markSeen(seen, `${prefix}.${k}`, v);
+  }
+}
+
+const entrySegment = (el: unknown, index: string): string =>
+  el &&
+  typeof el === "object" &&
+  typeof (el as { type?: unknown }).type === "string"
+    ? (el as { type: string }).type
+    : index;
 
 function meaningful(v: unknown): boolean {
   if (v === null || v === undefined || v === false || v === "") return false;
@@ -581,22 +825,50 @@ function recording<T extends object>(
   target: T,
   seen: Set<string>,
   prefix = "",
+  deep = false,
 ): T {
   return new Proxy(target, {
     get(t, prop, r) {
       if (typeof prop === "string") {
         seen.add(prefix + prop);
         const v = Reflect.get(t, prop, r);
-        if (
-          !prefix &&
-          (nestedKeys as readonly string[]).includes(prop) &&
-          v &&
-          typeof v === "object"
-        )
+        if (!v || typeof v !== "object") return v;
+        if (!prefix && (nestedKeys as readonly string[]).includes(prop))
           return recording(v as object, seen, prop + ".");
+        if (!prefix && (entryArrayKeys as readonly string[]).includes(prop))
+          return recordingEntries(v as unknown[], seen, prop);
+        // Inside an entry, everything is recorded: `dynamic.Visible.expr.field`.
+        if (deep && !Array.isArray(v))
+          return recording(v as object, seen, prefix + prop + ".", true);
         return v;
       }
       return Reflect.get(t, prop, r);
+    },
+  });
+}
+
+/** An array of `{ type, … }` entries, each recorded under `key.<type>.`. */
+function recordingEntries<T extends unknown[]>(
+  arr: T,
+  seen: Set<string>,
+  key: string,
+): T {
+  return new Proxy(arr, {
+    get(t, prop, r) {
+      const v = Reflect.get(t, prop, r);
+      if (
+        typeof prop === "string" &&
+        /^\d+$/.test(prop) &&
+        v &&
+        typeof v === "object"
+      )
+        return recording(
+          v as object,
+          seen,
+          `${key}.${entrySegment(v, prop)}.`,
+          true,
+        );
+      return v;
     },
   });
 }
@@ -611,13 +883,105 @@ function warnUnread(def: ControlDefinition, seen: Set<string>, warn: Warn) {
     });
   for (const [k, v] of Object.entries(def)) {
     if (!meaningful(v) || parentReadKeys.has(k)) continue;
-    if (!seen.has(k)) report(k);
-    else if (
+    if (!seen.has(k)) {
+      report(k);
+    } else if (
       (nestedKeys as readonly string[]).includes(k) &&
       typeof v === "object"
-    )
+    ) {
       for (const [nk, nv] of Object.entries(v as object))
         if (meaningful(nv) && !seen.has(`${k}.${nk}`)) report(`${k}.${nk}`);
+    } else if (
+      (entryArrayKeys as readonly string[]).includes(k) &&
+      Array.isArray(v)
+    ) {
+      v.forEach((el, i) => {
+        if (!el || typeof el !== "object") return;
+        unreadDeep(
+          el as object,
+          `${k}.${entrySegment(el, String(i))}`,
+          seen,
+          report,
+        );
+      });
+    }
+  }
+}
+
+/** Every meaningful leaf under an entry that nothing read, as a dotted path. */
+function unreadDeep(
+  obj: object,
+  prefix: string,
+  seen: Set<string>,
+  report: (path: string) => void,
+): void {
+  for (const [nk, nv] of Object.entries(obj)) {
+    if (!meaningful(nv)) continue;
+    const path = `${prefix}.${nk}`;
+    if (!seen.has(path)) report(path);
+    else if (nv && typeof nv === "object" && !Array.isArray(nv))
+      unreadDeep(nv as object, path, seen, report);
+  }
+}
+
+/**
+ * The other blind spot (README finding 62): a definition property that
+ * `buildProps` *reads* — and so counts as seen — into a prop the translator
+ * then never passes on. A group's `layoutClass` became `shellClassName`, and
+ * every group translator dropped it, silently. So the props handed to a
+ * translator are recorded too, and a prop that was built from something and
+ * never read is reported against the property it was built from. `field` is
+ * exempt: the loader consumes it by resolving the scope.
+ */
+const propSources: Record<string, (keyof ControlDefinition)[]> = {
+  label: ["title"],
+  required: ["required"],
+  requiredMessage: ["requiredErrorText"],
+  hidden: ["hidden"],
+  disabled: ["disabled"],
+  readOnly: ["readonly"],
+  dontClearHidden: ["dontClearHidden"],
+  validate: ["validators"],
+  className: ["styleClass"],
+  textClassName: ["textClass"],
+  shellClassName: ["layoutClass"],
+  labelClassName: ["labelClass"],
+  labelTextClassName: ["labelTextClass"],
+};
+
+function recordingProps<T extends object>(props: T, read: Set<string>): T {
+  return new Proxy(props, {
+    get(t, prop, r) {
+      if (typeof prop === "string") read.add(prop);
+      return Reflect.get(t, prop, r);
+    },
+    // A spread reads every key.
+    ownKeys(t) {
+      for (const k of Reflect.ownKeys(t))
+        if (typeof k === "string") read.add(k);
+      return Reflect.ownKeys(t);
+    },
+  });
+}
+
+function warnDropped(
+  props: FieldProps<any>,
+  read: Set<string>,
+  def: ControlDefinition,
+  warn: Warn,
+): void {
+  const subject = def.title ?? def.field;
+  for (const [propKey, sources] of Object.entries(propSources)) {
+    if (read.has(propKey)) continue;
+    if ((props as unknown as Record<string, unknown>)[propKey] === undefined)
+      continue;
+    for (const k of sources)
+      if (meaningful(def[k]))
+        warn({
+          kind: "unread",
+          subject,
+          detail: `"${k}" was built into the "${propKey}" prop, which the translator never read — dropped`,
+        });
   }
 }
 
@@ -757,6 +1121,7 @@ const parentReadKeys = new Set(["placement"]);
 function warnUnhandled(
   def: ControlDefinition,
   warn: Warn,
+  seen: Set<string>,
   renderTypes: readonly string[] = [],
   dynamics: readonly string[] = [],
 ): void {
@@ -768,6 +1133,9 @@ function warnUnhandled(
     // Tooltip on a display is consumed by the display translator as its
     // accessible name; anywhere else it has no meaning and is reported.
     if (a.type === "Tooltip" && def.type === "Display") continue;
+    // HelpText on a data control is the `helpText` prop (buildProps).
+    if (a.type === "HelpText" && def.type === "Data") continue;
+    markSeen(seen, `adornments.${a.type}`, a);
     warn({
       kind: "adornment",
       subject,
@@ -776,12 +1144,14 @@ function warnUnhandled(
   }
 
   for (const d of def.dynamic ?? []) {
-    if (!handledDynamic.has(d.type) && !handledHere.has(d.type))
+    if (!handledDynamic.has(d.type) && !handledHere.has(d.type)) {
+      markSeen(seen, `dynamic.${d.type}`, d);
       warn({
         kind: "dynamic",
         subject,
         detail: `no translator for dynamic property "${d.type}" — the value stays static`,
       });
+    }
   }
 
   const ro = def.renderOptions?.type;
@@ -798,6 +1168,16 @@ function warnUnhandled(
       kind: "renderOptions",
       subject,
       detail: `groupOptions "${go}" is not understood — the children render unwrapped`,
+    });
+
+  // A compound rendered as a group nests the group kind under renderOptions.
+  const ngo = (def.renderOptions?.groupOptions as { type?: string } | undefined)
+    ?.type;
+  if (ngo && !handled.has(ngo))
+    warn({
+      kind: "renderOptions",
+      subject,
+      detail: `renderOptions.groupOptions "${ngo}" is not understood — the children render as a plain group`,
     });
 }
 
@@ -818,7 +1198,7 @@ export function translate(
   const schema = ref?.schema;
   const at: Warn = (w) => collect({ ...w, path: key });
   const t = translators.find((t) => t.match(def, schema));
-  warnUnhandled(def, at, t?.renderTypes, t?.dynamics);
+  warnUnhandled(def, at, seen, t?.renderTypes, t?.dynamics);
 
   // The children's data context: into the bound field, or unchanged. A
   // collection's children live in a *row*, so the eager pass — which exists to
@@ -907,7 +1287,7 @@ export function translate(
       subject: def.field,
       detail: `no schema field named "${def.field}"`,
     });
-  const props = buildProps(ctx, scope, def, ref, at);
+  const props = buildProps(ctx, scope, def, ref, at, seen);
 
   const children = (t?.ownsChildren ? [] : (def.children ?? [])).map((c, i) =>
     translate(ctx, childScope, c, `${key}.${i}`, opts, collect),
@@ -949,10 +1329,11 @@ export function translate(
     warnUnread(rawDef, seen, at);
     return <TranslatedKey key={key}>{node}</TranslatedKey>;
   }
+  const propReads = new Set<string>();
   const node = t.render({
     def,
     schema,
-    props,
+    props: recordingProps(props, propReads),
     children,
     element,
     onClick,
@@ -960,6 +1341,7 @@ export function translate(
     dynamicValue,
   });
   warnUnread(rawDef, seen, at);
+  warnDropped(props, propReads, rawDef, at);
   return <TranslatedKey key={key}>{node}</TranslatedKey>;
 }
 
@@ -984,6 +1366,42 @@ export function translateForm(
     translate(ctx, root, c, String(i), opts, (w) => warnings.push(w)),
   );
   return { tree, warnings };
+}
+
+/**
+ * The Add below an array. Outside the collection boundary, so it takes the
+ * array's `hidden` itself; the lock comes through the scope, as for any
+ * `arrayActions` caller.
+ */
+function ArrayAdd({
+  control,
+  bounds,
+  actionId,
+  text,
+  value,
+  hidden,
+}: {
+  control: Control<unknown[]>;
+  bounds: { minLength?: number; maxLength?: number };
+  actionId: string;
+  text: string;
+  value: unknown;
+  hidden?: FormProp<boolean>;
+}): Rendered {
+  const { rc, rendered } = useReactive();
+  const ctx = useControlContext();
+  const scope = useFormScope();
+  const actions = arrayActions(rc, ctx, control, { ...bounds, scope });
+  return rendered(
+    <Action
+      actionId={actionId}
+      text={text}
+      style="primary"
+      hidden={hidden}
+      disabled={!actions.canAdd}
+      onClick={() => actions.add(value)}
+    />,
+  );
 }
 
 function TranslatedKey({ children }: { children: ReactNode }) {

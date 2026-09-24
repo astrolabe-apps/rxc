@@ -46,12 +46,15 @@ import {
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
+  combineClass,
 } from "../framework/index.js";
 import {
   Contents,
+  Inline,
   ElementsList,
   DefaultVisibility,
   glyphFor,
+  DisplayShell,
 } from "./shared.js";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
@@ -261,6 +264,16 @@ export function AntInputReference() {
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  // Ant's Text is already a span; inline only drops the shell.
+  if (p.inline)
+    return ctl.rendered(
+      <Typography.Text
+        id={p.id}
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+      >
+        {ctl.content}
+      </Typography.Text>,
+    );
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -351,42 +364,46 @@ function AntTabs(p: TabsRenderProps) {
 
 function AntAction(p: ActionRenderProps) {
   return (
-    <Button
-      type={
-        p.style === "primary"
-          ? "primary"
-          : p.style === "link"
-            ? "link"
-            : "default"
-      }
-      size="small"
-      className={mergeClass(undefined, p.className)}
-      disabled={p.disabled}
-      loading={p.busy}
-      icon={p.icon}
-      iconPosition={p.iconPlacement === "after" ? "end" : "start"}
-      onClick={p.onClick}
-      aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
-    >
-      {p.iconPlacement === "replace"
-        ? null
-        : (p.children ?? (
-            <span className={mergeClass(undefined, p.textClassName)}>
-              {p.text}
-            </span>
-          ))}
-    </Button>
+    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+      <Button
+        type={
+          p.style === "primary"
+            ? "primary"
+            : p.style === "link"
+              ? "link"
+              : "default"
+        }
+        size="small"
+        className={mergeClass(undefined, p.className)}
+        disabled={p.disabled}
+        loading={p.busy}
+        icon={p.icon}
+        iconPosition={p.iconPlacement === "after" ? "end" : "start"}
+        onClick={p.onClick}
+        aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
+      >
+        {p.iconPlacement === "replace"
+          ? null
+          : (p.children ?? (
+              <span className={mergeClass(undefined, p.textClassName)}>
+                {p.text}
+              </span>
+            ))}
+      </Button>
+    </DisplayShell>
   );
 }
 
 function AntText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <Typography.Text
-      className={mergeClass(undefined, p.className ?? p.textClassName)}
-    >
-      {getProp(rc, p.text) ?? p.children}
-    </Typography.Text>,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Typography.Text className={mergeClass(undefined, p.className)}>
+        <span className={mergeClass(undefined, p.textClassName)}>
+          {getProp(rc, p.text) ?? p.children}
+        </span>
+      </Typography.Text>
+    </DisplayShell>,
   );
 }
 
@@ -396,28 +413,38 @@ function AntIcon(p: IconDisplayRenderProps) {
     <span
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(undefined, p.className)}
+      className={mergeClass(
+        undefined,
+        combineClass(p.className, p.textClassName),
+      )}
       style={{ fontSize: 24, lineHeight: 1 }}
     >
       {glyphFor(getProp(rc, p.icon))}
     </span>
   );
   return rendered(
-    p.accessibleName ? (
-      <AntTooltip title={p.accessibleName}>{glyph}</AntTooltip>
-    ) : (
-      glyph
-    ),
+    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+      {p.accessibleName ? (
+        <AntTooltip title={p.accessibleName}>{glyph}</AntTooltip>
+      ) : (
+        glyph
+      )}
+    </DisplayShell>,
   );
 }
 
 function AntHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <Typography
-      className={mergeClass(undefined, p.className)}
-      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
-    />,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Typography
+        className={mergeClass(
+          undefined,
+          combineClass(p.className, p.textClassName),
+        )}
+        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+      />
+    </DisplayShell>,
   );
 }
 
@@ -587,6 +614,7 @@ export const antdRenderers: FormRenderers = {
   icon: AntIcon,
   action: AntAction,
   contents: Contents,
+  inline: Inline,
   wizard: AntWizard,
   dialog: AntDialog,
   tabs: AntTabs,

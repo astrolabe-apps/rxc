@@ -617,6 +617,45 @@ body {
   display: none;
 }
 
+/* ── inline group: prose with values and links in it ─────────────── */
+.ff-inline[data-hidden] {
+  display: none;
+}
+/* Every boundary is wrapped for the exit transition and design chrome;
+   in prose those wrappers must not be blocks. */
+.ff-inline .ff-fade,
+.ff-inline .ff-boundary {
+  display: inline;
+}
+.ff-inline .ff-text {
+  margin: 0;
+}
+.ff-readonly-inline {
+  font-weight: 600;
+}
+
+/* ── the wrapper a display or an action sits in (legacy's layout element) ── */
+.ff-display {
+  display: block;
+}
+.ff-action,
+span.ff-display {
+  display: inline-block;
+}
+.ff-inline .ff-display,
+.ff-inline .ff-action {
+  display: inline;
+}
+.ff-contents-body {
+  display: contents;
+}
+
+/* ── a translated array row: the element, then its Remove ────────── */
+.ff-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Presentation aid: the corpus tab. */
 .ff-corpus-bar {
   display: flex;

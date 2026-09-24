@@ -14,6 +14,8 @@ import {
   Contents,
   Elements,
   IconDisplay,
+  InlineGroup,
+  DisplayOnlyField,
   RadioField,
   getExternalEdit,
   StandardActionIds,
@@ -293,6 +295,19 @@ export function PersonForm({
                   ]}
                 />
                 <TextDisplay text="Authored display — static content, no field." />
+                {/* Legacy's Inline group: prose with a bound value in it. The
+            children learn they are inline from the scope and draw spans. */}
+                <InlineGroup>
+                  <TextDisplay text="You rated us " />
+                  <DisplayOnlyField field={f.rating} emptyText="nothing yet" />
+                  <TextDisplay text=" out of 5, and your status is " />
+                  <DisplayOnlyField
+                    field={f.status}
+                    options={statusOptions}
+                    emptyText="unset"
+                  />
+                  <TextDisplay text="." />
+                </InlineGroup>
                 {/* The Mast form's shape, hand-written: a glyph pair switched by
             data, each carrying the meaning the glyph does not. Hover for the
             implementation's answer to "is the name also visible". */}

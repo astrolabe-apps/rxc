@@ -52,6 +52,7 @@ export const demoControls: ControlDefinition[] = [
     type: "Data",
     field: "firstName",
     required: true,
+    renderOptions: { type: "Textfield", placeholder: "Given name" },
     styleClass: "demo-accent",
     labelClass: "demo-label",
     labelTextClass: "demo-label-text",
@@ -105,9 +106,12 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
+  // Legacy's Array: Add below, Remove per row, `noReorder` read and ignored
+  // as legacy's Array renderer did.
   {
     type: "Data",
     field: "pets",
+    renderOptions: { type: "Array", addText: "Add a pet", noReorder: true },
     validators: [{ type: "Length", min: 1, max: 3 }],
     children: [
       { type: "Data", field: "name", required: true },
@@ -129,8 +133,48 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
-  { type: "Data", field: "status", required: true },
+  // A HelpText adornment lands as the shell's help text; its `placement`
+  // (here LabelEnd) is dropped on purpose — the shell decides where help goes.
+  {
+    type: "Data",
+    field: "status",
+    required: true,
+    adornments: [
+      {
+        type: "HelpText",
+        helpText: "The member's current standing.",
+        placement: "LabelEnd",
+      },
+    ],
+  },
   { type: "Data", field: "priority" },
+  // Legacy's Inline group — the corpus's receipt-page shape: prose with a
+  // bound value and a link in it. Title hidden, as 214 of 222 are.
+  {
+    type: "Group",
+    title: "Summary",
+    groupOptions: { type: "Inline", hideTitle: true },
+    children: [
+      {
+        type: "Display",
+        displayData: { type: "Text", text: "Your status is " },
+      },
+      {
+        type: "Data",
+        field: "status",
+        hideTitle: true,
+        renderOptions: { type: "DisplayOnly", emptyText: "not set" },
+      },
+      { type: "Display", displayData: { type: "Text", text: " — " } },
+      {
+        type: "Action",
+        actionId: "greet",
+        actionText: "say hello",
+        actionStyle: "Link",
+      },
+      { type: "Display", displayData: { type: "Text", text: "." } },
+    ],
+  },
   // Field references, legacy's `dataRef`: `a/b` binds into a compound from
   // outside it; inside the compound's region, `../x` climbs back out.
   {
@@ -138,9 +182,12 @@ export const demoControls: ControlDefinition[] = [
     field: "address/city",
     title: "City — bound as address/city",
   },
+  // A compound rendered as a group, with the group kind nested under
+  // renderOptions — here a Flex row.
   {
     type: "Data",
     field: "address",
+    renderOptions: { type: "Group", groupOptions: { type: "Flex" } },
     children: [
       { type: "Data", field: "street" },
       {
@@ -249,6 +296,42 @@ export const demoControls: ControlDefinition[] = [
             renderOptions: { type: "Multiline" },
           },
         ],
+      },
+    ],
+  },
+  // AllowedOptions, both halves of legacy's rule. A Bool with no schema
+  // options at all, whose expression builds whole options with boolean
+  // values (MastEoi's Yes/No radios) …
+  {
+    type: "Data",
+    field: "hasPets",
+    title: "Has pets (radio from AllowedOptions)",
+    renderOptions: { type: "Radio" },
+    dynamic: [
+      {
+        type: "AllowedOptions",
+        expr: {
+          type: "Jsonata",
+          expression:
+            '[{"name": "Yes, I have pets", "value": true}, {"name": "No pets", "value": false}]',
+        },
+      },
+    ],
+  },
+  // … and a filter over the schema's options, driven by data: a null entry
+  // drops out, as legacy's did.
+  {
+    type: "Data",
+    field: "status",
+    title: "Status (Inactive only with pets)",
+    renderOptions: { type: "Dropdown" },
+    dynamic: [
+      {
+        type: "AllowedOptions",
+        expr: {
+          type: "Jsonata",
+          expression: "['active', hasPets ? 'inactive' : null]",
+        },
       },
     ],
   },
