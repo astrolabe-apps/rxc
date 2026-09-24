@@ -31,7 +31,7 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 19 clean, **792 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 19 clean, **777 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
@@ -42,9 +42,9 @@ and an honest one: those 820 were always dropped and never counted. The burndown
 standing in for a host that claims every action id (a host wires its buttons; their absence
 is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
 restores them as an inventory of what a host has to wire. Finding 63 (the five class slots on
-every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → **792**. Kind
-totals: `unread` 443, `renderOptions` 137, `adornment` 64, `schema` 55, `control` 37,
-`dynamic` 32, `expression` 13, `validator` 11.
+every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65
+(`defaultValue`) 792 → **777**. Kind totals: `unread` 428, `renderOptions` 137, `adornment` 64,
+`schema` 55, `control` 37, `dynamic` 32, `expression` 13, `validator` 11.
 
 ## What it builds
 
@@ -1490,17 +1490,57 @@ Numbered; each is cited at the matching line of code.
     nineteen forms clean, and the list is now decisions rather than
     translators — see *Where to pick up*.
 
+65. **`defaultValue` is boundary semantics, and it is a cycle with
+    `clearHidden`.** Legacy's rule (`formStateNode.ts`), as an effect: while
+    the control is not hidden and its value is `undefined`, write the
+    default; `null` is a value and is left alone; skip display-only and the
+    Optional adornment. Because it re-runs when presence, value or the
+    default move, it is the other half of `clearHidden`: hide → cleared →
+    show → defaulted again, which is what lets a section reappear in its
+    initial state rather than blank. So `FieldProps.defaultValue` is a
+    `FormProp<T>` (legacy's is scriptable — the dynamic `DefaultValue`
+    form, zero uses, comes for free), applied by the field and collection
+    boundaries through a core `effect`, so it costs the component no
+    re-render, and never by a write-free boundary (finding 54). Verified in
+    both paths: show → "Dr. Dolittle", an edit survives, hide → cleared,
+    show → defaulted again, and a field emptied to `""` while shown stays
+    `""`.
+
+    **The corpus's 19 uses are three shapes.** Fourteen are `true` on a
+    Yes/No radio — a `Bool` that should start answered. Five are `{}` on a
+    **compound rendered as a group** (`MrsSummary`'s `driver` / `rider`
+    behind `Visible` expressions), which is the cycle at work: hide clears
+    the object, show restores `{}` so the children have something to bind
+    into. That one needed a second caller, because a compound-as-group is a
+    *group* boundary with no binding: the loader runs the same hook from a
+    small effect component inside the group, over the compound's own
+    control. One implementation, two callers — the same shape as finding
+    58's validators. And one, `FireSummary`'s `escadNumber`, is a default
+    on a **DisplayOnly**, where legacy wrote it into the data and v2 does
+    not (finding 54's divergence, now with a real form behind it: legacy
+    showed and submitted `ESC12345`; v2 shows nothing unless the data has
+    it). Recorded, not changed — a display must not write.
+
+    **One divergence noticed, not fixed.** `clearHidden` on a compound: a
+    v2 group boundary clears nothing itself and its children each clear
+    their own field, so a hidden `address` becomes `{ street: undefined,
+    city: undefined }`; legacy cleared the compound's own value, giving
+    `address: undefined`. Different submitted JSON. Out of scope here and
+    worth a decision of its own.
+
+    Burndown 792 → **777**. `defaultValue` is off the list; the semantics
+    the second instrument needs are now all built.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (792),
+<kind:shape>` names the controls behind any line. At the last run (777),
 almost nothing left is a translator: `noSelection` 108 is a designer flag
 with no contract role; `adornments.HelpText.helpLabel` 49, `Display /
 Custom` 37 with its `displayData.customId` 37, and `Spotlight` are the
 host-extension family, one decision; `ColumnOptions` 26 is the datagrid;
 `Radio` 24 are forms that shipped neither a schema nor an `AllowedOptions`;
-`Accordion` 20 is finding 55's shape as an adornment; `defaultValue` 15 is
-the one legacy semantic still unbuilt; `dynamic Display` 15 is DisplayOnly's
+`Accordion` 20 is finding 55's shape as an adornment; `dynamic Display` 15 is DisplayOnly's
 `overrideText`; `LayoutStyle` 15 is a dynamic inline style with no contract
 slot; `Switch` 14 and `keyboardType` 14 are host render options;
 `HelpText.placement` 15 is dropped on purpose (finding 61); `textClass` 16

@@ -449,7 +449,8 @@ export function PersonForm({
                     field={f.vetName}
                     label="Vet's name"
                     required
-                    helpText="Cleared by clearHidden when the region is hidden."
+                    defaultValue="Dr. Dolittle"
+                    helpText="Cleared by clearHidden when the region is hidden — and defaulted again when it shows."
                   />
                 </Contents>
 

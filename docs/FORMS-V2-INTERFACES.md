@@ -271,6 +271,13 @@ it bound, gated by the global and its own opt-out — which is what legacy and t
 do (`impl.globals.clearHidden && !def.dontClearHidden`), and in a JSX form is the only thing
 that can work. §8 has the reason.
 
+**`defaultValue` is its other half (built).** While a field is not hidden and its value is
+`undefined`, the boundary writes the default; `null` counts as a value. Re-evaluated when
+presence, value or the default move, so the two form legacy's cycle — hide → cleared → show →
+defaulted again — and a section that reappears comes back in its initial state. Boundary
+semantics like the validators, so no implementation can drop it, and never applied by a
+write-free boundary. README finding 65.
+
 Two things the build pinned down:
 
 - **The scope carries rc-resolvers, not resolved values** — `presence: (rc) => Presence`, not
@@ -298,6 +305,7 @@ interface FieldProps<T> {
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   dontClearHidden?: boolean;                     // static, like the JSON flag it mirrors
+  defaultValue?: FormProp<T>;                    // written while shown and undefined — the other half of clearHidden (finding 65)
   label?: FormProp<ReactNode>;
   required?: FormProp<boolean>;
   requiredMessage?: FormProp<string>;

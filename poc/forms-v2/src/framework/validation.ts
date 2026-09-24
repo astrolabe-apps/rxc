@@ -1,13 +1,15 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { Control } from "@rx-controls/core";
-import { deepEquals, untrackedRead } from "@rx-controls/core";
+import { deepEquals, effect, untrackedRead } from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
 } from "@rx-controls/core/internal";
 import { useControl, useControlContext } from "@rx-controls/react";
-import type { Validator, ValidatorResult } from "./types.js";
+import type { FormProp, Validator, ValidatorResult } from "./types.js";
 import type { ValidationScope } from "./validationScope.js";
+import { getProp } from "./prop.js";
+import type { ScopeState } from "./scope.js";
 
 export interface ValidationConfig {
   active: boolean;
@@ -145,4 +147,33 @@ export function useFieldValidation<T>(
     return () => disposers.forEach((d) => d());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx, control, cfg, keyId, scope, owner]);
+}
+
+/**
+ * Legacy's default-value cycle (`formStateNode.ts`), as a core `effect` so it
+ * costs the component no re-render: while the field is not hidden and its
+ * value is `undefined`, write the default. Re-runs when presence, value or
+ * the default move — so after `clearHidden` wipes a hidden field, showing it
+ * again defaults it again. `null` is a value and is left alone, as legacy
+ * left it. `enabled` is the boundary's `writes` flag: a display-only boundary
+ * never writes (README finding 54, and 65).
+ */
+export function useDefaultValue<T>(
+  control: Control<T>,
+  defaultValue: FormProp<T> | undefined,
+  scope: ScopeState,
+  enabled: boolean,
+): void {
+  const ctx = useControlContext();
+  useEffect(() => {
+    if (!enabled || defaultValue === undefined) return;
+    const h = effect(ctx, (rc) => {
+      if (scope.presence(rc) === "hidden") return;
+      if (rc.getValue(control) !== undefined) return;
+      const d = getProp(rc, defaultValue);
+      if (d === undefined || d === null) return;
+      ctx.update((wc) => wc.setValue(control, d));
+    });
+    return () => h.cleanup();
+  }, [ctx, control, defaultValue, scope, enabled]);
 }

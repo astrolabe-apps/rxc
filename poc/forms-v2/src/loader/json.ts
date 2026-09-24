@@ -41,7 +41,8 @@ export type DynamicPropertyType =
   | "Label"
   | "ActionData"
   | "Display"
-  | "AllowedOptions";
+  | "AllowedOptions"
+  | "DefaultValue";
 
 export interface DynamicProperty {
   type: DynamicPropertyType;
@@ -85,6 +86,8 @@ export interface ControlDefinition {
   disabled?: boolean;
   readonly?: boolean;
   dontClearHidden?: boolean;
+  /** Written while shown and undefined — legacy's default-value cycle. */
+  defaultValue?: unknown;
   /** The four class slots — see goals decision 4. `"@ "` prefix = replace. */
   styleClass?: string | null;
   textClass?: string | null;

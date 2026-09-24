@@ -172,8 +172,7 @@ Nothing below is settled. In rough order of how much else depends on it:
    the read audit, once it looked inside expression entries, caught 296 visibility conditions
    the loader had silently never evaluated (README finding 62). Three places to expect one, two of them since closed (README finding 52): a
    jsonata expression inside an array row now carries legacy's path prefix and `$$`/`$i`, and
-   a `../x` or `a/b` reference binds the right control *and* scope; the
-   `defaultValue`-on-becoming-visible cycle is still not built. So "identical
+   a `../x` or `a/b` reference binds the right control *and* scope; the `defaultValue` cycle is built too (README finding 65). So "identical
    semantics" needs a second instrument beside the burndown: render each corpus form in legacy
    and in v2 over fixture data and diff visibility, validity and values per field — the
    compare-app workstream generalised from one Fire form to the corpus. Until that exists the

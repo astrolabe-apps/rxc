@@ -90,6 +90,15 @@ export interface FieldProps<T> {
   readOnly?: FormProp<boolean>;
   /** Static, like the JSON flag it mirrors. */
   dontClearHidden?: boolean;
+  /**
+   * Written into the field while it is not hidden and its value is
+   * `undefined` — legacy's rule, `null` included in "has a value". With
+   * `clearHidden` this is a cycle: hide → cleared → show → defaulted again,
+   * which is what lets a section reappear in its initial state. Boundary
+   * semantics, so an implementation cannot drop it; never applied by a
+   * write-free boundary (DisplayOnly, finding 54). README finding 65.
+   */
+  defaultValue?: FormProp<T>;
   label?: FormProp<ReactNode>;
   required?: FormProp<boolean>;
   requiredMessage?: FormProp<string>;

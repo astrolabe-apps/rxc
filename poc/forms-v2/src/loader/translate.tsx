@@ -14,6 +14,7 @@ import {
   arrayActions,
   Stack,
   StandardActionIds,
+  useDefaultValue,
   useFormScope,
   CheckboxField,
   Contents,
@@ -391,8 +392,20 @@ export const defaultTranslators: Translator[] = [
         labelClassName: props.labelClassName,
         labelTextClassName: props.labelTextClassName,
       };
+      // A compound is data too: legacy defaulted it (`{}` on a hidden-then-
+      // shown section, so its children have an object to bind into). A
+      // group boundary has no binding, so the loader runs the same effect.
+      const withDefault = (
+        <>
+          <DefaultValueEffect
+            control={props.field}
+            value={props.defaultValue}
+          />
+          {children}
+        </>
+      );
       if (kind === "Inline")
-        return <InlineGroup {...groupProps}>{children}</InlineGroup>;
+        return <InlineGroup {...groupProps}>{withDefault}</InlineGroup>;
       return (
         <Contents {...groupProps}>
           {kind === "Flex" ? (
@@ -400,10 +413,10 @@ export const defaultTranslators: Translator[] = [
               direction={(nested.direction as "row" | "column") ?? "row"}
               gap={nested.gap as string | undefined}
             >
-              {children}
+              {withDefault}
             </Stack>
           ) : (
-            children
+            withDefault
           )}
         </Contents>
       );
@@ -663,6 +676,7 @@ function buildProps(
   const visible = dyn("Visible");
   const disabled = dyn("Disabled");
   const label = dyn("Label");
+  const dynDefault = dyn("DefaultValue");
 
   const expr: (detail: string) => void = (detail) =>
     warn({ kind: "expression", subject: def.field ?? def.title, detail });
@@ -724,6 +738,14 @@ function buildProps(
   // a Visible expression is "hidden unless…", and legacy reads it the same).
   const staticHidden = def.hidden;
   const staticDisabled = def.disabled;
+  // Legacy: `defaultValue != null` is a default; the editor writes `null`
+  // on every control, and that is "none". The dynamic form is scriptable.
+  const staticDefault = def.defaultValue;
+  const defaultValue: FormProp<unknown> | undefined = dynDefault
+    ? toValueProp(ctx, scope, dynDefault, expr)
+    : staticDefault === null
+      ? undefined
+      : staticDefault;
 
   // `hideTitle` is legacy's "render no label"; a group keeps the same flag
   // under `groupOptions`. Read both so the audit sees them either way.
@@ -763,6 +785,7 @@ function buildProps(
     disabled: disabledProp ?? staticDisabled,
     readOnly: def.readonly,
     dontClearHidden: def.dontClearHidden,
+    defaultValue,
     validate: Object.keys(validate).length ? validate : undefined,
     className: toClassValue(def.styleClass),
     textClassName: toClassValue(def.textClass),
@@ -941,6 +964,7 @@ const propSources: Record<string, (keyof ControlDefinition)[]> = {
   disabled: ["disabled"],
   readOnly: ["readonly"],
   dontClearHidden: ["dontClearHidden"],
+  defaultValue: ["defaultValue"],
   validate: ["validators"],
   className: ["styleClass"],
   textClassName: ["textClass"],
@@ -1104,7 +1128,13 @@ function tooltipOf(def: ControlDefinition): string | undefined {
   return typeof a?.tooltip === "string" ? a.tooltip : undefined;
 }
 
-const handledDynamic = new Set(["Visible", "Disabled", "Label", "ActionData"]);
+const handledDynamic = new Set([
+  "Visible",
+  "Disabled",
+  "Label",
+  "ActionData",
+  "DefaultValue",
+]);
 
 /**
  * Keys a *parent* translator reads off a child definition, which the child's
@@ -1366,6 +1396,18 @@ export function translateForm(
     translate(ctx, root, c, String(i), opts, (w) => warnings.push(w)),
   );
   return { tree, warnings };
+}
+
+/** The default-value cycle for a control no field boundary owns — a compound rendered as a group. */
+function DefaultValueEffect({
+  control,
+  value,
+}: {
+  control: Control<unknown>;
+  value: FormProp<unknown> | undefined;
+}) {
+  useDefaultValue(control, value, useFormScope(), true);
+  return null;
 }
 
 /**

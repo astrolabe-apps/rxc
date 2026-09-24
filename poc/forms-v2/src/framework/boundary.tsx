@@ -18,7 +18,11 @@ import {
   useFormScope,
   type ScopeState,
 } from "./scope.js";
-import { useFieldValidation, useMirror } from "./validation.js";
+import {
+  useDefaultValue,
+  useFieldValidation,
+  useMirror,
+} from "./validation.js";
 import { useRenderers } from "./renderers.js";
 import {
   createValidationScope,
@@ -50,6 +54,7 @@ const contractKeys = new Set([
   "disabled",
   "readOnly",
   "dontClearHidden",
+  "defaultValue",
   "label",
   "required",
   "requiredMessage",
@@ -199,6 +204,8 @@ export function fieldRenderer<T, P extends object = {}>(
     useEffect(() => {
       if (shouldClear) ctx.update((wc) => wc.setValue(control, undefined as T));
     }, [shouldClear, control, ctx]);
+    // The other half of the cycle: defaulted while shown and undefined.
+    useDefaultValue(control, props.defaultValue, scope, writes);
 
     useEffect(() => vscope?.register(control), [vscope, control]);
 
@@ -435,6 +442,7 @@ export function collectionRenderer<T, P extends object = {}>(
       if (shouldClear)
         ctx.update((wc) => wc.setValue(control, undefined as unknown as T[]));
     }, [shouldClear, control, ctx]);
+    useDefaultValue(control, props.defaultValue, scope, true);
 
     useEffect(() => vscope?.register(control), [vscope, control]);
 
