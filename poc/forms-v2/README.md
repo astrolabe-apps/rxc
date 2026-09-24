@@ -13,6 +13,7 @@ rushx typecheck
 rushx extract-corpus <name> <src-dir>   # a legacy app's forms + schemas → corpus/<name>/
 rushx burndown [<dir-or-file>...]       # the loader over ./corpus (default); --json, --strict
 rushx burndown --show unread:layoutClass # every warning of one shape, with the control it came from
+rushx burndown --no-actions              # also report every button no host handler claimed (489)
 ```
 
 `corpus/` is gitignored — derived from other repositories. To rebuild it, point
@@ -30,16 +31,19 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 4 clean, **2,195 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 7 clean, **1,706 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
 with no loader change. Finding 56 (Radio, and `dynamic Display` on displays) took it
 1,822 → 1,734; finding 59 (`AllowedOptions`) 1,734 → 1,653; findings 60–61 (Inline,
-HelpText) 1,653 → 1,375; finding 62 (the audit's two blind spots) 1,375 → **2,195** — a rise,
-and an honest one: those 820 were always dropped and never counted. Kind totals: `unread`
-1,332, `action` 489, `renderOptions` 162, `adornment` 64, `schema` 55, `control` 37,
-`dynamic` 32, `expression` 13, `validator` 11.
+HelpText) 1,653 → 1,375; finding 62 (the audit's two blind spots) 1,375 → 2,195 — a rise,
+and an honest one: those 820 were always dropped and never counted. The burndown then began
+standing in for a host that claims every action id (a host wires its buttons; their absence
+is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
+restores them as an inventory of what a host has to wire. Kind totals: `unread` 1,332,
+`renderOptions` 162, `adornment` 64, `schema` 55, `control` 37, `dynamic` 32,
+`expression` 13, `validator` 11.
 
 ## What it builds
 
@@ -1414,7 +1418,7 @@ Numbered; each is cited at the matching line of code.
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (2,195):
+<kind:shape>` names the controls behind any line. At the last run (1,706):
 `layoutClass` 546 — on displays (233), actions (87) and groups (224), the
 three boundary kinds with no shell slot, so a **contract** question, not a
 translator; `labelTextClass` 127 and `labelClass` 39, both on groups, the
@@ -1430,7 +1434,10 @@ host-extension hook), `Flex` 36, the array options
 `HelpText.placement` 15 (dropped on purpose, finding 61), and `dynamic
 Display` 15, all DisplayOnly's `overrideText`. `expression` 13 are the
 kinds the loader now names rather than swallows: nine entries with no type,
-two `UserMatch`, one `Not`, one empty jsonata. `action` 489 stays until the
+two `UserMatch`, one `Not`, one empty jsonata. The 489 action ids are no
+longer counted — the burndown stands in for a host that claims them all —
+and `--no-actions` lists them when a host needs the inventory (`docLink`
+alone is 47 across three forms). `action` 489 stays until the
 burndown runs with a host `actionHandler` — `docLink` alone is 47 across
 three forms. Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
