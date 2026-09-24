@@ -37,7 +37,12 @@ import {
   type FormProp,
   type Validator,
 } from "../framework/index.js";
-import { toFormProp, toValueProp, jsonataValidator } from "./expressions.js";
+import {
+  dateValidator,
+  jsonataValidator,
+  toFormProp,
+  toValueProp,
+} from "./expressions.js";
 import type { ControlDefinition, SchemaField } from "./json.js";
 import {
   elementScope,
@@ -696,7 +701,14 @@ function buildProps(
 
   const validate: Record<string, Validator<any>> = {};
   let jsonataN = 0;
+  let dateN = 0;
   for (const v of def.validators ?? []) {
+    if (v.type === "Date") {
+      // Legacy's Date validator, keyed `date`, numbered past the first.
+      validate[dateN ? `date${dateN}` : "date"] = dateValidator(v);
+      dateN++;
+      continue;
+    }
     if (v.type === "Jsonata") {
       // An async validator (§5): the expression yields the message, against
       // the parent data. Keyed like legacy's `jsonata`, numbered past the first.
@@ -705,12 +717,13 @@ function buildProps(
       jsonataN++;
       continue;
     }
-    if (v.type !== "Length") {
+    const kind = (v as { type: string }).type;
+    if (kind !== "Length") {
       markSeen(seen, `validators.${v.type}`, v);
       warn({
         kind: "validator",
         subject: def.field ?? def.title,
-        detail: `no translator for validator "${(v as { type: string }).type}" — the rule is not enforced`,
+        detail: `no translator for validator "${kind}" — the rule is not enforced`,
       });
     } else if (schema?.collection) {
       // Consumed by the collection translator as min/max length.
@@ -721,11 +734,13 @@ function buildProps(
         detail: `Length on a ${schema?.type ?? "?"} field — this loader measures string length only`,
       });
     }
-    if (v.type === "Length" && !schema?.collection) {
+    if (kind === "Length" && !schema?.collection) {
+      // Read now — the audit runs at translate time (finding 62).
+      const { min, max } = v as { min?: number; max?: number };
       validate.length = (value) => {
         const n = typeof value === "string" ? value.length : 0;
-        if (v.min !== undefined && n < v.min) return `At least ${v.min}`;
-        if (v.max !== undefined && n > v.max) return `At most ${v.max}`;
+        if (min !== undefined && n < min) return `At least ${min}`;
+        if (max !== undefined && n > max) return `At most ${max}`;
         return null;
       };
     }

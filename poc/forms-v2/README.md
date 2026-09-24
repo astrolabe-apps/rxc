@@ -32,7 +32,7 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 19 clean, **777 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 19 clean, **760 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
@@ -43,9 +43,7 @@ and an honest one: those 820 were always dropped and never counted. The burndown
 standing in for a host that claims every action id (a host wires its buttons; their absence
 is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
 restores them as an inventory of what a host has to wire. Finding 63 (the five class slots on
-every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65
-(`defaultValue`) 792 → **777**. Kind totals: `unread` 428, `renderOptions` 137, `adornment` 64,
-`schema` 55, `control` 37, `dynamic` 32, `expression` 13, `validator` 11.
+every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65 (`defaultValue`) 792 → 777; finding 68 (the `Date` validator) 777 → **760**. Kind totals: `unread` 422, `renderOptions` 137, `adornment` 64, `schema` 55, `control` 37, `dynamic` 32, `expression` 13.
 
 ## What it builds
 
@@ -1593,9 +1591,7 @@ Numbered; each is cited at the matching line of code.
     **What was left was three things, all known.** Sixteen lines in `TUP`
     were finding 59's recorded divergence — per-option children built over
     the schema's options rather than the resolved list — and finding 67
-    closed them. Three lines are the `Date` validator, unbuilt (11 uses).
-    One line is Burn's async jsonata validator, which legacy does not
-    publish for an untouched field and v2 does — unexplained, one form.
+    closed them. Three lines were the `Date` validator, unbuilt at the time (finding 68). One line is Burn's async jsonata validator, which legacy does not publish for an untouched field and v2 does — unexplained, one form.
 
     `--show <form>` lists every difference in one form; `--trace <field>`
     prints legacy's node-level visibility, control identity and errors for
@@ -1624,13 +1620,40 @@ Numbered; each is cited at the matching line of code.
     over a stand-in option when there are none, so a radio whose options all
     come from an expression still has its children audited. Verified: the
     JSON tab's radio keeps its per-option description and the group under
-    the chosen option; parity on `TUP` 16 → 0, corpus-wide **140 of 144
-    identical, 4 differences**, all of them the two known validator gaps.
+    the chosen option; parity on `TUP` 16 → 0, corpus-wide 140 of 144 identical, 4 differences, all of them the two known validator gaps (three of which finding 68 then closed).
+
+68. **The `Date` validator, and the one line the corpus has left.** Legacy's
+    `evalDateValidator`, as a sync `Validator` built at translate time: the
+    comparison instant is `fixedDate`, or today's local date at UTC midnight
+    plus `daysFromCurrent` days — fixed when the definition is translated,
+    as legacy fixed it when the node was created; a non-empty value is
+    parsed the way the display formatter parses it (a naive date-time is
+    UTC) and fails `NotBefore` if earlier, `NotAfter` if later; the message
+    is legacy's, `toDateString()` and all. Eleven uses in the corpus, every
+    one an offset from today — `NotBefore` 0 for a start date, `NotAfter` 0
+    for a registration date, `NotAfter` 30 and 90 for a quote's window.
+    Keyed `date`, numbered past the first, like `jsonata`. Verified on the
+    JSON tab: a date in 2099 reports "Date must not be after Thu Sep 24
+    2026", exactly legacy's string, and a past date clears it.
+
+    Two small things rode along. The Length rule read `min` and `max`
+    inside its closure — the fallback-read lesson of finding 62, a fifth
+    time — so three forms' bounds showed as unread; they are read at
+    translate time now. And the loader's "unknown validator" warning had
+    to be kept by hand: once Length, Jsonata and Date are all handled, the
+    union narrows to `never` and the branch that reports a kind nobody
+    handles would not compile without reading the type untyped.
+
+    Burndown 777 → **760**; the `validator` kind is gone. Parity: **143 of
+    144 runs identical, 1 difference** — Burn's async jsonata validator,
+    which legacy does not publish for an untouched field and v2 does. That
+    one is a question about legacy, not a gap in v2, and it is the whole of
+    the corpus's semantic distance now.
 
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (777),
+<kind:shape>` names the controls behind any line. At the last run (760),
 almost nothing left is a translator: `noSelection` 108 is a designer flag
 with no contract role; `adornments.HelpText.helpLabel` 49, `Display /
 Custom` 37 with its `displayData.customId` 37, and `Spotlight` are the
@@ -1664,7 +1687,7 @@ translation that is *wrong*. `rushx parity` can: it runs every corpus form
 through legacy itself (`@react-typed-forms/schemas@19`, headless) and
 through the v2 loader mounted under React, over the same fixture data, and
 diffs the values and errors each leaves at every data path. At the last run:
-**140 of 144 runs identical, 4 differences** — 3 the unbuilt `Date` validator, 1 an async validator legacy does not publish for an untouched field — plus 37 classified as the display-only divergence finding 54 chose. Finding 66 has what building it found; finding 67 closed the 16 that were finding 59's recorded divergence. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
+**143 of 144 runs identical, 1 difference** — an async validator legacy does not publish for an untouched field — plus 37 classified as the display-only divergence finding 54 chose. Finding 66 has what building it found; findings 67 and 68 closed the rest. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
 inline style, no contract slot), a loader hook for host adornments
 (`Spotlight`) alongside the open `Translator[]`.
 

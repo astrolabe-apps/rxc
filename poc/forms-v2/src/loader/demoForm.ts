@@ -215,6 +215,13 @@ export const demoControls: ControlDefinition[] = [
     field: "joined",
     renderOptions: { type: "DisplayOnly", sampleText: "1/1/2024" },
   },
+  // Legacy's Date validator — the corpus's one shape, an offset from today.
+  {
+    type: "Data",
+    field: "joined",
+    title: "Joined (must not be in the future)",
+    validators: [{ type: "Date", comparison: "NotAfter", daysFromCurrent: 0 }],
+  },
   {
     type: "Data",
     field: "hasPets",

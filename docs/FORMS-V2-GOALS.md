@@ -173,7 +173,7 @@ Nothing below is settled. In rough order of how much else depends on it:
    headless) and through the v2 loader, over the same fixture data, diffing the values and
    errors each leaves at every path. Its first run found a v2 bug the burndown could never
    have seen (a pending async visibility counted as hidden, so `clearHidden` wiped the field
-   at mount) and an unhandled schema flag (`meta` fields, 75 of them). At the last run 140 of 144 runs were identical, with 4 differences — the unbuilt `Date` validator and one async validator — all classified (README findings 66–67). The
+   at mount) and an unhandled schema flag (`meta` fields, 75 of them). At the last run 143 of 144 runs were identical, with 1 difference — an async validator legacy does not publish for an untouched field (README findings 66–68). The
    target is now measured, not asserted.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.

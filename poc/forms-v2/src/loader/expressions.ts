@@ -293,3 +293,42 @@ export function jsonataValidator(
     );
   };
 }
+
+/**
+ * Legacy's `Date` validator (`forms-core` `evalDateValidator`), as a sync
+ * `Validator`: the comparison instant is `fixedDate`, or today's local date
+ * at UTC midnight plus `daysFromCurrent` days — fixed when the definition is
+ * translated, as legacy fixed it when the node was created. A non-empty
+ * value is parsed as the display formatter parses it (a naive date-time is
+ * UTC) and fails `NotBefore` if earlier, `NotAfter` if later; the message is
+ * legacy's, `toDateString()` and all. 11 uses in the corpus, every one an
+ * offset from today (README finding 68).
+ */
+export function dateValidator(v: {
+  comparison?: string;
+  fixedDate?: string;
+  daysFromCurrent?: number;
+}): Validator<unknown> {
+  const notAfter = v.comparison === "NotAfter";
+  let comparison: number;
+  if (v.fixedDate) comparison = parseToMillis(v.fixedDate);
+  else {
+    const now = new Date();
+    comparison = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    if (v.daysFromCurrent) comparison += v.daysFromCurrent * 86400000;
+  }
+  return (value) => {
+    if (!value) return null;
+    const sel = parseToMillis(String(value));
+    if (notAfter ? sel > comparison : sel < comparison)
+      return `Date must not be ${notAfter ? "after" : "before"} ${new Date(comparison).toDateString()}`;
+    return null;
+  };
+}
+
+/** `DefaultSchemaInterface.parseToMillis`: a naive date-time is UTC. */
+function parseToMillis(s: string): number {
+  const hasTime = s.includes("T");
+  const hasZone = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
+  return new Date(hasTime && !hasZone ? s + "Z" : s).getTime();
+}
