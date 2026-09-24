@@ -485,10 +485,15 @@ export const defaultTranslators: Translator[] = [
   },
   {
     // Radio, with legacy's per-option children: the definition's children
-    // are translated once per option against the *parent* scope, with
-    // `$formData.option` / `$formData.optionSelected` bound — what the
-    // corpus's six radios-with-children read. Warnings are collected on the
-    // first option's pass only.
+    // are translated once per **resolved** option — the list after
+    // `AllowedOptions`, as legacy expanded them — against the *parent*
+    // scope, with `$formData.option` / `$formData.optionSelected` bound.
+    // Resolved options are only known at render, so translation is lazy
+    // and memoised per option value (the expression cache is keyed the same
+    // way, so a repeat costs nothing), the collection pattern: rows are
+    // translated per element at render too. For the audit, one eager pass
+    // over the schema's options — or a representative option when the
+    // schema has none — collects the children's warnings once (finding 67).
     match: (d, s) =>
       d.type === "Data" &&
       d.renderOptions?.type === "Radio" &&
@@ -498,36 +503,43 @@ export const defaultTranslators: Translator[] = [
     ownsChildren: true,
     render: ({ def, props, schema, retranslate, dynamicValue }) => {
       const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
-      // Per-option children are built over the *schema's* options — the
-      // static set an `AllowedOptions` filter narrows at render time. An
-      // expression that invents options the schema lacks gets no children
-      // for them; legacy expanded children from the same static list.
-      const options = schema?.options ?? [];
       const hasChildren = !!def.children?.length;
-      const perOption = new Map(
-        options.map((o, i) => [
-          String(o.value),
-          hasChildren
-            ? retranslate!(
-                {},
-                (_child, own, field) =>
-                  withVariables(
-                    own,
-                    (rc) => ({
-                      formData: {
-                        option: o,
-                        optionSelected:
-                          field !== undefined &&
-                          String(rc.getValue(field)) === String(o.value),
-                      },
-                    }),
-                    `option:${String(o.value)}`,
-                  ),
-                i > 0,
-              )
-            : [],
-        ]),
-      );
+      const forOption = (o: FieldOption, quiet: boolean): ReactNode[] =>
+        retranslate!(
+          {},
+          (_child, own, field) =>
+            withVariables(
+              own,
+              (rc) => ({
+                formData: {
+                  option: o,
+                  optionSelected:
+                    field !== undefined &&
+                    String(rc.getValue(field)) === String(o.value),
+                },
+              }),
+              `option:${String(o.value)}`,
+            ),
+          quiet,
+        );
+      const perOption = new Map<string, ReactNode[]>();
+      if (hasChildren) {
+        const eager = schema?.options ?? [];
+        eager.forEach((o, i) =>
+          perOption.set(String(o.value), forOption(o, i > 0)),
+        );
+        // No static options to walk: audit the children against a stand-in.
+        if (eager.length === 0) forOption({ name: "", value: "" }, false);
+      }
+      const childrenFor = (o: FieldOption): ReactNode => {
+        const k = String(o.value);
+        let nodes = perOption.get(k);
+        if (!nodes) {
+          nodes = forOption(o, true);
+          perOption.set(k, nodes);
+        }
+        return <>{nodes}</>;
+      };
       return (
         <RadioField
           {...props}
@@ -536,9 +548,7 @@ export const defaultTranslators: Translator[] = [
           selectedClassName={toClassValue(ro.selectedClass as string)}
           notSelectedClassName={toClassValue(ro.notSelectedClass as string)}
         >
-          {hasChildren
-            ? (o) => <>{perOption.get(String(o.value))}</>
-            : undefined}
+          {hasChildren ? childrenFor : undefined}
         </RadioField>
       );
     },

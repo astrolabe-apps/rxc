@@ -1291,9 +1291,7 @@ Numbered; each is cited at the matching line of code.
     match on *either* schema options or an `AllowedOptions`, which is what
     the MastEoi shape needs.
 
-    Per-option children (finding 56) are built over the **schema's** options,
-    the static set; an option the expression invents gets no children under
-    it. Legacy expanded them over the *filtered* list (`fieldOptions`, after `allowedOptions`), so an option the expression invents got children there; here it does not, and an option the expression removes keeps its (hidden) children — a divergence, recorded, in the direction of static structure.
+    Per-option children (finding 56) were at first built over the **schema's** options, the static set, so an option the expression invents got no children under it — a divergence, since closed by finding 67. Legacy expanded them over the *filtered* list (`fieldOptions`, after `allowedOptions`), so an option the expression invents got children there; here it does not, and an option the expression removes keeps its (hidden) children — a divergence, recorded, in the direction of static structure.
 
     Verified on the JSON tab, all four implementations: the Yes/No radio
     stores `true` / `false`, not `"true"`; a dropdown whose expression is
@@ -1592,22 +1590,42 @@ Numbered; each is cited at the matching line of code.
        bound only by DisplayOnly definitions that legacy cleared and v2 kept
        is now reported as `expected`, outside the headline. 52 → **19**.
 
-    **What is left is three things, all known.** Sixteen lines in `TUP`:
-    `toClassification`'s options come from `AllowedOptions`, v2 builds
-    per-option children over the schema's options only (finding 59's
-    recorded divergence), so the child that legacy hides and clears —
-    wiping the very array the options came from — never exists in v2. A
-    decision, not a translator: reproducing it means translating per-option
-    children over the *resolved* options at render time, against finding
-    28's rule that translation allocates. Three lines are the `Date`
-    validator, unbuilt (11 uses). One line is Burn's async jsonata
-    validator, which legacy does not publish for an untouched field and v2
-    does — unexplained, one form.
+    **What was left was three things, all known.** Sixteen lines in `TUP`
+    were finding 59's recorded divergence — per-option children built over
+    the schema's options rather than the resolved list — and finding 67
+    closed them. Three lines are the `Date` validator, unbuilt (11 uses).
+    One line is Burn's async jsonata validator, which legacy does not
+    publish for an untouched field and v2 does — unexplained, one form.
 
     `--show <form>` lists every difference in one form; `--trace <field>`
     prints legacy's node-level visibility, control identity and errors for
     matching fields, which is how causes 3 and 4 were found. The burndown
     and the parity run share `scripts/corpus.ts`.
+
+67. **Per-option children over the resolved options — the collection
+    pattern, again.** Finding 59 built a radio's per-option children over
+    the schema's option list, the only list known at translate time, and
+    recorded the divergence: legacy expands them over `fieldOptions`, the
+    list *after* `AllowedOptions`. The parity run put a number on it — 16
+    lines in `TUP`, where `toClassification`'s options come entirely from an
+    expression, so the per-option child that legacy hides and clears (wiping
+    the array the options came from, which is legacy's behaviour and is
+    reproduced faithfully) never existed in v2.
+
+    The resolved list is only known at render, and translation allocates
+    (finding 28). The loader already has the answer to that shape: a
+    collection's rows are translated per element *at render*, with one
+    eager pass over a detached representative row so the audit sees the
+    children's warnings once. Per-option children now do the same — lazy on
+    first sight of each resolved option value, memoised in the translation
+    closure so the React tree is stable, and the expression cache is already
+    keyed per option (`cacheKey`, finding 56) so a repeat allocates nothing.
+    The eager pass runs over the schema's options when there are any, and
+    over a stand-in option when there are none, so a radio whose options all
+    come from an expression still has its children audited. Verified: the
+    JSON tab's radio keeps its per-option description and the group under
+    the chosen option; parity on `TUP` 16 → 0, corpus-wide **140 of 144
+    identical, 4 differences**, all of them the two known validator gaps.
 
 ## Where to pick up
 
@@ -1646,10 +1664,7 @@ translation that is *wrong*. `rushx parity` can: it runs every corpus form
 through legacy itself (`@react-typed-forms/schemas@19`, headless) and
 through the v2 loader mounted under React, over the same fixture data, and
 diffs the values and errors each leaves at every data path. At the last run:
-**140 of 144 runs identical, 19 differences** — 16 the per-option-children
-divergence finding 59 recorded, 3 the unbuilt `Date` validator — plus 37
-classified as the display-only divergence finding 54 chose. Finding 66 has
-what building it found. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
+**140 of 144 runs identical, 4 differences** — 3 the unbuilt `Date` validator, 1 an async validator legacy does not publish for an untouched field — plus 37 classified as the display-only divergence finding 54 chose. Finding 66 has what building it found; finding 67 closed the 16 that were finding 59's recorded divergence. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
 inline style, no contract slot), a loader hook for host adornments
 (`Spotlight`) alongside the open `Translator[]`.
 
