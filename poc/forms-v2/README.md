@@ -14,6 +14,7 @@ rushx extract-corpus <name> <src-dir>   # a legacy app's forms + schemas → cor
 rushx burndown [<dir-or-file>...]       # the loader over ./corpus (default); --json, --strict
 rushx burndown --show unread:layoutClass # every warning of one shape, with the control it came from
 rushx burndown --no-actions              # also report every button no host handler claimed (489)
+rushx parity [--show <form>] [--fixture empty|filled] [--trace <field>]   # legacy vs v2, per path
 ```
 
 `corpus/` is gitignored — derived from other repositories. To rebuild it, point
@@ -1531,6 +1532,82 @@ Numbered; each is cited at the matching line of code.
     Burndown 792 → **777**. `defaultValue` is off the list; the semantics
     the second instrument needs are now all built.
 
+66. **The second instrument, and the four things it found on its first
+    run.** `scripts/parity.tsx`: every corpus form, twice over the same
+    fixture data — once through **legacy itself**, `createFormStateNode`
+    from `@react-typed-forms/schemas@19` driven headlessly exactly as its
+    renderer drives it, and once through the v2 loader mounted with
+    `react-dom/client` under happy-dom — then a diff of what each left in
+    the data and published as errors at every path, in three kinds
+    (`value`, `error`, `message`). Two fixtures per form: empty, and one
+    generated from the schema with every field filled. Visibility is never
+    read directly — v2 has no node tree to ask — but with `clearHidden` on
+    in both, a wrongly shown or hidden field that holds a value becomes a
+    value difference, which is what the filled fixture is for.
+
+    The v19 legacy stack runs on `@react-typed-forms/core@5`, the compat
+    package over `@rx-controls/core`, and in this workspace that resolves to
+    the local packages — so both sides run on **one engine copy** and one
+    `untrackedRead` walker reads both control trees. That also makes the
+    run a second acceptance test of "legacy schemas on the compat engine",
+    with the caveat that a difference can be a compat regression rather
+    than a loader one. Two copies of React bit first: the packages resolve
+    `react@19.1` and the POC pinned `~19.2`, which Vite dedupes and Node does
+    not; the POC now shares the packages' line.
+
+    **First run: 114 of 144 identical, 312 differences.** Four causes, in
+    the order they were found:
+
+    1. **Pending is not hidden — a v2 bug.** `jsonataProp` initialised its
+       result to `false`, so a `Visible: <jsonata>` control was hidden for
+       one tick at mount, `clearHidden` wiped its value, and by the time the
+       expression said "shown" the data was gone — and `required` then fired
+       on the emptied field, which was most of the error-kind lines. Legacy
+       keeps visibility `null` while an async script is pending and suspends
+       both cycles. Now the result starts `undefined`, `hidden` may resolve
+       to `undefined` (the contract's `FormProp<boolean | undefined>`,
+       legacy's `null`), and a pending boundary is shown but does not clear,
+       default or validate until the answer lands. 312 → 255.
+    2. **A compound rendered as a group is cleared as a unit.** Legacy
+       clears the compound's *own* value when hidden — `address: undefined`,
+       not `{ street: undefined, city: undefined }` — and finding 65 had
+       noted v2 did not. The loader's `CompoundCycle` now does both halves
+       over the compound's control. 255 → 113.
+    3. **`meta` schema fields — one flag, 75 fields, 21 forms.** Legacy binds
+       a `meta` field (`showPostalAddressDetails`, `cardDetails`,
+       `errorText`, `hasMastAccount`) to a side control hung off the parent's
+       meta (`metaFields`), never to the submitted value. The loader bound it
+       to the data. The trace that found it: legacy's node for
+       `hasMastAccount` was not the control core's `fields` returned for the
+       same parent, and legacy's `getChild` has exactly one branch that does
+       that. `fieldControl` now does what legacy's does, with legacy's key;
+       fixtures no longer fill meta fields, since legacy never read them from
+       the value. 113 → 52.
+    4. **The instrument's own two artefacts.** Fixture elements were
+       identical, so a radio built from them collided on option value and
+       legacy's per-option children fought over one array; elements are
+       distinct now. And finding 54's deliberate divergence — legacy cleared
+       a hidden DisplayOnly, v2 is write-free — showed as 37 lines; a field
+       bound only by DisplayOnly definitions that legacy cleared and v2 kept
+       is now reported as `expected`, outside the headline. 52 → **19**.
+
+    **What is left is three things, all known.** Sixteen lines in `TUP`:
+    `toClassification`'s options come from `AllowedOptions`, v2 builds
+    per-option children over the schema's options only (finding 59's
+    recorded divergence), so the child that legacy hides and clears —
+    wiping the very array the options came from — never exists in v2. A
+    decision, not a translator: reproducing it means translating per-option
+    children over the *resolved* options at render time, against finding
+    28's rule that translation allocates. Three lines are the `Date`
+    validator, unbuilt (11 uses). One line is Burn's async jsonata
+    validator, which legacy does not publish for an untouched field and v2
+    does — unexplained, one form.
+
+    `--show <form>` lists every difference in one form; `--trace <field>`
+    prints legacy's node-level visibility, control identity and errors for
+    matching fields, which is how causes 3 and 4 were found. The burndown
+    and the parity run share `scripts/corpus.ts`.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
@@ -1561,22 +1638,19 @@ The rest of the singleton tail — `HtmlEditor`, `Synchronised`
 is all `AllControls`, the testtemplate demo that exists to exercise every
 render type, and weighs accordingly.
 
-**What the number does not prove.** The burndown measures *shape coverage*
-— did something claim this discriminator, did something read this property,
-did the translator pass on what was built for it. It cannot see a
-translation that is *wrong* — though finding 62 shows how far a careful
-read audit reaches: it caught 296 conditions that were never evaluated,
-because the properties they needed were never read. Two of the three places to
-expect one are closed by finding 52 — jsonata inside a row now carries
-legacy's path prefix and `$$`/`$i`, and `a/b` / `../x` bind the right control
-*and* scope — and the `defaultValue` cycle is built (finding 65); what remains is that nothing checks that a
-translated expression *computes* what legacy's did. Goal 6's acceptance test
-therefore needs a second instrument: render each corpus form in legacy and in
-v2 over fixture data and diff visibility, validity and values per field — the
-compare-app workstream generalised from one Fire form to the corpus. Also
-unbuilt: `LayoutStyle` (15 uses; a dynamic inline style, no contract slot), a
-loader hook for host adornments (`Spotlight`) alongside the open
-`Translator[]`.
+**What the number does not prove — and the instrument that does.** The
+burndown measures *shape coverage*: did something claim this discriminator,
+read this property, pass on what was built for it. It cannot see a
+translation that is *wrong*. `rushx parity` can: it runs every corpus form
+through legacy itself (`@react-typed-forms/schemas@19`, headless) and
+through the v2 loader mounted under React, over the same fixture data, and
+diffs the values and errors each leaves at every data path. At the last run:
+**140 of 144 runs identical, 19 differences** — 16 the per-option-children
+divergence finding 59 recorded, 3 the unbuilt `Date` validator — plus 37
+classified as the display-only divergence finding 54 chose. Finding 66 has
+what building it found. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
+inline style, no contract slot), a loader hook for host adornments
+(`Spotlight`) alongside the open `Translator[]`.
 
 ## Things the POC deliberately does not answer
 

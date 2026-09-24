@@ -19,7 +19,7 @@ export interface SelectChildProps {
   items: SelectChildItem[];
   /** Which item shows: a key, or an index — legacy's `childIndexExpression`. */
   selected: FormProp<string | number | undefined | null>;
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
 }

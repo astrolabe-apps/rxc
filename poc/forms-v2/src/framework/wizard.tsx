@@ -33,7 +33,7 @@ export interface WizardProps {
    * container has to offer both, and the choice is the author's.
    */
   page?: Control<number | undefined>;
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   className?: FormProp<ClassValue>;

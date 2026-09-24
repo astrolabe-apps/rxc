@@ -20,7 +20,7 @@ export interface DialogProps {
   open: FormProp<boolean>;
   onClose?: () => void;
   title?: FormProp<ReactNode>;
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   className?: FormProp<ClassValue>;

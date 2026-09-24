@@ -197,6 +197,12 @@ becomes a `Control<T>` at translation and a `FormProp` closes over what it read.
 answer to whether v2 needs a cursor — it does, on the JSON side only. Corpus: 146 `a/b`
 references, 43 `../x`, 50 jsonata expressions inside rows, 10 reading `$i`, 5 reading `$$`.
 
+**`meta` schema fields bind to a side store (built, loader-only).** Legacy hangs a `metaFields`
+control off the parent's meta and binds a field flagged `meta` there, so UI state like
+`showPostalAddressDetails` or `cardDetails` is never in the submitted value. The loader's
+`fieldControl` does the same, with legacy's key. 75 such fields in the corpus; found by the
+parity run (README finding 66).
+
 ## 4. Presence
 
 ```ts
@@ -223,6 +229,13 @@ narrow it, and neither of them is an author writing `presence=`:
   scope facet rather than a prop.
 
 That is the whole mechanism; there is no separate visibility system.
+
+**Pending is not hidden (built).** A `hidden` prop may resolve to `undefined` — an async
+expression that has not answered yet, legacy's `visible: null`. The boundary treats that as
+shown, and holds every write cycle: no `clearHidden`, no `defaultValue`, no validation until
+the answer lands. The first cut initialised async results to `false`, so a `Visible` expression
+hid its field for one tick at mount and `clearHidden` wiped it; the parity run found this on a
+few hundred fields (README finding 66).
 
 **`inline` is a scope facet too (built).** Legacy's Inline group is prose — a bare span whose
 children render with no shell and no block. A group receives opaque `children`, so the only

@@ -163,17 +163,20 @@ export function useDefaultValue<T>(
   defaultValue: FormProp<T> | undefined,
   scope: ScopeState,
   enabled: boolean,
+  /** The boundary's own `hidden`; while it is pending, nothing is written. */
+  hidden?: FormProp<boolean | undefined>,
 ): void {
   const ctx = useControlContext();
   useEffect(() => {
     if (!enabled || defaultValue === undefined) return;
     const h = effect(ctx, (rc) => {
       if (scope.presence(rc) === "hidden") return;
+      if (hidden !== undefined && getProp(rc, hidden) === undefined) return;
       if (rc.getValue(control) !== undefined) return;
       const d = getProp(rc, defaultValue);
       if (d === undefined || d === null) return;
       ctx.update((wc) => wc.setValue(control, d));
     });
     return () => h.cleanup();
-  }, [ctx, control, defaultValue, scope, enabled]);
+  }, [ctx, control, defaultValue, scope, enabled, hidden]);
 }

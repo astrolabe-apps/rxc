@@ -85,13 +85,15 @@ export interface FieldProps<T> {
    * is NOT a prop — `hidden` narrows it, and only a container implementation
    * narrows it to `silent`.
    */
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   /** Static, like the JSON flag it mirrors. */
   dontClearHidden?: boolean;
   /**
-   * Written into the field while it is not hidden and its value is
+   * Written into the field while it is not hidden, not *pending* (a `hidden`
+   * that resolves to `undefined` — an async expression that has not yet
+   * answered, legacy's `visible: null`) and its value is
    * `undefined` — legacy's rule, `null` included in "has a value". With
    * `clearHidden` this is a cycle: hide → cleared → show → defaulted again,
    * which is what lets a section reappear in its initial state. Boundary
@@ -222,7 +224,7 @@ export interface VisibilityProps {
 
 /** What an author writes on a group. Same three flags as a field. */
 export interface GroupProps {
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   /** A heading over the content; absent means none. */
@@ -465,7 +467,7 @@ export type DisplayOnlyRenderProps = FieldRenderProps<unknown> &
  * `clearHidden`, the locks, the field state.
  */
 export interface DisplayProps {
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   /**
    * Where the legacy `Tooltip` adornment lands. An accessible name is text —
    * redundant on a display that already renders text, load-bearing on one
@@ -518,7 +520,7 @@ export interface ActionProps {
   icon?: FormProp<ReactNode>;
   iconPlacement?: FormProp<IconPlacement>;
   onClick?: () => void | Promise<void>;
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   disableType?: DisableType;
   style?: FormProp<ActionStyle>;

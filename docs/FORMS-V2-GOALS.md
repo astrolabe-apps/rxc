@@ -166,17 +166,16 @@ Nothing below is settled. In rough order of how much else depends on it:
    the POC README** (*Where to pick up*) — the legacy sources keep moving under the corpus, so
    this document does not repeat the figure.
 
-   **What the number does not prove.** It measures shape coverage — did something claim this
-   discriminator, did something read this property, did the translator pass on what was built
-   for it — and cannot see a translation that is *wrong*. It reaches further than that sounds:
-   the read audit, once it looked inside expression entries, caught 296 visibility conditions
-   the loader had silently never evaluated (README finding 62). Three places to expect one, two of them since closed (README finding 52): a
-   jsonata expression inside an array row now carries legacy's path prefix and `$$`/`$i`, and
-   a `../x` or `a/b` reference binds the right control *and* scope; the `defaultValue` cycle is built too (README finding 65). So "identical
-   semantics" needs a second instrument beside the burndown: render each corpus form in legacy
-   and in v2 over fixture data and diff visibility, validity and values per field — the
-   compare-app workstream generalised from one Fire form to the corpus. Until that exists the
-   target is asserted, not measured. README, *Where to pick up*.
+   **What the number does not prove — and the second instrument that does (built).** The
+   burndown measures shape coverage — did something claim this discriminator, read this
+   property, pass on what was built for it — and cannot see a translation that is *wrong*.
+   `rushx parity` can: every corpus form through legacy itself (`@react-typed-forms/schemas`,
+   headless) and through the v2 loader, over the same fixture data, diffing the values and
+   errors each leaves at every path. Its first run found a v2 bug the burndown could never
+   have seen (a pending async visibility counted as hidden, so `clearHidden` wiped the field
+   at mount) and an unhandled schema flag (`meta` fields, 75 of them). At the last run 140 of
+   144 runs were identical, with 19 differences, all classified (README finding 66). The
+   target is now measured, not asserted.
 
    The gaps that matter are mostly not unknown *control types* — those were always visible.
    They are features on a control that translated fine and then silently lost behaviour the
