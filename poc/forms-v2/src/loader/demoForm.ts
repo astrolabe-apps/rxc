@@ -65,6 +65,8 @@ export const demoControls: ControlDefinition[] = [
     type: "Data",
     field: "vetName",
     required: true,
+    // The default-value cycle: hidden → cleared → shown → defaulted again.
+    defaultValue: "Dr. Dolittle",
     dynamic: [
       {
         type: "Visible",

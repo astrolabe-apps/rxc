@@ -17,6 +17,13 @@ export type FieldType =
   | "Compound";
 
 export interface SchemaField {
+  /**
+   * UI state, not data: legacy binds a `meta` field to a side control on the
+   * parent (`metaFields`), never to the value that is submitted. 75 in the
+   * corpus — `showPostalAddressDetails`, `cardDetails`, `errorText` (README
+   * finding 66).
+   */
+  meta?: boolean | null;
   field: string;
   type: FieldType;
   displayName?: string;
@@ -41,7 +48,8 @@ export type DynamicPropertyType =
   | "Label"
   | "ActionData"
   | "Display"
-  | "AllowedOptions";
+  | "AllowedOptions"
+  | "DefaultValue";
 
 export interface DynamicProperty {
   type: DynamicPropertyType;
@@ -85,6 +93,8 @@ export interface ControlDefinition {
   disabled?: boolean;
   readonly?: boolean;
   dontClearHidden?: boolean;
+  /** Written while shown and undefined — legacy's default-value cycle. */
+  defaultValue?: unknown;
   /** The four class slots — see goals decision 4. `"@ "` prefix = replace. */
   styleClass?: string | null;
   textClass?: string | null;

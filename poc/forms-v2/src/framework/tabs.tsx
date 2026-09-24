@@ -29,7 +29,7 @@ export interface TabsProps {
    * cannot take an opaque `ReactNode` — see the note in §8 of the doc.
    */
   items: TabItem[];
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   className?: FormProp<ClassValue>;

@@ -1,5 +1,6 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import {
+  effect,
   untrackedRead,
   type Control,
   type ControlContext,
@@ -14,6 +15,7 @@ import {
   arrayActions,
   Stack,
   StandardActionIds,
+  useDefaultValue,
   useFormScope,
   CheckboxField,
   Contents,
@@ -391,8 +393,22 @@ export const defaultTranslators: Translator[] = [
         labelClassName: props.labelClassName,
         labelTextClassName: props.labelTextClassName,
       };
+      // A compound is data too: legacy defaulted it (`{}` on a hidden-then-
+      // shown section, so its children have an object to bind into). A
+      // group boundary has no binding, so the loader runs the same effect.
+      const withDefault = (
+        <>
+          <CompoundCycle
+            control={props.field}
+            value={props.defaultValue}
+            hidden={props.hidden}
+            dontClearHidden={props.dontClearHidden}
+          />
+          {children}
+        </>
+      );
       if (kind === "Inline")
-        return <InlineGroup {...groupProps}>{children}</InlineGroup>;
+        return <InlineGroup {...groupProps}>{withDefault}</InlineGroup>;
       return (
         <Contents {...groupProps}>
           {kind === "Flex" ? (
@@ -400,10 +416,10 @@ export const defaultTranslators: Translator[] = [
               direction={(nested.direction as "row" | "column") ?? "row"}
               gap={nested.gap as string | undefined}
             >
-              {children}
+              {withDefault}
             </Stack>
           ) : (
-            children
+            withDefault
           )}
         </Contents>
       );
@@ -663,6 +679,7 @@ function buildProps(
   const visible = dyn("Visible");
   const disabled = dyn("Disabled");
   const label = dyn("Label");
+  const dynDefault = dyn("DefaultValue");
 
   const expr: (detail: string) => void = (detail) =>
     warn({ kind: "expression", subject: def.field ?? def.title, detail });
@@ -716,14 +733,28 @@ function buildProps(
     ? toFormProp(ctx, scope, disabled, expr)
     : undefined;
 
-  const hiddenFromExpr: FormProp<boolean> | undefined = visibleProp
-    ? (rc) => !getProp(rc, visibleProp)
+  // `undefined` while the expression is pending — legacy's `visible: null` —
+  // which the boundaries treat as shown but not yet decided: no clear, no
+  // default, no validation until the answer lands (finding 66).
+  const hiddenFromExpr: FormProp<boolean | undefined> | undefined = visibleProp
+    ? (rc) => {
+        const v = getProp(rc, visibleProp);
+        return v === undefined ? undefined : !v;
+      }
     : undefined;
   // The static flags are the fallbacks when an expression exists — read
   // them first, so the audit counts them as consumed (a `hidden: true` with
   // a Visible expression is "hidden unless…", and legacy reads it the same).
   const staticHidden = def.hidden;
   const staticDisabled = def.disabled;
+  // Legacy: `defaultValue != null` is a default; the editor writes `null`
+  // on every control, and that is "none". The dynamic form is scriptable.
+  const staticDefault = def.defaultValue;
+  const defaultValue: FormProp<unknown> | undefined = dynDefault
+    ? toValueProp(ctx, scope, dynDefault, expr)
+    : staticDefault === null
+      ? undefined
+      : staticDefault;
 
   // `hideTitle` is legacy's "render no label"; a group keeps the same flag
   // under `groupOptions`. Read both so the audit sees them either way.
@@ -760,9 +791,13 @@ function buildProps(
     requiredMessage: def.requiredErrorText,
     helpText,
     hidden: hiddenFromExpr ?? staticHidden,
-    disabled: disabledProp ?? staticDisabled,
+    // A pending async `disabled` is not disabled; there is no third state here.
+    disabled: disabledProp
+      ? (rc) => getProp(rc, disabledProp) ?? false
+      : staticDisabled,
     readOnly: def.readonly,
     dontClearHidden: def.dontClearHidden,
+    defaultValue,
     validate: Object.keys(validate).length ? validate : undefined,
     className: toClassValue(def.styleClass),
     textClassName: toClassValue(def.textClass),
@@ -941,6 +976,7 @@ const propSources: Record<string, (keyof ControlDefinition)[]> = {
   disabled: ["disabled"],
   readOnly: ["readonly"],
   dontClearHidden: ["dontClearHidden"],
+  defaultValue: ["defaultValue"],
   validate: ["validators"],
   className: ["styleClass"],
   textClassName: ["textClass"],
@@ -1059,7 +1095,7 @@ function DialogGroup({
 }: {
   title?: string;
   placements: (string | null | undefined)[];
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   className?: FormProp<ClassValue>;
   retranslate: (opts: Partial<LoaderOptions>) => ReactNode[];
 }) {
@@ -1104,7 +1140,13 @@ function tooltipOf(def: ControlDefinition): string | undefined {
   return typeof a?.tooltip === "string" ? a.tooltip : undefined;
 }
 
-const handledDynamic = new Set(["Visible", "Disabled", "Label", "ActionData"]);
+const handledDynamic = new Set([
+  "Visible",
+  "Disabled",
+  "Label",
+  "ActionData",
+  "DefaultValue",
+]);
 
 /**
  * Keys a *parent* translator reads off a child definition, which the child's
@@ -1361,11 +1403,45 @@ export function translateForm(
   opts: LoaderOptions,
 ): { tree: ReactNode[]; warnings: LoaderWarning[] } {
   const warnings: LoaderWarning[] = [];
-  const root = rootScope(data, fields);
+  const root = rootScope(ctx, data, fields);
   const tree = controls.map((c, i) =>
     translate(ctx, root, c, String(i), opts, (w) => warnings.push(w)),
   );
   return { tree, warnings };
+}
+
+/**
+ * Legacy's data cycle for a control no field boundary owns — a compound
+ * rendered as a group. Legacy cleared the compound's *own* value when hidden
+ * (`address: undefined`, not `{ street: undefined, … }`) and defaulted it
+ * when shown; a v2 group boundary has no binding and does neither, so the
+ * loader does both here, over the compound's control, from inside the
+ * group's scope (README findings 65 and 66).
+ */
+function CompoundCycle({
+  control,
+  value,
+  hidden,
+  dontClearHidden,
+}: {
+  control: Control<unknown>;
+  value: FormProp<unknown> | undefined;
+  hidden: FormProp<boolean | undefined> | undefined;
+  dontClearHidden: boolean | undefined;
+}) {
+  const scope = useFormScope();
+  const ctx = useControlContext();
+  useEffect(() => {
+    if (!scope.clearHidden || dontClearHidden) return;
+    const h = effect(ctx, (rc) => {
+      if (scope.presence(rc) !== "hidden") return;
+      if (rc.getValue(control) === undefined) return;
+      ctx.update((wc) => wc.setValue(control, undefined));
+    });
+    return () => h.cleanup();
+  }, [ctx, control, scope, dontClearHidden]);
+  useDefaultValue(control, value, scope, true, hidden);
+  return null;
 }
 
 /**
@@ -1386,7 +1462,7 @@ function ArrayAdd({
   actionId: string;
   text: string;
   value: unknown;
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
 }): Rendered {
   const { rc, rendered } = useReactive();
   const ctx = useControlContext();

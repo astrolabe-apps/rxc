@@ -68,7 +68,7 @@ export function toFormProp(
   scope: DataScope,
   expr: EntityExpression,
   warn?: ExprWarn,
-): FormProp<boolean> | undefined {
+): FormProp<boolean | undefined> | undefined {
   switch (expr.type) {
     case "Data": {
       const read = refReader(scope, expr.field as string, warn);
@@ -212,12 +212,19 @@ function jsonataProp(
   scope: DataScope,
   expression: string,
   warn?: ExprWarn,
-): Control<boolean> {
-  return ensureMetaValue<Control<boolean>>(
+): Control<boolean | undefined> {
+  return ensureMetaValue<Control<boolean | undefined>>(
     scope.control,
     "$expr/bool/" + (scope.cacheKey ?? "") + expression,
     () => {
-      const result = ctx.newControl(false);
+      // `undefined` until the first evaluation lands: **pending is not
+      // false**. Initialised to `false`, a `Visible` expression read as
+      // hidden for one tick at mount, `clearHidden` wiped the value, and
+      // by the time the expression said "shown" the data was gone. Legacy
+      // keeps visibility `null` while an async script is pending and
+      // suspends both cycles; the parity run found this on 200-odd fields
+      // (README finding 66).
+      const result = ctx.newControl<boolean | undefined>(undefined);
       const compiled = compile(scope, expression, warn);
       if (!compiled) return result;
       evaluator(

@@ -1,4 +1,9 @@
-import type { Control, ReadContext } from "@rx-controls/core";
+import {
+  ensureMetaValue,
+  type Control,
+  type ControlContext,
+  type ReadContext,
+} from "@rx-controls/core";
 import type { SchemaField } from "./json.js";
 
 /** One step of the path from the root data to a scope, for the jsonata prefix. */
@@ -23,6 +28,8 @@ export interface PathSegment {
  * lives entirely on the JSON side (README finding 52).
  */
 export interface DataScope {
+  /** For the controls the loader has to allocate — a meta field's side store. */
+  ctx: ControlContext;
   control: Control<unknown>;
   fields: SchemaField[];
   /** The schema field whose value this is — absent at the root. */
@@ -60,19 +67,33 @@ export function withVariables(
 }
 
 export function rootScope(
+  ctx: ControlContext,
   control: Control<unknown>,
   fields: SchemaField[],
 ): DataScope {
-  return { control, fields, path: [] };
+  return { ctx, control, fields, path: [] };
 }
 
+/**
+ * Legacy's `SchemaDataTree.getChild`, verbatim: a `meta` field lives on a
+ * side control hung off the parent's meta (`metaFields`), so UI state such
+ * as `showPostalAddressDetails` or `cardDetails` is never in the submitted
+ * value and never in the data the fixtures fill. Same key as legacy.
+ */
 function fieldControl(
+  ctx: ControlContext,
   control: Control<unknown>,
   name: string,
+  schema: SchemaField | undefined,
 ): Control<unknown> {
-  return (control as Control<Record<string, unknown>>).fields[
-    name
-  ] as Control<unknown>;
+  const owner = schema?.meta
+    ? ensureMetaValue<Control<Record<string, unknown>>>(
+        control,
+        "metaFields",
+        () => ctx.newControl<Record<string, unknown>>({}),
+      )
+    : (control as Control<Record<string, unknown>>);
+  return owner.fields[name] as Control<unknown>;
 }
 
 /** Into a compound field's value. */
@@ -82,7 +103,8 @@ export function fieldScope(
   schema: SchemaField | undefined,
 ): DataScope {
   return {
-    control: fieldControl(scope.control, name),
+    ctx: scope.ctx,
+    control: fieldControl(scope.ctx, scope.control, name, schema),
     fields: schema?.children ?? [],
     field: schema,
     parent: scope,
@@ -106,7 +128,8 @@ export function elementScope(
   index: number,
 ): DataScope {
   const array: DataScope = {
-    control: fieldControl(scope.control, name),
+    ctx: scope.ctx,
+    control: fieldControl(scope.ctx, scope.control, name, schema),
     fields: [],
     field: schema,
     parent: scope,
@@ -114,6 +137,7 @@ export function elementScope(
     variables: scope.variables,
   };
   return {
+    ctx: scope.ctx,
     control: item,
     fields: schema?.children ?? [],
     field: schema,

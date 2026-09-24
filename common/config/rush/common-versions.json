@@ -74,6 +74,7 @@
      * (legacy-demos, legacy-compare) deliberately stay on the published 4.6
      * baseline (decoupledLocalDependencies in rush.json).
      */
+    "@react-typed-forms/schemas": ["^19.0.0"],
     "@react-typed-forms/core": ["^4.6.0", "workspace:*"],
 
     /**

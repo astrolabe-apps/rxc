@@ -18,7 +18,11 @@ import {
   useFormScope,
   type ScopeState,
 } from "./scope.js";
-import { useFieldValidation, useMirror } from "./validation.js";
+import {
+  useDefaultValue,
+  useFieldValidation,
+  useMirror,
+} from "./validation.js";
 import { useRenderers } from "./renderers.js";
 import {
   createValidationScope,
@@ -50,6 +54,7 @@ const contractKeys = new Set([
   "disabled",
   "readOnly",
   "dontClearHidden",
+  "defaultValue",
   "label",
   "required",
   "requiredMessage",
@@ -66,9 +71,19 @@ const contractKeys = new Set([
 
 /** A `hidden` prop narrows presence; only a container narrows it to `silent`. */
 function hiddenToPresence(
-  hidden: FormProp<boolean> | undefined,
+  hidden: FormProp<boolean | undefined> | undefined,
 ): (rc: ReadContext) => Presence {
+  // `undefined` is pending, and pending is shown — legacy's `visible: null`
+  // renders — but the boundaries hold the write cycles until it resolves.
   return (rc) => ((getProp(rc, hidden) ?? false) ? "hidden" : "rendered");
+}
+
+/** An async `hidden` that has not answered yet. */
+export function hiddenPending(
+  rc: ReadContext,
+  hidden: FormProp<boolean | undefined> | undefined,
+): boolean {
+  return hidden !== undefined && getProp(rc, hidden) === undefined;
 }
 
 /**
@@ -77,7 +92,7 @@ function hiddenToPresence(
  * cascade the binding layer already honours. Restriction-only throughout.
  */
 export function useBoundScope(props: {
-  hidden?: FormProp<boolean>;
+  hidden?: FormProp<boolean | undefined>;
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
 }): ScopeState {
@@ -177,8 +192,12 @@ export function fieldRenderer<T, P extends object = {}>(
     const requiredMessage =
       getProp(rc, props.requiredMessage) ?? "Please enter a value";
 
+    // Legacy validates only while `visible` is true — not while a pending
+    // async expression has left it null — so a field whose `hidden` is
+    // still undecided does not report yet.
+    const pending = hiddenPending(rc, props.hidden);
     const cfg = useMirror({
-      active: presenceNow !== "hidden",
+      active: presenceNow !== "hidden" && !pending,
       required,
       requiredMessage,
     });
@@ -199,6 +218,8 @@ export function fieldRenderer<T, P extends object = {}>(
     useEffect(() => {
       if (shouldClear) ctx.update((wc) => wc.setValue(control, undefined as T));
     }, [shouldClear, control, ctx]);
+    // The other half of the cycle: defaulted while shown and undefined.
+    useDefaultValue(control, props.defaultValue, scope, writes, props.hidden);
 
     useEffect(() => vscope?.register(control), [vscope, control]);
 
@@ -435,6 +456,7 @@ export function collectionRenderer<T, P extends object = {}>(
       if (shouldClear)
         ctx.update((wc) => wc.setValue(control, undefined as unknown as T[]));
     }, [shouldClear, control, ctx]);
+    useDefaultValue(control, props.defaultValue, scope, true, props.hidden);
 
     useEffect(() => vscope?.register(control), [vscope, control]);
 
