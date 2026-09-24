@@ -224,6 +224,14 @@ narrow it, and neither of them is an author writing `presence=`:
 
 That is the whole mechanism; there is no separate visibility system.
 
+**A `silent` producer can be written outside the package (built).** `useBoundScope`,
+`narrowScope` and `FormScopeProvider` are public, and that is all a container needs to put a
+branch off screen and keep it validating — the POC's third-party `SelectChild` (legacy's
+data-chosen child; zero corpus uses, so not a built-in) does it with no registry slot and no
+boundary factory. It is the fourth container to build *items × presence* by hand after Tabs,
+Wizard and Dialog; a shared `useSwitch(items, active)` is the obvious v2 extraction (README
+finding 57).
+
 **`silent` is real, and a tab strip is what proves it (built).** An inactive tab shows an error
 marker for content that is rendering nothing, and the marker *updates live* — fix the offending
 field inside the inactive tab and it clears while that tab is still off screen. Three things the
@@ -355,6 +363,15 @@ can express it.
 interface GroupProps  { hidden?; disabled?; readOnly?; title?; className?; children: ReactNode }
 // `title` is a heading the implementation draws when given (built); a JSON group's `title`
 // arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
+
+/** The radio's extras — the select's, plus legacy's per-option content and entry classes (built). */
+interface RadioExtra extends SelectExtra {
+  children?: (option: FieldOption, selected: boolean) => ReactNode;  // called for EVERY option;
+                                        // gate with <Contents hidden={!selected}>, never `selected && …`
+  entryClassName?: FormProp<ClassValue>;         // legacy CheckEntryClasses: the option's wrapper …
+  selectedClassName?: FormProp<ClassValue>;      // … and its two states
+  notSelectedClassName?: FormProp<ClassValue>;
+}
 
 /** A container needing per-child metadata takes it structured, not as children. */
 interface TabsProps  { items: { key: string; title: ReactNode; children: ReactNode }[]; … }
@@ -580,6 +597,17 @@ the implementation sees the result as `invalid` in its render props. A scope als
 **pending** — an async validator under it has not answered — and `settled()` resolves once none
 is. `isValid` stays optimistic while pending, so a step marker does not flash invalid on every
 keystroke; anything that has to *decide* awaits `settled()` first.
+
+**Error keys are per boundary, not per validator name (built).** Errors live on the control;
+validators live on the boundary; and one control is routinely bound by two boundaries — the
+field a modal shows *is* the field, a select and a radio over one status, a branch that
+requires what another region shows. Each boundary runs its own `required` and publishes a
+verdict, and under a shared key the last writer wins on a timing nothing controls — which
+is exactly what the first cut did, and it silently lost a `required` to a `required: false`
+sibling. Legacy scoped the key to the node (`uniqueId + "default"`); the framework's key is
+now `required@<boundary id>`, so a boundary clears only what it set. Author keys stay as
+written, and `fieldState.errors` is a set so two boundaries agreeing read as one error.
+README finding 58.
 
 The scope **is** a real `Control` — which is what makes validity an ordinary tracked read,
 `touchAll` a `setTouched` cascade, and nesting just another member — built on core's

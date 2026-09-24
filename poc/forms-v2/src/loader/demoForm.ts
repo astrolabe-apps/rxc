@@ -203,14 +203,57 @@ export const demoControls: ControlDefinition[] = [
     title: "Tooltipped field",
     adornments: [{ type: "Tooltip", tooltip: "Family name." }],
   },
-  // Two shapes that render *something* and quietly lose what the JSON asked
-  // for — the failure the warning list exists to catch.
+  // Radio with legacy's per-option children: a description under every
+  // option (ShortTermPermit's shape — a Display whose text is a jsonata
+  // lookup on `$formData.option.value`), and a detail group shown under the
+  // chosen one (TUP's shape — `Visible` on `$formData.optionSelected`).
   {
     type: "Data",
     field: "status",
     title: "Status as radios",
-    renderOptions: { type: "Radio" },
+    renderOptions: {
+      type: "Radio",
+      entryWrapperClass: "demo-entry",
+      selectedClass: "demo-entry--on",
+    },
+    children: [
+      {
+        type: "Display",
+        displayData: { type: "Text", text: "" },
+        styleClass: "demo-entry-note",
+        dynamic: [
+          {
+            type: "Display",
+            expr: {
+              type: "Jsonata",
+              expression:
+                "{'active': 'A current member.', 'inactive': 'Membership has lapsed.'}.$lookup($formData.option.value)",
+            },
+          },
+        ],
+      },
+      {
+        type: "Group",
+        groupOptions: { type: "Contents" },
+        dynamic: [
+          {
+            type: "Visible",
+            expr: { type: "Jsonata", expression: "$formData.optionSelected" },
+          },
+        ],
+        children: [
+          {
+            type: "Data",
+            field: "notes",
+            title: "Notes for this status",
+            renderOptions: { type: "Multiline" },
+          },
+        ],
+      },
+    ],
   },
+  // A shape that renders *something* and quietly loses what the JSON asked
+  // for — the failure the warning list exists to catch.
   {
     type: "Data",
     field: "firstName",

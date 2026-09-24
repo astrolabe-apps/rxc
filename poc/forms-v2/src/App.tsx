@@ -80,7 +80,7 @@ function Demo(): Rendered {
     return {
       name,
       value: rc.getValue(child),
-      errors: Object.values(rc.getErrors(child)).filter(Boolean),
+      errors: [...new Set(Object.values(rc.getErrors(child)).filter(Boolean))],
       touched: rc.isTouched(child),
       dirty: rc.isDirty(child),
     };

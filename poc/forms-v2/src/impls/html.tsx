@@ -25,6 +25,7 @@ import {
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
+  type RadioRenderProps,
   type FieldShellProps,
   type FormRenderers,
   type FrameState,
@@ -261,6 +262,75 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
         onChange={(e) => ctl.setChecked(e.target.checked)}
         onBlur={ctl.onBlur}
       />
+    </Shell>,
+  );
+}
+
+/**
+ * One controller serves both options widgets — a radio group is a select with
+ * the list drawn open. Per-option content renders under each entry, selected
+ * or not; the content gates itself.
+ */
+function HtmlRadio(p: RadioRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useSelectController(p.field, p.options);
+  const entryCls = getProp(ctl.rc, p.entryClassName);
+  const onCls = getProp(ctl.rc, p.selectedClassName);
+  const offCls = getProp(ctl.rc, p.notSelectedClassName);
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  const entries = ctl.options.map((o) => ({
+    o,
+    selected: ctl.stringValue === String(o.value),
+  }));
+  const entryClass = (selected: boolean) =>
+    mergeClass(
+      mergeClass("ff-radio-entry", entryCls),
+      selected ? onCls : offCls,
+    );
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <div
+        role="radiogroup"
+        className={mergeClass("ff-radio", p.className)}
+        aria-describedby={describedBy(p)}
+      >
+        {entries.map(({ o, selected }, i) => (
+          <div
+            key={String(o.value)}
+            className={entryClass(selected)}
+            data-selected={selected ? "" : undefined}
+          >
+            <label className="ff-radio-option">
+              <input
+                id={`${p.id}_${i}`}
+                type="radio"
+                name={p.id}
+                value={String(o.value)}
+                checked={selected}
+                disabled={locked || o.disabled}
+                onChange={() => ctl.setFromString(String(o.value))}
+                onBlur={ctl.onBlur}
+              />
+              <span className={mergeClass(undefined, p.textClassName)}>
+                {o.name}
+              </span>
+            </label>
+            {p.children?.(o, selected)}
+          </div>
+        ))}
+      </div>
     </Shell>,
   );
 }
@@ -538,6 +608,7 @@ export const htmlRenderers: FormRenderers = {
   checkbox: HtmlCheckbox,
   displayOnly: HtmlDisplayOnly,
   select: HtmlSelect,
+  radio: HtmlRadio,
   text: HtmlText,
   html: HtmlHtml,
   icon: HtmlIcon,

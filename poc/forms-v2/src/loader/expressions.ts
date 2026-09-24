@@ -151,11 +151,14 @@ function evaluator(
     const id = ++gen;
     rc.beginTracking();
     const data = ensurePathNavigable(rc.getTrackedValue(root), path);
+    // Bindings read through the same tracking rc, so `$formData.optionSelected`
+    // re-runs the expression when the option's field changes.
+    const bindings = scope.variables?.(rc);
     const settle = () => {
       reconciler.reconcile(rc.tracked);
       rc.finalize();
     };
-    compiled.evaluate(data).then(
+    compiled.evaluate(data, bindings).then(
       (v: unknown) => {
         if (id !== gen) return;
         settle();
@@ -191,7 +194,7 @@ function jsonataProp(
 ): Control<boolean> {
   return ensureMetaValue<Control<boolean>>(
     scope.control,
-    "$expr/bool/" + expression,
+    "$expr/bool/" + (scope.cacheKey ?? "") + expression,
     () => {
       const result = ctx.newControl(false);
       const compiled = compile(scope, expression, warn);
@@ -215,7 +218,7 @@ function jsonataValue(
 ): Control<unknown> {
   return ensureMetaValue<Control<unknown>>(
     scope.control,
-    "$expr/value/" + expression,
+    "$expr/value/" + (scope.cacheKey ?? "") + expression,
     () => {
       const result = ctx.newControl<unknown>(undefined);
       const compiled = compile(scope, expression, warn);

@@ -62,7 +62,9 @@ export function fieldState<T>(
     readOnly: scope.readOnly(rc),
     touched: rc.isTouched(control),
     dirty: rc.isDirty(control),
-    errors: Object.values(rc.getErrors(control)).filter(Boolean),
+    // A set, not a list: two boundaries over one control each own a
+    // `required` key (validation.ts), and the same verdict twice is one error.
+    errors: [...new Set(Object.values(rc.getErrors(control)).filter(Boolean))],
   };
 }
 

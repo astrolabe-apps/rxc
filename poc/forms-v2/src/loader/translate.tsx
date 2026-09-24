@@ -15,6 +15,7 @@ import {
   getProp,
   HtmlDisplay,
   IconDisplay,
+  RadioField,
   SelectField,
   Tabs,
   TextDisplay,
@@ -30,6 +31,7 @@ import {
   elementScope,
   resolveRef,
   rootScope,
+  withVariables,
   type DataScope,
   type ResolvedRef,
 } from "./scope.js";
@@ -96,7 +98,28 @@ export interface TranslateArgs {
    * a Dialog group claims `openDialog` / `closeDialog` for its subtree. The
    * given handler is consulted first; the enclosing one is the fall-through.
    */
-  retranslate?: (opts: Partial<LoaderOptions>) => ReactNode[];
+  retranslate?: (
+    opts: Partial<LoaderOptions>,
+    /**
+     * Rebuild the children somewhere else in the data. A radio's per-option
+     * children bind the *parent* scope with per-option bindings, as legacy
+     * did; `child` is the default, `own` the scope this definition sits in,
+     * `field` its bound control.
+     */
+    scope?: (
+      child: DataScope,
+      own: DataScope,
+      field: Control<unknown> | undefined,
+    ) => DataScope,
+    /** Skip warning collection — the children were already walked once. */
+    quiet?: boolean,
+  ) => ReactNode[];
+  /**
+   * A `dynamic` entry as a value prop — for the ones that are not field props:
+   * a Display control's `Display` override. A translator that consumes one
+   * lists it in `dynamics`, or it is reported as dropped.
+   */
+  dynamicValue: (type: string) => FormProp<unknown> | undefined;
 }
 
 export interface Translator {
@@ -110,6 +133,8 @@ export interface Translator {
    * warning rather than a silent `<input>`.
    */
   renderTypes?: string[];
+  /** The `dynamic` property types this translator reads through `dynamicValue`. */
+  dynamics?: string[];
   /**
    * The translator builds its children itself through `retranslate` — a
    * Dialog group, whose children need its handler. The loader then skips its
@@ -209,25 +234,39 @@ export const defaultTranslators: Translator[] = [
   },
   {
     match: (d) => d.type === "Display" && d.displayData?.type === "Text",
-    render: ({ def, props }) => (
-      <TextDisplay
-        text={def.displayData?.text}
-        hidden={props.hidden}
-        className={props.className}
-        textClassName={props.textClassName}
-      />
-    ),
+    dynamics: ["Display"],
+    render: ({ def, props, dynamicValue }) => {
+      // Read the static text first: it is the fallback, so it is consumed
+      // whether or not a dynamic override exists, and the audit should say so.
+      const text = def.displayData?.text;
+      return (
+        <TextDisplay
+          text={
+            (dynamicValue("Display") as FormProp<ReactNode> | undefined) ?? text
+          }
+          hidden={props.hidden}
+          className={props.className}
+          textClassName={props.textClassName}
+        />
+      );
+    },
   },
   {
     match: (d) => d.type === "Display" && d.displayData?.type === "Html",
-    render: ({ def, props }) => (
-      <HtmlDisplay
-        html={def.displayData?.html}
-        hidden={props.hidden}
-        className={props.className}
-        textClassName={props.textClassName}
-      />
-    ),
+    dynamics: ["Display"],
+    render: ({ def, props, dynamicValue }) => {
+      const html = def.displayData?.html;
+      return (
+        <HtmlDisplay
+          html={
+            (dynamicValue("Display") as FormProp<string> | undefined) ?? html
+          }
+          hidden={props.hidden}
+          className={props.className}
+          textClassName={props.textClassName}
+        />
+      );
+    },
   },
   {
     // The one display whose accessible name is load-bearing — and where the
@@ -297,6 +336,61 @@ export const defaultTranslators: Translator[] = [
         >
           {(item, index) => element!(item, index)}
         </Elements>
+      );
+    },
+  },
+  {
+    // Radio, with legacy's per-option children: the definition's children
+    // are translated once per option against the *parent* scope, with
+    // `$formData.option` / `$formData.optionSelected` bound — what the
+    // corpus's six radios-with-children read. Warnings are collected on the
+    // first option's pass only.
+    match: (d, s) =>
+      d.type === "Data" &&
+      d.renderOptions?.type === "Radio" &&
+      !!s?.options?.length,
+    renderTypes: ["Radio"],
+    ownsChildren: true,
+    render: ({ def, props, schema, retranslate }) => {
+      const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
+      const options = schema!.options!;
+      const hasChildren = !!def.children?.length;
+      const perOption = new Map(
+        options.map((o, i) => [
+          String(o.value),
+          hasChildren
+            ? retranslate!(
+                {},
+                (_child, own, field) =>
+                  withVariables(
+                    own,
+                    (rc) => ({
+                      formData: {
+                        option: o,
+                        optionSelected:
+                          field !== undefined &&
+                          String(rc.getValue(field)) === String(o.value),
+                      },
+                    }),
+                    `option:${String(o.value)}`,
+                  ),
+                i > 0,
+              )
+            : [],
+        ]),
+      );
+      return (
+        <RadioField
+          {...props}
+          options={options}
+          entryClassName={toClassValue(ro.entryWrapperClass as string)}
+          selectedClassName={toClassValue(ro.selectedClass as string)}
+          notSelectedClassName={toClassValue(ro.notSelectedClass as string)}
+        >
+          {hasChildren
+            ? (o) => <>{perOption.get(String(o.value))}</>
+            : undefined}
+        </RadioField>
       );
     },
   },
@@ -664,9 +758,11 @@ function warnUnhandled(
   def: ControlDefinition,
   warn: Warn,
   renderTypes: readonly string[] = [],
+  dynamics: readonly string[] = [],
 ): void {
   const subject = def.title ?? def.field;
   const handled = new Set(renderTypes);
+  const handledHere = new Set(dynamics);
 
   for (const a of def.adornments ?? []) {
     // Tooltip on a display is consumed by the display translator as its
@@ -680,7 +776,7 @@ function warnUnhandled(
   }
 
   for (const d of def.dynamic ?? []) {
-    if (!handledDynamic.has(d.type))
+    if (!handledDynamic.has(d.type) && !handledHere.has(d.type))
       warn({
         kind: "dynamic",
         subject,
@@ -722,7 +818,7 @@ export function translate(
   const schema = ref?.schema;
   const at: Warn = (w) => collect({ ...w, path: key });
   const t = translators.find((t) => t.match(def, schema));
-  warnUnhandled(def, at, t?.renderTypes);
+  warnUnhandled(def, at, t?.renderTypes, t?.dynamics);
 
   // The children's data context: into the bound field, or unchanged. A
   // collection's children live in a *row*, so the eager pass — which exists to
@@ -767,7 +863,15 @@ export function translate(
   // A container may rebuild its children under a handler of its own; the
   // enclosing handler is the fall-through, so a Dialog claims two ids and
   // the host keeps the rest.
-  const retranslate = (over: Partial<LoaderOptions>): ReactNode[] => {
+  const retranslate = (
+    over: Partial<LoaderOptions>,
+    scopeFn?: (
+      child: DataScope,
+      own: DataScope,
+      field: Control<unknown> | undefined,
+    ) => DataScope,
+    quiet = false,
+  ): ReactNode[] => {
     const inner = over.actionHandler;
     const merged: LoaderOptions = {
       ...opts,
@@ -776,9 +880,19 @@ export function translate(
         ? (id, d) => inner(id, d) ?? opts.actionHandler?.(id, d)
         : opts.actionHandler,
     };
+    const s = scopeFn ? scopeFn(childScope, scope, ref?.control) : childScope;
     return (rawDef.children ?? []).map((c, i) =>
-      translate(ctx, childScope, c, `${key}.${i}`, merged, collect),
+      translate(ctx, s, c, `${key}.${i}`, merged, quiet ? noCollect : collect),
     );
+  };
+
+  const dynamicValue = (type: string): FormProp<unknown> | undefined => {
+    const e = def.dynamic?.find((d) => d.type === type)?.expr;
+    return e
+      ? toValueProp(ctx, scope, e, (detail) =>
+          at({ kind: "expression", subject: def.title ?? def.field, detail }),
+        )
+      : undefined;
   };
 
   if (def.field && !ref)
@@ -843,6 +957,7 @@ export function translate(
     element,
     onClick,
     retranslate,
+    dynamicValue,
   });
   warnUnread(rawDef, seen, at);
   return <TranslatedKey key={key}>{node}</TranslatedKey>;

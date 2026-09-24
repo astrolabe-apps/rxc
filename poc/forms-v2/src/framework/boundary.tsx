@@ -186,7 +186,7 @@ export function fieldRenderer<T, P extends object = {}>(
     // whether or not the field is on screen — an inactive tab still reports.
     // The same scope counts this field's async validators as pending.
     const vscope = useValidationScope();
-    useFieldValidation(field, validate, cfg, vscope);
+    useFieldValidation(field, validate, cfg, vscope, id ?? autoId);
 
     // Per-boundary, because the boundary that bound the data is the only thing
     // that knows what to clear — see the POC README, finding 16.
@@ -413,7 +413,7 @@ export function collectionRenderer<T, P extends object = {}>(
       requiredMessage,
     });
     const vscope = useValidationScope();
-    useFieldValidation(field, validators, cfg, vscope);
+    useFieldValidation(field, validators, cfg, vscope, id ?? autoId);
 
     const control = field;
     const shouldClear =

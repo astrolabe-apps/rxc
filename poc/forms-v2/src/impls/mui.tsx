@@ -19,6 +19,8 @@ import MuiTabList from "@mui/material/Tabs";
 import MuiTab from "@mui/material/Tab";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
@@ -51,6 +53,7 @@ import {
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
+  type RadioRenderProps,
   type FieldShellProps,
   type FormRenderers,
   type FrameState,
@@ -494,6 +497,59 @@ function MuiSelect(p: SelectRenderProps): Rendered {
   );
 }
 
+function MuiRadio(p: RadioRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useSelectController(p.field, p.options);
+  const entryCls = getProp(ctl.rc, p.entryClassName);
+  const onCls = getProp(ctl.rc, p.selectedClassName);
+  const offCls = getProp(ctl.rc, p.notSelectedClassName);
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  const entries = ctl.options.map((o) => ({
+    o,
+    selected: ctl.stringValue === String(o.value),
+  }));
+  const entryClass = (selected: boolean) =>
+    mergeClass(
+      mergeClass("ff-radio-entry", entryCls),
+      selected ? onCls : offCls,
+    );
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <RadioGroup
+        name={p.id}
+        value={ctl.stringValue}
+        onChange={(e) => ctl.setFromString(e.target.value)}
+        onBlur={ctl.onBlur}
+        className={mergeClass(undefined, p.className)}
+      >
+        {entries.map(({ o, selected }) => (
+          <Box key={String(o.value)} className={entryClass(selected)}>
+            <FormControlLabel
+              value={String(o.value)}
+              control={<Radio />}
+              label={o.name}
+              disabled={locked || o.disabled}
+            />
+            {p.children?.(o, selected)}
+          </Box>
+        ))}
+      </RadioGroup>
+    </Shell>,
+  );
+}
+
 function MuiWizard(p: WizardRenderProps) {
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
@@ -560,6 +616,7 @@ export const muiRenderers: FormRenderers = {
   checkbox: MuiCheckbox,
   displayOnly: MuiDisplayOnly,
   select: MuiSelect,
+  radio: MuiRadio,
   text: MuiText,
   html: MuiHtml,
   icon: MuiIcon,

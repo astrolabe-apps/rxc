@@ -581,3 +581,38 @@ body {
   line-height: 18px;
   text-align: center;
 }
+
+/* ── radio (html implementation) + per-option content ─────────────── */
+.ff-radio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ff-radio-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.ff-radio-entry > .ff-boundary,
+.ff-radio-entry > .ff-contents {
+  margin-left: 22px;
+}
+/* The JSON fixture's entry classes — legacy's CheckEntryClasses. */
+.demo-entry {
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.demo-entry--on {
+  border-color: #2563eb;
+}
+.demo-entry-note {
+  font-size: 12px;
+  color: #71717a;
+}
+
+/* ── the third-party silent container ────────────────────────────── */
+.ff-branch[hidden] {
+  display: none;
+}

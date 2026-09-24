@@ -14,6 +14,7 @@ import {
   Contents,
   Elements,
   IconDisplay,
+  RadioField,
   getExternalEdit,
   StandardActionIds,
   Tabs,
@@ -28,6 +29,7 @@ import {
 import { Stars } from "./widgets/Stars.js";
 import { PetCards } from "./widgets/PetCards.js";
 import { Collapsible } from "./widgets/Collapsible.js";
+import { SelectChild } from "./widgets/SelectChild.js";
 import { JsonForm } from "./loader/JsonForm.js";
 import { demoControls, demoSchema } from "./loader/demoForm.js";
 import { AntInputReference } from "./impls/antd.js";
@@ -239,6 +241,55 @@ export function PersonForm({
                   options={statusOptions}
                   required
                   helpText="Options are a prop — the schema is loader-only."
+                />
+                {/* The same field as radios. Per-option content is a render
+            prop, called for every option; it gates itself with a hidden
+            group rather than unmounting, so the field under Inactive keeps
+            validating while Active is chosen. */}
+                <RadioField
+                  field={f.status}
+                  label="Status (as radios)"
+                  options={statusOptions}
+                  helpText="Same field as the select. Per-option content is a render prop."
+                >
+                  {(o, selected) => (
+                    <Contents hidden={!selected}>
+                      {o.value === "inactive" ? (
+                        <TextField
+                          field={f.notes}
+                          label="Why inactive?"
+                          multiline
+                        />
+                      ) : (
+                        <TextDisplay text={`${o.name} it is.`} />
+                      )}
+                    </Contents>
+                  )}
+                </RadioField>
+                {/* A third-party container that produces `silent`: the branch
+            the data has not chosen stays mounted and validating — email is
+            required only here, and reports while nothing renders. */}
+                <SelectChild
+                  selected={(rc) => rc.getValue(f.status)}
+                  items={[
+                    {
+                      key: "active",
+                      children: (
+                        <TextField
+                          field={f.email}
+                          label="Contact email (active members)"
+                          required
+                          helpText="Required only in this branch; validates while the branch is silent."
+                        />
+                      ),
+                    },
+                    {
+                      key: "inactive",
+                      children: (
+                        <TextDisplay text="Inactive members are not contacted." />
+                      ),
+                    },
+                  ]}
                 />
                 <TextDisplay text="Authored display — static content, no field." />
                 {/* The Mast form's shape, hand-written: a glyph pair switched by

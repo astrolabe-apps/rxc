@@ -16,6 +16,7 @@ import type {
   HtmlDisplayExtra,
   IconDisplayExtra,
   OptionValue,
+  RadioExtra,
   SelectExtra,
   TextDisplayExtra,
   TextFieldExtra,
@@ -87,6 +88,13 @@ export const SelectField = fieldRenderer<OptionValue, SelectExtra>({
   key: "select",
 }) as unknown as <T extends OptionValue>(
   props: FieldProps<T> & SelectExtra,
+) => Rendered;
+
+/** The other options widget; `children` is legacy's per-option content. */
+export const RadioField = fieldRenderer<OptionValue, RadioExtra>({
+  key: "radio",
+}) as unknown as <T extends OptionValue>(
+  props: FieldProps<T> & RadioExtra,
 ) => Rendered;
 
 /**

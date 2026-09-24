@@ -372,6 +372,26 @@ export type SelectExtra = { options?: FormProp<FieldOption[]> };
 
 export type SelectRenderProps = FieldRenderProps<OptionValue> & SelectExtra;
 
+/**
+ * Radio: the same options widget with one more thing legacy asks of it —
+ * **per-option content**. Legacy spawns the definition's children once per
+ * option with `formData.option` / `formData.optionSelected` in scope (6 of
+ * the corpus's 69 radios use it: a description under each choice, a detail
+ * group shown under the chosen one). In JSX that is a render prop, like a
+ * collection's row. Rendered for **every** option, selected or not — gate
+ * with `<Contents hidden={!selected}>`, never `selected && …`, or the field
+ * inside unmounts and stops validating (README finding 56).
+ */
+export interface RadioExtra extends SelectExtra {
+  children?: (option: FieldOption, selected: boolean) => ReactNode;
+  /** Legacy's `CheckEntryClasses`: the wrapper around each option, and its two states. */
+  entryClassName?: FormProp<ClassValue>;
+  selectedClassName?: FormProp<ClassValue>;
+  notSelectedClassName?: FormProp<ClassValue>;
+}
+
+export type RadioRenderProps = FieldRenderProps<OptionValue> & RadioExtra;
+
 // ── Display-only ─────────────────────────────────────────────────────
 
 /**
@@ -493,6 +513,7 @@ export interface FormRenderers {
   textfield: ComponentType<TextFieldRenderProps>;
   checkbox: ComponentType<CheckboxRenderProps>;
   select: ComponentType<SelectRenderProps>;
+  radio: ComponentType<RadioRenderProps>;
   displayOnly: ComponentType<DisplayOnlyRenderProps>;
   action: ComponentType<ActionRenderProps>;
   text: ComponentType<TextDisplayRenderProps>;

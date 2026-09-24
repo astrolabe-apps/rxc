@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   Modal,
+  Radio,
   Select,
   Steps,
   Tabs as AntTabList,
@@ -35,6 +36,7 @@ import {
   type TextDisplayRenderProps,
   type CheckboxRenderProps,
   type SelectRenderProps,
+  type RadioRenderProps,
   type FieldShellProps,
   type FormRenderers,
   type FrameState,
@@ -453,6 +455,58 @@ function AntSelect(p: SelectRenderProps): Rendered {
   );
 }
 
+function AntRadio(p: RadioRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useSelectController(p.field, p.options);
+  const entryCls = getProp(ctl.rc, p.entryClassName);
+  const onCls = getProp(ctl.rc, p.selectedClassName);
+  const offCls = getProp(ctl.rc, p.notSelectedClassName);
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  const entries = ctl.options.map((o) => ({
+    o,
+    selected: ctl.stringValue === String(o.value),
+  }));
+  const entryClass = (selected: boolean) =>
+    mergeClass(
+      mergeClass("ff-radio-entry", entryCls),
+      selected ? onCls : offCls,
+    );
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <Radio.Group
+        name={p.id}
+        value={ctl.stringValue === "" ? undefined : ctl.stringValue}
+        onChange={(e) => ctl.setFromString(String(e.target.value))}
+        onBlur={ctl.onBlur}
+        className={mergeClass(undefined, p.className)}
+      >
+        <Flex vertical gap={8}>
+          {entries.map(({ o, selected }) => (
+            <div key={String(o.value)} className={entryClass(selected)}>
+              <Radio value={String(o.value)} disabled={locked || o.disabled}>
+                {o.name}
+              </Radio>
+              {p.children?.(o, selected)}
+            </div>
+          ))}
+        </Flex>
+      </Radio.Group>
+    </Shell>,
+  );
+}
+
 function AntWizard(p: WizardRenderProps) {
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
@@ -527,6 +581,7 @@ export const antdRenderers: FormRenderers = {
   checkbox: AntCheckbox,
   displayOnly: AntDisplayOnly,
   select: AntSelect,
+  radio: AntRadio,
   text: AntText,
   html: AntHtml,
   icon: AntIcon,

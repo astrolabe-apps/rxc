@@ -1,4 +1,4 @@
-import type { Control } from "@rx-controls/core";
+import type { Control, ReadContext } from "@rx-controls/core";
 import type { SchemaField } from "./json.js";
 
 /** One step of the path from the root data to a scope, for the jsonata prefix. */
@@ -30,6 +30,33 @@ export interface DataScope {
   /** Where `..` goes. For a row, the scope that holds the array. */
   parent?: DataScope;
   path: PathSegment[];
+  /**
+   * Jsonata bindings beyond the data — legacy's `variables`: a radio's
+   * per-option children see `$formData.option` and `$formData.optionSelected`.
+   * A function of the evaluator's `rc`, so a binding that reads a control
+   * re-runs the expression when it changes.
+   */
+  variables?: (rc: ReadContext) => Record<string, unknown>;
+  /**
+   * Disambiguates the per-control expression cache. Two options' children
+   * share a control *and* an expression and differ only in bindings, so
+   * without this the second option would read the first one's result.
+   */
+  cacheKey?: string;
+}
+
+/** The same place in the data, with more bindings. */
+export function withVariables(
+  scope: DataScope,
+  vars: (rc: ReadContext) => Record<string, unknown>,
+  key: string,
+): DataScope {
+  const outer = scope.variables;
+  return {
+    ...scope,
+    variables: outer ? (rc) => ({ ...outer(rc), ...vars(rc) }) : vars,
+    cacheKey: `${scope.cacheKey ?? ""}/${key}`,
+  };
 }
 
 export function rootScope(
@@ -60,6 +87,8 @@ export function fieldScope(
     field: schema,
     parent: scope,
     path: [...scope.path, { key: name, collection: !!schema?.collection }],
+    variables: scope.variables,
+    cacheKey: scope.cacheKey,
   };
 }
 
@@ -82,6 +111,7 @@ export function elementScope(
     field: schema,
     parent: scope,
     path: [...scope.path, { key: name, collection: true }],
+    variables: scope.variables,
   };
   return {
     control: item,
@@ -89,6 +119,7 @@ export function elementScope(
     field: schema,
     parent: array,
     path: [...array.path, { key: index, collection: true }],
+    variables: scope.variables,
   };
 }
 

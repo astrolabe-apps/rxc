@@ -29,14 +29,13 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, **1,822 warnings** (re-extracted 2026-09-24). The legacy
-sources move under us: this run picked up three ServiceTas forms added upstream
+83 forms, 4,283 controls, **1,734 warnings**. Re-extracted 2026-09-24: the legacy
+sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
-carry 130 warnings over 284 controls between them and account for nearly all of the
-1,674 → 1,822 rise. No loader code changed. `schema` (59) and `validator` (11) are
-unchanged from finding 53, so nothing that was closed has reopened. Kind totals:
-`unread` 536, `action` 489, `renderOptions` 432, `adornment` 129, `dynamic` 129,
-`schema` 59, `control` 37, `validator` 11.
+carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
+with no loader change. Finding 56 (Radio, and `dynamic Display` on displays) took it
+1,822 → 1,734. Kind totals: `unread` 524, `action` 489, `renderOptions` 409,
+`adornment` 129, `dynamic` 80, `schema` 55, `control` 37, `validator` 11.
 
 ## What it builds
 
@@ -62,6 +61,7 @@ that returns what it could not translate.
 | `src/widgets/Stars.tsx` | a **third-party** widget: no UI library, own surface, `fieldRenderer(MyImpl)` |
 | `src/widgets/PetCards.tsx` | a **third-party collection**: per-row chrome from the implementation's buttons, staged edit, a callback prop |
 | `src/widgets/Collapsible.tsx` | a **third-party group**: a disclosure section over the implementation's `contents`, invalid badge from `{ scope: true }`, forced open in design mode |
+| `src/widgets/SelectChild.tsx` | a **third-party `silent` container**: legacy's SelectChild, the active branch chosen by data; no registry slot, no translator (zero corpus uses) |
 | `src/App.tsx` (`FancyAdd`) | a **third-party action**, installed for one id through `ActionOverrideProvider` |
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
@@ -76,7 +76,8 @@ Not built, and not pretended: Base UI; the loader's `Dialog` group translator.
   chrome. This is §7's central claim and it survives contact. Every boundary
   kind has now been written from outside the package — a field, a collection,
   an action and a group — and the group was the one that bent something
-  (finding 55).
+  (finding 55). A `silent`-producing container can be written outside too,
+  with nothing exported for it (finding 57).
 - **MUI's notch works through a private context**, exactly as §7 predicted:
   `forms-mui` passes the label shell→frame itself, and the contract stays clean.
 - **Presence is real, and derived.** A `hidden` prop narrows it; a container —
@@ -1147,18 +1148,128 @@ Numbered; each is cited at the matching line of code.
     header badge cannot say "checking…" while an async validator under it is
     outstanding. Not asked for yet.
 
+56. **Radio is the select with the list drawn open — plus the one thing legacy
+    asks of it that a select never needs.** One controller
+    (`useSelectController`) serves both widgets; the radio adds a `radio`
+    registry slot, four implementations, and `RadioExtra`: `options`,
+    legacy's three `CheckEntryClasses` (the wrapper around each option and
+    its selected / not-selected state — Fire's card-style radios use all
+    three), and **per-option content**. Legacy expands a radio's children
+    once per option with `formData.option` and `formData.optionSelected` in
+    scope; 6 of the corpus's 69 radios use it — a description under every
+    choice (ShortTermPermit), a detail group under the chosen one (TUP,
+    Fire, Burn). In JSX that is a render prop, `(option, selected) =>
+    ReactNode`, called for **every** option; content gates itself with
+    `<Contents hidden={!selected}>`, never `selected && …`, or the field
+    under the unchosen option unmounts and stops validating — finding 55's
+    rule, met a second time within the day. Verified in all four
+    implementations: the notes field under Inactive is mounted and hidden
+    while Active is chosen, the entry classes switch, `readOnly` locks every
+    radio, and the select above it moves with it — same field.
+
+    **The loader needed bindings, and the expression cache needed a key.**
+    The translator claims `Radio` when the schema has options and, when the
+    definition has children, translates them once per option against the
+    *parent* scope — legacy binds `parentData`, which is what lets TUP's
+    `classification = $formData.option.value` read a sibling — with
+    `$formData` bound. So `DataScope` gained `variables`, a function of the
+    evaluator's `rc` (a binding that reads the field re-runs the expression
+    when it changes, which is what `optionSelected` is), and jsonata's
+    second argument carries them. It also gained `cacheKey`: two options'
+    children share a control *and* an expression and differ only in
+    bindings, and the per-control expression cache (finding 28) would have
+    handed option two option one's result. Caught building the fixture.
+    Warnings are collected on the first option's pass only; the others are
+    the same definitions again. Verified on the JSON tab: a description per
+    option via `$lookup($formData.option.value)`, and a notes group that
+    appears under whichever option `$formData.optionSelected` says.
+
+    Along the way, `dynamic Display` on a Text or Html display translates —
+    its `text` / `html` becomes the value prop — since ShortTermPermit's
+    per-option description is exactly that. A translator now declares the
+    `dynamics` it reads, as it declares `renderTypes`, so the audit stops
+    reporting what it consumed. One audit lesson: `dyn ?? def.displayData.text`
+    left the static text *unread* whenever the dynamic existed, and the
+    burndown said so — a fallback is consumed whether or not it is used, so
+    it is read first.
+
+    Burndown 1,822 → **1,734**. `Radio` 69 → 46, and the 46 are the point:
+    every one has **no schema options** — the options come from an
+    `AllowedOptions` expression (48 uses), which legacy evaluates to either
+    the allowed *values* (a filter over the schema's) or whole
+    `{ name, value }` objects (TUP builds its options from another field).
+    `options` is already a `FormProp`, so that is loader work with no
+    contract question in it, and it now gates the rest of Radio.
+    `dynamic Display` 64 → 15, the 15 being DisplayOnly's `overrideText`.
+
+57. **A `silent` container can be written from outside the package, and it
+    is the fourth of its kind.** Legacy's `SelectChild` — a group whose
+    active child is chosen by a data expression — has **zero uses in the
+    83-form corpus**, so by the evidence rule it is not a built-in and has
+    no translator. It went in as a third party to answer one question: every
+    `silent` producer so far is a framework boundary (`Tabs`, `Wizard`,
+    `Dialog`), so can one be written outside at all? It can, with what the
+    demo's `Panel` already used — `useBoundScope`, `narrowScope`,
+    `FormScopeProvider` — and nothing was exported for it. It is also the
+    first container with **no implementation surface**: no chrome, no
+    registry slot, which is exactly why it needed no boundary factory.
+
+    It keeps the container rules: every branch stays mounted and validating
+    (`silent`, not absent), each hides itself on an unchanging wrapper
+    (findings 17, 22, 26 — plain JSX in a branch needs hiding too), and
+    design mode shows every branch. Verified: both branches hidden until
+    `status` is set, the branch follows the radio and the select, and a
+    field required only inside the unchosen branch reports in the state
+    table while nothing renders — once finding 58 was fixed.
+
+    The structural observation: `Tabs`, `Wizard`, `Dialog` and now
+    `SelectChild` each re-implement *items × presence* — a list of children,
+    an active key from UI state / a `Control` / a `FormProp`, optional
+    per-item validation scope, design-mode stacking. A `useSwitch(items,
+    active)` in the framework would carry all four. Noted for v2; not
+    refactored here.
+
+58. **Errors are keyed per control, validators per boundary — and legacy
+    knew.** Finding 57's demo binds `email` twice: the Details panel shows
+    it, the SelectChild branch *requires* it. The required error never
+    appeared. Instrumenting `publish` showed why: the branch's boundary
+    published "Please enter a value" under `required`, and the panel's
+    boundary — `required: false` — published `null` under the **same key**
+    a moment later. Last writer wins, on a timing nothing controls; the
+    dialog's `lastName` (finding 43 — "the field the modal shows *is* the
+    field") only ever worked because its boundary happened to run after the
+    Details one. Two boundaries over one control was a celebrated shape
+    with a latent race in it.
+
+    Legacy did not have the race. The settled `forms-core` port publishes a
+    node's sync verdict under `uniqueId + "default"` — scoped to the
+    FormStateNode, i.e. to the definition instance. The POC's shared
+    `required` key was a regression against legacy, not an inheritance.
+    Fixed the legacy way: the framework's key is `required@<boundary id>`,
+    so a boundary clears only what it set, and a `required` survives a
+    `required: false` or a hidden sibling on the same control. Author keys
+    stay as written — `jsonata` is still `jsonata`, which is also how
+    legacy keyed it, so that one shared-key hazard is inherited and recorded
+    rather than fixed. Consequence: two *required* boundaries on one control
+    publish two identical messages; `fieldState.errors` is now a set, so
+    the same verdict twice reads as one. Verified: `email` reports while
+    its branch is silent, keeps reporting with the panel's copy hidden,
+    clears on input and returns when cleared.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down. At the last run
-(1,822): `Inline` 213 is probably a `Stack direction="row"` group;
+(1,734): `Inline` 213 is probably a `Stack direction="row"` group;
 `noSelection` 108 is a top-level flag on displays and groups with no contract
 slot (the DisplayOnly widget honours it, nothing else does); `HelpText` 72 is
-a prop the contract already has; then `Radio` 69, `dynamic Display` 64,
-`AllowedOptions` 48, `renderOptions.groupOptions` 46, `placeholder` 40,
-`Display / Custom` 37, `Flex` 36, and the array options
-`noAdd`/`noRemove`/`noReorder` ~31 each. `action` 489 stays until the
+a prop the contract already has; then `AllowedOptions` 48 — which is now
+also the gate on the remaining `Radio` 46, every one of which has no schema
+options because the expression supplies them (finding 56); `renderOptions.groupOptions` 46,
+`placeholder` 40, `Display / Custom` 37, `Flex` 36, the array options
+`noAdd`/`noRemove`/`noReorder` ~31 each, and `dynamic Display` 15, all of
+them DisplayOnly's `overrideText`. `action` 489 stays until the
 burndown runs with a host `actionHandler` — `docLink` alone is 47 across
-three forms. Of the 59 `schema` warnings, 56 are `plain name — schema not
+three forms. Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
 three. Every loader change is a translator or a prop, then `rushx burndown`
 again; a fixture form in `src/loader/demoForm.ts` and a line in the

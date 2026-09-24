@@ -46,6 +46,18 @@ function isEmpty(v: unknown): boolean {
  * `@rx-controls/react` does exactly this for a *fixed* key; the record makes
  * the key set dynamic, which is why this is hand-rolled.
  *
+ * **Errors are keyed per control; validators are per boundary.** Two
+ * boundaries binding one control — the field the modal shows *is* the field
+ * (finding 43), a select and a radio over one status, a branch that requires
+ * what another region merely shows — each run their own `required` and each
+ * publish a verdict, and if they share a key the last writer wins on a
+ * timing that nothing controls. The framework's own key therefore carries
+ * the boundary's id, so a boundary clears only what it set; a `required` on
+ * one boundary survives a `required: false` (or a hidden) sibling on the
+ * same control. Author keys stay as written — legacy's `jsonata` is still
+ * `jsonata` — since two authored validators under one name on one control is
+ * the author's collision to resolve. README finding 58.
+ *
  * A validator may return a promise. The run's tracking window closes when the
  * function returns — reads before the first `await` are what re-run it — and
  * the result publishes on resolve unless a newer run has started, in which
@@ -59,6 +71,8 @@ export function useFieldValidation<T>(
   validate: Validator<T> | Record<string, Validator<T>> | undefined,
   cfg: Control<ValidationConfig>,
   scope?: ValidationScope,
+  /** The boundary's id — namespaces the framework's `required` key. */
+  owner = "",
 ): void {
   const ctx = useControlContext();
   const entries: Record<string, Validator<T>> = typeof validate === "function"
@@ -73,6 +87,7 @@ export function useFieldValidation<T>(
 
   useLayoutEffect(() => {
     const disposers = keys.map((key) => {
+      const errorKey = key === "required" ? `required@${owner}` : key;
       const rc = new TrackingReadContext();
       const reconciler = new SubscriptionReconciler();
       let runId = 0;
@@ -82,7 +97,7 @@ export function useFieldValidation<T>(
         release = undefined;
       };
       const publish = (m: ValidatorResult) =>
-        ctx.update((wc) => wc.setError(control, key, m ?? null));
+        ctx.update((wc) => wc.setError(control, errorKey, m ?? null));
       const run = () => {
         // A newer run supersedes an outstanding one: it stops counting as
         // pending now, and its answer is dropped when it arrives.
@@ -124,10 +139,10 @@ export function useFieldValidation<T>(
         runId++; // drop any answer still in flight
         settle();
         reconciler.cleanup();
-        ctx.update((wc) => wc.setError(control, key, null));
+        ctx.update((wc) => wc.setError(control, errorKey, null));
       };
     });
     return () => disposers.forEach((d) => d());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, control, cfg, keyId, scope]);
+  }, [ctx, control, cfg, keyId, scope, owner]);
 }
