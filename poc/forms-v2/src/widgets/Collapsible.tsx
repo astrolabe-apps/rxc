@@ -8,6 +8,7 @@ import {
   useRenderers,
   type FormProp,
   type GroupRenderProps,
+  combineClass,
 } from "../framework/index.js";
 
 export interface CollapsibleExtra {
@@ -51,7 +52,7 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
   const summary = getProp(rc, p.summary);
   return rendered(
     <section
-      className={mergeClass("ff-collapsible", p.className)}
+      className={mergeClass("ff-collapsible", p.shellClassName)}
       data-hidden={p.hidden ? "" : undefined}
       data-invalid={p.invalid ? "" : undefined}
       inert={p.hidden || undefined}
@@ -67,7 +68,14 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
         <span className="ff-collapsible-chevron" aria-hidden>
           {shown ? "▾" : "▸"}
         </span>
-        <span className="ff-collapsible-title">{p.title}</span>
+        <span
+          className={mergeClass(
+            "ff-collapsible-title",
+            combineClass(p.labelClassName, p.labelTextClassName),
+          )}
+        >
+          {p.title}
+        </span>
         {!shown && summary != null && (
           <span className="ff-collapsible-summary">{summary}</span>
         )}
@@ -77,7 +85,9 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
           </span>
         )}
       </button>
-      <Body hidden={!shown}>{p.children}</Body>
+      <Body hidden={!shown} className={p.className}>
+        {p.children}
+      </Body>
     </section>,
   );
 }

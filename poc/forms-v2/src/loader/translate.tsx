@@ -233,6 +233,7 @@ export const defaultTranslators: Translator[] = [
         hidden={props.hidden}
         disabled={props.disabled}
         className={props.className}
+        shellClassName={props.shellClassName}
         textClassName={props.textClassName}
         style={actionStyleOf(def.actionStyle)}
         icon={
@@ -297,6 +298,7 @@ export const defaultTranslators: Translator[] = [
           }
           hidden={props.hidden}
           className={props.className}
+          shellClassName={props.shellClassName}
           textClassName={props.textClassName}
         />
       );
@@ -314,6 +316,7 @@ export const defaultTranslators: Translator[] = [
           }
           hidden={props.hidden}
           className={props.className}
+          shellClassName={props.shellClassName}
           textClassName={props.textClassName}
         />
       );
@@ -329,6 +332,7 @@ export const defaultTranslators: Translator[] = [
         accessibleName={tooltipOf(def)}
         hidden={props.hidden}
         className={props.className}
+        shellClassName={props.shellClassName}
         textClassName={props.textClassName}
       />
     ),
@@ -368,6 +372,9 @@ export const defaultTranslators: Translator[] = [
         disabled={props.disabled}
         title={props.label}
         className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
       >
         {children}
       </Contents>
@@ -505,6 +512,9 @@ export const defaultTranslators: Translator[] = [
         disabled={props.disabled}
         title={props.label}
         className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
       >
         {children}
       </InlineGroup>
@@ -519,6 +529,9 @@ export const defaultTranslators: Translator[] = [
         disabled={props.disabled}
         title={props.label}
         className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
       >
         {children}
       </Contents>

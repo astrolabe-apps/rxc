@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  combineClass,
   mergeClass,
   useFieldShell,
+  type ClassValue,
   type CollectionRenderProps,
   type GroupRenderProps,
   type VisibilityProps,
@@ -67,22 +69,35 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
 export function Contents({
   title,
   className,
+  shellClassName,
+  labelClassName,
+  labelTextClassName,
   hidden,
   invalid,
   children,
 }: GroupRenderProps) {
+  // Legacy's anatomy, one element each: wrapper, title, body (finding 63).
   return (
     <div
-      className={mergeClass("ff-contents", className)}
+      className={mergeClass("ff-contents", shellClassName)}
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
     >
       <div className="ff-contents-inner">
         {title !== undefined && title !== null && (
-          <div className="ff-group-title">{title}</div>
+          <div
+            className={mergeClass(
+              "ff-group-title",
+              combineClass(labelClassName, labelTextClassName),
+            )}
+          >
+            {title}
+          </div>
         )}
-        {children}
+        <div className={mergeClass("ff-contents-body", className)}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -97,20 +112,53 @@ export function Contents({
 export function Inline({
   title,
   className,
+  shellClassName,
+  labelClassName,
+  labelTextClassName,
   hidden,
   children,
 }: GroupRenderProps) {
   return (
     <span
-      className={mergeClass("ff-inline", className)}
+      className={mergeClass("ff-inline", shellClassName)}
       data-hidden={hidden ? "" : undefined}
       inert={hidden || undefined}
     >
       {title !== undefined && title !== null && (
-        <span className="ff-group-title">{title} </span>
+        <span
+          className={mergeClass(
+            "ff-group-title",
+            combineClass(labelClassName, labelTextClassName),
+          )}
+        >
+          {title}{" "}
+        </span>
       )}
-      {children}
+      <span className={mergeClass(undefined, className)}>{children}</span>
     </span>
+  );
+}
+
+/**
+ * The wrapper a display or an action sits in — legacy's layout element,
+ * which `layoutClass` landed on 320 times in the corpus. Always rendered, so
+ * a class arriving later changes an attribute and not the tree (finding 22);
+ * a span in prose, a div otherwise.
+ */
+export function DisplayShell({
+  shellClassName,
+  inline,
+  kind = "display",
+  children,
+}: {
+  shellClassName?: ClassValue;
+  inline?: boolean;
+  kind?: "display" | "action";
+  children: ReactNode;
+}) {
+  const Tag = inline ? "span" : "div";
+  return (
+    <Tag className={mergeClass(`ff-${kind}`, shellClassName)}>{children}</Tag>
   );
 }
 

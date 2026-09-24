@@ -54,6 +54,7 @@ import {
   ElementsList,
   DefaultVisibility,
   glyphFor,
+  DisplayShell,
 } from "./shared.js";
 
 // ── Shell: wired by `id` only, no context ────────────────────────────
@@ -315,46 +316,52 @@ function MantineTabs(p: TabsRenderProps) {
 
 function MantineAction(p: ActionRenderProps) {
   return (
-    <Button
-      variant={
-        p.style === "primary"
-          ? "filled"
-          : p.style === "link"
-            ? "subtle"
-            : "default"
-      }
-      size="xs"
-      className={mergeClass(undefined, p.className)}
-      disabled={p.disabled}
-      loading={p.busy}
-      leftSection={
-        (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
-      }
-      rightSection={p.iconPlacement === "after" ? p.icon : undefined}
-      onClick={p.onClick}
-      aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
-    >
-      {p.iconPlacement === "replace"
-        ? p.icon
-        : (p.children ?? (
-            <span className={mergeClass(undefined, p.textClassName)}>
-              {p.text}
-            </span>
-          ))}
-    </Button>
+    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+      <Button
+        variant={
+          p.style === "primary"
+            ? "filled"
+            : p.style === "link"
+              ? "subtle"
+              : "default"
+        }
+        size="xs"
+        className={mergeClass(undefined, p.className)}
+        disabled={p.disabled}
+        loading={p.busy}
+        leftSection={
+          (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
+        }
+        rightSection={p.iconPlacement === "after" ? p.icon : undefined}
+        onClick={p.onClick}
+        aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
+      >
+        {p.iconPlacement === "replace"
+          ? p.icon
+          : (p.children ?? (
+              <span className={mergeClass(undefined, p.textClassName)}>
+                {p.text}
+              </span>
+            ))}
+      </Button>
+    </DisplayShell>
   );
 }
 
 function MantineText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <Text
-      size="sm"
-      span={p.inline}
-      className={mergeClass(undefined, p.className ?? p.textClassName)}
-    >
-      {getProp(rc, p.text) ?? p.children}
-    </Text>,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Text
+        size="sm"
+        span={p.inline}
+        className={mergeClass(undefined, p.className)}
+      >
+        <span className={mergeClass(undefined, p.textClassName)}>
+          {getProp(rc, p.text) ?? p.children}
+        </span>
+      </Text>
+    </DisplayShell>,
   );
 }
 
@@ -365,30 +372,40 @@ function MantineIcon(p: IconDisplayRenderProps) {
       component="span"
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(undefined, p.className)}
+      className={mergeClass(
+        undefined,
+        combineClass(p.className, p.textClassName),
+      )}
       style={{ fontSize: 24, lineHeight: 1 }}
     >
       {glyphFor(getProp(rc, p.icon))}
     </Text>
   );
   return rendered(
-    p.accessibleName ? (
-      <MTooltip label={p.accessibleName}>{glyph}</MTooltip>
-    ) : (
-      glyph
-    ),
+    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+      {p.accessibleName ? (
+        <MTooltip label={p.accessibleName}>{glyph}</MTooltip>
+      ) : (
+        glyph
+      )}
+    </DisplayShell>,
   );
 }
 
 function MantineHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <Text
-      size="sm"
-      component="div"
-      className={mergeClass(undefined, p.className)}
-      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
-    />,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Text
+        size="sm"
+        component="div"
+        className={mergeClass(
+          undefined,
+          combineClass(p.className, p.textClassName),
+        )}
+        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+      />
+    </DisplayShell>,
   );
 }
 

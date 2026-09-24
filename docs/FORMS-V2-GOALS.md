@@ -250,7 +250,11 @@ Nothing below is settled. In rough order of how much else depends on it:
    (`className` / `textClassName`); the label now has it too (`labelClassName` /
    `labelTextClassName`), defined so a single-element label merges the pair and only
    `forms-native` separates them. All five map, `"@ "` becomes `{ replace }`, both modes are
-   verified in the DOM (interfaces §2, README findings 48–49).
+   verified in the DOM (interfaces §2, README findings 48–49). **And they belong to every
+   boundary kind, not only fields (built):** the corpus styled displays, actions and groups
+   against the wrapper and the title slots 712 times, which the loader audit surfaced and
+   README finding 63 closed — `GroupProps` carries all five, `DisplayProps` and `ActionProps`
+   the wrapper.
 
    Left open, and `forms-html`'s business rather than the contract's: whether to merge with
    `tailwind-merge` so an appended class actually wins. Authors currently force it with `!`

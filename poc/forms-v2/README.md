@@ -31,7 +31,7 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 7 clean, **1,706 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 11 clean, **996 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
@@ -41,9 +41,9 @@ HelpText) 1,653 → 1,375; finding 62 (the audit's two blind spots) 1,375 → 2,
 and an honest one: those 820 were always dropped and never counted. The burndown then began
 standing in for a host that claims every action id (a host wires its buttons; their absence
 is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
-restores them as an inventory of what a host has to wire. Kind totals: `unread` 1,332,
-`renderOptions` 162, `adornment` 64, `schema` 55, `control` 37, `dynamic` 32,
-`expression` 13, `validator` 11.
+restores them as an inventory of what a host has to wire. Finding 63 (the five class slots on
+every boundary kind) 1,706 → **996**. Kind totals: `unread` 622, `renderOptions` 162,
+`adornment` 64, `schema` 55, `control` 37, `dynamic` 32, `expression` 13, `validator` 11.
 
 ## What it builds
 
@@ -1415,22 +1415,68 @@ Numbered; each is cited at the matching line of code.
     `layoutClass` split above was measured, and it belongs in the work
     list's toolbox.
 
+63. **The five class slots belong to every boundary kind, and a third of the
+    burndown was them.** Legacy gave every control the same anatomy — a
+    layout wrapper (`layoutClass`), a label with a container and its text
+    (`labelClass`, `labelTextClass`), the element (`styleClass`) and its text
+    (`textClass`) — and the corpus styled displays, actions and groups
+    against it 712 times: `layoutClass` on 233 displays, 87 actions and 224
+    groups; `labelTextClass` 127 and `labelClass` 39 on groups. v2 had given
+    fields all five (finding 49) and the other kinds one or two, which is
+    exactly the 712 finding 62's audit surfaced. So `GroupProps` gains
+    `shellClassName`, `labelClassName` and `labelTextClassName` — a group's
+    title *is* its label, so the field's names stay and the loader maps
+    `labelClass` identically for both — and `DisplayProps` and `ActionProps`
+    gain `shellClassName`. The boundary resolves them and the implementation
+    places them, as for fields, because only the implementation knows its own
+    class for each part.
+
+    **Where they land.** `Contents` and `Inline` now have legacy's three
+    elements — wrapper, title, body — one slot each. A display or an action
+    sits in a `DisplayShell`, a `div` (a `span` in prose) that is always
+    rendered so a class arriving later changes an attribute and not the tree
+    (finding 22); the html implementation's is a plain element and the other
+    three reuse it, so this reuse, like the group body's, is plumbing rather
+    than per-library chrome. Two things came along. The text displays
+    rendered `className ?? textClassName`, one *or* the other, while legacy
+    put `styleClass` on the element and `textClass` on the text inside it
+    and the corpus sets both; they now have an element and a span. And the
+    icon displays ignored `textClassName` altogether — a translator-read,
+    implementation-dropped property the audit cannot see, since reads are
+    all it has. The Html display's translator was not passing
+    `textClassName` either. `Collapsible`, the third-party group, honours the
+    three new slots too, which cost it three lines.
+
+    **The alternative, rejected.** Every boundary already sits in a
+    framework `div` (the design chrome, `display: contents`), and putting
+    `shellClassName` there would have been zero implementation work.
+    But that element is the inline-safety and design-mode wrapper, `display:
+    contents` swallows margins and borders, and a real MUI implementation
+    wants layout classes on its own container, not a framework div. The
+    same reasoning as the field shell: the implementation owns the anatomy.
+
+    Verified in all four implementations: the inline group is still one
+    line, a `Stack` row holding a button and a text display is still one
+    line, the Section's red bar is still on its wrapper, and the JSON tab's
+    `layoutClass: "@ demo-shell"` still replaces the shell class outright.
+
+    Burndown 1,706 → **996**, eleven forms clean. `layoutClass`,
+    `labelTextClass`, `labelClass` and `textClass` are gone from the list;
+    what leads it now is `noSelection` 108 and the host-extension family.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (1,706):
-`layoutClass` 546 — on displays (233), actions (87) and groups (224), the
-three boundary kinds with no shell slot, so a **contract** question, not a
-translator; `labelTextClass` 127 and `labelClass` 39, both on groups, the
-same question for the group's title; `noSelection` 108, a top-level flag on
-displays and groups with no contract slot (the DisplayOnly widget honours
-it, nothing else does); `adornments.HelpText.helpLabel` 49, a host property
-on the adornment; then `renderOptions.groupOptions` 46, `placeholder` 40,
+<kind:shape>` names the controls behind any line. At the last run (996):
+`noSelection` 108, a top-level flag on displays and groups with no contract
+slot (the DisplayOnly widget honours it, nothing else does);
+`adornments.HelpText.helpLabel` 49, a host property on the adornment; then
+`renderOptions.groupOptions` 46, `placeholder` 40,
 `Display / Custom` 37 (with its `displayData.customId` 37 — the
 host-extension hook), `Flex` 36, the array options
 `noAdd`/`noRemove`/`noReorder` ~31 each, `ColumnOptions` 26 (the datagrid),
 `Radio` 24 (every one in a form that shipped no schema *and* no
-`AllowedOptions`), `Accordion` 20, `textClass` 16 on groups,
+`AllowedOptions`), `Accordion` 20,
 `HelpText.placement` 15 (dropped on purpose, finding 61), and `dynamic
 Display` 15, all DisplayOnly's `overrideText`. `expression` 13 are the
 kinds the loader now names rather than swallows: nine entries with no type,

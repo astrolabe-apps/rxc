@@ -633,3 +633,19 @@ body {
 .ff-readonly-inline {
   font-weight: 600;
 }
+
+/* ── the wrapper a display or an action sits in (legacy's layout element) ── */
+.ff-display {
+  display: block;
+}
+.ff-action,
+span.ff-display {
+  display: inline-block;
+}
+.ff-inline .ff-display,
+.ff-inline .ff-action {
+  display: inline;
+}
+.ff-contents-body {
+  display: contents;
+}

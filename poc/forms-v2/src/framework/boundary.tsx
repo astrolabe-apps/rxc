@@ -265,6 +265,9 @@ const groupContractKeys = new Set([
   "readOnly",
   "title",
   "className",
+  "shellClassName",
+  "labelClassName",
+  "labelTextClassName",
   "children",
 ]);
 
@@ -324,6 +327,9 @@ export function groupRenderer<P extends object = {}>(
     const renderProps: GroupRenderProps = {
       title: getProp(rc, props.title),
       className: getProp(rc, props.className),
+      shellClassName: getProp(rc, props.shellClassName),
+      labelClassName: getProp(rc, props.labelClassName),
+      labelTextClassName: getProp(rc, props.labelTextClassName),
       hidden: presenceNow !== "rendered",
       invalid: validation ? !validation.isValid(rc) : undefined,
       children: props.children,

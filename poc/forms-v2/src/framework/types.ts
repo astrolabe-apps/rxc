@@ -218,7 +218,18 @@ export interface GroupProps {
   readOnly?: FormProp<boolean>;
   /** A heading over the content; absent means none. */
   title?: FormProp<ReactNode>;
+  /**
+   * The same five slots a field has, for the same anatomy: the wrapper
+   * (`shellClassName`), the title's container and text (`labelClassName`,
+   * `labelTextClassName`) and the body (`className`). Legacy styled groups
+   * against all of them — 224 `layoutClass`, 127 `labelTextClass`, 39
+   * `labelClass` in the corpus — and the contract had only the body
+   * (README finding 63).
+   */
   className?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;
+  labelClassName?: FormProp<ClassValue>;
+  labelTextClassName?: FormProp<ClassValue>;
   children: ReactNode;
 }
 
@@ -288,7 +299,13 @@ export interface CollectionRenderProps<T> extends FieldRenderProps<T[]> {
 /** What a group implementation receives. */
 export interface GroupRenderProps {
   title?: ReactNode;
+  /** The body. */
   className?: ClassValue;
+  /** The wrapper around title and body. */
+  shellClassName?: ClassValue;
+  /** The title's container and its text; a single-element title merges the pair. */
+  labelClassName?: ClassValue;
+  labelTextClassName?: ClassValue;
   /**
    * Hide without unmounting. The children have to stay mounted — each clears
    * its own field — but plain JSX among them has nothing that suppresses
@@ -447,8 +464,10 @@ export interface DisplayProps {
    * implementation's call: a `title`, its own Tooltip, or nothing.
    */
   accessibleName?: FormProp<string>;
+  /** The element, its text, and the wrapper around it — legacy's three (finding 63). */
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;
   children?: ReactNode;
 }
 
@@ -458,6 +477,7 @@ export interface DisplayRenderProps {
   inline?: boolean;
   className?: ClassValue;
   textClassName?: ClassValue;
+  shellClassName?: ClassValue;
   children?: ReactNode;
 }
 
@@ -493,9 +513,10 @@ export interface ActionProps {
   disabled?: FormProp<boolean>;
   disableType?: DisableType;
   style?: FormProp<ActionStyle>;
-  /** The two class slots a button has: the control, and its text. */
+  /** The button, its text, and the wrapper around it (finding 63). */
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;
   children?: ReactNode;
 }
 
@@ -517,6 +538,7 @@ export interface ActionRenderProps {
   style: ActionStyle;
   className?: ClassValue;
   textClassName?: ClassValue;
+  shellClassName?: ClassValue;
   children?: ReactNode;
 }
 

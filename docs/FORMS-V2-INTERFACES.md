@@ -368,7 +368,10 @@ rendered *next to* the control — a renderer drawing its own, or a standalone `
 can express it.
 
 ```ts
-interface GroupProps  { hidden?; disabled?; readOnly?; title?; className?; children: ReactNode }
+interface GroupProps  { hidden?; disabled?; readOnly?; title?; children: ReactNode;
+                        className?; shellClassName?; labelClassName?; labelTextClassName? }
+// The same slots a field has, for the same anatomy — body, wrapper, title container, title text.
+// Legacy styled groups against all of them (224 / 127 / 39 uses); built, README finding 63.
 // `title` is a heading the implementation draws when given (built); a JSON group's `title`
 // arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
 
@@ -397,6 +400,7 @@ interface ActionProps {
   style?: FormProp<ActionStyle>;
   className?: FormProp<ClassValue>;              // the control (the button)
   textClassName?: FormProp<ClassValue>;          // its text
+  shellClassName?: FormProp<ClassValue>;         // the wrapper it sits in — legacy's layout element (finding 63)
   children?: ReactNode;                          // any style, not just Group
 }
 interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () => void }

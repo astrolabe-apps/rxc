@@ -43,6 +43,7 @@ import {
   ElementsList,
   FadeVisibility,
   glyphFor,
+  DisplayShell,
 } from "./shared.js";
 
 // ── Shell: family 1 (children-hosting, class-driven — Bootstrap / shadcn) ──
@@ -420,34 +421,41 @@ function HtmlTabs(p: TabsRenderProps) {
 
 function HtmlAction(p: ActionRenderProps) {
   return (
-    <button
-      type="button"
-      className={mergeClass(`ff-btn ff-btn--${p.style}`, p.className)}
-      disabled={p.disabled}
-      aria-busy={p.busy || undefined}
-      onClick={p.onClick}
-    >
-      {p.iconPlacement !== "after" &&
-        (p.busy ? <span className="ff-spinner" /> : p.icon)}
-      {p.iconPlacement !== "replace" &&
-        (p.children ?? (
-          <span className={mergeClass(undefined, p.textClassName)}>
-            {p.text}
-          </span>
-        ))}
-      {p.iconPlacement === "after" &&
-        (p.busy ? <span className="ff-spinner" /> : p.icon)}
-    </button>
+    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+      <button
+        type="button"
+        className={mergeClass(`ff-btn ff-btn--${p.style}`, p.className)}
+        disabled={p.disabled}
+        aria-busy={p.busy || undefined}
+        onClick={p.onClick}
+      >
+        {p.iconPlacement !== "after" &&
+          (p.busy ? <span className="ff-spinner" /> : p.icon)}
+        {p.iconPlacement !== "replace" &&
+          (p.children ?? (
+            <span className={mergeClass(undefined, p.textClassName)}>
+              {p.text}
+            </span>
+          ))}
+        {p.iconPlacement === "after" &&
+          (p.busy ? <span className="ff-spinner" /> : p.icon)}
+      </button>
+    </DisplayShell>
   );
 }
 
 function HtmlText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const Tag = p.inline ? "span" : "p";
+  // Three slots, three elements: wrapper, element, text (finding 63).
   return rendered(
-    <Tag className={mergeClass("ff-text", p.className ?? p.textClassName)}>
-      {getProp(rc, p.text) ?? p.children}
-    </Tag>,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <Tag className={mergeClass("ff-text", p.className)}>
+        <span className={mergeClass(undefined, p.textClassName)}>
+          {getProp(rc, p.text) ?? p.children}
+        </span>
+      </Tag>
+    </DisplayShell>,
   );
 }
 
@@ -459,24 +467,35 @@ function HtmlText(p: TextDisplayRenderProps) {
 function HtmlIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   return rendered(
-    <span
-      className={mergeClass("ff-icon", p.className)}
-      role="img"
-      aria-label={p.accessibleName}
-      title={p.accessibleName}
-    >
-      {glyphFor(getProp(rc, p.icon))}
-    </span>,
+    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+      <span
+        className={mergeClass(
+          "ff-icon",
+          combineClass(p.className, p.textClassName),
+        )}
+        role="img"
+        aria-label={p.accessibleName}
+        title={p.accessibleName}
+      >
+        {glyphFor(getProp(rc, p.icon))}
+      </span>
+    </DisplayShell>,
   );
 }
 
 function HtmlHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
+  // The html *is* the text, so both slots land on the one element.
   return rendered(
-    <div
-      className={mergeClass("ff-html", p.className)}
-      dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
-    />,
+    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+      <div
+        className={mergeClass(
+          "ff-html",
+          combineClass(p.className, p.textClassName),
+        )}
+        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+      />
+    </DisplayShell>,
   );
 }
 
