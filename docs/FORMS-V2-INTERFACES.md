@@ -513,6 +513,7 @@ interface DisplayProps {
   accessibleName?: FormProp<string>;
   className?: FormProp<ClassValue>;
   textClassName?: FormProp<ClassValue>;
+  shellClassName?: FormProp<ClassValue>;   // the wrapper it sits in — legacy's layout element (finding 63)
   children?: ReactNode;
 }
 ```
