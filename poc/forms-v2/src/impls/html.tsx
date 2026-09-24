@@ -498,7 +498,11 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
           >
             <option value="" />
             {ctl.options.map((o) => (
-              <option key={o.value} value={o.value} disabled={o.disabled}>
+              <option
+                key={String(o.value)}
+                value={String(o.value)}
+                disabled={o.disabled}
+              >
                 {o.name}
               </option>
             ))}

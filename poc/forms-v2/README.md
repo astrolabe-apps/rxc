@@ -29,13 +29,14 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, **1,734 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 4 clean, **1,653 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
 with no loader change. Finding 56 (Radio, and `dynamic Display` on displays) took it
-1,822 → 1,734. Kind totals: `unread` 524, `action` 489, `renderOptions` 409,
-`adornment` 129, `dynamic` 80, `schema` 55, `control` 37, `validator` 11.
+1,822 → 1,734; finding 59 (`AllowedOptions`) 1,734 → 1,653. Kind totals: `unread` 524,
+`action` 489, `renderOptions` 375, `adornment` 129, `schema` 55, `control` 37,
+`dynamic` 32, `validator` 11, `expression` 1.
 
 ## What it builds
 
@@ -1256,18 +1257,58 @@ Numbered; each is cited at the matching line of code.
     its branch is silent, keeps reporting with the panel's copy hidden,
     clears on input and returns when cleared.
 
+59. **`AllowedOptions` is legacy's one rule, ported verbatim, and it made
+    option values boolean.** 48 uses across 15 forms — 41 on radios, 4 on
+    dropdowns, 3 on plain fields; 45 jsonata, 3 `Data`. Legacy's
+    `fieldOptions` computed (`formStateNode.ts`): the expression yields an
+    array (a scalar is wrapped); an entry that is an object *is* an option, a
+    primitive names one of the schema's by loose equality or becomes
+    `{ name: String(x), value: x }`; nulls drop out; an empty list means every
+    schema option. The corpus uses both halves — Fire filters the schema's
+    list with a conditional that leaves `null`s behind, and MastEoi's Yes/No
+    radios bind `Bool` fields with **no schema options at all**, the
+    expression supplying `[{ name: "Yes", value: true }, …]`. Forty of the 48
+    build whole objects.
+
+    So `FieldOption.value` — legacy's is `any` — is now `string | number |
+    boolean`, and `OptionValue` with it. Nothing else moved: the DOM erases
+    all three to strings and the controller already round-trips through the
+    option list (finding 34), so `true` comes back as `true`. Two `key` props
+    needed `String(…)`. The loader's `optionsFor` is a `FormProp` — the
+    schema's list, narrowed or replaced by the expression's, re-filtered as
+    the data it reads moves — and feeds Radio, Dropdown and DisplayOnly
+    (legacy's `textValue` read the filtered list too). Radio and Dropdown now
+    match on *either* schema options or an `AllowedOptions`, which is what
+    the MastEoi shape needs.
+
+    Per-option children (finding 56) are built over the **schema's** options,
+    the static set; an option the expression invents gets no children under
+    it. Legacy expanded them over the *filtered* list (`fieldOptions`, after `allowedOptions`), so an option the expression invents got children there; here it does not, and an option the expression removes keeps its (hidden) children — a divergence, recorded, in the direction of static structure.
+
+    Verified on the JSON tab, all four implementations: the Yes/No radio
+    stores `true` / `false`, not `"true"`; a dropdown whose expression is
+    `['active', hasPets ? 'inactive' : null]` shows one option or two as
+    the checkbox moves, the `null` gone. Burndown 1,734 → **1,653**, a
+    fourth form clean. `AllowedOptions` 48 → 0. `Radio` 46 → 24, and every
+    one left is in a form that shipped neither a schema nor an expression —
+    there is nothing to draw options from, so that residue is the
+    schema-supply problem, not a translator. One new warning, and it is
+    right: ShortTermPermit's `purpose` carries an `AllowedOptions` whose
+    expression was never filled in; it used to surface as a TypeError from
+    the compiler and now says "jsonata expression is empty", and the radio
+    falls back to the schema's options as legacy's would have.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down. At the last run
-(1,734): `Inline` 213 is probably a `Stack direction="row"` group;
+(1,653): `Inline` 213 is probably a `Stack direction="row"` group;
 `noSelection` 108 is a top-level flag on displays and groups with no contract
 slot (the DisplayOnly widget honours it, nothing else does); `HelpText` 72 is
-a prop the contract already has; then `AllowedOptions` 48 — which is now
-also the gate on the remaining `Radio` 46, every one of which has no schema
-options because the expression supplies them (finding 56); `renderOptions.groupOptions` 46,
+a prop the contract already has; then `renderOptions.groupOptions` 46,
 `placeholder` 40, `Display / Custom` 37, `Flex` 36, the array options
-`noAdd`/`noRemove`/`noReorder` ~31 each, and `dynamic Display` 15, all of
-them DisplayOnly's `overrideText`. `action` 489 stays until the
+`noAdd`/`noRemove`/`noReorder` ~31 each, `Radio` 24 (every one in a form
+that shipped no schema *and* no `AllowedOptions` — nothing to draw options
+from), and `dynamic Display` 15, all of them DisplayOnly's `overrideText`. `action` 489 stays until the
 burndown runs with a host `actionHandler` — `docLink` alone is 47 across
 three forms. Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is

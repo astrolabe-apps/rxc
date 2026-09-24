@@ -362,11 +362,18 @@ export type CheckboxRenderProps = FieldRenderProps<boolean | undefined | null>;
  */
 export interface FieldOption {
   name: string;
-  value: string | number;
+  /**
+   * `boolean` because the corpus says so: legacy's `FieldOption.value` is
+   * `any`, and its `AllowedOptions` expressions build Yes/No radios over
+   * `Bool` fields as `[{ name: "Yes", value: true }, …]` (README finding 59).
+   * The DOM erases all three to strings; the controller round-trips through
+   * the option list, so nothing else changes.
+   */
+  value: string | number | boolean;
   disabled?: boolean;
 }
 
-export type OptionValue = string | number | undefined | null;
+export type OptionValue = string | number | boolean | undefined | null;
 
 export type SelectExtra = { options?: FormProp<FieldOption[]> };
 

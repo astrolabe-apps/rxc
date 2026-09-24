@@ -372,6 +372,8 @@ interface RadioExtra extends SelectExtra {
   selectedClassName?: FormProp<ClassValue>;      // … and its two states
   notSelectedClassName?: FormProp<ClassValue>;
 }
+// `FieldOption.value` is `string | number | boolean` — legacy's is `any`, and its `AllowedOptions`
+// expressions build Yes/No radios over Bool fields with no schema options at all (README finding 59).
 
 /** A container needing per-child metadata takes it structured, not as children. */
 interface TabsProps  { items: { key: string; title: ReactNode; children: ReactNode }[]; … }

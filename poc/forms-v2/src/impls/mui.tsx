@@ -488,7 +488,11 @@ function MuiSelect(p: SelectRenderProps): Rendered {
           <em>—</em>
         </MenuItem>
         {ctl.options.map((o) => (
-          <MenuItem key={o.value} value={String(o.value)} disabled={o.disabled}>
+          <MenuItem
+            key={String(o.value)}
+            value={String(o.value)}
+            disabled={o.disabled}
+          >
             {o.name}
           </MenuItem>
         ))}

@@ -21,6 +21,7 @@ import {
   TextDisplay,
   TextField,
   type ClassValue,
+  type FieldOption,
   type FieldProps,
   type FormProp,
   type Validator,
@@ -170,6 +171,55 @@ const defaultUnsupported = (def: ControlDefinition) => (
   </p>
 );
 
+const hasDynamic = (d: ControlDefinition, t: string) =>
+  !!d.dynamic?.some((x) => x.type === t);
+
+/**
+ * Legacy's `fieldOptions` rule, verbatim (`formStateNode.ts`): the expression
+ * yields an array (a scalar is wrapped); an object entry *is* an option, a
+ * primitive names one of the schema's by loose equality or becomes
+ * `{ name: String(x), value: x }`; nulls drop out; and an empty list means
+ * every schema option. The corpus uses both halves — a filter over the
+ * schema's options (Fire) and a list of whole `{ name, value }` objects with
+ * nothing in the schema at all (MastEoi's Yes/No radios).
+ */
+export function allowedOptions(
+  all: FieldOption[],
+  allowed: unknown,
+): FieldOption[] {
+  const list: unknown[] =
+    allowed == null ? [] : Array.isArray(allowed) ? allowed : [allowed];
+  if (list.length === 0) return all;
+  return list
+    .map((x) =>
+      typeof x === "object"
+        ? (x as FieldOption | null)
+        : (all.find((o) => o.value == x) ?? {
+            name: String(x),
+            value: x as FieldOption["value"],
+          }),
+    )
+    .filter((x): x is FieldOption => x != null);
+}
+
+/**
+ * The options an options widget gets: the schema's, narrowed or replaced by
+ * an `AllowedOptions` expression when the definition carries one. A
+ * `FormProp`, so a data-driven list re-filters as the data moves.
+ */
+function optionsFor(
+  schema: SchemaField | undefined,
+  dynamicValue: TranslateArgs["dynamicValue"],
+): FormProp<FieldOption[]> | undefined {
+  const all = schema?.options ?? [];
+  const allowed = dynamicValue("AllowedOptions");
+  if (!allowed) return all.length ? all : undefined;
+  return (rc) => allowedOptions(all, getProp(rc, allowed));
+}
+
+const hasOptions = (d: ControlDefinition, s?: SchemaField) =>
+  !!s?.options?.length || hasDynamic(d, "AllowedOptions");
+
 /** The built-in translators, in match order. */
 export const defaultTranslators: Translator[] = [
   {
@@ -289,13 +339,14 @@ export const defaultTranslators: Translator[] = [
     // `sampleText` is what a designer sees in place of an empty value.
     match: (d) => d.type === "Data" && d.renderOptions?.type === "DisplayOnly",
     renderTypes: ["DisplayOnly"],
-    render: ({ props, schema, def }) => {
+    dynamics: ["AllowedOptions"],
+    render: ({ props, schema, def, dynamicValue }) => {
       const ro: Record<string, unknown> = def.renderOptions ?? {};
       return (
         <DisplayOnlyField
           {...props}
           required={undefined}
-          options={schema?.options}
+          options={optionsFor(schema, dynamicValue)}
           emptyText={str(ro.emptyText)}
           sampleText={str(ro.sampleText)}
           noSelection={def.noSelection === true || ro.noSelection === true}
@@ -348,12 +399,17 @@ export const defaultTranslators: Translator[] = [
     match: (d, s) =>
       d.type === "Data" &&
       d.renderOptions?.type === "Radio" &&
-      !!s?.options?.length,
+      hasOptions(d, s),
     renderTypes: ["Radio"],
+    dynamics: ["AllowedOptions"],
     ownsChildren: true,
-    render: ({ def, props, schema, retranslate }) => {
+    render: ({ def, props, schema, retranslate, dynamicValue }) => {
       const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
-      const options = schema!.options!;
+      // Per-option children are built over the *schema's* options — the
+      // static set an `AllowedOptions` filter narrows at render time. An
+      // expression that invents options the schema lacks gets no children
+      // for them; legacy expanded children from the same static list.
+      const options = schema?.options ?? [];
       const hasChildren = !!def.children?.length;
       const perOption = new Map(
         options.map((o, i) => [
@@ -382,7 +438,7 @@ export const defaultTranslators: Translator[] = [
       return (
         <RadioField
           {...props}
-          options={options}
+          options={optionsFor(schema, dynamicValue)}
           entryClassName={toClassValue(ro.entryWrapperClass as string)}
           selectedClassName={toClassValue(ro.selectedClass as string)}
           notSelectedClassName={toClassValue(ro.notSelectedClass as string)}
@@ -397,10 +453,13 @@ export const defaultTranslators: Translator[] = [
   {
     // Options come off the schema here and become a prop there; nothing below
     // this line knows a schema exists.
-    match: (d, s) => d.type === "Data" && !!s?.options?.length,
+    match: (d, s) =>
+      d.type === "Data" &&
+      (hasOptions(d, s) || d.renderOptions?.type === "Dropdown"),
     renderTypes: ["Standard", "Dropdown"],
-    render: ({ props, schema }) => (
-      <SelectField {...props} options={schema!.options} />
+    dynamics: ["AllowedOptions"],
+    render: ({ props, schema, dynamicValue }) => (
+      <SelectField {...props} options={optionsFor(schema, dynamicValue)} />
     ),
   },
   {

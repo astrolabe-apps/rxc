@@ -117,6 +117,12 @@ function compile(
   expression: string,
   warn?: ExprWarn,
 ): jsonata.Expression | undefined {
+  // The corpus has one of these: an `AllowedOptions` whose expression was
+  // never filled in. Report it as what it is, not as a compiler TypeError.
+  if (!expression || !expression.trim()) {
+    warn?.("jsonata expression is empty");
+    return undefined;
+  }
   const prefix = jsonataPrefix(scope.path);
   const full = prefix ? `${prefix}.(${expression})` : expression;
   try {

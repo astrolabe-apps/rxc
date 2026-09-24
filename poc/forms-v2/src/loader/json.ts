@@ -36,7 +36,8 @@ export type DynamicPropertyType =
   | "Disabled"
   | "Label"
   | "ActionData"
-  | "Display";
+  | "Display"
+  | "AllowedOptions";
 
 export interface DynamicProperty {
   type: DynamicPropertyType;

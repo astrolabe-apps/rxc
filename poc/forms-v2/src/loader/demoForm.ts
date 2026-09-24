@@ -252,6 +252,42 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
+  // AllowedOptions, both halves of legacy's rule. A Bool with no schema
+  // options at all, whose expression builds whole options with boolean
+  // values (MastEoi's Yes/No radios) …
+  {
+    type: "Data",
+    field: "hasPets",
+    title: "Has pets (radio from AllowedOptions)",
+    renderOptions: { type: "Radio" },
+    dynamic: [
+      {
+        type: "AllowedOptions",
+        expr: {
+          type: "Jsonata",
+          expression:
+            '[{"name": "Yes, I have pets", "value": true}, {"name": "No pets", "value": false}]',
+        },
+      },
+    ],
+  },
+  // … and a filter over the schema's options, driven by data: a null entry
+  // drops out, as legacy's did.
+  {
+    type: "Data",
+    field: "status",
+    title: "Status (Inactive only with pets)",
+    renderOptions: { type: "Dropdown" },
+    dynamic: [
+      {
+        type: "AllowedOptions",
+        expr: {
+          type: "Jsonata",
+          expression: "['active', hasPets ? 'inactive' : null]",
+        },
+      },
+    ],
+  },
   // A shape that renders *something* and quietly loses what the JSON asked
   // for — the failure the warning list exists to catch.
   {
