@@ -1434,12 +1434,7 @@ host-extension hook), `Flex` 36, the array options
 `HelpText.placement` 15 (dropped on purpose, finding 61), and `dynamic
 Display` 15, all DisplayOnly's `overrideText`. `expression` 13 are the
 kinds the loader now names rather than swallows: nine entries with no type,
-two `UserMatch`, one `Not`, one empty jsonata. The 489 action ids are no
-longer counted — the burndown stands in for a host that claims them all —
-and `--no-actions` lists them when a host needs the inventory (`docLink`
-alone is 47 across three forms). `action` 489 stays until the
-burndown runs with a host `actionHandler` — `docLink` alone is 47 across
-three forms. Of the 55 `schema` warnings, most are `plain name — schema not
+two `UserMatch`, one `Not`, one empty jsonata. The 489 action ids are no longer counted — the burndown stands in for a host that claims them all — and `--no-actions` lists them when a host needs the inventory (`docLink` alone is 47 across three forms). Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
 three. Every loader change is a translator or a prop, then `rushx burndown`
 again; a fixture form in `src/loader/demoForm.ts` and a line in the
