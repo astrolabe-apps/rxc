@@ -153,20 +153,22 @@ Nothing below is settled. In rough order of how much else depends on it:
    **The baseline exists (built):** `poc/forms-v2/scripts/extract-corpus.ts` pulls each legacy
    app's forms *and* the schemas it renders them against (evaluating its generated
    `schemas.ts`) into `corpus/`, and `scripts/burndown.ts` runs the loader over it, reporting
-   by kind and shape, including every property on a definition that nothing read. 80 forms,
-   3,972 controls, 3 clean, **2,483 warnings** — every one of them loader work. 675 are
-   unread properties, all render-option sub-fields of translators that do not exist yet
-   (`sampleText` 123, `noSelection` 110); 442 are action ids no handler claimed (the count of buttons a
-   host has to wire); the rest is unhandled shapes, led by `DisplayOnly` 372, `Inline` 198,
-   `a/b` field-path refs 105, `HelpText` 69, `dynamic Display` 67. The number is honest now: a
-   property the loader never looked at used to cost nothing. README findings 44–50.
+   by kind and shape, including every property on a definition that nothing read. The first
+   run — some 80 forms and 4,000 controls — produced roughly 2,500 warnings, every one of them
+   loader work: about a quarter were properties nothing read (all render-option sub-fields of
+   translators that did not exist yet), a few hundred were action ids no handler claimed (the
+   count of buttons a host has to wire), and the rest unhandled shapes, led by `DisplayOnly`
+   and `Inline`. The number is honest now: a property the loader never looked at used to cost
+   nothing. README findings 44–50. **The current count, and the ordered work list, live in
+   the POC README** (*Where to pick up*) — the legacy sources keep moving under the corpus, so
+   this document does not repeat the figure.
 
    **What the number does not prove.** It measures shape coverage — did something claim this
    discriminator, did something read this property — and cannot see a translation that is
-   *wrong*. Three places to expect one: a jsonata expression inside an array row evaluates
-   against whatever control the translator holds, with none of legacy's path prefix or
-   variables; the `defaultValue`-on-becoming-visible cycle is not built; a `../x` or `a/b`
-   reference has to bind the scope to the right node, not only the value. So "identical
+   *wrong*. Three places to expect one, two of them since closed (README finding 52): a
+   jsonata expression inside an array row now carries legacy's path prefix and `$$`/`$i`, and
+   a `../x` or `a/b` reference binds the right control *and* scope; the
+   `defaultValue`-on-becoming-visible cycle is still not built. So "identical
    semantics" needs a second instrument beside the burndown: render each corpus form in legacy
    and in v2 over fixture data and diff visibility, validity and values per field — the
    compare-app workstream generalised from one Fire form to the corpus. Until that exists the
@@ -179,11 +181,11 @@ Nothing below is settled. In rough order of how much else depends on it:
    props at translate time rather than inside its read closures.
 
    The corpus will **not** be narrowed by dropping unused parts of the format. A usage survey
-   across 80 forms (see *Format-usage survey* in `CLAUDE.md`) found exactly seven unused
+   across ~80 forms (see *Format-usage survey* in `CLAUDE.md`) found exactly seven unused
    members across the four format enums — `SetField`, `Optional`, `UUID`, `Not`,
    `DefaultValue`, `Readonly`, `Style` — and all seven are already implemented, so dropping
    them saves nothing. A loader aimed at the legacy corpus carries essentially the whole
-   format, Jsonata included (418 uses across 40 of 80 forms).
+   format, Jsonata included (~400 uses, in half the forms).
 3. **Design mode and portals. Decided.** A dialog renderer's content escapes the selection wrapper —
    and legacy does not solve this. Its editor **forks the render pipeline**:
    `FormControlPreview` re-implements `renderControlLayout`, renders adornments itself, injects
@@ -215,20 +217,20 @@ Nothing below is settled. In rough order of how much else depends on it:
    fiddly. Closed on that basis.
 4. **Class slots — four targets, two merge modes.** Not a build-time question: an
    implementation assumes its classes are defined somehow. The content is *where each lands*
-   and *how it combines*, and the corpus (3,700 uses across 80 forms) shows all four in
+   and *how it combines*, and the corpus (~3,700 uses across ~80 forms) shows all four in
    earnest:
 
    | JSON | lands on | uses |
    |---|---|---|
-   | `styleClass` | the input / control | 1550 |
-   | `textClass` | text content — a display value, a button's text | 1477 |
-   | `layoutClass` | the shell | 636 |
-   | `labelClass` | the label container | 39 |
+   | `styleClass` | the input / control | ~1,500 |
+   | `textClass` | text content — a display value, a button's text | ~1,500 |
+   | `layoutClass` | the shell | ~650 |
+   | `labelClass` | the label container | ~40 |
 
    Each combines with the implementation's own class for that slot. **Two modes, both real:**
    *merge* (append to the implementation's class) and *replace*. Replace is spelled today as an
    `@ ` prefix inside the string (`getOverrideClass` / `rendererClass` in
-   `packages/forms-react-core/src/className.ts`) and appears **1216 times** — roughly a third
+   `packages/forms-react-core/src/className.ts`) and appears **~1,200 times** — roughly a third
    of all class usage. It is a first-class mode expressed as a sentinel, and v2 should type it:
    `ClassValue = string | { replace: string }`, with the loader converting `"@ foo"`.
 
@@ -237,7 +239,7 @@ Nothing below is settled. In rough order of how much else depends on it:
    Non-class implementations (MUI's `sx`) map or ignore these, as with `className` generally.
 
    **Built, and there are five.** Legacy's `labelTextClass` — the label's *text* as distinct
-   from its container, 248 uses in 30 forms — exists because on React Native text styles do
+   from its container, ~250 uses in 30-odd forms — exists because on React Native text styles do
    not cascade from a `View`, which is the same reason the format has both `styleClass` and
    `textClass` on a control. The contract already carried that split for the control
    (`className` / `textClassName`); the label now has it too (`labelClassName` /
@@ -247,7 +249,7 @@ Nothing below is settled. In rough order of how much else depends on it:
 
    Left open, and `forms-html`'s business rather than the contract's: whether to merge with
    `tailwind-merge` so an appended class actually wins. Authors currently force it with `!`
-   prefixes — `!text-accent` alone appears 171 times.
+   prefixes — `!text-accent` alone appears ~170 times.
 5. **Does the JSX path need the deferred async queue? Decided: no.** The JSON path's jsonata
    resolution needs `runAsync` deferred to a commit effect or SSR and first hydration disagree
    (the POC hit this with a `Display`-typed script). A JSX form has no async expressions, and
@@ -369,7 +371,7 @@ is loader-internal: does this translate to a prop, or to a wrapper?
 
 **What is lost** is adornments as an *open* extension mechanism — a custom decoration
 applicable to any control. Two reasons that is acceptable: the survey found exactly one
-genuinely custom adornment across 80 forms (`Spotlight`), against `HelpText` at 69 uses; and
+genuinely custom adornment across ~80 forms (`Spotlight`), against `HelpText` at ~70 uses; and
 the wrapping case survives as plain composition — `<Spotlight><TextField/></Spotlight>` is more
 natural in JSX than a registration. Only the *inject-into-the-renderer's-internals* case needs
 a named prop, and that case is inherently renderer-specific, which is why it could never have
