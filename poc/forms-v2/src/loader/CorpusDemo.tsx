@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useMemo, useState } from "react";
 import { useControl } from "@rx-controls/react";
 import { JsonForm } from "./JsonForm.js";
