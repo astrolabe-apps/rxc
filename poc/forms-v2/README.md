@@ -1650,6 +1650,40 @@ Numbered; each is cited at the matching line of code.
     one is a question about legacy, not a gap in v2, and it is the whole of
     the corpus's semantic distance now.
 
+69. **The last parity line was legacy's — and it is a shared key again.**
+    Burn's `endTime` carries two `Jsonata` validators, "Must be later than
+    start time" and "End time cannot be after midnight in a permit period".
+    Over the filled fixture, where start and end are the same instant, the
+    first fires and the second answers `''`. v2 reports the first; legacy
+    reports nothing. Finding 68 filed that as a question about legacy, and
+    the answer is in `@astroapps/forms-core`'s `jsonataValidator`: every
+    Jsonata validator on a control publishes under the one `"jsonata"`
+    error key — `setError("jsonata", result)` — so with two, the last to
+    answer wins, and an empty answer clears the other's message. A
+    subscription on the control during the oracle's settle shows it
+    happen: `{"jsonata":"Must be later than start time"}`, then `{}`.
+    Reversing the two validators in a copy of the form changes nothing —
+    it is completion order, not definition order, and neither is anything
+    an author controls. Finding 58's lesson from the validator side: a
+    shared key is last-writer-wins on a timing nothing controls. v2 keys
+    each validator (`jsonata`, `jsonata1`, …; `date` likewise) and always
+    did. The corpus has three such controls — Burn's `endTime` and `area`,
+    Fire's `area` — so three messages a real form can lose today.
+
+    The instrument now classifies it the way finding 54's display-only
+    divergence is classified: an error v2 reports on a control with two or
+    more Jsonata validators that legacy leaves clean is `expected`, labelled
+    with its reason, and the summary names each expected kind with its
+    count. Not hidden — `--show` still prints the line and why. **144 of 144
+    runs identical, 0 differences**, plus 37 display-only and 1 shared-key
+    expected. Burndown unchanged at 760.
+
+    Whether legacy is fixed is legacy's call — keying by validator index is
+    a one-line change, and the compat spike's `astrolabe-common` branch is
+    where it would go. Recorded because it is the second time parity found
+    something the burndown could not, and the first where v2 was the side
+    that was right.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
@@ -1687,7 +1721,7 @@ translation that is *wrong*. `rushx parity` can: it runs every corpus form
 through legacy itself (`@react-typed-forms/schemas@19`, headless) and
 through the v2 loader mounted under React, over the same fixture data, and
 diffs the values and errors each leaves at every data path. At the last run:
-**143 of 144 runs identical, 1 difference** — an async validator legacy does not publish for an untouched field — plus 37 classified as the display-only divergence finding 54 chose. Finding 66 has what building it found; findings 67 and 68 closed the rest. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
+**144 of 144 runs identical, 0 differences**, plus 38 classified as known divergences — 37 display-only (finding 54, v2's choice) and 1 shared jsonata key (finding 69, a legacy bug). Finding 66 has what building it found; findings 67–69 closed the rest. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
 inline style, no contract slot), a loader hook for host adornments
 (`Spotlight`) alongside the open `Translator[]`.
 

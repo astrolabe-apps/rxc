@@ -643,7 +643,10 @@ is exactly what the first cut did, and it silently lost a `required` to a `requi
 sibling. Legacy scoped the key to the node (`uniqueId + "default"`); the framework's key is
 now `required@<boundary id>`, so a boundary clears only what it set. Author keys stay as
 written, and `fieldState.errors` is a set so two boundaries agreeing read as one error.
-README finding 58.
+README finding 58. The same rule holds per validator: legacy keyed every Jsonata validator
+on a control under one `jsonata`, so a control with two loses whichever answered first —
+three controls in the corpus do, and parity found it (README finding 69). The loader keys
+them `jsonata`, `jsonata1`, … and `date` the same way.
 
 The scope **is** a real `Control` — which is what makes validity an ordinary tracked read,
 `touchAll` a `setTouched` cascade, and nesting just another member — built on core's

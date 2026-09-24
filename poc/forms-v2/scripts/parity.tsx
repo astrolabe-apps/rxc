@@ -21,7 +21,10 @@
  * catch `required`, validators and their `hidden` gating. Visibility is not
  * read directly — v2 has no node tree to ask — but with `clearHidden` on in
  * both, a wrongly-shown or wrongly-hidden field with a value becomes a value
- * difference, which is why the "filled" fixture exists.
+ * difference, which is why the "filled" fixture exists. Two divergences are
+ * classified rather than counted — v2's write-free display-only boundary
+ * (finding 54) and legacy's one shared `jsonata` error key (finding 69) —
+ * and the summary names each with its count; `--show` still prints them.
  *
  *   rushx parity [<dir-or-file>...]         summary; default ./corpus
  *   rushx parity --show <form-basename>     every difference in one form
@@ -345,7 +348,11 @@ interface Diff {
   path: string;
   legacy: string;
   v2: string;
+  /** For `expected`: which known divergence claimed it. */
+  why?: string;
 }
+const DISPLAY_ONLY = "display-only, finding 54";
+const SHARED_JSONATA = "shared jsonata key, finding 69";
 
 /**
  * The one divergence v2 chose (README finding 54): legacy's `clearHidden`
@@ -371,37 +378,73 @@ function displayOnlyFields(form: FormFile): Set<string> {
   return new Set([...only].filter(([, v]) => v).map(([k]) => k));
 }
 
-function diff(a: Snapshot, b: Snapshot, displayOnly: Set<string>): Diff[] {
+/**
+ * The divergence legacy chose for it (README finding 69): every `Jsonata`
+ * validator on a control publishes under the one `"jsonata"` error key, so
+ * on a control with two the last to answer wins — and an empty answer
+ * clears the other's message. v2 keys each validator (`jsonata`,
+ * `jsonata1`, …). A control carrying two or more is therefore expected to
+ * report an error in v2 that legacy has lost, and is reported as such.
+ * Matched by field name, like `displayOnlyFields`.
+ */
+function sharedJsonataFields(form: FormFile): Set<string> {
+  const out = new Set<string>();
+  const walk = (cs: FormFile["controls"]) => {
+    for (const c of cs) {
+      const n = (
+        (c as { validators?: { type: string }[] }).validators ?? []
+      ).filter((v) => v.type === "Jsonata").length;
+      if (c.type === "Data" && c.field && n >= 2)
+        out.add(c.field.split("/").pop()!);
+      walk(c.children ?? []);
+    }
+  };
+  walk(form.controls);
+  return out;
+}
+
+const leafOf = (p: string) =>
+  p
+    .replace(/\[\d+\]/g, "")
+    .split(".")
+    .pop()!;
+
+function diff(a: Snapshot, b: Snapshot, form: FormFile): Diff[] {
+  const displayOnly = displayOnlyFields(form);
+  const sharedJsonata = sharedJsonataFields(form);
   const out: Diff[] = [];
   const paths = new Set([...a.values.keys(), ...b.values.keys()]);
   for (const p of [...paths].sort()) {
     const x = a.values.get(p),
       y = b.values.get(p);
     if (x === y) continue;
-    const leaf = p
-      .replace(/\[\d+\]/g, "")
-      .split(".")
-      .pop()!;
     const expected =
-      x === UNDEF && y !== undefined && y !== UNDEF && displayOnly.has(leaf);
+      x === UNDEF &&
+      y !== undefined &&
+      y !== UNDEF &&
+      displayOnly.has(leafOf(p));
     out.push({
       kind: expected ? "expected" : "value",
       path: p,
       legacy: x ?? "(absent)",
       v2: y ?? "(absent)",
+      why: expected ? DISPLAY_ONLY : undefined,
     });
   }
   const epaths = new Set([...a.errors.keys(), ...b.errors.keys()]);
   for (const p of [...epaths].sort()) {
     const x = a.errors.get(p),
       y = b.errors.get(p);
-    if (!!x !== !!y)
+    if (!!x !== !!y) {
+      const expected = !x && !!y && sharedJsonata.has(leafOf(p));
       out.push({
-        kind: "error",
+        kind: expected ? "expected" : "error",
         path: p,
         legacy: x?.join("; ") ?? "(none)",
         v2: y?.join("; ") ?? "(none)",
+        why: expected ? SHARED_JSONATA : undefined,
       });
+    }
     else if (x && y && x.join("|") !== y.join("|"))
       out.push({
         kind: "message",
@@ -442,7 +485,7 @@ for (const form of forms) {
       results.push({
         form,
         fixture: fx.name,
-        diffs: diff(legacy, v2, displayOnlyFields(form)),
+        diffs: diff(legacy, v2, form),
       });
     } catch (e) {
       results.push({
@@ -465,13 +508,21 @@ if (show) {
       console.log("  " + r.crashed.split("\n").slice(0, 6).join("\n  "));
     for (const d of r.diffs)
       console.log(
-        `  ${pad(d.kind, 8)} ${pad(d.path, 40)} legacy ${d.legacy}   v2 ${d.v2}`,
+        `  ${pad(d.kind, 8)} ${pad(d.path, 40)} legacy ${d.legacy}   v2 ${d.v2}` +
+          (d.why ? `   (${d.why})` : ""),
       );
   }
 } else {
   const real = (r: Result) => r.diffs.filter((d) => d.kind !== "expected");
   const total = results.reduce((n, r) => n + real(r).length, 0);
-  const expected = results.reduce((n, r) => n + r.diffs.length, 0) - total;
+  const expected = new Map<string, number>();
+  for (const r of results)
+    for (const d of r.diffs)
+      if (d.kind === "expected")
+        expected.set(d.why!, (expected.get(d.why!) ?? 0) + 1);
+  const expectedNote = [...expected]
+    .map(([why, n]) => `${n} ${why}`)
+    .join("; ");
   const clean = results.filter(
     (r) => !r.crashed && real(r).length === 0,
   ).length;
@@ -479,7 +530,7 @@ if (show) {
   console.log(
     `${forms.length} forms × ${fixtures.length} fixture(s), ${forms.reduce((n, f) => n + countControls(f.controls), 0)} controls — ` +
       `${clean} of ${results.length} runs identical, ${total} differences` +
-      (expected ? ` (+${expected} expected: display-only, finding 54)` : "") +
+      (expectedNote ? ` (+expected: ${expectedNote})` : "") +
       (crashed.length ? `, ${crashed.length} crashed` : ""),
   );
   const byKind = new Map<string, number>();
