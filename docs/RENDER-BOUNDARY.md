@@ -293,6 +293,28 @@ ancestor-writes-then-descendant-renders case for free.
 Descendants need nothing either way — they have not rendered yet, so they read the new value as they
 go. Nothing is ever staged: `update` has no transactional behaviour here that it lacks elsewhere.
 
+**An observer that has not committed yet is also deferred** — and this case reaches past render-body
+writes, because the writes that hit it come from outside the render phase, where `openRc` is `null`.
+A tracker subscribes at `rendered(…)`, during render, so between that moment and the fiber's first
+commit it can be notified while React still considers it unmounted, and React rejects a state update
+from anyone but the fiber itself: "Can't perform a React state update on a component that hasn't
+mounted yet". Two writes land in that window in practice:
+
+- a **layout-effect cleanup in React's deletion pass**. Deletions are processed before the
+  replacement fibers are placed, so an unmounting subtree that writes a control on cleanup — a
+  per-field validator clearing the error it published — notifies replacements that have rendered
+  but not yet committed. Swapping a form's whole renderer set produced one warning per field this
+  way;
+- **any write after a render that never committed** (a suspend). The abandoned fiber keeps its
+  subscriptions, so the next write to any of them reaches it.
+
+Both go into the same queue and stay there until the tracker's **own** commit effect, which is the
+first moment the fiber is mounted; neither drain hands a not-yet-committed tracker to `forceRender`.
+The observer re-renders in that commit, before paint, so the value is not lost — only the
+notification waits. A tracker whose render is abandoned for good stays queued and inert, the same
+memory cost as its orphaned subscriptions. The writer's own render-phase update is unaffected: a
+component that writes what it reads is still re-invoked at once, mounted or not.
+
 ## A subtlety worth knowing
 
 Whether a missed `rendered(…)` on a *conditional* path is visible depends on which path the
