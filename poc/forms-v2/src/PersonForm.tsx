@@ -32,6 +32,7 @@ import { Collapsible } from "./widgets/Collapsible.js";
 import { SelectChild } from "./widgets/SelectChild.js";
 import { JsonForm } from "./loader/JsonForm.js";
 import { demoControls, demoSchema } from "./loader/demoForm.js";
+import { CorpusDemo } from "./loader/CorpusDemo.js";
 import { AntInputReference } from "./impls/antd.js";
 
 export interface Person {
@@ -581,6 +582,19 @@ export function PersonForm({
                     </ul>
                   )}
                 />
+              </Stack>
+            ),
+          },
+          {
+            key: "corpus",
+            title: "Legacy form",
+            children: (
+              <Stack gap={4}>
+                <p className="ff-plain">
+                  A real ServiceTas form, straight from its JSON, through the
+                  same loader and the same implementation as every other tab.
+                </p>
+                <CorpusDemo />
               </Stack>
             ),
           },

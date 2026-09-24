@@ -54,6 +54,7 @@ that returns what it could not translate.
 |---|---|
 | `src/framework/` | the contract (§1–§10 of the doc) |
 | `src/loader/` | the JSON loader — translators, expressions, `translateForm`, `<JsonForm>` |
+| `src/loader/CorpusDemo.tsx` | the **Legacy form** tab: any extracted `corpus/servicetas/*.json` through `<JsonForm>` under the active implementation, with the loader's warnings on a toggle. A presentation aid; renders a note when no corpus is extracted |
 | `src/impls/html.tsx` | family 1 — children-hosting, class-driven (Bootstrap / shadcn shaped) |
 | `src/impls/mui.tsx` | family 2, hardest case — self-rendering input, notched outline |
 | `src/impls/antd.tsx` | family 2 — `Form.Item` standalone, runtime theme tokens |

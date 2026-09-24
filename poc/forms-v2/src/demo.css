@@ -616,3 +616,27 @@ body {
 .ff-branch[hidden] {
   display: none;
 }
+
+/* Presentation aid: the corpus tab. */
+.ff-corpus-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  font-size: 13px;
+}
+.ff-corpus-bar label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.ff-corpus-bar code {
+  opacity: 0.6;
+}
+.ff-corpus-count {
+  font-style: italic;
+}
+.ff-warnings-box summary {
+  cursor: pointer;
+  font-size: 13px;
+}
