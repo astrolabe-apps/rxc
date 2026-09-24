@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "A control write that reaches a component which has rendered but not yet committed — a layout-effect cleanup in React's deletion pass, or any write after a render that never committed — is now held until that component's own commit effect, instead of calling its state setter at once. React reported the latter as \"Can't perform a React state update on a component that hasn't mounted yet\" on every field of a form whose renderer set was swapped.",
+      "type": "patch",
+      "packageName": "@rx-controls/react"
+    }
+  ],
+  "packageName": "@rx-controls/react",
+  "email": "doolse@gmail.com"
+}

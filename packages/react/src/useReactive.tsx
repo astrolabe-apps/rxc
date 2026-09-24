@@ -218,6 +218,21 @@ if (IS_DEV) {
 //     the commit phase (before paint), with a microtask backstop. See
 //     `deferRender` for why it is drained from two places.
 //
+//   * **Anybody who has not committed yet.** A tracker subscribes at
+//     `rendered(…)`, during render, so between that moment and the fiber's
+//     first commit it is reachable by a write and React will reject
+//     `forceRender` on it: "Can't perform a React state update on a component
+//     that hasn't mounted yet". The `openRc` test above cannot see this case,
+//     because the writes that hit it come from *outside* the render phase —
+//     a layout-effect cleanup running in React's deletion pass (an unmounting
+//     subtree clearing the errors it published, while its replacement has
+//     rendered but not yet been placed), or any write after a render that
+//     never committed (a suspend). Such a notification is held in the same
+//     queue until the tracker's own commit effect, which is the first moment
+//     the fiber is mounted; it re-renders then, before paint. A tracker whose
+//     render is abandoned for good stays queued and inert — the same memory
+//     cost as its orphaned subscriptions, and nothing else.
+//
 // Only notification moves. Values are never staged.
 
 const deferred = new Set<Tracker>();
@@ -228,9 +243,13 @@ function drainDeferred(): void {
   if (deferred.size === 0) return;
   // Snapshot: a render triggered here can enqueue further trackers, which
   // belong to the next drain rather than this one.
-  const pending = [...deferred];
-  deferred.clear();
-  for (const t of pending) t.forceRender();
+  for (const t of [...deferred]) {
+    // Not yet committed: React would warn, and there is no mounted output to
+    // refresh. Its own commit effect drains it the moment that changes.
+    if (!t.mounted) continue;
+    deferred.delete(t);
+    t.forceRender();
+  }
 }
 
 /**
@@ -251,6 +270,9 @@ function drainDeferred(): void {
  *     nothing. Draining from a microtask is legal: React's "during render"
  *     check keys off the fiber being rendered *synchronously*, which is
  *     never the case in a microtask.
+ *
+ * Either drain skips a tracker whose component has not committed yet; that
+ * one waits for its own commit effect, which runs the drain as well.
  */
 function deferRender(tracker: Tracker): void {
   deferred.add(tracker);
@@ -277,6 +299,12 @@ interface Tracker {
   reconciler: SubscriptionReconciler;
   controls: ReactiveScope;
   didRender: boolean;
+  /**
+   * Set at the first commit effect and never cleared. Until then the fiber
+   * has rendered — so it has subscriptions and a `forceRender` — but is not
+   * mounted, and React rejects a state update from anyone but itself.
+   */
+  mounted: boolean;
   /** Stable re-render trigger — `useState`'s setter is stable for the
    * component's life, so the queue can hold this across renders. */
   forceRender: () => void;
@@ -315,6 +343,7 @@ export function useReactive(): ReactiveScope {
       rc,
       reconciler,
       didRender: false,
+      mounted: false,
       forceRender: () => forceRender((c) => c + 1),
       site: IS_DEV ? captureCallSite() : "",
       controls: {
@@ -346,7 +375,11 @@ export function useReactive(): ReactiveScope {
     // Installed here rather than at construction because it closes over
     // `tracker`. See "Deferred notification" above for the two branches.
     reconciler.setListener(() => {
-      if (openRc !== null && openRc !== rc) deferRender(tracker);
+      // The writer itself: React's render-phase update, taken at once.
+      if (openRc === rc) tracker.forceRender();
+      // Anyone else waits while a render is in progress, and until it has
+      // committed for the first time.
+      else if (openRc !== null || !tracker.mounted) deferRender(tracker);
       else tracker.forceRender();
     });
     ref.current = tracker;
@@ -374,6 +407,8 @@ export function useReactive(): ReactiveScope {
     controlContext.retainTracker(tracker.reconciler);
     return () => {
       controlContext.releaseTracker(tracker.reconciler);
+      // Nothing left to refresh; a stale entry would only pin the tracker.
+      deferred.delete(tracker);
     };
   }, [controlContext, tracker]);
 
@@ -381,7 +416,9 @@ export function useReactive(): ReactiveScope {
   // commits its effects, so the guard below cannot cry wolf on a caught
   // error.
   useCommitEffect(() => {
-    // Primary drain for render-phase writes — see "Deferred notification".
+    // From here on a notification may reach this fiber directly.
+    tracker.mounted = true;
+    // Primary drain for deferred notifications — see "Deferred notification".
     // Cheap when empty, which is the overwhelmingly common case.
     drainDeferred();
     if (!tracker.didRender) warnMissingRendered(tracker.site);
