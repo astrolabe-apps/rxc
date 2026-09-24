@@ -1569,9 +1569,7 @@ read audit reaches: it caught 296 conditions that were never evaluated,
 because the properties they needed were never read. Two of the three places to
 expect one are closed by finding 52 — jsonata inside a row now carries
 legacy's path prefix and `$$`/`$i`, and `a/b` / `../x` bind the right control
-*and* scope — but the `defaultValue`-on-becoming-visible cycle is still not
-built (`FieldProps` has no `defaultValue`; it surfaces in the burndown as
-`unread:defaultValue`, 15 uses in 9 forms), and nothing checks that a
+*and* scope — and the `defaultValue` cycle is built (finding 65); what remains is that nothing checks that a
 translated expression *computes* what legacy's did. Goal 6's acceptance test
 therefore needs a second instrument: render each corpus form in legacy and in
 v2 over fixture data and diff visibility, validity and values per field — the
