@@ -29,6 +29,10 @@ export type EntityExpression =
   | { type: "Data"; field: string }
   | { type: "NotEmpty"; field: string; empty?: boolean }
   | { type: "DataMatch"; field: string; value: unknown }
+  /** `DataMatch` as the C# server actually serialises it — 296 of the corpus's expressions. */
+  | { type: "FieldValue"; field: string; value: unknown }
+  /** Anything else — `UserMatch`, `Not`, or an entry with no type — is reported, not guessed at. */
+  | { type: string; [k: string]: unknown }
   | { type: "Jsonata"; expression: string };
 
 export type DynamicPropertyType =

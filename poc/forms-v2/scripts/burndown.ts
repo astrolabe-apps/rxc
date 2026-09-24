@@ -10,6 +10,7 @@
  *   rushx burndown <dir-or-file>...            summary table
  *   rushx burndown --json <dir-or-file>...     machine-readable
  *   rushx burndown --strict <dir-or-file>...   exit 1 if any warning
+ *   rushx burndown --show <kind:shape> ...      list every warning of one shape
  *
  * A form file is either `{ controls, fields }` (what the form editor writes)
  * or a bare `ControlDefinition[]` with no schema.
@@ -36,11 +37,15 @@ interface FormResult {
 const args = process.argv.slice(2);
 const json = args.includes("--json");
 const strict = args.includes("--strict");
-let roots = args.filter((a) => !a.startsWith("--"));
+const showAt = args.indexOf("--show");
+const show = showAt >= 0 ? args[showAt + 1] : undefined;
+let roots = args.filter(
+  (a, i) => !a.startsWith("--") && !(showAt >= 0 && i === showAt + 1),
+);
 if (roots.length === 0 && existsSync("corpus")) roots = ["corpus"];
 if (roots.length === 0) {
   console.error(
-    "usage: burndown [--json] [--strict] <dir-or-file>...  (default: ./corpus)",
+    "usage: burndown [--json] [--strict] [--show kind:shape] <dir-or-file>...  (default: ./corpus)",
   );
   process.exit(2);
 }
@@ -146,7 +151,20 @@ for (const r of results)
 const clean = results.filter((r) => r.warnings.length === 0 && !r.crashed);
 const crashed = results.filter((r) => r.crashed);
 
-if (json) {
+if (show) {
+  // Trace one shape back to the controls that produce it.
+  const cwd = process.cwd();
+  let n = 0;
+  for (const r of results)
+    for (const w of r.warnings)
+      if (`${w.kind}:${shape(w)}` === show) {
+        n++;
+        console.log(
+          `${relative(cwd, r.path)} @${w.path}  ${w.subject ?? "-"}\n    ${w.detail}`,
+        );
+      }
+  console.log(`\n${n} warning(s) of shape ${show}`);
+} else if (json) {
   console.log(
     JSON.stringify(
       {

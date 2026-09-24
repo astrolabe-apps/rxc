@@ -12,6 +12,7 @@ rushx dev          # http://localhost:5183, from this directory
 rushx typecheck
 rushx extract-corpus <name> <src-dir>   # a legacy app's forms + schemas → corpus/<name>/
 rushx burndown [<dir-or-file>...]       # the loader over ./corpus (default); --json, --strict
+rushx burndown --show unread:layoutClass # every warning of one shape, with the control it came from
 ```
 
 `corpus/` is gitignored — derived from other repositories. To rebuild it, point
@@ -29,14 +30,16 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 4 clean, **1,375 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 4 clean, **2,195 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
 with no loader change. Finding 56 (Radio, and `dynamic Display` on displays) took it
 1,822 → 1,734; finding 59 (`AllowedOptions`) 1,734 → 1,653; findings 60–61 (Inline,
-HelpText) 1,653 → 1,375. Kind totals: `unread` 524, `action` 489, `renderOptions` 162,
-`adornment` 64, `schema` 55, `control` 37, `dynamic` 32, `validator` 11, `expression` 1.
+HelpText) 1,653 → 1,375; finding 62 (the audit's two blind spots) 1,375 → **2,195** — a rise,
+and an honest one: those 820 were always dropped and never counted. Kind totals: `unread`
+1,332, `action` 489, `renderOptions` 162, `adornment` 64, `schema` 55, `control` 37,
+`dynamic` 32, `expression` 13, `validator` 11.
 
 ## What it builds
 
@@ -1353,19 +1356,81 @@ Numbered; each is cited at the matching line of code.
     Burndown 1,653 → **1,375**: `Inline` 213 → 0, `HelpText` 72 → 7,
     `renderOptions` 375 → 162, `adornment` 129 → 64.
 
+62. **The audit's two blind spots, closed — and the first thing it saw was
+    296 conditions that had never worked.** Finding 60 named them: a
+    definition property `buildProps` *reads* into a prop the translator then
+    never passes on counted as consumed, and the recording proxy did not
+    look inside `adornments`, `validators` or `dynamic` entries. Both fixed.
+    The props handed to a translator are recorded too, and a prop built from
+    something the translator never read is reported against its source —
+    `"layoutClass" was built into the "shellClassName" prop, which the
+    translator never read`; a spread reads every key, so the data
+    translators are untouched and the group, display and action ones are
+    exposed. Entries are recorded by `type` and to any depth
+    (`dynamic.Visible.expr.field`); an entry nothing handles is reported
+    once, as before, and its properties are then *not* audited one by one.
+
+    **What it found.** 266 `Visible` and 30 `Disabled` conditions across 35
+    forms whose `expr.field` and `expr.value` nothing had read. The server
+    serialises `DataMatch` as `"FieldValue"`; the loader's `switch` had no
+    such case and no `default`, so `toFormProp` returned `undefined`, the
+    prop fell back to the static flag, and the control was simply always
+    shown — no warning of any kind, since the `expression` kind covered
+    compile failures only. That is the failure the goals doc calls easy to
+    ship ("features on a control that translated fine and then silently lost
+    behaviour"), on 7% of the corpus's controls, invisible to a burndown
+    that measured shape coverage. Fixed, and `toFormProp` now has a
+    `default` that reports any kind it does not know — which surfaced
+    thirteen more: nine expressions with no type, two `UserMatch`, one `Not`,
+    one empty jsonata.
+
+    **Three smaller things it found**, all the same shape. The loader built
+    `label`, `labelClassName` and `labelTextClassName` for every control,
+    and legacy renders a label for Data and Group only — a Display's `title`
+    is the designer's name for it, an Action's the button-text fallback — so
+    1,287 titles were reported dropped by translators that were right not to
+    read them; the props are built for the two labelled kinds now. Twice
+    more, a `??` fallback hid a read: `hiddenFromExpr ?? def.hidden` and the
+    same for `disabled` never touched the static flag when an expression
+    existed (a `hidden: true` beside a `Visible` is "hidden unless…", and
+    legacy reads it the same), and `DataMatch`'s `value` was read inside the
+    closure, at evaluation, after the audit had run. The rule, now applied
+    four times: **a fallback is consumed whether or not it is used, and a
+    property the prop needs is read when the prop is built, not when it is
+    evaluated.**
+
+    Burndown 1,375 → **2,195**. The rise is the point — 820 warnings that
+    were always true and never counted. What they are: `layoutClass` 546 on
+    displays, actions and groups (no shell slot on three of the five
+    boundary kinds — a contract question now visible as one),
+    `labelTextClass` 127 and `labelClass` 39 on groups, `textClass` 16 on
+    groups, `helpLabel` 49 (a host property on the HelpText adornment),
+    `HelpText.placement` 15 (finding 61's deliberate drop, now on the
+    record), and the thirteen expressions. `rushx burndown --show
+    <kind:shape>` was added to trace any line to its controls; it is how the
+    `layoutClass` split above was measured, and it belongs in the work
+    list's toolbox.
+
 ## Where to pick up
 
-The burndown (`rushx burndown`) is the work list, top-down. At the last run
-(1,375): `noSelection` 108 is a top-level flag on displays and groups with no
-contract slot (the DisplayOnly widget honours it, nothing else does); then
-`renderOptions.groupOptions` 46, `placeholder` 40, `Display / Custom` 37
-(with its `displayData.customId` 37 — the host-extension hook), `Flex` 36,
-the array options `noAdd`/`noRemove`/`noReorder` ~31 each, `ColumnOptions`
-26 (the datagrid), `Radio` 24 (every one in a form that shipped no schema
-*and* no `AllowedOptions` — nothing to draw options from), `Accordion` 20
-(finding 55's shape, as an adornment), and `dynamic Display` 15, all of them
-DisplayOnly's `overrideText`. `HelpText` 7 remain on groups and displays,
-which have no prop for it (finding 61). `action` 489 stays until the
+The burndown (`rushx burndown`) is the work list, top-down; `--show
+<kind:shape>` names the controls behind any line. At the last run (2,195):
+`layoutClass` 546 — on displays (233), actions (87) and groups (224), the
+three boundary kinds with no shell slot, so a **contract** question, not a
+translator; `labelTextClass` 127 and `labelClass` 39, both on groups, the
+same question for the group's title; `noSelection` 108, a top-level flag on
+displays and groups with no contract slot (the DisplayOnly widget honours
+it, nothing else does); `adornments.HelpText.helpLabel` 49, a host property
+on the adornment; then `renderOptions.groupOptions` 46, `placeholder` 40,
+`Display / Custom` 37 (with its `displayData.customId` 37 — the
+host-extension hook), `Flex` 36, the array options
+`noAdd`/`noRemove`/`noReorder` ~31 each, `ColumnOptions` 26 (the datagrid),
+`Radio` 24 (every one in a form that shipped no schema *and* no
+`AllowedOptions`), `Accordion` 20, `textClass` 16 on groups,
+`HelpText.placement` 15 (dropped on purpose, finding 61), and `dynamic
+Display` 15, all DisplayOnly's `overrideText`. `expression` 13 are the
+kinds the loader now names rather than swallows: nine entries with no type,
+two `UserMatch`, one `Not`, one empty jsonata. `action` 489 stays until the
 burndown runs with a host `actionHandler` — `docLink` alone is 47 across
 three forms. Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
@@ -1381,8 +1446,11 @@ is all `AllControls`, the testtemplate demo that exists to exercise every
 render type, and weighs accordingly.
 
 **What the number does not prove.** The burndown measures *shape coverage*
-— did something claim this discriminator, did something read this property.
-It cannot see a translation that is *wrong*. Two of the three places to
+— did something claim this discriminator, did something read this property,
+did the translator pass on what was built for it. It cannot see a
+translation that is *wrong* — though finding 62 shows how far a careful
+read audit reaches: it caught 296 conditions that were never evaluated,
+because the properties they needed were never read. Two of the three places to
 expect one are closed by finding 52 — jsonata inside a row now carries
 legacy's path prefix and `$$`/`$i`, and `a/b` / `../x` bind the right control
 *and* scope — but the `defaultValue`-on-becoming-visible cycle is still not

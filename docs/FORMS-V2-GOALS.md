@@ -167,8 +167,10 @@ Nothing below is settled. In rough order of how much else depends on it:
    this document does not repeat the figure.
 
    **What the number does not prove.** It measures shape coverage — did something claim this
-   discriminator, did something read this property — and cannot see a translation that is
-   *wrong*. Three places to expect one, two of them since closed (README finding 52): a
+   discriminator, did something read this property, did the translator pass on what was built
+   for it — and cannot see a translation that is *wrong*. It reaches further than that sounds:
+   the read audit, once it looked inside expression entries, caught 296 visibility conditions
+   the loader had silently never evaluated (README finding 62). Three places to expect one, two of them since closed (README finding 52): a
    jsonata expression inside an array row now carries legacy's path prefix and `$$`/`$i`, and
    a `../x` or `a/b` reference binds the right control *and* scope; the
    `defaultValue`-on-becoming-visible cycle is still not built. So "identical
