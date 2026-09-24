@@ -53,3 +53,9 @@ export function useInputFrame(): ComponentType<InputFrameProps> {
 export function useStack(): ComponentType<StackProps> {
   return useRenderers().stack;
 }
+
+/** The layout box as a component, for code that cannot call the hook — the loader. */
+export function Stack(props: StackProps) {
+  const S = useStack();
+  return <S {...props} />;
+}

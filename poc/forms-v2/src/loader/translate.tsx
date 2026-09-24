@@ -4,9 +4,17 @@ import {
   type Control,
   type ControlContext,
 } from "@rx-controls/core";
-import { useControlContext } from "@rx-controls/react";
+import {
+  useControlContext,
+  useReactive,
+  type Rendered,
+} from "@rx-controls/react";
 import {
   Action,
+  arrayActions,
+  Stack,
+  StandardActionIds,
+  useFormScope,
   CheckboxField,
   Contents,
   Dialog,
@@ -362,39 +370,100 @@ export const defaultTranslators: Translator[] = [
   },
   {
     // A compound field's control is a region over its children — the data
-    // context the children's `../x` refs climb out of.
+    // context the children's `../x` refs climb out of. Rendered as a group,
+    // and legacy lets `renderOptions.groupOptions` say which kind: 46 in
+    // the corpus, 33 of them Standard.
     match: (d, s) =>
       d.type === "Data" && s?.type === "Compound" && !s.collection,
-    renderTypes: ["Standard", "Group"],
-    render: ({ props, children }) => (
-      <Contents
-        hidden={props.hidden}
-        disabled={props.disabled}
-        title={props.label}
-        className={props.className}
-        shellClassName={props.shellClassName}
-        labelClassName={props.labelClassName}
-        labelTextClassName={props.labelTextClassName}
-      >
-        {children}
-      </Contents>
-    ),
+    renderTypes: ["Standard", "Group", "Contents", "Inline", "Flex"],
+    render: ({ props, children, def }) => {
+      const nested = (def.renderOptions?.groupOptions ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const kind = nested.type as string | undefined;
+      const groupProps = {
+        hidden: props.hidden,
+        disabled: props.disabled,
+        title: props.label,
+        className: props.className,
+        shellClassName: props.shellClassName,
+        labelClassName: props.labelClassName,
+        labelTextClassName: props.labelTextClassName,
+      };
+      if (kind === "Inline")
+        return <InlineGroup {...groupProps}>{children}</InlineGroup>;
+      return (
+        <Contents {...groupProps}>
+          {kind === "Flex" ? (
+            <Stack
+              direction={(nested.direction as "row" | "column") ?? "row"}
+              gap={nested.gap as string | undefined}
+            >
+              {children}
+            </Stack>
+          ) : (
+            children
+          )}
+        </Contents>
+      );
+    },
   },
   {
+    // Legacy's Array renderer: the rows, a Remove on each, an Add below —
+    // unless `noRemove` / `noAdd`, which 21 of the corpus's 25 arrays set
+    // (read-only lists). `noReorder` is read and does nothing, exactly as
+    // legacy's Array renderer did: it had no reorder UI, the flag rode along.
     match: (d, s) => d.type === "Data" && !!s?.collection,
     renderTypes: ["Standard", "Array"],
-    render: ({ props, element, def }) => {
+    render: ({ props, element, def, schema }) => {
       const len = def.validators?.find((v) => v.type === "Length");
+      const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
+      void ro.noReorder;
+      const noAdd = ro.noAdd === true;
+      const noRemove = ro.noRemove === true;
+      const removeText = (ro.removeText as string | undefined) ?? "Remove";
+      const addText = (ro.addText as string | undefined) ?? "Add";
+      const removeActionId =
+        (ro.removeActionId as string | undefined) ?? StandardActionIds.remove;
+      const addActionId =
+        (ro.addActionId as string | undefined) ?? StandardActionIds.add;
+      const bounds = { minLength: len?.min, maxLength: len?.max };
       const collectionProps = props as FieldProps<unknown[]>;
+      const newElement = schema?.type === "Compound" ? {} : undefined;
       return (
-        <Elements
-          {...collectionProps}
-          minLength={len?.min}
-          maxLength={len?.max}
-          empty={<p className="ff-empty">Nothing yet.</p>}
-        >
-          {(item, index) => element!(item, index)}
-        </Elements>
+        <>
+          <Elements
+            {...collectionProps}
+            {...bounds}
+            empty={<p className="ff-empty">Nothing yet.</p>}
+          >
+            {(item, index, actions) => (
+              <div className="ff-row">
+                <div className="ff-row-main">{element!(item, index)}</div>
+                {!noRemove && (
+                  <Action
+                    actionId={removeActionId}
+                    text={removeText}
+                    style="secondary"
+                    disabled={!actions.canRemove}
+                    onClick={() => actions.remove(index)}
+                  />
+                )}
+              </div>
+            )}
+          </Elements>
+          {!noAdd && (
+            <ArrayAdd
+              control={collectionProps.field}
+              bounds={bounds}
+              actionId={addActionId}
+              text={addText}
+              value={newElement}
+              hidden={props.hidden}
+            />
+          )}
+        </>
       );
     },
   },
@@ -482,6 +551,7 @@ export const defaultTranslators: Translator[] = [
       <TextField
         {...props}
         multiline={def.renderOptions?.type === "Multiline"}
+        placeholder={def.renderOptions?.placeholder as string | undefined}
       />
     ),
   },
@@ -518,6 +588,34 @@ export const defaultTranslators: Translator[] = [
       >
         {children}
       </InlineGroup>
+    ),
+  },
+  {
+    // Legacy's Flex group: a flex box, `direction` (default row) and `gap`.
+    // 36 in the corpus, 35 of them on the defaults. A group boundary around
+    // the layout box, so it keeps title, hidden and the class slots.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Flex",
+    renderTypes: ["Flex"],
+    render: ({ def, props, children }) => (
+      <Contents
+        hidden={props.hidden}
+        disabled={props.disabled}
+        title={props.label}
+        className={props.className}
+        shellClassName={props.shellClassName}
+        labelClassName={props.labelClassName}
+        labelTextClassName={props.labelTextClassName}
+      >
+        <Stack
+          direction={
+            (def.groupOptions?.direction as "row" | "column" | undefined) ??
+            "row"
+          }
+          gap={def.groupOptions?.gap as string | undefined}
+        >
+          {children}
+        </Stack>
+      </Contents>
     ),
   },
   {
@@ -631,7 +729,9 @@ function buildProps(
   // under `groupOptions`. Read both so the audit sees them either way.
   const hideTitle =
     def.hideTitle === true ||
-    (def.type === "Group" && def.groupOptions?.hideTitle === true);
+    (def.type === "Group" && def.groupOptions?.hideTitle === true) ||
+    (def.renderOptions?.groupOptions as { hideTitle?: boolean } | undefined)
+      ?.hideTitle === true;
 
   // The HelpText adornment is the contract's `helpText` prop. Its
   // `placement` is dropped on purpose: where help text sits is the shell's
@@ -1069,6 +1169,16 @@ function warnUnhandled(
       subject,
       detail: `groupOptions "${go}" is not understood — the children render unwrapped`,
     });
+
+  // A compound rendered as a group nests the group kind under renderOptions.
+  const ngo = (def.renderOptions?.groupOptions as { type?: string } | undefined)
+    ?.type;
+  if (ngo && !handled.has(ngo))
+    warn({
+      kind: "renderOptions",
+      subject,
+      detail: `renderOptions.groupOptions "${ngo}" is not understood — the children render as a plain group`,
+    });
 }
 
 export function translate(
@@ -1256,6 +1366,42 @@ export function translateForm(
     translate(ctx, root, c, String(i), opts, (w) => warnings.push(w)),
   );
   return { tree, warnings };
+}
+
+/**
+ * The Add below an array. Outside the collection boundary, so it takes the
+ * array's `hidden` itself; the lock comes through the scope, as for any
+ * `arrayActions` caller.
+ */
+function ArrayAdd({
+  control,
+  bounds,
+  actionId,
+  text,
+  value,
+  hidden,
+}: {
+  control: Control<unknown[]>;
+  bounds: { minLength?: number; maxLength?: number };
+  actionId: string;
+  text: string;
+  value: unknown;
+  hidden?: FormProp<boolean>;
+}): Rendered {
+  const { rc, rendered } = useReactive();
+  const ctx = useControlContext();
+  const scope = useFormScope();
+  const actions = arrayActions(rc, ctx, control, { ...bounds, scope });
+  return rendered(
+    <Action
+      actionId={actionId}
+      text={text}
+      style="primary"
+      hidden={hidden}
+      disabled={!actions.canAdd}
+      onClick={() => actions.add(value)}
+    />,
+  );
 }
 
 function TranslatedKey({ children }: { children: ReactNode }) {

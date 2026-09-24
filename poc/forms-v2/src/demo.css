@@ -649,3 +649,9 @@ span.ff-display {
 .ff-contents-body {
   display: contents;
 }
+
+/* ── a translated array row: the element, then its Remove ────────── */
+.ff-row-main {
+  flex: 1;
+  min-width: 0;
+}

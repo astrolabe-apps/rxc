@@ -960,6 +960,9 @@ flat fragment beside the input (`layoutKeyForPlacement` → `controlStart`/`cont
 `DefaultLayout`), so a JSON form that read as "icon next to the field" will now read as "icon
 inside the field": intended, and the one visible difference this section causes.
 
+`Stack` is also exported as a component over the `stack` slot, for code that cannot call the
+hook — the loader's translators, which build elements rather than render them (README finding 64).
+
 ## 8. Collections
 
 A collection is a `fieldRenderer` that happens to take a render prop for its rows — not a

@@ -52,6 +52,7 @@ export const demoControls: ControlDefinition[] = [
     type: "Data",
     field: "firstName",
     required: true,
+    renderOptions: { type: "Textfield", placeholder: "Given name" },
     styleClass: "demo-accent",
     labelClass: "demo-label",
     labelTextClass: "demo-label-text",
@@ -105,9 +106,12 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
+  // Legacy's Array: Add below, Remove per row, `noReorder` read and ignored
+  // as legacy's Array renderer did.
   {
     type: "Data",
     field: "pets",
+    renderOptions: { type: "Array", addText: "Add a pet", noReorder: true },
     validators: [{ type: "Length", min: 1, max: 3 }],
     children: [
       { type: "Data", field: "name", required: true },
@@ -178,9 +182,12 @@ export const demoControls: ControlDefinition[] = [
     field: "address/city",
     title: "City — bound as address/city",
   },
+  // A compound rendered as a group, with the group kind nested under
+  // renderOptions — here a Flex row.
   {
     type: "Data",
     field: "address",
+    renderOptions: { type: "Group", groupOptions: { type: "Flex" } },
     children: [
       { type: "Data", field: "street" },
       {

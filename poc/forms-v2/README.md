@@ -31,7 +31,7 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 11 clean, **996 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 19 clean, **792 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
@@ -42,8 +42,9 @@ and an honest one: those 820 were always dropped and never counted. The burndown
 standing in for a host that claims every action id (a host wires its buttons; their absence
 is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
 restores them as an inventory of what a host has to wire. Finding 63 (the five class slots on
-every boundary kind) 1,706 → **996**. Kind totals: `unread` 622, `renderOptions` 162,
-`adornment` 64, `schema` 55, `control` 37, `dynamic` 32, `expression` 13, `validator` 11.
+every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → **792**. Kind
+totals: `unread` 443, `renderOptions` 137, `adornment` 64, `schema` 55, `control` 37,
+`dynamic` 32, `expression` 13, `validator` 11.
 
 ## What it builds
 
@@ -1464,23 +1465,50 @@ Numbered; each is cited at the matching line of code.
     `labelTextClass`, `labelClass` and `textClass` are gone from the list;
     what leads it now is `noSelection` 108 and the host-extension family.
 
+64. **The mechanical four, and the array chrome that turned out to be
+    missing.** `placeholder` 40 (all on text fields — a prop the contract
+    had), `Flex` 36 (35 of them on the defaults: a group boundary around the
+    `Stack` layout box, `direction` row, so title, `hidden` and the slots
+    survive), `renderOptions.groupOptions` 46 (a compound rendered as a
+    group, with the group *kind* nested under `renderOptions` — 33 Standard,
+    dispatched like a Group's own `groupOptions`; the 8 `TopLevelGroup` are a
+    host kind and now say so), and the array flags. The flags were the
+    interesting one: `noAdd` and `noRemove` are set together on 21 of the
+    corpus's 25 arrays — read-only lists — and they only mean anything if
+    the array translation draws legacy's chrome at all, which it did not.
+    Legacy's Array renderer puts a Remove on every row and an Add below;
+    the translation now does, through `<Action>` with legacy's default ids
+    and texts, so a host overrides them per id as it would any button. Add
+    is disabled at `Length.max`, Remove at `min`; `noReorder` is read and
+    does nothing, exactly as legacy's Array renderer did — it had no reorder
+    UI and the flag rode along. Verified in all four implementations: three
+    adds hit the max and disable the button, a remove brings it back, the
+    Flex compound lays its children in a row, the placeholder shows.
+
+    `Stack` became a component as well as a hook, because a translator's
+    `render` is not a component and cannot call one. Burndown 996 → **792**,
+    nineteen forms clean, and the list is now decisions rather than
+    translators — see *Where to pick up*.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (996):
-`noSelection` 108, a top-level flag on displays and groups with no contract
-slot (the DisplayOnly widget honours it, nothing else does);
-`adornments.HelpText.helpLabel` 49, a host property on the adornment; then
-`renderOptions.groupOptions` 46, `placeholder` 40,
-`Display / Custom` 37 (with its `displayData.customId` 37 — the
-host-extension hook), `Flex` 36, the array options
-`noAdd`/`noRemove`/`noReorder` ~31 each, `ColumnOptions` 26 (the datagrid),
-`Radio` 24 (every one in a form that shipped no schema *and* no
-`AllowedOptions`), `Accordion` 20,
-`HelpText.placement` 15 (dropped on purpose, finding 61), and `dynamic
-Display` 15, all DisplayOnly's `overrideText`. `expression` 13 are the
-kinds the loader now names rather than swallows: nine entries with no type,
-two `UserMatch`, one `Not`, one empty jsonata. The 489 action ids are no longer counted — the burndown stands in for a host that claims them all — and `--no-actions` lists them when a host needs the inventory (`docLink` alone is 47 across three forms). Of the 55 `schema` warnings, most are `plain name — schema not
+<kind:shape>` names the controls behind any line. At the last run (792),
+almost nothing left is a translator: `noSelection` 108 is a designer flag
+with no contract role; `adornments.HelpText.helpLabel` 49, `Display /
+Custom` 37 with its `displayData.customId` 37, and `Spotlight` are the
+host-extension family, one decision; `ColumnOptions` 26 is the datagrid;
+`Radio` 24 are forms that shipped neither a schema nor an `AllowedOptions`;
+`Accordion` 20 is finding 55's shape as an adornment; `defaultValue` 15 is
+the one legacy semantic still unbuilt; `dynamic Display` 15 is DisplayOnly's
+`overrideText`; `LayoutStyle` 15 is a dynamic inline style with no contract
+slot; `Switch` 14 and `keyboardType` 14 are host render options;
+`HelpText.placement` 15 is dropped on purpose (finding 61); `textClass` 16
+sits on groups, where legacy had no text either. `TopLevelGroup` 8 is a
+host group kind nested under a compound's `renderOptions`. The 489 action
+ids are not counted — the burndown stands in for a host that claims them
+all — and `--no-actions` lists them when a host needs the inventory
+(`docLink` alone is 47 across three forms). Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
 three. Every loader change is a translator or a prop, then `rushx burndown`
 again; a fixture form in `src/loader/demoForm.ts` and a line in the
