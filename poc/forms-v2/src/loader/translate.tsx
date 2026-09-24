@@ -15,6 +15,7 @@ import {
   getProp,
   HtmlDisplay,
   IconDisplay,
+  InlineGroup,
   RadioField,
   SelectField,
   Tabs,
@@ -493,6 +494,23 @@ export const defaultTranslators: Translator[] = [
     ),
   },
   {
+    // Legacy's Inline: prose. Not a row — a span whose children render
+    // inline through the scope (a text display becomes a span, a bound
+    // value loses its shell). 222 in the corpus, 214 with the title hidden.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Inline",
+    renderTypes: ["Inline"],
+    render: ({ props, children }) => (
+      <InlineGroup
+        hidden={props.hidden}
+        disabled={props.disabled}
+        title={props.label}
+        className={props.className}
+      >
+        {children}
+      </InlineGroup>
+    ),
+  },
+  {
     match: (d) => d.type === "Group",
     renderTypes: ["Standard", "Contents"],
     render: ({ props, children }) => (
@@ -595,6 +613,16 @@ function buildProps(
     def.hideTitle === true ||
     (def.type === "Group" && def.groupOptions?.hideTitle === true);
 
+  // The HelpText adornment is the contract's `helpText` prop. Its
+  // `placement` is dropped on purpose: where help text sits is the shell's
+  // business, and the eight libraries surveyed each fix it somewhere
+  // (§7). On a Group or a Display there is no prop for it to become.
+  const help = def.adornments?.find((a) => a.type === "HelpText");
+  const helpText =
+    def.type === "Data" && typeof help?.helpText === "string"
+      ? help.helpText
+      : undefined;
+
   return {
     field: control,
     label: hideTitle
@@ -604,6 +632,7 @@ function buildProps(
         : (def.title ?? schema?.displayName),
     required: def.required,
     requiredMessage: def.requiredErrorText,
+    helpText,
     hidden: hiddenFromExpr ?? def.hidden,
     disabled: disabledProp ?? def.disabled,
     readOnly: def.readonly,
@@ -827,6 +856,8 @@ function warnUnhandled(
     // Tooltip on a display is consumed by the display translator as its
     // accessible name; anywhere else it has no meaning and is reported.
     if (a.type === "Tooltip" && def.type === "Display") continue;
+    // HelpText on a data control is the `helpText` prop (buildProps).
+    if (a.type === "HelpText" && def.type === "Data") continue;
     warn({
       kind: "adornment",
       subject,

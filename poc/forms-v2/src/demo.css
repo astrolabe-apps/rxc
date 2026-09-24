@@ -616,3 +616,20 @@ body {
 .ff-branch[hidden] {
   display: none;
 }
+
+/* ── inline group: prose with values and links in it ─────────────── */
+.ff-inline[data-hidden] {
+  display: none;
+}
+/* Every boundary is wrapped for the exit transition and design chrome;
+   in prose those wrappers must not be blocks. */
+.ff-inline .ff-fade,
+.ff-inline .ff-boundary {
+  display: inline;
+}
+.ff-inline .ff-text {
+  margin: 0;
+}
+.ff-readonly-inline {
+  font-weight: 600;
+}

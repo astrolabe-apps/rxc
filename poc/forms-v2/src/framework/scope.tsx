@@ -25,6 +25,14 @@ export interface ScopeState {
   clearHidden: boolean;
   designMode: boolean;
   /**
+   * Set by an inline container: the children are prose, not a form column.
+   * A field or display boundary hands it to its implementation, which then
+   * draws a bare `<span>` — no shell, no label, no block. Legacy passed an
+   * `inline` prop to each child `Field`; a container here receives opaque
+   * children, so it is a scope facet (README finding 60).
+   */
+  inline: boolean;
+  /**
    * Held by `<Form>`: how many `disableType: "global"` actions are running.
    * The root scope reads it as `disabled`, so one counter locks the form.
    */
@@ -37,6 +45,7 @@ const rootScope: ScopeState = {
   readOnly: () => false,
   clearHidden: false,
   designMode: false,
+  inline: false,
 };
 
 const ScopeContext = createContext<ScopeState>(rootScope);
@@ -83,6 +92,7 @@ export interface ScopeNarrowing {
   readOnly?: FormProp<boolean>;
   clearHidden?: boolean;
   designMode?: boolean;
+  inline?: boolean;
 }
 
 export function narrowScope(parent: ScopeState, n: ScopeNarrowing): ScopeState {
@@ -96,6 +106,7 @@ export function narrowScope(parent: ScopeState, n: ScopeNarrowing): ScopeState {
     readOnly: (rc) => parent.readOnly(rc) || (getProp(rc, n.readOnly) ?? false),
     clearHidden: n.clearHidden ?? parent.clearHidden,
     designMode: n.designMode ?? parent.designMode,
+    inline: n.inline ?? parent.inline,
     globalLock: parent.globalLock,
   };
 }

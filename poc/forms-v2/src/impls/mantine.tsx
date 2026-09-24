@@ -50,6 +50,7 @@ import {
 } from "../framework/index.js";
 import {
   Contents,
+  Inline,
   ElementsList,
   DefaultVisibility,
   glyphFor,
@@ -201,6 +202,17 @@ function MantineTextField(p: TextFieldRenderProps): Rendered {
 function MantineDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  if (p.inline)
+    return ctl.rendered(
+      <Text
+        id={p.id}
+        span
+        size="sm"
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+      >
+        {ctl.content}
+      </Text>,
+    );
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -338,6 +350,7 @@ function MantineText(p: TextDisplayRenderProps) {
   return rendered(
     <Text
       size="sm"
+      span={p.inline}
       className={mergeClass(undefined, p.className ?? p.textClassName)}
     >
       {getProp(rc, p.text) ?? p.children}
@@ -554,6 +567,7 @@ export const mantineRenderers: FormRenderers = {
   icon: MantineIcon,
   action: MantineAction,
   contents: Contents,
+  inline: Inline,
   wizard: MantineWizard,
   dialog: MantineDialog,
   tabs: MantineTabs,

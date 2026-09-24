@@ -129,8 +129,48 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
-  { type: "Data", field: "status", required: true },
+  // A HelpText adornment lands as the shell's help text; its `placement`
+  // (here LabelEnd) is dropped on purpose — the shell decides where help goes.
+  {
+    type: "Data",
+    field: "status",
+    required: true,
+    adornments: [
+      {
+        type: "HelpText",
+        helpText: "The member's current standing.",
+        placement: "LabelEnd",
+      },
+    ],
+  },
   { type: "Data", field: "priority" },
+  // Legacy's Inline group — the corpus's receipt-page shape: prose with a
+  // bound value and a link in it. Title hidden, as 214 of 222 are.
+  {
+    type: "Group",
+    title: "Summary",
+    groupOptions: { type: "Inline", hideTitle: true },
+    children: [
+      {
+        type: "Display",
+        displayData: { type: "Text", text: "Your status is " },
+      },
+      {
+        type: "Data",
+        field: "status",
+        hideTitle: true,
+        renderOptions: { type: "DisplayOnly", emptyText: "not set" },
+      },
+      { type: "Display", displayData: { type: "Text", text: " — " } },
+      {
+        type: "Action",
+        actionId: "greet",
+        actionText: "say hello",
+        actionStyle: "Link",
+      },
+      { type: "Display", displayData: { type: "Text", text: "." } },
+    ],
+  },
   // Field references, legacy's `dataRef`: `a/b` binds into a compound from
   // outside it; inside the compound's region, `../x` climbs back out.
   {

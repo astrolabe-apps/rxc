@@ -224,6 +224,14 @@ narrow it, and neither of them is an author writing `presence=`:
 
 That is the whole mechanism; there is no separate visibility system.
 
+**`inline` is a scope facet too (built).** Legacy's Inline group is prose — a bare span whose
+children render with no shell and no block. A group receives opaque `children`, so the only
+channel to them is the scope: `inline` sits beside `presence` and `designMode`, is set by a
+`groupRenderer` built with `{ inline: true }`, and reaches an implementation as `inline` on
+the field and display render props, where it means "draw a span, skip the shell". Anything a
+boundary wraps its output in (the `visibility` slot, the design chrome) must be inline-safe.
+README finding 60.
+
 **A `silent` producer can be written outside the package (built).** `useBoundScope`,
 `narrowScope` and `FormScopeProvider` are public, and that is all a container needs to put a
 branch off screen and keep it validating — the POC's third-party `SelectChild` (legacy's

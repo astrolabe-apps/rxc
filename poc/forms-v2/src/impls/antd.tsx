@@ -49,6 +49,7 @@ import {
 } from "../framework/index.js";
 import {
   Contents,
+  Inline,
   ElementsList,
   DefaultVisibility,
   glyphFor,
@@ -261,6 +262,16 @@ export function AntInputReference() {
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  // Ant's Text is already a span; inline only drops the shell.
+  if (p.inline)
+    return ctl.rendered(
+      <Typography.Text
+        id={p.id}
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+      >
+        {ctl.content}
+      </Typography.Text>,
+    );
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -587,6 +598,7 @@ export const antdRenderers: FormRenderers = {
   icon: AntIcon,
   action: AntAction,
   contents: Contents,
+  inline: Inline,
   wizard: AntWizard,
   dialog: AntDialog,
   tabs: AntTabs,

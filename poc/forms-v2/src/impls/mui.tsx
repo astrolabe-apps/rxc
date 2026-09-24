@@ -67,6 +67,7 @@ import {
 } from "../framework/index.js";
 import {
   Contents,
+  Inline,
   ElementsList,
   DefaultVisibility,
   glyphFor,
@@ -283,6 +284,17 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  if (p.inline)
+    return ctl.rendered(
+      <Typography
+        id={p.id}
+        component="span"
+        variant="body2"
+        className={mergeClass(undefined, p.className ?? p.textClassName)}
+      >
+        {ctl.content}
+      </Typography>,
+    );
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -415,6 +427,7 @@ function MuiText(p: TextDisplayRenderProps) {
   return rendered(
     <Typography
       variant="body2"
+      component={p.inline ? "span" : "p"}
       className={mergeClass(undefined, p.className ?? p.textClassName)}
     >
       {getProp(rc, p.text) ?? p.children}
@@ -626,6 +639,7 @@ export const muiRenderers: FormRenderers = {
   icon: MuiIcon,
   action: MuiAction,
   contents: Contents,
+  inline: Inline,
   wizard: MuiWizard,
   dialog: MuiDialogImpl,
   tabs: MuiTabs,

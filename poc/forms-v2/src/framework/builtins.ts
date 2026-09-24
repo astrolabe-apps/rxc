@@ -41,6 +41,14 @@ export const TextField = fieldRenderer<
 export const Contents = groupRenderer({ key: "contents" });
 
 /**
+ * Legacy's Inline group — 222 in the corpus, almost all prose: a text
+ * display, a bound value, a link. A bare span whose children render inline,
+ * told so through the scope rather than a `Stack direction="row"`, which is
+ * what the README guessed before the corpus was read (finding 60).
+ */
+export const InlineGroup = groupRenderer({ key: "inline" }, { inline: true });
+
+/**
  * The same implementation, with a validation scope. Two boundaries from one
  * renderer, differing only in whether they aggregate their content's validity
  * — which is what `{ scope: true }` is: a property of the boundary, not of

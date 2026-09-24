@@ -127,6 +127,8 @@ export interface FieldRenderProps<T> {
   helpText?: ReactNode;
   startIcon?: ReactNode;
   endIcon?: ReactNode;
+  /** Inside an inline container: draw a bare span, no shell (README finding 60). */
+  inline?: boolean;
   className?: ClassValue;
   labelClassName?: ClassValue;
   labelTextClassName?: ClassValue;
@@ -452,6 +454,8 @@ export interface DisplayProps {
 
 export interface DisplayRenderProps {
   accessibleName?: string;
+  /** Inside an inline container: a span in prose, not a block. */
+  inline?: boolean;
   className?: ClassValue;
   textClassName?: ClassValue;
   children?: ReactNode;
@@ -527,6 +531,8 @@ export interface FormRenderers {
   html: ComponentType<HtmlDisplayRenderProps>;
   icon: ComponentType<IconDisplayRenderProps>;
   contents: ComponentType<GroupRenderProps>;
+  /** Legacy's Inline group: a bare span whose children render inline. */
+  inline: ComponentType<GroupRenderProps>;
   tabs: ComponentType<import("./tabs.js").TabsRenderProps>;
   wizard: ComponentType<import("./wizard.js").WizardRenderProps>;
   dialog: ComponentType<import("./dialog.js").DialogRenderProps>;

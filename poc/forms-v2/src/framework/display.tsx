@@ -57,6 +57,7 @@ export function displayRenderer<P extends object = {}>(
         <Visibility visible={presenceNow === "rendered"}>
           <Impl
             accessibleName={getProp(rc, props.accessibleName)}
+            inline={scope.inline}
             className={getProp(rc, props.className)}
             textClassName={getProp(rc, props.textClassName)}
             {...extra}

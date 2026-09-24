@@ -214,6 +214,7 @@ export function fieldRenderer<T, P extends object = {}>(
       helpText: getProp(rc, props.helpText),
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),
+      inline: scope.inline,
       className: getProp(rc, props.className),
       labelClassName: getProp(rc, props.labelClassName),
       labelTextClassName: getProp(rc, props.labelTextClassName),
@@ -279,13 +280,19 @@ const groupContractKeys = new Set([
  */
 export function groupRenderer<P extends object = {}>(
   source: GroupImplSource<P>,
-  opts?: { scope?: boolean },
+  opts?: { scope?: boolean; inline?: boolean },
 ): ComponentType<GroupProps & P> {
   function GroupBoundary(props: GroupProps & P): Rendered {
     const { rc, rendered } = useReactive();
     const renderers = useRenderers();
     const ctx = useControlContext();
-    const scope = useBoundScope(props);
+    const bound = useBoundScope(props);
+    // `inline` is structural — the container's kind, not a prop — so it is a
+    // boundary option like `scope`, and reaches the children as a facet.
+    const scope = useMemo(
+      () => (opts?.inline ? narrowScope(bound, { inline: true }) : bound),
+      [bound],
+    );
     const presenceNow = scope.presence(rc);
 
     // Opt-in: only a container that gets asked "is my content invalid" pays

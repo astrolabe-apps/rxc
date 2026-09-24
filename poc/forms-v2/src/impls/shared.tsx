@@ -89,6 +89,32 @@ export function Contents({
 }
 
 /**
+ * Legacy's Inline group: a bare `<span>` (legacy's `inlineClass` is `""`).
+ * The children know they are inline through the scope, not through this
+ * element; all this does is not be a block, and hide with CSS like every
+ * group (finding 17).
+ */
+export function Inline({
+  title,
+  className,
+  hidden,
+  children,
+}: GroupRenderProps) {
+  return (
+    <span
+      className={mergeClass("ff-inline", className)}
+      data-hidden={hidden ? "" : undefined}
+      inert={hidden || undefined}
+    >
+      {title !== undefined && title !== null && (
+        <span className="ff-group-title">{title} </span>
+      )}
+      {children}
+    </span>
+  );
+}
+
+/**
  * The chrome-less collection: the implementation's shell (so an array-level
  * `Length` error has somewhere to appear) around rows the boundary already
  * built. Mutation is deliberately not its job — `arrayActions` gives a host

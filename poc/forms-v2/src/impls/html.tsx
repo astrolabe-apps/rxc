@@ -37,7 +37,13 @@ import {
   type TextFieldRenderProps,
   combineClass,
 } from "../framework/index.js";
-import { Contents, ElementsList, FadeVisibility, glyphFor } from "./shared.js";
+import {
+  Contents,
+  Inline,
+  ElementsList,
+  FadeVisibility,
+  glyphFor,
+} from "./shared.js";
 
 // ── Shell: family 1 (children-hosting, class-driven — Bootstrap / shadcn) ──
 
@@ -212,6 +218,20 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
 function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  // Inline: the value in prose — no shell, no label, a span (legacy's
+  // `inline ? "span" : "div"`, with Field skipping the layout wrapper).
+  if (p.inline)
+    return ctl.rendered(
+      <span
+        id={p.id}
+        className={mergeClass(
+          "ff-readonly-inline",
+          p.className ?? p.textClassName,
+        )}
+      >
+        {ctl.content}
+      </span>,
+    );
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -423,10 +443,11 @@ function HtmlAction(p: ActionRenderProps) {
 
 function HtmlText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
+  const Tag = p.inline ? "span" : "p";
   return rendered(
-    <p className={mergeClass("ff-text", p.className ?? p.textClassName)}>
+    <Tag className={mergeClass("ff-text", p.className ?? p.textClassName)}>
       {getProp(rc, p.text) ?? p.children}
-    </p>,
+    </Tag>,
   );
 }
 
@@ -618,6 +639,7 @@ export const htmlRenderers: FormRenderers = {
   icon: HtmlIcon,
   action: HtmlAction,
   contents: Contents,
+  inline: Inline,
   wizard: HtmlWizard,
   dialog: HtmlDialog,
   tabs: HtmlTabs,

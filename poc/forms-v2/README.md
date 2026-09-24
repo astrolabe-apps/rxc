@@ -29,14 +29,14 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 4 clean, **1,653 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 4 clean, **1,375 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
 with no loader change. Finding 56 (Radio, and `dynamic Display` on displays) took it
-1,822 → 1,734; finding 59 (`AllowedOptions`) 1,734 → 1,653. Kind totals: `unread` 524,
-`action` 489, `renderOptions` 375, `adornment` 129, `schema` 55, `control` 37,
-`dynamic` 32, `validator` 11, `expression` 1.
+1,822 → 1,734; finding 59 (`AllowedOptions`) 1,734 → 1,653; findings 60–61 (Inline,
+HelpText) 1,653 → 1,375. Kind totals: `unread` 524, `action` 489, `renderOptions` 162,
+`adornment` 64, `schema` 55, `control` 37, `dynamic` 32, `validator` 11, `expression` 1.
 
 ## What it builds
 
@@ -1298,17 +1298,74 @@ Numbered; each is cited at the matching line of code.
     the compiler and now says "jsonata expression is empty", and the radio
     falls back to the schema's options as legacy's would have.
 
+60. **Inline is a scope facet, not a `Stack` row — the corpus corrected the
+    README's guess.** *Where to pick up* had `Inline` 213 down as "probably a
+    `Stack direction="row"`". Legacy's `InlineGroupRenderer` is a bare
+    `<span>` that renders each child with `inline` set — no label, no layout
+    wrapper — and the 222 corpus Inlines are prose: their children are 377
+    text displays, 165 actions and 76 display-only values, 214 of them with
+    the title hidden. A receipt page reads "Your licence *X* expires *Y* —
+    *renew*". Not a row of fields.
+
+    Legacy passed `inline` as a prop to each child `Field`. A v2 group
+    receives opaque `children`, so the only channel is the scope: `inline`
+    is a facet beside `presence` and `designMode`, set by a `groupRenderer`
+    built with `{ inline: true }` (structural, so a boundary option like
+    `scope`), and the field and display boundaries hand it to their
+    implementation as `inline` on the render props. An implementation then
+    draws a span and skips the shell — eight edits across four
+    implementations, text displays and display-only values, which is what
+    the corpus uses. The `inline` registry slot itself is a shared span
+    (legacy's `inlineClass` is `""`), so the reuse it proves is plumbing.
+
+    One thing bit: every boundary is wrapped twice, by the `visibility`
+    slot for the exit transition and by the design chrome, and both wrappers
+    are `div`s. In prose they have to be `display: inline`, or the value
+    breaks the line it sits in. The rule generalises: **anything a boundary
+    wraps its output in must not assume it is in a column.** Verified in all
+    four: one line, no shells inside, the bound value updating in place.
+
+    Also noted, and not built: a group's `layoutClass` (89 of the 222 carry
+    one) is read by `buildProps` into `shellClassName` and then dropped by
+    every group translator, because `GroupProps` has no shell slot. The
+    audit cannot see it — reading counts as consuming — so this is the
+    shape of gap the burndown is blind to: **a property read and then not
+    passed on.** Recorded here so it is not mistaken for coverage.
+
+61. **HelpText is the `helpText` prop; its placement is dropped on purpose.**
+    72 uses in 19 forms, 63 on data fields. 54 carry no placement (legacy:
+    block below the control), 15 `LabelEnd`, 3 `ControlEnd`. The contract
+    has `helpText` and nowhere to put a placement — deliberately: §7's
+    survey found each of eight libraries fixes where help text sits (MUI
+    below, Mantine under the label, Ant's `extra` below), so a placement
+    cannot be honoured uniformly and the shell owns it. The translator maps
+    the text and forgets the placement. The 7 left are on groups and
+    displays, where the contract has no prop for it and 7 uses are not
+    evidence for one.
+
+    A second audit blind spot, smaller: the recording proxy does not see
+    into adornment entries, so the dropped `placement` — and MastEoi's
+    `helpLabel`, a host property — never appeared as unread. `warnUnread`
+    walks the definition's own properties and the objects under them, not
+    the elements of its arrays. Worth fixing before the burndown is trusted
+    as a regression guard.
+
+    Burndown 1,653 → **1,375**: `Inline` 213 → 0, `HelpText` 72 → 7,
+    `renderOptions` 375 → 162, `adornment` 129 → 64.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down. At the last run
-(1,653): `Inline` 213 is probably a `Stack direction="row"` group;
-`noSelection` 108 is a top-level flag on displays and groups with no contract
-slot (the DisplayOnly widget honours it, nothing else does); `HelpText` 72 is
-a prop the contract already has; then `renderOptions.groupOptions` 46,
-`placeholder` 40, `Display / Custom` 37, `Flex` 36, the array options
-`noAdd`/`noRemove`/`noReorder` ~31 each, `Radio` 24 (every one in a form
-that shipped no schema *and* no `AllowedOptions` — nothing to draw options
-from), and `dynamic Display` 15, all of them DisplayOnly's `overrideText`. `action` 489 stays until the
+(1,375): `noSelection` 108 is a top-level flag on displays and groups with no
+contract slot (the DisplayOnly widget honours it, nothing else does); then
+`renderOptions.groupOptions` 46, `placeholder` 40, `Display / Custom` 37
+(with its `displayData.customId` 37 — the host-extension hook), `Flex` 36,
+the array options `noAdd`/`noRemove`/`noReorder` ~31 each, `ColumnOptions`
+26 (the datagrid), `Radio` 24 (every one in a form that shipped no schema
+*and* no `AllowedOptions` — nothing to draw options from), `Accordion` 20
+(finding 55's shape, as an adornment), and `dynamic Display` 15, all of them
+DisplayOnly's `overrideText`. `HelpText` 7 remain on groups and displays,
+which have no prop for it (finding 61). `action` 489 stays until the
 burndown runs with a host `actionHandler` — `docLink` alone is 47 across
 three forms. Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
