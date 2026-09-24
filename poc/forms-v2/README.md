@@ -25,8 +25,18 @@ rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTem
 rushx burndown
 ```
 
-80 forms, 3,968 controls (re-extracted for finding 51; the ServiceTas source had moved on
-by four controls); the burndown at the last commit is in finding 53; finding 54 changed no numbers.
+Both scripts typecheck the whole POC first, so they need a **built** `@rx-controls/core`
+— `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
+`createDerivedGroup` against a stale `lib/`.
+
+83 forms, 4,283 controls, **1,822 warnings** (re-extracted 2026-09-24). The legacy
+sources move under us: this run picked up three ServiceTas forms added upstream
+(`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
+carry 130 warnings over 284 controls between them and account for nearly all of the
+1,674 → 1,822 rise. No loader code changed. `schema` (59) and `validator` (11) are
+unchanged from finding 53, so nothing that was closed has reopened. Kind totals:
+`unread` 536, `action` 489, `renderOptions` 432, `adornment` 129, `dynamic` 129,
+`schema` 59, `control` 37, `validator` 11.
 
 ## What it builds
 
@@ -1058,16 +1068,26 @@ Numbered; each is cited at the matching line of code.
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down. At the last run
-(1,674): `Inline` 198 is probably a `Stack direction="row"` group;
-`noSelection` 105 is a top-level flag on displays and groups with no contract
-slot (the DisplayOnly widget honours it, nothing else does); `HelpText` 69 is
-a prop the contract already has; then `dynamic Display` 64, `Radio` 55,
-`AllowedOptions` 42, `Flex` 36, `Display / Custom` 36, and the array options
-`noAdd`/`noRemove`/`noReorder` ~30 each. `action` 442 stays until the
-burndown runs with a host `actionHandler`. Every loader change is a
-translator or a prop, then `rushx burndown` again; a fixture form in
-`src/loader/demoForm.ts` and a line in the `From JSON` tab is how each was
-verified so far.
+(1,822): `Inline` 213 is probably a `Stack direction="row"` group;
+`noSelection` 108 is a top-level flag on displays and groups with no contract
+slot (the DisplayOnly widget honours it, nothing else does); `HelpText` 72 is
+a prop the contract already has; then `Radio` 69, `dynamic Display` 64,
+`AllowedOptions` 48, `renderOptions.groupOptions` 46, `placeholder` 40,
+`Display / Custom` 37, `Flex` 36, and the array options
+`noAdd`/`noRemove`/`noReorder` ~31 each. `action` 489 stays until the
+burndown runs with a host `actionHandler` — `docLink` alone is 47 across
+three forms. Of the 59 `schema` warnings, 56 are `plain name — schema not
+supplied` in seven forms that shipped no schema, so the real schema gap is
+three. Every loader change is a translator or a prop, then `rushx burndown`
+again; a fixture form in `src/loader/demoForm.ts` and a line in the
+`From JSON` tab is how each was verified so far.
+
+`SeniorsCardApplicationForm`, one of the three new forms, brought two shapes
+the corpus had not asked for: `MessageBox` (10 uses) and `LicenceValidation`.
+The rest of the singleton tail — `HtmlEditor`, `Synchronised`
+(+ `fieldToSync`/`syncType`), `IconList` (+ `iconMappings`), `GroupElement` —
+is all `AllControls`, the testtemplate demo that exists to exercise every
+render type, and weighs accordingly.
 
 **What the number does not prove.** The burndown measures *shape coverage*
 — did something claim this discriminator, did something read this property.
@@ -1075,7 +1095,8 @@ It cannot see a translation that is *wrong*. Two of the three places to
 expect one are closed by finding 52 — jsonata inside a row now carries
 legacy's path prefix and `$$`/`$i`, and `a/b` / `../x` bind the right control
 *and* scope — but the `defaultValue`-on-becoming-visible cycle is still not
-built (`FieldProps` has no `defaultValue`), and nothing checks that a
+built (`FieldProps` has no `defaultValue`; it surfaces in the burndown as
+`unread:defaultValue`, 15 uses in 9 forms), and nothing checks that a
 translated expression *computes* what legacy's did. Goal 6's acceptance test
 therefore needs a second instrument: render each corpus form in legacy and in
 v2 over fixture data and diff visibility, validity and values per field — the
