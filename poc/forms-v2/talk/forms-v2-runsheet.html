@@ -58,7 +58,7 @@ td.t { white-space:nowrap; color:var(--muted); font-family:"IBM Plex Mono", mono
 <li>Terminal in <code>poc/forms-v2</code>. Packages built: <code>rush build --to @react-typed-forms/core</code> passes (core, react and the compat package, which the parity run needs). Then <code>rushx dev</code>. App at <code>http://localhost:5183</code>.</li>
 <li>Optional, for demo 2: in a second terminal run <code>rushx parity</code> before the talk and leave the summary on screen. It takes a minute or two. The headline line should read "140 of 144 runs identical, 19 differences".</li>
 <li><code>corpus/servicetas/</code> exists (71 forms). If not: <code>rushx extract-corpus servicetas ~/astrolabe/ServiceTas/ServiceTasAPI/NewClientApp/client-common</code>.</li>
-<li>Open the app, click the <b>Legacy form</b> tab once. Address should render with "6 things the loader could not translate". Then back to <b>Details</b>, implementation <b>html</b>, click <b>Reset</b>.</li>
+<li>Open the app, click the <b>Legacy form</b> tab once. MastSummary should render with "5 things the loader could not translate". Then back to <b>Details</b>, implementation <b>html</b>, click <b>Reset</b>.</li>
 <li>Browser zoom for the room: 125% to 150%. The state table on the left must be readable from the back.</li>
 <li>Deck open in its own window, <code>F</code> for fullscreen. Presenter laptop has notes: second window on the same artifact with <code>N</code> pressed, or this page.</li>
 <li>Deck and app in two windows you can alt-tab between. Practice the switch once.</li>
@@ -79,7 +79,7 @@ td.t { white-space:nowrap; color:var(--muted); font-family:"IBM Plex Mono", mono
 <tr><td class="t">24:30</td><td>19</td><td><b>Demo 2</b></td><td>A real ServiceTas form through the loader.</td></tr>
 <tr><td class="t">27:30</td><td>20–22</td><td>What it means, what's open, questions</td><td>New forms in JSX once it ships.</td></tr>
 </tbody></table>
-<p>If you're behind at 16:30, drop slide 14 (the Stars source): slide 12 already made the claim and the demo already showed it. If you're behind at 24:30, do Demo 2 as Address only, skip the warnings box.</p>
+<p>If you're behind at 16:30, drop slide 14 (the Stars source): slide 12 already made the claim and the demo already showed it. If you're behind at 24:30, do Demo 2 as MastSummary only, skip the warnings box.</p>
 
 <h2>Demo 1 · same source, four libraries (5 min)</h2>
 <p>Start state: <b>Details</b> tab, implementation <b>html</b>, freshly <b>Reset</b>.</p>
@@ -100,16 +100,16 @@ td.t { white-space:nowrap; color:var(--muted); font-family:"IBM Plex Mono", mono
 <h2>Demo 2 · a real form through the loader (3 min)</h2>
 <p>Start state: implementation <b>MUI</b> already selected (switching resets the tab, so do it first).</p>
 <ol class="steps">
-<li>Click the <b>Legacy form</b> tab. <b>Address · 38</b> is selected. Read the grey line: <code>formDefs/Address.json</code>, "6 things the loader could not translate".</li>
-<div class="say">"This is the ServiceTas Address form, byte for byte what's in the repo. It went through the loader and came out as the same components you saw on the other tabs. Under MUI, because that's what's selected."</div>
+<li>Click the <b>Legacy form</b> tab. <b>MastSummary · 63</b> is selected. Read the grey line: <code>formDefs/MastSummary.json</code>, "5 things the loader could not translate". Scroll once: Licences with its text fields and checkboxes, the nested Pending Renewals group, then the three arrays with their Add buttons.</li>
+<div class="say">"This is the ServiceTas MastSummary form, byte for byte what's in the repo. It went through the loader and came out as the same components you saw on the other tabs. Under MUI, because that's what's selected."</div>
 <li><b>Implementation → Ant</b>, then back to the <b>Legacy form</b> tab (the switch returns you to Details). Same form, Ant chrome. Back to <b>MUI</b>, back to the tab.</li>
 <li>Tick <b>Show what the loader could not translate</b>. Read two aloud. They name a path and a property. Untick.</li>
-<div class="say">"Six for this form. Over the whole corpus, 792, and nineteen forms have none. That number is the work list, and it's the acceptance test for goal six."</div>
-<li>If ahead: <b>Legacy form → Fire · 35</b>. The materials radio list with descriptions renders. The broken image icons are icon-display translation gaps; say so.</li>
+<div class="say">"Five for this form. Over the whole corpus, 792, and nineteen forms have none. That number is the work list, and it's the acceptance test for goal six."</div>
+<li>If ahead: <b>Legacy form → Fire · 35</b>, the materials radio list with descriptions; the broken image icons are icon-display gaps, say so. Or <b>Address · 38</b>, small and familiar, 6 warnings.</li>
 <li>If you ran <code>rushx parity</code> beforehand: alt-tab to that terminal. The summary is one screen: 72 forms, two fixtures each, 140 of 144 identical, and the worst run named. Sixteen of the nineteen differences are TUP.</li>
 <div class="say">"That's the same forms, through the legacy stack and through v2, diffed at every path. This is the acceptance test for 'identical semantics', and it's not zero yet."</div>
 </ol>
-<div class="warn">Avoid <b>ContactUs</b> live: its icon-list actions render as large blue blocks (the icon names become button text). Address and Fire are the tested pair. The ServiceTas Tailwind classes (<code>body</code>, <code>title1</code>) come through on the elements but the POC ships no stylesheet for them, which is why spacing is plain. Say it before someone asks.</div>
+<div class="warn">Avoid <b>ContactUs</b> live: its icon-list actions render as large blue blocks (the icon names become button text). MastSummary, Fire and Address are the tested three. The summary forms (MastLicenceSummary, MrsSummary) are display-heavy and show almost nothing without data. The ServiceTas Tailwind classes (<code>body</code>, <code>title1</code>) come through on the elements but the POC ships no stylesheet for them, which is why spacing is plain. Say it before someone asks.</div>
 
 <h2>Questions to expect</h2>
 <dl class="qa">
@@ -277,10 +277,10 @@ still labelled aspiration because nineteen is not zero. No timeline, and if anyo
 I'll say exactly that.</p>
 </article><article class="note">
 <header><span class="n">19</span><div><span class="eb">Demo · 2</span><h3>A real form, through the loader</h3></div></header>
-<p>Back to the browser. Legacy form tab. Address is selected: thirty-eight controls, a form you
-recognise. Switch to MUI, then Ant.</p><p>Then tick the warnings box. Six items for this form. Read one or two aloud: they're specific,
+<p>Back to the browser. Legacy form tab. MastSummary is selected: sixty-three controls, the marine
+licences and registrations data, four sections with nested groups and arrays. Switch to MUI, then Ant.</p><p>Then tick the warnings box. Five items for this form. Read one or two aloud: they're specific,
 they name the path and the property. This is what "returns what it couldn't translate" looks like,
-and multiplied over eighty-three forms it's the number on the previous slide.</p><p>If time allows, pick ContactUs or Fire from the dropdown. If a form looks rough, say why: the classes
+and multiplied over eighty-three forms it's the number on the previous slide.</p><p>If time allows, pick Fire or Address from the dropdown. If a form looks rough, say why: the classes
 are ServiceTas's Tailwind, and the demo has no stylesheet for them. The structure and the bindings
 are what to look at.</p>
 </article><article class="note">

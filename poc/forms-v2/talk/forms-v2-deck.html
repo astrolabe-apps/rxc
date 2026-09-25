@@ -1007,20 +1007,20 @@ I'll say exactly that.</aside>
 <div class="demo-card">
   <p class="what">What you're about to see</p>
   <ol>
-    <li>The <b>Legacy form</b> tab loads <code>formDefs/Address.json</code> from ServiceTas, unchanged, through <code>&lt;JsonForm&gt;</code>.</li>
+    <li>The <b>Legacy form</b> tab loads <code>formDefs/MastSummary.json</code> from ServiceTas, unchanged, through <code>&lt;JsonForm&gt;</code>: four sections, nested groups, text fields, checkboxes, arrays.</li>
     <li>Switch the implementation to MUI. The same JSON, MUI chrome. Nobody wrote an MUI renderer for it.</li>
     <li>Tick <b>show what the loader could not translate</b>. This is the burndown list for one form: rendered anyway, reported honestly.</li>
     <li>The ServiceTas class names come through untouched; the POC just has no CSS for them.</li>
   </ol>
 </div>
-<aside class="notes">Back to the browser. Legacy form tab. Address is selected: thirty-eight controls, a form you
-recognise. Switch to MUI, then Ant.
+<aside class="notes">Back to the browser. Legacy form tab. MastSummary is selected: sixty-three controls, the marine
+licences and registrations data, four sections with nested groups and arrays. Switch to MUI, then Ant.
 
-Then tick the warnings box. Six items for this form. Read one or two aloud: they're specific,
+Then tick the warnings box. Five items for this form. Read one or two aloud: they're specific,
 they name the path and the property. This is what "returns what it couldn't translate" looks like,
 and multiplied over eighty-three forms it's the number on the previous slide.
 
-If time allows, pick ContactUs or Fire from the dropdown. If a form looks rough, say why: the classes
+If time allows, pick Fire or Address from the dropdown. If a form looks rough, say why: the classes
 are ServiceTas's Tailwind, and the demo has no stylesheet for them. The structure and the bindings
 are what to look at.</aside>
 </section>
