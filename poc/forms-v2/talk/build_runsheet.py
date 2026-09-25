@@ -127,7 +127,7 @@ td.t {{ white-space:nowrap; color:var(--muted); font-family:"IBM Plex Mono", mon
 <div class="say">"This is the ServiceTas MastSummary form, byte for byte what's in the repo. It went through the loader and came out as the same components you saw on the other tabs. Under MUI, because that's what's selected."</div>
 <li><b>Implementation → Ant</b>, then back to the <b>Legacy form</b> tab (the switch returns you to Details). Same form, Ant chrome. Back to <b>MUI</b>, back to the tab.</li>
 <li>Tick <b>Show what the loader could not translate</b>. Read two aloud. They name a path and a property. Untick.</li>
-<div class="say">"Five for this form. Over the whole corpus, 792, and nineteen forms have none. That number is the work list, and it's the acceptance test for goal six."</div>
+<div class="say">"Five for this form. Over the whole corpus, 777, and nineteen forms have none. That number is the work list, and it's the acceptance test for goal six."</div>
 <li>If ahead: <b>Legacy form → Fire · 35</b>, the materials radio list with descriptions; the broken image icons are icon-display gaps, say so. Or <b>Address · 38</b>, small and familiar, 6 warnings.</li>
 <li>If you ran <code>rushx parity</code> beforehand: alt-tab to that terminal. The summary is one screen: 72 forms, two fixtures each, 140 of 144 identical, and the worst run named. Sixteen of the nineteen differences are TUP.</li>
 <div class="say">"That's the same forms, through the legacy stack and through v2, diffed at every path. This is the acceptance test for 'identical semantics', and it's not zero yet."</div>
