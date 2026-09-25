@@ -34,6 +34,7 @@ import { Collapsible } from "./widgets/Collapsible.js";
 import { SelectChild } from "./widgets/SelectChild.js";
 import { JsonForm } from "./loader/JsonForm.js";
 import { demoControls, demoSchema } from "./loader/demoForm.js";
+import { pocHost } from "./loader/pocHost.js";
 import { CorpusDemo } from "./loader/CorpusDemo.js";
 import { AntInputReference } from "./impls/antd.js";
 
@@ -572,6 +573,7 @@ export function PersonForm({
                   the other tabs. No renderer knows JSON exists.
                 </p>
                 <JsonForm
+                  {...pocHost}
                   controls={demoControls}
                   schema={demoSchema}
                   data={data}

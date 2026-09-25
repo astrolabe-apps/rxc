@@ -43,7 +43,11 @@ import {
   toFormProp,
   toValueProp,
 } from "./expressions.js";
-import type { ControlDefinition, SchemaField } from "./json.js";
+import type {
+  ControlAdornment,
+  ControlDefinition,
+  SchemaField,
+} from "./json.js";
 import {
   elementScope,
   resolveRef,
@@ -174,8 +178,50 @@ export type ActionHandler = (
   actionData: unknown,
 ) => (() => void | Promise<void>) | undefined;
 
+/**
+ * How a host gives meaning to an adornment kind the loader has none for —
+ * or takes over one it has. An adornment is not a definition: it decorates a
+ * translated control rather than replacing it, so a `Translator` is the
+ * wrong shape (it would have to re-translate the field underneath to add a
+ * wrapper). Two phases, both optional: `props` runs before the control's
+ * translator and may hand back amended props — legacy's `helpLabel` on a
+ * `HelpText` becomes whatever the host's shell reads; `wrap` runs after and
+ * may wrap what translated — a `Spotlight` ring, a datagrid's column chrome.
+ * Either may decline by returning `undefined`; an adornment nothing accepts
+ * is reported dropped, exactly as one no host registered.
+ *
+ * An entry **shadows** the loader's own handling of that type (`HelpText`,
+ * `Tooltip`), audit included: the host's read of the entry's properties is
+ * what the recording proxy sees.
+ */
+export interface AdornmentTranslator {
+  props?: (
+    adornment: ControlAdornment,
+    props: FieldProps<any>,
+    def: ControlDefinition,
+  ) => FieldProps<any> | undefined;
+  wrap?: (
+    adornment: ControlAdornment,
+    node: ReactNode,
+    def: ControlDefinition,
+  ) => ReactNode | undefined;
+}
+
+/**
+ * A `Display / Custom` by its `customId` — legacy's `customDisplays` map,
+ * and the shape the corpus asks for: 37 uses, 22 distinct ids, every one a
+ * host component (a payment button, a logo, a "where to find this" panel).
+ * Gets what any translator gets, `props` built and `dynamicValue("Display")`
+ * available, so `hidden` and the class slots stay the loader's job.
+ */
+export type DisplayTranslator = (a: TranslateArgs) => ReactNode;
+
 export interface LoaderOptions {
   translators?: Translator[];
+  /** Keyed by adornment `type`. An entry shadows the loader's own. */
+  adornments?: Record<string, AdornmentTranslator>;
+  /** Keyed by `displayData.customId`. */
+  displays?: Record<string, DisplayTranslator>;
   onUnsupported?: (def: ControlDefinition) => ReactNode;
   actionHandler?: ActionHandler;
 }
@@ -682,6 +728,7 @@ function buildProps(
   ref: ResolvedRef | undefined,
   warn: Warn,
   seen: Set<string>,
+  hostAdornments: Set<string>,
 ): FieldProps<any> {
   const schema = ref?.schema;
   // A reference that walks off the data binds a detached control, so the
@@ -793,7 +840,10 @@ function buildProps(
   // `placement` is dropped on purpose: where help text sits is the shell's
   // business, and the eight libraries surveyed each fix it somewhere
   // (§7). On a Group or a Display there is no prop for it to become.
-  const help = def.adornments?.find((a) => a.type === "HelpText");
+  // Unless the host registered its own `HelpText`, which then owns it.
+  const help = hostAdornments.has("HelpText")
+    ? undefined
+    : def.adornments?.find((a) => a.type === "HelpText");
   const helpText =
     def.type === "Data" && typeof help?.helpText === "string"
       ? help.helpText
@@ -1189,6 +1239,7 @@ function warnUnhandled(
   def: ControlDefinition,
   warn: Warn,
   seen: Set<string>,
+  hostAdornments: Set<string>,
   renderTypes: readonly string[] = [],
   dynamics: readonly string[] = [],
 ): void {
@@ -1197,6 +1248,8 @@ function warnUnhandled(
   const handledHere = new Set(dynamics);
 
   for (const a of def.adornments ?? []) {
+    // A host entry is asked in `translate`, and reports there if it declines.
+    if (hostAdornments.has(a.type)) continue;
     // Tooltip on a display is consumed by the display translator as its
     // accessible name; anywhere else it has no meaning and is reported.
     if (a.type === "Tooltip" && def.type === "Display") continue;
@@ -1257,6 +1310,7 @@ export function translate(
   collect: Collect = noCollect,
 ): ReactNode {
   const translators = opts.translators ?? defaultTranslators;
+  const hostAdornments = new Set(Object.keys(opts.adornments ?? {}));
   const seen = new Set<string>();
   const def = recording(rawDef, seen);
   // `a/b` and `../x` resolve here — data and schema together, legacy's
@@ -1264,8 +1318,18 @@ export function translate(
   const ref = def.field ? resolveRef(scope, def.field) : undefined;
   const schema = ref?.schema;
   const at: Warn = (w) => collect({ ...w, path: key });
-  const t = translators.find((t) => t.match(def, schema));
-  warnUnhandled(def, at, seen, t?.renderTypes, t?.dynamics);
+  // A custom display is addressed by id, not matched by shape: the host's
+  // map is consulted before the translators, and stands in as one.
+  const customId =
+    def.type === "Display" && def.displayData?.type === "Custom"
+      ? (def.displayData.customId ?? "")
+      : undefined;
+  const hostDisplay =
+    customId !== undefined ? opts.displays?.[customId] : undefined;
+  const t: Translator | undefined = hostDisplay
+    ? { match: () => true, render: hostDisplay, dynamics: ["Display"] }
+    : translators.find((t) => t.match(def, schema));
+  warnUnhandled(def, at, seen, hostAdornments, t?.renderTypes, t?.dynamics);
 
   // The children's data context: into the bound field, or unchanged. A
   // collection's children live in a *row*, so the eager pass — which exists to
@@ -1354,7 +1418,40 @@ export function translate(
       subject: def.field,
       detail: `no schema field named "${def.field}"`,
     });
-  const props = buildProps(ctx, scope, def, ref, at, seen);
+  let props = buildProps(ctx, scope, def, ref, at, seen, hostAdornments);
+
+  // The host's adornments, both phases. An entry that declines both — or
+  // has neither — leaves the adornment dropped, and that is reported like
+  // any other. Wrapping folds in definition order, so the last is outermost.
+  const hosted = (def.adornments ?? [])
+    .filter((a) => hostAdornments.has(a.type))
+    .map((a) => ({ a, h: opts.adornments![a.type], took: false }));
+  for (const e of hosted) {
+    const next = e.h.props?.(e.a, props, def);
+    if (next) {
+      props = next;
+      e.took = true;
+    }
+  }
+  const wrapHosted = (node: ReactNode): ReactNode => {
+    for (const e of hosted) {
+      const next = e.h.wrap?.(e.a, node, def);
+      if (next !== undefined) {
+        node = next;
+        e.took = true;
+      }
+    }
+    for (const e of hosted)
+      if (!e.took) {
+        markSeen(seen, `adornments.${e.a.type}`, e.a);
+        at({
+          kind: "adornment",
+          subject: def.title ?? def.field,
+          detail: `the host's "${e.a.type}" adornment declined this control — it is dropped`,
+        });
+      }
+    return node;
+  };
 
   const children = (t?.ownsChildren ? [] : (def.children ?? [])).map((c, i) =>
     translate(ctx, childScope, c, `${key}.${i}`, opts, collect),
@@ -1388,25 +1485,30 @@ export function translate(
     at({
       kind: "control",
       subject: def.title ?? def.field,
-      detail: `no translator matched ${def.type}${
-        def.displayData?.type ? ` / ${def.displayData.type}` : ""
-      }${def.renderOptions?.type ? ` / ${def.renderOptions.type}` : ""}`,
+      detail:
+        customId !== undefined
+          ? `no host display for customId "${customId}"`
+          : `no translator matched ${def.type}${
+              def.displayData?.type ? ` / ${def.displayData.type}` : ""
+            }${def.renderOptions?.type ? ` / ${def.renderOptions.type}` : ""}`,
     });
-    const node = (opts.onUnsupported ?? defaultUnsupported)(def);
+    const node = wrapHosted((opts.onUnsupported ?? defaultUnsupported)(def));
     warnUnread(rawDef, seen, at);
     return <TranslatedKey key={key}>{node}</TranslatedKey>;
   }
   const propReads = new Set<string>();
-  const node = t.render({
-    def,
-    schema,
-    props: recordingProps(props, propReads),
-    children,
-    element,
-    onClick,
-    retranslate,
-    dynamicValue,
-  });
+  const node = wrapHosted(
+    t.render({
+      def,
+      schema,
+      props: recordingProps(props, propReads),
+      children,
+      element,
+      onClick,
+      retranslate,
+      dynamicValue,
+    }),
+  );
   warnUnread(rawDef, seen, at);
   warnDropped(props, propReads, rawDef, at);
   return <TranslatedKey key={key}>{node}</TranslatedKey>;
@@ -1443,7 +1545,7 @@ export function translateForm(
  * loader does both here, over the compound's control, from inside the
  * group's scope (README findings 65 and 66).
  */
-function CompoundCycle({
+export function CompoundCycle({
   control,
   value,
   hidden,

@@ -164,7 +164,10 @@ Nothing below is settled. In rough order of how much else depends on it:
    and `Inline`. The number is honest now: a property the loader never looked at used to cost
    nothing. README findings 44–50. **The current count, and the ordered work list, live in
    the POC README** (*Where to pick up*) — the legacy sources keep moving under the corpus, so
-   this document does not repeat the figure.
+   this document does not repeat the figure. What the list ends on is host work, not loader
+   work: the loader's host surface is `translators`, `adornments` (per type, amend or wrap,
+   shadowing a built-in) and `displays` (by `customId`), and the POC stands in as a host for
+   one of each (README finding 70).
 
    **What the number does not prove — and the second instrument that does (built).** The
    burndown measures shape coverage — did something claim this discriminator, read this

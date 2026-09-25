@@ -110,6 +110,8 @@ export interface ControlDefinition {
     text?: string;
     html?: string;
     icon?: { library?: string; name: string };
+    /** `Custom`: the id a host's `displays` map answers to. */
+    customId?: string;
   };
   groupOptions?: { type: string; [k: string]: unknown };
   validators?: ValidatorDef[];

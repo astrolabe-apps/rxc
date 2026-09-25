@@ -5,6 +5,7 @@ export const demoSchema: SchemaField[] = [
   { field: "firstName", type: "String", displayName: "First name" },
   { field: "notes", type: "String", displayName: "Notes" },
   { field: "hasPets", type: "Bool", displayName: "Has pets" },
+  { field: "alerts", type: "Bool", displayName: "Alerts" },
   {
     field: "pets",
     type: "Compound",
@@ -145,6 +146,7 @@ export const demoControls: ControlDefinition[] = [
       {
         type: "HelpText",
         helpText: "The member's current standing.",
+        helpLabel: "Status",
         placement: "LabelEnd",
       },
     ],
@@ -241,6 +243,56 @@ export const demoControls: ControlDefinition[] = [
   },
   // Nothing translates this one, so the loader says so on screen.
   { type: "Display", displayData: { type: "Custom" }, title: "Custom" },
+  // …and this one the host's `displays` map answers, by id.
+  {
+    type: "Display",
+    displayData: { type: "Custom", customId: "greeting" },
+    title: "Greeting",
+  },
+  // ── the host's extensions (src/loader/pocHost.tsx) ──
+  // A host render type: ServiceTas's Switch, `displayLabel: false` and all.
+  {
+    type: "Data",
+    field: "alerts",
+    title: "Push notifications",
+    renderOptions: { type: "Switch", displayLabel: false },
+  },
+  // A host group kind, with its own options.
+  {
+    type: "Group",
+    title: "Heads up",
+    groupOptions: { type: "MessageBox", level: "warning" },
+    children: [
+      {
+        type: "Display",
+        displayData: { type: "Text", text: "A host group kind — MessageBox." },
+      },
+    ],
+  },
+  // A host group kind over a compound: gets the loader's `CompoundCycle`.
+  {
+    type: "Data",
+    field: "address",
+    title: "Address (top-level)",
+    renderOptions: { type: "Group", groupOptions: { type: "TopLevelGroup" } },
+    children: [{ type: "Data", field: "street" }],
+  },
+  // A host adornment, wrapping what translated.
+  {
+    type: "Data",
+    field: "firstName",
+    title: "Spotlit",
+    adornments: [{ type: "Spotlight", index: 2 }],
+  },
+  // The host's Spotlight declines nothing, but its HelpText declines a Group
+  // — reported, as the loader's own would have.
+  {
+    type: "Group",
+    title: "Help on a group",
+    groupOptions: { type: "Standard" },
+    adornments: [{ type: "HelpText", helpText: "Nowhere to go." }],
+    children: [{ type: "Data", field: "notes" }],
+  },
   // The Mast form's real shape: a bare icon whose meaning the legacy Tooltip
   // adornment supplied. It translates to the display's accessible name.
   {

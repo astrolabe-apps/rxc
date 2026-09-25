@@ -4,6 +4,7 @@ import { useControl } from "@rx-controls/react";
 import { JsonForm } from "./JsonForm.js";
 import type { ControlDefinition, SchemaField } from "./json.js";
 import type { LoaderWarning } from "./translate.js";
+import { pocHost } from "./pocHost.js";
 
 /**
  * Presentation aid: a real legacy form from the extracted corpus, loaded
@@ -98,6 +99,7 @@ function CorpusForm({
   );
   return (
     <JsonForm
+      {...pocHost}
       controls={file.controls}
       schema={file.fields}
       data={data}

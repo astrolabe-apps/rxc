@@ -32,7 +32,7 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 19 clean, **760 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 21 clean, **630 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
@@ -43,7 +43,7 @@ and an honest one: those 820 were always dropped and never counted. The burndown
 standing in for a host that claims every action id (a host wires its buttons; their absence
 is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
 restores them as an inventory of what a host has to wire. Finding 63 (the five class slots on
-every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65 (`defaultValue`) 792 → 777; finding 68 (the `Date` validator) 777 → **760**. Kind totals: `unread` 422, `renderOptions` 137, `adornment` 64, `schema` 55, `control` 37, `dynamic` 32, `expression` 13.
+every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65 (`defaultValue`) 792 → 777; finding 68 (the `Date` validator) 777 → 760; finding 70 (the host's extension hooks, and the POC standing in as a host) 760 → **630**. Kind totals: `unread` 326, `renderOptions` 105, `adornment` 62, `schema` 55, `control` 37, `dynamic` 32, `expression` 13.
 
 ## What it builds
 
@@ -71,6 +71,8 @@ that returns what it could not translate.
 | `src/widgets/PetCards.tsx` | a **third-party collection**: per-row chrome from the implementation's buttons, staged edit, a callback prop |
 | `src/widgets/Collapsible.tsx` | a **third-party group**: a disclosure section over the implementation's `contents`, invalid badge from `{ scope: true }`, forced open in design mode |
 | `src/widgets/SelectChild.tsx` | a **third-party `silent` container**: legacy's SelectChild, the active branch chosen by data; no registry slot, no translator (zero corpus uses) |
+| `src/widgets/Switch.tsx` | a **host render type**: ServiceTas's `Switch`, a third-party field reached from JSON through a host `Translator` |
+| `src/loader/pocHost.tsx` | the **POC as a host**: one of each loader extension — a render type, two group kinds (one over a compound, with the exported `CompoundCycle`), an adornment, a take-over of a built-in adornment (`HelpText` + `helpLabel`), a custom display by id. Passed to the JSON tab, the corpus tab, the burndown and parity |
 | `src/App.tsx` (`FancyAdd`) | a **third-party action**, installed for one id through `ActionOverrideProvider` |
 | `src/PersonForm.tsx` | the form source — identical under all four |
 
@@ -1684,31 +1686,92 @@ Numbered; each is cited at the matching line of code.
     something the burndown could not, and the first where v2 was the side
     that was right.
 
+70. **The host's extension hooks — and the POC standing in as a host.** With
+    the translators done, almost everything left on the burndown was a shape
+    only a host can give meaning to: a render type of its own (`Switch` 14,
+    `MessageBox` 10, `TopLevelGroup` 8, `LicenceValidation`), an adornment of
+    its own (`Spotlight`, `ColumnOptions`), a `Display / Custom` addressed by
+    `customId` (37 uses, 22 ids — payment buttons, logos, "where to find
+    this" panels), and one property on a built-in adornment (`helpLabel` on
+    `HelpText`, 49 uses, the largest single line). Legacy had four
+    registries for these. The loader had one, `translators`, and it covers
+    only the first: a translator owns a whole definition, so it cannot
+    decorate one (an adornment) without re-translating the field beneath,
+    and a display by id is a lookup, not a match.
+
+    Two additions to `LoaderOptions`, and no more. **`adornments`**, keyed
+    by type: an `AdornmentTranslator` with two optional phases — `props`
+    runs before the control's translator and may hand back amended props,
+    `wrap` runs after and may wrap what translated. Either declines by
+    returning `undefined`; an adornment nothing accepts is reported dropped,
+    exactly as one no host registered. An entry **shadows** the loader's own
+    handling of that type, audit included: the host's reads of the entry go
+    through the same recording proxy, so `helpLabel` counts as read only
+    because the host's `HelpText` read it. **`displays`**, keyed by
+    `customId`: legacy's `customDisplays`, consulted before the translators
+    and standing in as one, so `hidden` and the class slots stay the
+    loader's job. A missing id is reported *by id* — the burndown now lists
+    the corpus's 22 as inventory, the way `--no-actions` lists action ids —
+    and `displayData.customId` is no longer "unread", because it was.
+
+    A host render type needed nothing new: a `Translator` already receives
+    the props the loader built. What it did need, for a group kind over a
+    *compound*, is the data cycle the built-in compound-as-group translator
+    mounts (finding 65) — so `CompoundCycle` is exported, and a host's
+    `TopLevelGroup` mounts it like the built-in does.
+
+    The POC then stands in as a host, in `src/loader/pocHost.tsx`: a
+    `Switch` (a third-party field, `Stars`'s shape, `displayLabel` and all),
+    a `MessageBox` group with its `level` and `hideIcon`, a `TopLevelGroup`
+    over a compound, a `Spotlight` ring with its `index`, a `HelpText` that
+    puts `helpLabel` in bold ahead of the text — the `helpText` prop is a
+    `ReactNode` already, so no new slot — and one custom display for the
+    fixture. Each is a real if small implementation, which is the only
+    reason the burndown is allowed to count it: the action handler is the
+    one stand-in, and this is not another. The corpus's custom displays are
+    ServiceTas components this POC cannot stand in for, so they stay on the
+    list, by id. Verified on the JSON tab under html, MUI and Ant: the
+    switch toggles the field, the help reads "**Status** The member's
+    current standing.", the message box, section and spotlight ring render,
+    the `greeting` display resolves, and the fixture's `HelpText` on a
+    *group* is reported as declined by the host — the loader's rule,
+    now the host's to keep. Mantine could not be checked: it renders blank
+    since the React pin in finding 66 (`@mantine/core` 9.6 calls React
+    19.2's `useEffectEvent`), which predates this and is filed separately.
+
+    Burndown 760 → **630**; parity unchanged at 144 of 144. The remaining
+    list is now designer flags (`noSelection` 108), dropped-on-purpose
+    properties (`HelpText.placement` 15), the datagrid (`ColumnOptions` 26,
+    `DataGrid` 7, `Pager` 5), and the seven schema-less forms — which is to
+    say the POC has run out of loader questions to ask.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (760),
-almost nothing left is a translator: `noSelection` 108 is a designer flag
-with no contract role; `adornments.HelpText.helpLabel` 49, `Display /
-Custom` 37 with its `displayData.customId` 37, and `Spotlight` are the
-host-extension family, one decision; `ColumnOptions` 26 is the datagrid;
-`Radio` 24 are forms that shipped neither a schema nor an `AllowedOptions`;
-`Accordion` 20 is finding 55's shape as an adornment; `dynamic Display` 15 is DisplayOnly's
-`overrideText`; `LayoutStyle` 15 is a dynamic inline style with no contract
-slot; `Switch` 14 and `keyboardType` 14 are host render options;
-`HelpText.placement` 15 is dropped on purpose (finding 61); `textClass` 16
-sits on groups, where legacy had no text either. `TopLevelGroup` 8 is a
-host group kind nested under a compound's `renderOptions`. The 489 action
-ids are not counted — the burndown stands in for a host that claims them
-all — and `--no-actions` lists them when a host needs the inventory
-(`docLink` alone is 47 across three forms). Of the 55 `schema` warnings, most are `plain name — schema not
+<kind:shape>` names the controls behind any line. At the last run (630),
+nothing left is a translator: `noSelection` 108 is a designer flag with no
+contract role; `ColumnOptions` 26, `DataGrid` 7 and `Pager` 5 are the
+datagrid; `Radio` 24 are forms that shipped neither a schema nor an
+`AllowedOptions`; `Accordion` 20 is finding 55's shape as an adornment;
+`dynamic Display` 15 is DisplayOnly's `overrideText`; `LayoutStyle` 15 is a
+dynamic inline style with no contract slot; `keyboardType` 14 and
+`autoComplete` 13 are host input options; `HelpText.placement` 15 is dropped
+on purpose (finding 61); `textClass` 16 sits on groups, where legacy had no
+text either. The host-extension family — `helpLabel`, `Switch`,
+`MessageBox`, `TopLevelGroup`, `Spotlight`, `customId` — went to the hooks
+of finding 70; the 22 custom display ids the corpus names (37 uses) stay on
+the list as host inventory, the way the 489 action ids are not counted at
+all — the burndown stands in for a host that claims them — and
+`--no-actions` lists those when a host needs the inventory (`docLink` alone
+is 47 across three forms). Of the 55 `schema` warnings, most are `plain name — schema not
 supplied` in seven forms that shipped no schema, so the real schema gap is
 three. Every loader change is a translator or a prop, then `rushx burndown`
 again; a fixture form in `src/loader/demoForm.ts` and a line in the
 `From JSON` tab is how each was verified so far.
 
 `SeniorsCardApplicationForm`, one of the three new forms, brought two shapes
-the corpus had not asked for: `MessageBox` (10 uses) and `LicenceValidation`.
+the corpus had not asked for: `MessageBox` (10 uses, now a host group kind in
+`pocHost.tsx`) and `LicenceValidation` (a ServiceTas API widget, left).
 The rest of the singleton tail — `HtmlEditor`, `Synchronised`
 (+ `fieldToSync`/`syncType`), `IconList` (+ `iconMappings`), `GroupElement` —
 is all `AllControls`, the testtemplate demo that exists to exercise every

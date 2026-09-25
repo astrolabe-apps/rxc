@@ -468,7 +468,13 @@ own options and declare `ownsChildren` so the loader does not build them twice.
 `startIcon`/`endIcon`, `Tooltip` → `accessibleName` on the display it sits on (§6),
 `Accordion` → a wrapper the loader emits, `SetField` → a computed-write registration
 (`useControlEffect`). `AdornmentKind`, priority ordering and `wrapAdornments` have
-nothing left to be about once the renderer owns the whole field. `def.hidden` /
+nothing left to be about once the renderer owns the whole field. A host's own adornment
+kinds — and its take-over of a built-in one, to read a property the loader does not
+(`helpLabel`) — go through `LoaderOptions.adornments`: per type, amend the props before the
+control translates or wrap what translated, declining by returning `undefined`, which the
+loader then reports as dropped. Custom displays go through `LoaderOptions.displays`, keyed
+by `customId` (legacy's `customDisplays`). A host render type needs neither: a `Translator`
+already gets the props the loader built. README finding 70. `def.hidden` /
 `def.disabled` / `def.readonly` → the three flags, and a `Visible` / `Disabled` dynamic
 property → the same prop as a `(rc) => …` — the spelling shifts to `readOnly` to match
 `@rx-controls/react`, which the boundary folds with; `def.dontClearHidden` →

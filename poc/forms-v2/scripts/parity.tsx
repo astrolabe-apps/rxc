@@ -56,6 +56,7 @@ import {
 import { Form, FormProvider } from "../src/framework/index.js";
 import { htmlRenderers } from "../src/impls/html.js";
 import { JsonForm } from "../src/loader/JsonForm.js";
+import { pocHost } from "../src/loader/pocHost.js";
 import type { SchemaField } from "../src/loader/json.js";
 import { countControls, loadForm, walkFiles, type FormFile } from "./corpus.js";
 
@@ -296,8 +297,7 @@ async function runOracle(form: FormFile, data: unknown): Promise<Snapshot> {
       const f = (n.definition as { field?: string }).field;
       if (f && f.includes(trace)) {
         const nodeCtl = n.dataNode?.control as unknown as
-          | Control<unknown>
-          | undefined;
+          Control<unknown> | undefined;
         const parentCtl = (
           n as unknown as { parent: { control: Control<unknown> } }
         ).parent?.control;
@@ -327,6 +327,7 @@ async function runV2(form: FormFile, data: unknown): Promise<Snapshot> {
       children: createElement(Form, {
         clearHidden: true,
         children: createElement(JsonForm, {
+          ...pocHost,
           controls: form.controls,
           schema: form.fields,
           data: dataControl,
@@ -444,8 +445,7 @@ function diff(a: Snapshot, b: Snapshot, form: FormFile): Diff[] {
         v2: y?.join("; ") ?? "(none)",
         why: expected ? SHARED_JSONATA : undefined,
       });
-    }
-    else if (x && y && x.join("|") !== y.join("|"))
+    } else if (x && y && x.join("|") !== y.join("|"))
       out.push({
         kind: "message",
         path: p,

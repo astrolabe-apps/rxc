@@ -679,3 +679,101 @@ span.ff-display {
   cursor: pointer;
   font-size: 13px;
 }
+
+/* ── the POC's host extensions (src/loader/pocHost.tsx) ─────────── */
+.ff-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.ff-switch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.ff-switch-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #d4d4d8;
+  transition: background 120ms;
+}
+.ff-switch[aria-checked="true"] .ff-switch-track {
+  background: #2563eb;
+}
+.ff-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 120ms;
+}
+.ff-switch[aria-checked="true"] .ff-switch-thumb {
+  left: 18px;
+}
+.ff-switch-state {
+  font-size: 13px;
+  color: #52525b;
+}
+.ff-message {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+.ff-message-warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+.ff-message-error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.ff-message-success {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+.ff-message-icon {
+  font-size: 16px;
+  line-height: 1.4;
+}
+.ff-message-body {
+  flex: 1;
+}
+.ff-toplevel {
+  padding: 12px;
+  border-left: 3px solid #2563eb;
+}
+.ff-spotlight {
+  position: relative;
+  outline: 2px dashed #f59e0b;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.ff-spotlight::after {
+  content: attr(data-spotlight);
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.ff-help-labelled b {
+  color: #1e3a8a;
+}
