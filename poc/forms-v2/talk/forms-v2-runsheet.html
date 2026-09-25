@@ -1,0 +1,304 @@
+<title>Forms v2 Run Sheet</title>
+<meta name="description" content="Pre-flight, timings, demo clicks, fallbacks and speaker notes for the Forms v2 talk.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg:#f5f7fa; --surface:#fff; --surface-2:#eaeef3; --ink:#161b22; --ink-2:#3d4652; --muted:#6b7482; --rule:#d6dce4;
+  --teal:#0f7b6c; --teal-soft:#e0f2ee; --teal-ink:#0a5a4f; --ochre:#b8741a; --ochre-soft:#fbf0dc; --ochre-ink:#7d4d0e; --bad:#b3261e;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#0f1419; --surface:#171d25; --surface-2:#1f2730; --ink:#e6eaf0; --ink-2:#c3cad3; --muted:#8f9aa7; --rule:#2b3440;
+  --teal:#3fbfa8; --teal-soft:#14302c; --teal-ink:#8fe0d1; --ochre:#e0a04a; --ochre-soft:#332715; --ochre-ink:#f0c98a; --bad:#f28b82; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg:#0f1419; --surface:#171d25; --surface-2:#1f2730; --ink:#e6eaf0; --ink-2:#c3cad3; --muted:#8f9aa7; --rule:#2b3440;
+  --teal:#3fbfa8; --teal-soft:#14302c; --teal-ink:#8fe0d1; --ochre:#e0a04a; --ochre-soft:#332715; --ochre-ink:#f0c98a; --bad:#f28b82; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font: 16px/1.55 "IBM Plex Sans", system-ui, sans-serif; }
+code { font-family:"IBM Plex Mono", ui-monospace, monospace; font-size:.88em; background:var(--surface-2); padding:.05em .35em; border-radius:4px; }
+pre { font-family:"IBM Plex Mono", monospace; font-size:14px; background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:12px 14px; overflow-x:auto; margin:8px 0; }
+pre code { background:none; padding:0; font-size:inherit; }
+h1,h2,h3 { font-family:"Bricolage Grotesque", sans-serif; font-optical-sizing:auto; margin:0; text-wrap:balance; letter-spacing:-.01em; }
+h1 { font-size:44px; font-weight:800; line-height:1; }
+h2 { font-size:26px; font-weight:700; margin:44px 0 14px; padding-top:18px; border-top:1px solid var(--rule); }
+h3 { font-size:18px; font-weight:600; margin:0 0 6px; }
+p, li { max-width:72ch; }
+.wrap { max-width:900px; margin:0 auto; padding:48px 28px 96px; }
+.kicker { font:13px "IBM Plex Mono", monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--ochre); margin-bottom:14px; }
+.sub { color:var(--ink-2); margin-top:12px; font-size:18px; }
+table { border-collapse:collapse; width:100%; font-size:15px; margin:10px 0 6px; }
+th { text-align:left; font:600 12px "IBM Plex Mono", monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:6px 10px; border-bottom:1px solid var(--rule); }
+td { padding:8px 10px; border-bottom:1px solid var(--rule); vertical-align:top; font-variant-numeric:tabular-nums; }
+td.t { white-space:nowrap; color:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:13px; }
+.check { list-style:none; padding:0; }
+.check li { padding:6px 0 6px 30px; position:relative; }
+.check li::before { content:""; position:absolute; left:0; top:10px; width:16px; height:16px; border:1.5px solid var(--muted); border-radius:3px; }
+.steps li { margin:6px 0; }
+.steps b { color:var(--teal-ink); }
+.say { border-left:3px solid var(--teal); padding:8px 14px; margin:10px 0; background:var(--surface); color:var(--ink-2); font-style:italic; }
+.warn { border-left:3px solid var(--ochre); padding:8px 14px; margin:10px 0; background:var(--ochre-soft); color:var(--ochre-ink); }
+.qa dt { font-weight:600; margin-top:14px; }
+.qa dd { margin:4px 0 0; color:var(--ink-2); }
+.note { padding:18px 0; border-bottom:1px solid var(--rule); }
+.note header { display:flex; gap:14px; align-items:flex-start; margin-bottom:8px; }
+.note .n { flex:none; width:34px; height:34px; border-radius:6px; background:var(--teal-soft); color:var(--teal-ink); font:600 15px "IBM Plex Mono", monospace; display:grid; place-items:center; }
+.note .eb { display:block; font:12px "IBM Plex Mono", monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.note p { margin:6px 0; color:var(--ink-2); }
+@media print { body { background:#fff; color:#000; } .wrap { padding:0; max-width:none; } h2 { break-before:page; } h2:first-of-type { break-before:auto; } .note { break-inside:avoid; } }
+</style>
+<div class="wrap">
+<p class="kicker">Forms v2, code first · presenter copy</p>
+<h1>Run sheet</h1>
+<p class="sub">Thirty minutes: 19 talking, 8 demo, 3 buffer. Deck is the artifact <em>Forms v2, Code First</em>. Press <code>N</code> in the deck for the same notes as below; <code>#/12</code> in the URL jumps to slide 12.</p>
+
+<h2>Pre-flight (15 minutes before)</h2>
+<ul class="check">
+<li>Terminal in <code>poc/forms-v2</code>. Packages built: <code>rush build --to @react-typed-forms/core</code> passes (core, react and the compat package, which the parity run needs). Then <code>rushx dev</code>. App at <code>http://localhost:5183</code>.</li>
+<li>Optional, for demo 2: in a second terminal run <code>rushx parity</code> before the talk and leave the summary on screen. It takes a minute or two. The headline line should read "140 of 144 runs identical, 19 differences".</li>
+<li><code>corpus/servicetas/</code> exists (71 forms). If not: <code>rushx extract-corpus servicetas ~/astrolabe/ServiceTas/ServiceTasAPI/NewClientApp/client-common</code>.</li>
+<li>Open the app, click the <b>Legacy form</b> tab once. MastSummary should render with "5 things the loader could not translate". Then back to <b>Details</b>, implementation <b>html</b>, click <b>Reset</b>.</li>
+<li>Browser zoom for the room: 125% to 150%. The state table on the left must be readable from the back.</li>
+<li>Deck open in its own window, <code>F</code> for fullscreen. Presenter laptop has notes: second window on the same artifact with <code>N</code> pressed, or this page.</li>
+<li>Deck and app in two windows you can alt-tab between. Practice the switch once.</li>
+<li>Second screen / projector set to mirror or extend; check slide 3's table and slide 14's code are legible.</li>
+</ul>
+
+<h2>Timings</h2>
+<table>
+<thead><tr><th>Clock</th><th>Slides</th><th>Segment</th><th>The one line</th></tr></thead>
+<tbody>
+<tr><td class="t">0:00</td><td>1</td><td>Title</td><td>Two demos, one argument.</td></tr>
+<tr><td class="t">0:30</td><td>2–4</td><td>Where we are, where it hurts</td><td>The editor can't make a component; the only escape hatch is a string.</td></tr>
+<tr><td class="t">4:30</td><td>5</td><td>The inversion</td><td>A form is React. JSON loads onto it. No renderer knows.</td></tr>
+<tr><td class="t">6:00</td><td>6–10</td><td>Code first, in code</td><td>Every prop reactive; validators at the usage; reuse is a function.</td></tr>
+<tr><td class="t">11:30</td><td>11</td><td><b>Demo 1</b></td><td>Same source, four libraries. Stars.</td></tr>
+<tr><td class="t">16:30</td><td>12–15</td><td>The abstraction layer</td><td>Shell + frame; guarantees live in the boundary.</td></tr>
+<tr><td class="t">20:30</td><td>16–18</td><td>JSON is not going anywhere</td><td>Two promises, one aspiration, no timeline.</td></tr>
+<tr><td class="t">24:30</td><td>19</td><td><b>Demo 2</b></td><td>A real ServiceTas form through the loader.</td></tr>
+<tr><td class="t">27:30</td><td>20–22</td><td>What it means, what's open, questions</td><td>New forms in JSX once it ships.</td></tr>
+</tbody></table>
+<p>If you're behind at 16:30, drop slide 14 (the Stars source): slide 12 already made the claim and the demo already showed it. If you're behind at 24:30, do Demo 2 as MastSummary only, skip the warnings box.</p>
+
+<h2>Demo 1 · same source, four libraries (5 min)</h2>
+<p>Start state: <b>Details</b> tab, implementation <b>html</b>, freshly <b>Reset</b>.</p>
+<ol class="steps">
+<li>Click <b>Touch all + validate</b>. Errors appear on First name, Email is clean (empty is allowed), Status, Stars, Pets. Point at the state table: same errors listed there, that's the data, not the DOM.</li>
+<li><b>Implementation → MUI.</b> Note it drops you back to the Details tab. Same errors, same table. Then <b>Ant</b>, then <b>Mantine</b>. Don't linger on Mantine; it's the least familiar.</li>
+<div class="say">"PersonForm.tsx hasn't changed. It doesn't import any of these. The form is the same; what changed is who draws it."</div>
+<li>Back to <b>MUI</b>. <b>Email presence → silent</b>. The email field leaves the screen. In the table, <code>email</code> keeps its row. Type into another field if you want to show nothing else moved.</li>
+<div class="say">"This is a tab you're not looking at. Unmounted isn't hidden. It still validates and it doesn't clear."</div>
+<li><b>Email presence → hidden.</b> The row's error clears; with clearHidden ticked the value would too.</li>
+<li>Set presence back to <b>rendered</b>. Click the <b>Pets</b> tab. Tick <b>Lock the pets region (readOnly)</b>. Edit, Remove and Add grey out. Untick.</li>
+<li>Click <b>Details</b>, scroll to the bottom: <b>How did we do?</b> with the stars. Click a star, then click away, then clear it and click away to show "Please rate us" in MUI's helper-text style.</li>
+<div class="say">"Who wrote MUI code for this widget? Nobody. It asked the active implementation for a field shell and drew stars inside it."</div>
+<li>Optional, if ahead: tick <b>Override the "add" action by id</b>, go to Pets, the Add button becomes the sparkle button. One id, every collection.</li>
+</ol>
+<div class="warn">If a switch looks wrong: click <b>Reset</b>, set implementation to <b>html</b>, and carry on. The state table is the truth; if it agrees with itself the demo has made its point.</div>
+
+<h2>Demo 2 · a real form through the loader (3 min)</h2>
+<p>Start state: implementation <b>MUI</b> already selected (switching resets the tab, so do it first).</p>
+<ol class="steps">
+<li>Click the <b>Legacy form</b> tab. <b>MastSummary · 63</b> is selected. Read the grey line: <code>formDefs/MastSummary.json</code>, "5 things the loader could not translate". Scroll once: Licences with its text fields and checkboxes, the nested Pending Renewals group, then the three arrays with their Add buttons.</li>
+<div class="say">"This is the ServiceTas MastSummary form, byte for byte what's in the repo. It went through the loader and came out as the same components you saw on the other tabs. Under MUI, because that's what's selected."</div>
+<li><b>Implementation → Ant</b>, then back to the <b>Legacy form</b> tab (the switch returns you to Details). Same form, Ant chrome. Back to <b>MUI</b>, back to the tab.</li>
+<li>Tick <b>Show what the loader could not translate</b>. Read two aloud. They name a path and a property. Untick.</li>
+<div class="say">"Five for this form. Over the whole corpus, 777, and nineteen forms have none. That number is the work list, and it's the acceptance test for goal six."</div>
+<li>If ahead: <b>Legacy form → Fire · 35</b>, the materials radio list with descriptions; the broken image icons are icon-display gaps, say so. Or <b>Address · 38</b>, small and familiar, 6 warnings.</li>
+<li>If you ran <code>rushx parity</code> beforehand: alt-tab to that terminal. The summary is one screen: 72 forms, two fixtures each, 140 of 144 identical, and the worst run named. Sixteen of the nineteen differences are TUP.</li>
+<div class="say">"That's the same forms, through the legacy stack and through v2, diffed at every path. This is the acceptance test for 'identical semantics', and it's not zero yet."</div>
+</ol>
+<div class="warn">Avoid <b>ContactUs</b> live: its icon-list actions render as large blue blocks (the icon names become button text). MastSummary, Fire and Address are the tested three. The summary forms (MastLicenceSummary, MrsSummary) are display-heavy and show almost nothing without data. The ServiceTas Tailwind classes (<code>body</code>, <code>title1</code>) come through on the elements but the POC ships no stylesheet for them, which is why spacing is plain. Say it before someone asks.</div>
+
+<h2>Questions to expect</h2>
+<dl class="qa">
+<dt>When?</dt><dd>No timeline. Two instruments say how far off it is: the loader's work list and the parity run. When both are clean enough. Don't be drawn into a quarter.</dd>
+<dt>How do you know the loader behaves the same as legacy?</dt><dd>We measure it. <code>rushx parity</code> runs every corpus form through the legacy stack itself, headless, and through v2, over the same fixture data, and diffs the values and errors at every path. 140 of 144 runs identical today; the 19 differences are classified, and 16 of them are one form and one deliberate rule. Its first run caught a real v2 bug the work list couldn't see.</dd>
+<dt>So the editor is dead?</dt><dd>No. Goal 7: reimplemented against the v2 renderers, previewing against any web implementation. It produces the same JSON. What it needs from the library is an editing mode and a preview, both of which the POC already has.</dd>
+<dt>Do I have to rewrite my existing forms?</dt><dd>No. Production forms stay on the legacy schemas stack, which already runs on the compat engine today. Migration onto the loader is per form and optional.</dd>
+<dt>Does jsonata go away?</dt><dd>Not on the JSON path. It's 418 uses in half the forms. The loader evaluates it into a Control and the prop follows the control. On the JSX path you write a function instead.</dd>
+<dt>Can a JSX form be opened in the editor?</dt><dd>No, and deliberately: there's no round-trip from JSX to JSON. If a form needs the editor, it's a JSON form. That's what the "who is the author" rule decides.</dd>
+<dt>React Native?</dt><dd>Goal 4, for the built-in set: the contract package has no DOM in it, and text/container class slots are split for exactly this reason. Not built yet.</dd>
+<dt>Why not fix the current @rx-controls/forms?</dt><dd>It was a proof of concept to find out what a renderer set needs, and it did its job. Several things it taught us (presence as three states, validators above the boundary, no schema on the binding) are structural, not patches.</dd>
+<dt>Can I write my own widget without knowing all this?</dt><dd>Yes. One implementation function, <code>fieldRenderer(MyImpl)</code>, and <code>useFieldShell()</code> for the chrome. The boundary does the rest. Stars is 40 lines.</dd>
+<dt>What about the classes we've put in every form?</dt><dd>They come through as the five class slots and the <code>@</code> replace prefix becomes <code>{ replace }</code>. On the JSX path they become components, which is the point of slide 3.</dd>
+</dl>
+
+<h2>Speaker notes, by slide</h2>
+<article class="note">
+<header><span class="n">1</span><div><span class="eb">&nbsp;</span><h3>Forms v2 code first, JSON when it earns it</h3></div></header>
+<p>Thirty minutes. Two demos. One argument.</p><p>The argument: a form should be React first, and the JSON the editor produces should become
+something we load onto that, not the thing we build in. I'll show you why, show you the
+code, and then spend real time on what happens to the editor and the forms already in production,
+because I know that's the question in the room.</p>
+</article><article class="note">
+<header><span class="n">2</span><div><span class="eb">Where we are</span><h3>How a form gets built today</h3></div></header>
+<p>Be fair to it. This stack has shipped ServiceTas. The editor is a real product, and "a non-developer
+can build a form" is a genuine capability we're keeping.</p><p>But most of the people in this room are developers who have used the editor to build forms. And
+when a developer uses a tool meant for non-developers, two things happen. You lose your tools:
+no types, no refactoring, no components, no tests. And you reach for the escape hatch a lot.
+The next two slides put numbers on both.</p>
+</article><article class="note">
+<header><span class="n">3</span><div><span class="eb">Where it hurts · 1</span><h3>The editor can't make a component</h3></div></header>
+<p>I counted this yesterday from the extracted corpus. Seventy-one ServiceTas forms.</p><p>Three thousand controls carry a class. Seventy percent of them are one of a hundred and thirty
+repeated shapes. A Display with textClass "body" appears four hundred and fifty four times across
+forty one forms. That's a component. It was always a component. The editor just has no way to say so,
+so every one of those is a copy, and when the design system changes "body" to something else,
+that's four hundred and fifty four edits, or a regex over JSON.</p><p>The right-hand column is the point. Each of these is one line of React.</p>
+</article><article class="note">
+<header><span class="n">4</span><div><span class="eb">Where it hurts · 2</span><h3>The only escape hatch is a string</h3></div></header>
+<p>These are verbatim. The last one hides a control unless the permit started within three days,
+and the three days is a millisecond literal because there's nowhere to put a constant.</p><p>I want to be careful here: jsonata isn't the villain. It's load-bearing. Four hundred and eighteen
+uses in half the forms. Any plan that treats it as optional is wrong, and v2 keeps it for the JSON
+path. The point is different: when a developer is writing the form, this is a worse version of the
+language they already have open in the next tab.</p>
+</article><article class="note">
+<header><span class="n">5</span><div><span class="eb">The idea</span><h3>The inversion</h3></div></header>
+<p>This is the whole talk on one slide.</p><p>Today the JSON is the centre and JSX is something you sneak in around the edges with a custom
+renderer. Flip it. The JSX component surface is the design. The loader is a translator that reads
+the JSON and produces exactly what you would have typed by hand: the same components, the same
+props. Everything below the line, the boundaries and the implementations, is shared and has no idea
+which path the form came from.</p><p>Two consequences. Anything you can do in JSON, you can do in JSX, because JSON compiles to JSX.
+And anything we make better below the line, both paths get.</p>
+</article><article class="note">
+<header><span class="n">6</span><div><span class="eb">Code first · a field</span><h3>A bound field</h3></div></header>
+<p>The plainest possible field, side by side. Same information, but on the right the compiler knows
+firstName exists and is a string. That's not a nicety, that's the difference between finding a
+broken binding at build time and finding it when a tester notices a field is blank.</p><p>Note what's not there: no schema. On the JSX path there's nothing to look a label up from, so
+the label is a prop you write. The type of the data is where TypeScript was getting your field
+names from all along.</p>
+</article><article class="note">
+<header><span class="n">7</span><div><span class="eb">Code first · a dynamic prop</span><h3>Making one prop dynamic</h3></div></header>
+<p>This is the replacement for dynamic properties, and it's the same thing you already know from
+rx-controls: a function of the read context. Whatever you read inside it, the prop tracks. Nothing
+else re-renders. And hidden is a prop on the field itself, the same as disabled and readOnly, so
+hiding one field is one line on that field. Hiding a region is the same prop on a group, which is
+slide nine.</p><p>The rule at the bottom matters more than the example. Every prop, not some props. So making a
+label dynamic doesn't mean restructuring the tree or finding a different component. You replace
+a string with a function. The third arm, a Control, is how the JSON path expresses jsonata:
+an async expression evaluates into a control and the prop simply is that control.</p>
+</article><article class="note">
+<header><span class="n">8</span><div><span class="eb">Code first · validation</span><h3>Validators are declared where the field is used</h3></div></header>
+<p>Two things here, and only one of them is new. Validators live on the usage, not the schema. That
+is how it already works: the legacy client never read required or validators off the SchemaField,
+and two controls on the same field can differ today. v2 keeps that and writes it down as a rule,
+so a label default from the schema is fine and a validator default never is.</p><p>The new part, and the one to remember for the demo: the validator is registered by the wrapper
+around the renderer, before the renderer runs. The thing that draws the input never sees it. That
+is what makes the Stars widget later validate correctly without its author knowing validation exists,
+and it's a property we could never guarantee in the current renderer set, where every custom
+renderer had to remember to wire it up.</p>
+</article><article class="note">
+<header><span class="n">9</span><div><span class="eb">Code first · regions and rows</span><h3>Regions and collections are components too</h3></div></header>
+<p>A repeated row is a render prop: you get the element control, the index, and a row handle with
+canRemove and remove. The array-level length rule is on the array. The buttons are the same Action
+component you'd write yourself, so a host can override the Add button by id and every collection in
+the app picks it up.</p><p>The table on the right is a semantic we got wrong before and fixed in the design. Legacy had visible
+or not. But a wizard page you're not on, or a tab you've left, is not "hidden": it still has to
+validate, and it must not clear its data. That's "silent", and it's produced by the containers,
+never by a renderer.</p>
+</article><article class="note">
+<header><span class="n">10</span><div><span class="eb">Code first · reuse</span><h3>Reuse is a function</h3></div></header>
+<p>Back to the copy-paste slide. This is what those four hundred and fifty four Displays become:
+a function called Body. The link-styled action becomes LinkButton. And the gap-16 group doesn't
+even need a component, because the framework ships a layout box called Stack. You've written
+components like this a thousand times, and that's the point. There is no form-specific component model to learn, because
+the form components are React components and compose the way React components do.</p><p>And when a shared component changes, every form that uses it changes. Today that's a search and
+replace across JSON files that no tool understands.</p>
+</article><article class="note">
+<header><span class="n">11</span><div><span class="eb">Demo · 1</span><h3>Same source, four libraries</h3></div></header>
+<p>Switch to the browser. Details tab first, HTML implementation. Type nothing, hit "Touch all and
+validate" so the errors show. Then change the implementation dropdown: MUI, Ant, Mantine. Point out
+the errors are identical and the state table didn't change. Same form, same data, same validation.</p><p>Then the email presence dropdown to "silent": the field disappears, the email row in the table still
+has its error. That's the tab-you're-not-on case.</p><p>Then the Pets tab, tick "Lock the pets region", show the buttons grey out.</p><p>Finish on Stars, in Details near the bottom, under MUI. Ask: who wrote MUI code for this? Nobody.
+Next slide explains how.</p>
+</article><article class="note">
+<header><span class="n">12</span><div><span class="eb">The abstraction layer</span><h3>What every UI library has</h3></div></header>
+<p>Here's the abstraction, and it's deliberately small. Every UI library in the survey draws a label
+with a required marker, help text, an error, and a framed editable surface with optional icons at
+either end. They disagree wildly on how, but not on what.</p><p>So the contract has two composable primitives: the shell and the frame. An implementation, meaning
+MUI or Ant or our own HTML, provides both. A third-party widget asks for the shell from whichever
+implementation is active and draws its own surface inside it. That's how Stars got MUI chrome
+without importing MUI.</p><p>The frame was the hard one. MUI's floating label that notches the border needs to know if the
+field is filled, and the frame never sees the value. We tell it. That's finding three in the POC
+readme if anyone wants the gore.</p>
+</article><article class="note">
+<header><span class="n">13</span><div><span class="eb">The abstraction layer</span><h3>Everything the framework guarantees happens in the boundary</h3></div></header>
+<p>This is the mechanism behind the last two slides. The component you write in a form is a boundary,
+a generated wrapper. It does everything the framework promises: resolves the reactive props,
+registers validators, joins the validation scope, applies presence and the lock cascade, routes
+the class slots, wraps design mode chrome. Then it dispatches to an implementation that just draws.</p><p>Because all of that happens before dispatch, an implementation can't drop any of it. And because
+a custom renderer goes through the same generator, yours can't either. In the current renderer set,
+every one of those was something a custom renderer author had to remember. Here they can't forget.</p>
+</article><article class="note">
+<header><span class="n">14</span><div><span class="eb">The abstraction layer</span><h3>The third-party widget, in full</h3></div></header>
+<p>Here's the whole widget, lightly trimmed. One hook for the shell, one controller hook for a number
+input, and the last line turns the implementation into a boundary.</p><p>The right column is what it didn't have to write. Every item there is something that in the
+current renderer set a custom renderer author had to know about and wire up, and usually missed one.
+That is the concrete payoff of the "guarantees live in the boundary" rule, and it's also what makes
+it safe for a team to write their own widgets: the framework can't be bypassed by accident.</p>
+</article><article class="note">
+<header><span class="n">15</span><div><span class="eb">The shape</span><h3>Where things live</h3></div></header>
+<p>Quickly, the package shape, because people will ask what they'd import. Core and react you already
+have and they don't change. The contract package is forms-react: every component a form author
+writes comes from there, and it has no DOM in it, which is what keeps React Native honest.
+Implementations are siblings. The JSON types sit in their own package that the loader and the
+editor depend on and forms don't.</p><p>This is a proposal, from the goals doc. The layout could shift. The rule at the bottom won't.</p>
+</article><article class="note">
+<header><span class="n">16</span><div><span class="eb">JSON</span><h3>JSON is not going anywhere</h3></div></header>
+<p>Now the half of the talk for the people who've been living in the editor.</p><p>The rule is about who the author is, not about what the form is. If a developer is writing it,
+it's code. If a customer's admin user is configuring a workflow form inside the product we shipped
+them, that has to be data, and the editor is exactly the right tool. Nothing about that changes.</p><p>And I want to be precise about "second class". In the design docs it means architecturally
+downstream: the JSON compiles to the JSX surface. It does not mean lower quality or best effort.
+The loader has an acceptance test against every legacy form we could find. Next slide.</p>
+</article><article class="note">
+<header><span class="n">17</span><div><span class="eb">JSON</span><h3>The loader</h3></div></header>
+<p>The loader is a translator table: one translator per shape in the format, each producing ordinary
+components. Two design points worth saying out loud.</p><p>Expressions stop at the loader. A dynamic Visible becomes a hidden prop that's a function; a
+jsonata expression becomes a control the prop follows. No component below knows jsonata exists,
+which is why the same components serve both paths.</p><p>And the loader never silently drops anything. It renders what it can and hands back a list of what
+it couldn't. Render them, log them, fail a build over them: that's the host's policy. It's also how
+we measure progress, which is the next slide.</p>
+</article><article class="note">
+<header><span class="n">18</span><div><span class="eb">JSON</span><h3>Promises, and one aspiration</h3></div></header>
+<p>Read the labels. Two promises, one aspiration, and I'm choosing the words deliberately.</p><p>The editor gets reimplemented against the new renderers. It's in the goals as goal seven and it's
+scoped: the editor needs an editing mode and a preview from the forms library, and both exist in
+the POC already. Your existing skill with the editor carries over because the format it produces
+doesn't change.</p><p>Production forms keep running. That's not future tense. The legacy schemas stack already runs on
+the new engine via the compat package, in a real app, in production.</p><p>The aspiration is that every existing JSON form loads and behaves identically. Two instruments.
+The first counts what the loader couldn't translate: seven hundred and seventy seven, mostly
+decisions about host extensions and designer flags rather than missing translators. The second is
+the one that matters: every corpus form run through the legacy stack itself and through v2, over
+the same data, and a diff of every value and every error at every path. A hundred and forty of a
+hundred and forty four runs identical. Nineteen differences, and we know what each one is.</p><p>Worth saying: the first time that parity run executed it found a real v2 bug the work list could
+never have seen. A visibility expression that hadn't answered yet was treated as hidden for one
+tick, and clearHidden wiped the field at mount. That's exactly the class of bug this is for. It's
+still labelled aspiration because nineteen is not zero. No timeline, and if anyone asks me for one
+I'll say exactly that.</p>
+</article><article class="note">
+<header><span class="n">19</span><div><span class="eb">Demo · 2</span><h3>A real form, through the loader</h3></div></header>
+<p>Back to the browser. Legacy form tab. MastSummary is selected: sixty-three controls, the marine
+licences and registrations data, four sections with nested groups and arrays. Switch to MUI, then Ant.</p><p>Then tick the warnings box. Five items for this form. Read one or two aloud: they're specific,
+they name the path and the property. This is what "returns what it couldn't translate" looks like,
+and multiplied over eighty-three forms it's the number on the previous slide.</p><p>If time allows, pick Fire or Address from the dropdown. If a form looks rough, say why: the classes
+are ServiceTas's Tailwind, and the demo has no stylesheet for them. The structure and the bindings
+are what to look at.</p>
+</article><article class="note">
+<header><span class="n">20</span><div><span class="eb">What it means for you</span><h3>When it ships</h3></div></header>
+<p>So, concretely. Nothing changes today; the current stack stays. When v2 ships, new forms we author go
+in JSX. Editor forms stay editor forms. Custom widgets get a lot easier and a lot safer.</p><p>The docs are the real source. The goals doc is the one to read if you read one. The interfaces doc
+is for when you want to argue with a type. The POC readme is fifty-seven findings, each one a place
+the design bent when it met a real UI library, and it's honest about what it doesn't answer.</p>
+</article><article class="note">
+<header><span class="n">21</span><div><span class="eb">Still open</span><h3>What isn't decided</h3></div></header>
+<p>And what's open, so the Q&amp;A has somewhere to go. None of these are "should we do this". They're
+"how does this bit work". The parity differences are the interesting ones: sixteen of the nineteen
+are a single form doing something legacy allowed and v2 chose not to, expanding a radio's children
+over options that only exist at runtime. Reproducing it costs a rule we'd rather keep. That's a
+decision for this room, not a bug to fix quietly. The display-only one is the same shape: legacy
+wrote data from a display, v2 won't, and we've said so.</p>
+</article><article class="note">
+<header><span class="n">22</span><div><span class="eb">&nbsp;</span><h3>Questions</h3></div></header>
+<p>Leave the thesis on screen while taking questions.</p>
+</article>
+</div>

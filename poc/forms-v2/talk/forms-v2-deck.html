@@ -1,0 +1,1275 @@
+<title>Forms v2, Code First</title>
+<meta name="description" content="A 30-minute talk: forms as React first, JSON loaded onto the same surface.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ── tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #eaeef3;
+  --ink: #161b22;
+  --ink-2: #3d4652;
+  --muted: #6b7482;
+  --rule: #d6dce4;
+  --teal: #0f7b6c;
+  --teal-soft: #e0f2ee;
+  --teal-ink: #0a5a4f;
+  --ochre: #b8741a;
+  --ochre-soft: #fbf0dc;
+  --ochre-ink: #7d4d0e;
+  --bad: #b3261e;
+  --good: #0f7b6c;
+  --code-bg: #ffffff;
+  --tk-kw: #7a3e9d;
+  --tk-str: #0f7b6c;
+  --tk-com: #8a94a1;
+  --tk-tag: #1c5fb8;
+  --tk-attr: #8b5a0a;
+  --tk-num: #b3261e;
+  --tk-key: #1c5fb8;
+  --tk-punc: #6b7482;
+  --shadow: 0 1px 2px rgb(22 27 34 / 0.06), 0 8px 24px -12px rgb(22 27 34 / 0.18);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419;
+    --surface: #171d25;
+    --surface-2: #1f2730;
+    --ink: #e6eaf0;
+    --ink-2: #c3cad3;
+    --muted: #8f9aa7;
+    --rule: #2b3440;
+    --teal: #3fbfa8;
+    --teal-soft: #14302c;
+    --teal-ink: #8fe0d1;
+    --ochre: #e0a04a;
+    --ochre-soft: #332715;
+    --ochre-ink: #f0c98a;
+    --bad: #f28b82;
+    --good: #3fbfa8;
+    --code-bg: #12181f;
+    --tk-kw: #c792ea;
+    --tk-str: #7fd6c4;
+    --tk-com: #6f7b89;
+    --tk-tag: #82b1ff;
+    --tk-attr: #e6c07b;
+    --tk-num: #f28b82;
+    --tk-key: #82b1ff;
+    --tk-punc: #8f9aa7;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1419;
+  --surface: #171d25;
+  --surface-2: #1f2730;
+  --ink: #e6eaf0;
+  --ink-2: #c3cad3;
+  --muted: #8f9aa7;
+  --rule: #2b3440;
+  --teal: #3fbfa8;
+  --teal-soft: #14302c;
+  --teal-ink: #8fe0d1;
+  --ochre: #e0a04a;
+  --ochre-soft: #332715;
+  --ochre-ink: #f0c98a;
+  --bad: #f28b82;
+  --good: #3fbfa8;
+  --code-bg: #12181f;
+  --tk-kw: #c792ea;
+  --tk-str: #7fd6c4;
+  --tk-com: #6f7b89;
+  --tk-tag: #82b1ff;
+  --tk-attr: #e6c07b;
+  --tk-num: #f28b82;
+  --tk-key: #82b1ff;
+  --tk-punc: #8f9aa7;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+/* ── base ───────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 20px;
+  line-height: 1.45;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+code, pre {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+:not(pre) > code {
+  font-size: 0.86em;
+  padding: 0.05em 0.35em;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+h1, h2, h3 {
+  font-family: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  font-optical-sizing: auto;
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+h2 { font-size: 40px; font-weight: 700; line-height: 1.1; margin-bottom: 20px; }
+h3 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+p { margin: 0; }
+ul, ol { margin: 0; padding-left: 1.2em; }
+li { margin: 0.25em 0; }
+li::marker { color: var(--muted); }
+b { font-weight: 600; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* ── stage ──────────────────────────────────────────────────────────── */
+.deck { position: fixed; inset: 0; }
+.stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 1280px; height: 720px;
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+  transform-origin: center center;
+}
+.slide {
+  position: absolute; inset: 0;
+  padding: 52px 76px 60px;
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+}
+.slide.active { display: flex; animation: in 180ms ease-out; }
+@keyframes in { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .slide.active { animation: none; } }
+.slide > *:not(.eyebrow):not(.notes) { min-width: 0; }
+.eyebrow {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.notes { display: none; }
+
+.hud {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 18px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.hud .counter { font-variant-numeric: tabular-nums; }
+.deck.fullscreen .hud .hint { opacity: 0; }
+
+.drawer {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  max-height: 42vh; overflow: auto;
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+  font-size: 16px; line-height: 1.55;
+}
+.drawer-in { padding: 18px 28px 26px; max-width: 78ch; }
+.drawer-title {
+  font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+#drawer-body p { margin: 0 0 0.7em; }
+
+/* overview */
+.overview {
+  position: fixed; inset: 0; overflow: auto; background: var(--bg);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(256px, 1fr)); gap: 18px; padding: 24px;
+  align-content: start;
+}
+.thumb { position: relative; aspect-ratio: 16/9; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--bg); }
+.thumb:hover, .thumb.current { outline: 2px solid var(--teal); outline-offset: 1px; }
+.thumb .slide { display: flex; transform-origin: top left; width: 1280px; height: 720px; animation: none; }
+.thumb .n { position: absolute; right: 6px; bottom: 4px; font: 11px "IBM Plex Mono", monospace; color: var(--muted); background: var(--surface); padding: 1px 6px; border-radius: 3px; }
+
+/* ── title slides ───────────────────────────────────────────────────── */
+.title-slide.active { justify-content: center; }
+.title { max-width: 980px; }
+.kicker {
+  font-family: "IBM Plex Mono", monospace; font-size: 14px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ochre); margin-bottom: 26px;
+}
+.title h1 {
+  font-size: 92px; font-weight: 800; line-height: 0.98; letter-spacing: -0.03em;
+}
+.title h1 .alt { color: var(--teal); }
+.title .sub { margin-top: 30px; font-size: 24px; color: var(--ink-2); max-width: 32em; }
+.title.end h1 { font-size: 120px; }
+.title.end .sub { color: var(--muted); }
+
+/* ── common blocks ──────────────────────────────────────────────────── */
+.lede { font-size: 21px; color: var(--ink-2); max-width: 62ch; margin-bottom: 22px; }
+.rule {
+  margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--rule);
+  font-size: 18px; color: var(--ink-2); max-width: 100%;
+}
+.cols { display: grid; gap: 40px; align-items: start; }
+.cols.two { grid-template-columns: 1fr 1fr; }
+.cols.three { grid-template-columns: 1fr 1fr 1fr; }
+.cols ul { font-size: 19px; }
+h3.good { color: var(--good); }
+h3.bad { color: var(--bad); }
+.teal-t { color: var(--teal); }
+.ochre-t { color: var(--ochre); }
+.teal-col { border-left: 3px solid var(--teal); padding-left: 20px; }
+.ochre-col { border-left: 3px solid var(--ochre); padding-left: 20px; }
+
+/* flow diagrams */
+.flow { display: flex; align-items: stretch; gap: 10px; margin: 8px 0 30px; }
+.node {
+  flex: 1; min-width: 0;
+  padding: 14px 16px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 2px; justify-content: center;
+}
+.node b { font-size: 18px; }
+.node span { font-size: 14px; color: var(--muted); }
+.node.ochre { border-color: var(--ochre); background: var(--ochre-soft); }
+.node.ochre b { color: var(--ochre-ink); }
+.node.teal { border-color: var(--teal); background: var(--teal-soft); }
+.node.teal b { color: var(--teal-ink); }
+.arrow { flex: 0 0 26px; position: relative; align-self: center; height: 2px; background: var(--rule); }
+.arrow::after { content: ""; position: absolute; right: -1px; top: -5px; border: 6px solid transparent; border-left-color: var(--rule); border-right: 0; }
+.arrow.down { width: 2px; height: 22px; flex: none; margin: 0 auto; }
+.arrow.down::after { top: auto; bottom: -1px; left: -5px; border: 6px solid transparent; border-top-color: var(--rule); border-bottom: 0; }
+
+.flow.inv { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto auto; gap: 0 32px; margin-top: 26px; }
+.flow.inv .lane { display: flex; gap: 10px; align-items: stretch; }
+.flow.inv .lane:first-child .node { flex: 1; }
+.flow.inv .join { grid-column: 1 / -1; height: 26px; position: relative; }
+.flow.inv .join::before {
+  content: ""; position: absolute; left: 25%; right: 25%; top: 0; height: 100%;
+  border: 2px solid var(--rule); border-bottom: 0; border-radius: 12px 12px 0 0;
+  border-top: 0; transform: scaleY(-1);
+}
+.flow.inv .node.wide { grid-column: 1 / -1; align-items: center; text-align: center; }
+.flow.inv .arrow.down { grid-column: 1 / -1; }
+.thesis { margin: 6px 0 4px; }
+.thesis p { font-family: "Bricolage Grotesque", sans-serif; font-size: 34px; line-height: 1.25; font-weight: 500; letter-spacing: -0.01em; }
+.thesis p b { font-weight: 700; }
+.thesis.two-tone p { font-size: 30px; margin-bottom: 6px; }
+.thesis.two-tone { margin-bottom: 30px; }
+
+/* stats */
+.stats { display: flex; gap: 28px; margin: 4px 0 26px; }
+.stat { flex: 1; padding: 16px 20px; border-radius: 8px; background: var(--surface); border: 1px solid var(--rule); }
+.stat b { display: block; font-family: "Bricolage Grotesque", sans-serif; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ochre); }
+.stat span { display: block; margin-top: 8px; font-size: 15px; color: var(--muted); }
+.stats.small { margin-top: 28px; }
+.stats.small .stat b { font-size: 32px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 17px; }
+th { text-align: left; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 6px 12px; border-bottom: 1px solid var(--rule); }
+td { padding: 8px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; font-variant-numeric: tabular-nums; }
+.rep td:nth-child(2), .rep td:nth-child(3) { text-align: right; width: 90px; }
+.rep td:last-child { color: var(--teal-ink); }
+.rep td:last-child code { background: var(--teal-soft); color: var(--teal-ink); }
+
+.quotes { display: grid; gap: 10px; margin: 6px 0 0; }
+.quotes code {
+  display: block; padding: 12px 16px; border-radius: 6px;
+  background: var(--ochre-soft); color: var(--ochre-ink); border-left: 3px solid var(--ochre);
+  font-size: 16px; white-space: pre-wrap; word-break: break-all;
+}
+
+/* code frames */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+.pair > .frame.wide { grid-column: span 1; }
+.pair:has(.side) { grid-template-columns: 1.7fr 1fr; }
+.pair:has(.presence) { grid-template-columns: 1.45fr 1fr; }
+.frame.wide pre.code { font-size: 14px; }
+.frame { margin: 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--rule); background: var(--code-bg); box-shadow: var(--shadow); }
+.frame figcaption {
+  font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 8px 14px; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--rule);
+}
+.frame.json { border-color: var(--ochre); }
+.frame.json figcaption { color: var(--ochre-ink); background: var(--ochre-soft); border-color: var(--ochre); }
+.frame.jsx { border-color: var(--teal); }
+.frame.jsx figcaption { color: var(--teal-ink); background: var(--teal-soft); border-color: var(--teal); }
+.frame.ochre-frame { border-color: var(--ochre); }
+.frame.ochre-frame figcaption { color: var(--ochre-ink); background: var(--ochre-soft); border-color: var(--ochre); }
+pre.code { margin: 0; padding: 14px 16px; font-size: 15px; line-height: 1.5; overflow-x: auto; tab-size: 2; color: var(--ink); }
+pre.code code { font-size: inherit; padding: 0; background: none; }
+.pair.tight pre.code { font-size: 13.5px; }
+.tk-kw { color: var(--tk-kw); }
+.tk-str { color: var(--tk-str); }
+.tk-com { color: var(--tk-com); font-style: italic; }
+.tk-tag { color: var(--tk-tag); }
+.tk-attr { color: var(--tk-attr); }
+.tk-num { color: var(--tk-num); }
+.tk-key { color: var(--tk-key); }
+.tk-punc { color: var(--tk-punc); }
+.notes-inline { margin-top: 18px; font-size: 18px; color: var(--ink-2); }
+.notes-inline li { margin: 0.35em 0; }
+
+/* presence */
+.presence h3 { font-size: 19px; }
+.presence table { font-size: 16px; margin-bottom: 12px; }
+.presence td, .presence th { padding: 6px 10px; }
+.presence p { font-size: 16px; color: var(--ink-2); }
+.side h3 { font-size: 19px; }
+.side ul { font-size: 17px; }
+
+/* demo slides */
+.demo { background: var(--bg); }
+.demo-h::before { content: "▶ "; color: var(--teal); }
+.demo-card { padding: 26px 32px; border-radius: 10px; background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); max-width: 1000px; }
+.demo-card .what { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.demo-card ol { font-size: 21px; padding-left: 1.4em; }
+.demo-card li { margin: 0.45em 0; }
+.demo-card li::marker { color: var(--teal); font-weight: 600; }
+
+/* shell diagram */
+.shell-diagram { padding: 22px 26px; border-radius: 10px; background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow); display: grid; gap: 8px; margin-bottom: 14px; }
+.shell-diagram .lbl { font-weight: 600; font-size: 17px; }
+.shell-diagram .req { color: var(--bad); }
+.frame-diagram { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--teal); border-radius: 6px; }
+.frame-diagram .slot { font: 12px "IBM Plex Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 4px 8px; border: 1px dashed var(--rule); border-radius: 4px; }
+.frame-diagram .ctl { flex: 1; text-align: center; color: var(--muted); font-size: 16px; }
+.shell-diagram .help { font-size: 14px; color: var(--muted); }
+.shell-diagram .err { font-size: 14px; color: var(--bad); }
+.cap { font-size: 16px; color: var(--ink-2); }
+.prims dt { font-weight: 600; margin-top: 8px; }
+.prims dd { margin: 2px 0 10px; font-size: 17px; color: var(--ink-2); }
+.prims dt code { background: var(--teal-soft); color: var(--teal-ink); }
+.cols ul li { font-size: 17px; }
+
+/* boundary */
+.boundary { display: grid; gap: 14px; max-width: 1000px; }
+.b-author, .b-impl { display: flex; align-items: baseline; gap: 18px; }
+.b-author code, .b-impl code { font-size: 17px; padding: 6px 12px; }
+.b-author span, .b-impl span { font-size: 15px; color: var(--muted); }
+.b-author code { background: var(--teal-soft); color: var(--teal-ink); }
+.b-box { padding: 16px 22px; border-radius: 10px; border: 2px solid var(--teal); background: var(--surface); box-shadow: var(--shadow); }
+.b-title { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 20px; color: var(--teal-ink); margin-bottom: 8px; }
+.b-title span { font-family: "IBM Plex Sans", sans-serif; font-weight: 400; font-size: 14px; color: var(--muted); margin-left: 8px; }
+.b-box ul { columns: 2; column-gap: 32px; font-size: 17px; }
+.b-box li { break-inside: avoid; }
+
+/* packages */
+.pkgs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 10px 0 10px; }
+.pkg { padding: 14px 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; grid-column: span 3; }
+.pkg code { font-size: 15px; background: none; padding: 0; }
+.pkg span { font-size: 14px; color: var(--muted); }
+.pkg.keep { border-style: dashed; grid-column: span 3; }
+.pkg.ochre { border-color: var(--ochre); background: var(--ochre-soft); grid-column: span 3; }
+.pkg.ochre code { color: var(--ochre-ink); }
+.pkg.teal { border-color: var(--teal); background: var(--teal-soft); grid-column: span 6; }
+.pkg.teal code { color: var(--teal-ink); font-size: 17px; }
+.pkg.teal span { color: var(--ink-2); }
+.pkg.impl { grid-column: span 2; align-items: center; }
+
+/* loader */
+.loader-pts { font-size: 17px; padding-left: 1.1em; }
+.loader-pts li { margin: 0.6em 0; color: var(--ink-2); }
+.loader-pts b { color: var(--ink); }
+
+/* promises */
+.promises { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 8px; }
+.promise { padding: 20px 22px; border-radius: 10px; background: var(--surface); border: 1px solid var(--rule); border-top: 4px solid var(--teal); box-shadow: var(--shadow); }
+.promise.asp { border-top-color: var(--ochre); }
+.promise .tag { display: inline-block; font: 12px "IBM Plex Mono", monospace; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal-ink); background: var(--teal-soft); padding: 2px 8px; border-radius: 3px; margin-bottom: 12px; }
+.promise.asp .tag { color: var(--ochre-ink); background: var(--ochre-soft); }
+.promise h3 { font-size: 21px; line-height: 1.25; margin-bottom: 10px; }
+.promise p { font-size: 16px; color: var(--ink-2); }
+
+.reading { font-size: 17px; list-style: none; padding: 0; }
+.reading li { margin: 0.4em 0; color: var(--ink-2); }
+.reading code { margin-right: 10px; }
+.open { font-size: 19px; max-width: 62ch; }
+.open li { margin: 0.55em 0; color: var(--ink-2); }
+.open b { color: var(--ink); }
+
+</style>
+<div class="deck" id="deck">
+<div class="stage" id="stage">
+<section class="slide title-slide" data-n="1">
+
+
+<div class="title">
+  <p class="kicker">rx-controls · forms</p>
+  <h1>Forms v2<br><span class="alt">code first,</span><br>JSON when it earns it</h1>
+  <p class="sub">What changes for the people who build forms here, what doesn't, and one thing we're promising.</p>
+</div>
+<aside class="notes">Thirty minutes. Two demos. One argument.
+
+The argument: a form should be React first, and the JSON the editor produces should become
+something we load onto that, not the thing we build in. I'll show you why, show you the
+code, and then spend real time on what happens to the editor and the forms already in production,
+because I know that's the question in the room.</aside>
+</section>
+<section class="slide " data-n="2">
+<p class="eyebrow">Where we are</p>
+
+<h2>How a form gets built today</h2>
+<div class="flow">
+  <div class="node ochre"><b>Form editor</b><span>drag, drop, set properties</span></div>
+  <div class="arrow"></div>
+  <div class="node ochre"><b>ControlDefinition JSON</b><span>+ schema generated from C#</span></div>
+  <div class="arrow"></div>
+  <div class="node ochre"><b>dynamic / jsonata</b><span>the escape hatch</span></div>
+  <div class="arrow"></div>
+  <div class="node"><b>Renderer set</b><span>@react-typed-forms/schemas-html</span></div>
+</div>
+<div class="cols two">
+  <div><h3 class="good">What it does well</h3><ul>
+    <li>Someone who isn't a developer can build a form</li>
+    <li>One format, server schema and client form agree</li>
+    <li>The same definition targets web and native (<code>native:flex-1</code> is in 67 controls)</li>
+  </ul></div>
+  <div><h3 class="bad">Where it hurts</h3><ul>
+    <li>Developers building forms in a tool made for non-developers: no types, no refactor, no tests</li>
+    <li>The only way to say "this thing, again" is copy and paste</li>
+    <li>The only way to make it clever is a string in a text box</li>
+  </ul></div>
+</div>
+<aside class="notes">Be fair to it. This stack has shipped ServiceTas. The editor is a real product, and "a non-developer
+can build a form" is a genuine capability we're keeping.
+
+But most of the people in this room are developers who have used the editor to build forms. And
+when a developer uses a tool meant for non-developers, two things happen. You lose your tools:
+no types, no refactoring, no components, no tests. And you reach for the escape hatch a lot.
+The next two slides put numbers on both.</aside>
+</section>
+<section class="slide " data-n="3">
+<p class="eyebrow">Where it hurts · 1</p>
+
+<h2>The editor can't make a component</h2>
+<p class="lede">Every ServiceTas form, every control carrying a class. Same signature means same type, same render options, same classes, same adornments.</p>
+<div class="stats">
+  <div class="stat"><b>3,139</b><span>controls carry a class</span></div>
+  <div class="stat"><b>130</b><span>signatures repeated five or more times</span></div>
+  <div class="stat"><b>2,248</b><span>of those controls are one of the 130</span></div>
+</div>
+<table class="rep">
+<thead><tr><th>What it is</th><th>Times</th><th>Forms</th><th>What it wanted to be</th></tr></thead>
+<tbody>
+<tr><td><code>Display</code> · <code>textClass: body</code></td><td>454</td><td>41</td><td><code>&lt;Body&gt;</code></td></tr>
+<tr><td><code>Display</code> · <code>textClass: body-bold</code></td><td>135</td><td>15</td><td><code>&lt;Body bold&gt;</code></td></tr>
+<tr><td><code>Group</code> · <code>@ flex flex-col gap-[16px]</code></td><td>69</td><td>26</td><td><code>&lt;Stack gap={16}&gt;</code></td></tr>
+<tr><td><code>Action</code> · <code>p-0 !text-accent underline body-bold</code></td><td>41</td><td>3</td><td><code>&lt;LinkButton&gt;</code></td></tr>
+<tr><td><code>Group</code> · <code>border border-accent p-[16px] flex flex-col gap-[12px]</code></td><td>32</td><td>3</td><td><code>&lt;Callout&gt;</code></td></tr>
+</tbody></table>
+<aside class="notes">I counted this yesterday from the extracted corpus. Seventy-one ServiceTas forms.
+
+Three thousand controls carry a class. Seventy percent of them are one of a hundred and thirty
+repeated shapes. A Display with textClass "body" appears four hundred and fifty four times across
+forty one forms. That's a component. It was always a component. The editor just has no way to say so,
+so every one of those is a copy, and when the design system changes "body" to something else,
+that's four hundred and fifty four edits, or a regex over JSON.
+
+The right-hand column is the point. Each of these is one line of React.</aside>
+</section>
+<section class="slide " data-n="4">
+<p class="eyebrow">Where it hurts · 2</p>
+
+<h2>The only escape hatch is a string</h2>
+<p class="lede">Real <code>Visible</code> expressions from the corpus. No types, no completion, no refactor, no test, no stack trace.</p>
+<div class="quotes">
+  <code>$boolean(registrationStatus.renewalAvailable) and $boolean($meta.regoRenewalAvailable)</code>
+  <code>detailsMatch and $exists($meta.hasMastAccount) and $meta.hasMastAccount</code>
+  <code>errorCode in ["1099", "1199", "1599"] ? false : true</code>
+  <code>initialType='Permit' and $toMillis(details.registration.startDate,"[Y0001]-[M01]-[D01]")&lt;=$millis()+259200000</code>
+</div>
+<div class="stats small">
+  <div class="stat"><b>418</b><span>jsonata uses across 40 of 80 forms</span></div>
+  <div class="stat"><b>599</b><span><code>Visible</code> dynamic properties in 43 forms</span></div>
+  <div class="stat"><b>259200000</b><span>is three days, in one of them</span></div>
+</div>
+<aside class="notes">These are verbatim. The last one hides a control unless the permit started within three days,
+and the three days is a millisecond literal because there's nowhere to put a constant.
+
+I want to be careful here: jsonata isn't the villain. It's load-bearing. Four hundred and eighteen
+uses in half the forms. Any plan that treats it as optional is wrong, and v2 keeps it for the JSON
+path. The point is different: when a developer is writing the form, this is a worse version of the
+language they already have open in the next tab.</aside>
+</section>
+<section class="slide " data-n="5">
+<p class="eyebrow">The idea</p>
+
+<h2>The inversion</h2>
+<div class="thesis">
+  <p><b>A form is React.</b></p>
+  <p><b>JSON is an input format</b> that loads onto the same surface.</p>
+  <p><b>No renderer knows JSON exists.</b></p>
+</div>
+<div class="flow inv">
+  <div class="lane">
+    <div class="node teal"><b>You write JSX</b><span>typed, reactive, componentised</span></div>
+  </div>
+  <div class="lane">
+    <div class="node ochre"><b>Editor writes JSON</b><span>same format as today</span></div>
+    <div class="arrow"></div>
+    <div class="node ochre"><b>Loader</b><span>the only code that reads a ControlDefinition</span></div>
+  </div>
+  <div class="join"></div>
+  <div class="node wide"><b>Boundaries</b><span>validators · presence · locks · class slots · design mode</span></div>
+  <div class="arrow down"></div>
+  <div class="node wide"><b>Implementation</b><span>HTML · MUI · Ant · Mantine · React Native · yours</span></div>
+</div>
+<aside class="notes">This is the whole talk on one slide.
+
+Today the JSON is the centre and JSX is something you sneak in around the edges with a custom
+renderer. Flip it. The JSX component surface is the design. The loader is a translator that reads
+the JSON and produces exactly what you would have typed by hand: the same components, the same
+props. Everything below the line, the boundaries and the implementations, is shared and has no idea
+which path the form came from.
+
+Two consequences. Anything you can do in JSON, you can do in JSX, because JSON compiles to JSX.
+And anything we make better below the line, both paths get.</aside>
+</section>
+<section class="slide " data-n="6">
+<p class="eyebrow">Code first · a field</p>
+
+<h2>A bound field</h2>
+<div class="pair">
+  <figure class="frame json"><figcaption>JSON · today</figcaption><pre class="code " data-lang="json"><code>{
+  "type": "Data",
+  "field": "firstName",
+  "title": "First name",
+  "required": true,
+  "renderOptions": { "type": "Standard" },
+  "placeholder": "Ada"
+}</code></pre></figure>
+  <figure class="frame jsx"><figcaption>JSX · v2</figcaption><pre class="code " data-lang="tsx"><code>&lt;TextField
+  field={f.firstName}
+  label="First name"
+  required
+  placeholder="Ada"
+/&gt;</code></pre></figure>
+</div>
+<ul class="notes-inline">
+  <li><code>f.firstName</code> is a typed <code>Control&lt;string&gt;</code>. Rename the field in the type and this fails to compile.</li>
+  <li>The label is a prop. There is no schema on this side, and nothing reads one.</li>
+</ul>
+<aside class="notes">The plainest possible field, side by side. Same information, but on the right the compiler knows
+firstName exists and is a string. That's not a nicety, that's the difference between finding a
+broken binding at build time and finding it when a tester notices a field is blank.
+
+Note what's not there: no schema. On the JSX path there's nothing to look a label up from, so
+the label is a prop you write. The type of the data is where TypeScript was getting your field
+names from all along.</aside>
+</section>
+<section class="slide " data-n="7">
+<p class="eyebrow">Code first · a dynamic prop</p>
+
+<h2>Making one prop dynamic</h2>
+<div class="pair">
+  <figure class="frame json"><figcaption>JSON · today</figcaption><pre class="code " data-lang="json"><code>{
+  "type": "Data",
+  "field": "vetName",
+  "title": "Vet's name",
+  "required": true,
+  "dynamic": [{
+    "type": "Visible",
+    "expr": { "type": "Jsonata",
+              "expression": "hasPets" }
+  }]
+}</code></pre></figure>
+  <figure class="frame jsx"><figcaption>JSX · v2</figcaption><pre class="code " data-lang="tsx"><code>&lt;TextField
+  field={f.vetName}
+  label="Vet's name"
+  required
+  hidden={(rc) =&gt; !rc.getValue(f.hasPets)}
+/&gt;
+
+&lt;TextField
+  field={f.notes}
+  multiline
+  label={(rc) =&gt;
+    `Notes (${rc.getValue(f.notes).length} chars)`}
+/&gt;</code></pre></figure>
+</div>
+<p class="rule"><b>Every prop is a <code>FormProp&lt;T&gt;</code></b> = <code>T</code> | <code>(rc) =&gt; T</code> | <code>Control&lt;T&gt;</code>. A literal, a derivation, or a control to follow. Same mechanism for <code>label</code>, <code>disabled</code>, <code>options</code>, <code>className</code>.</p>
+<aside class="notes">This is the replacement for dynamic properties, and it's the same thing you already know from
+rx-controls: a function of the read context. Whatever you read inside it, the prop tracks. Nothing
+else re-renders. And hidden is a prop on the field itself, the same as disabled and readOnly, so
+hiding one field is one line on that field. Hiding a region is the same prop on a group, which is
+slide nine.
+
+The rule at the bottom matters more than the example. Every prop, not some props. So making a
+label dynamic doesn't mean restructuring the tree or finding a different component. You replace
+a string with a function. The third arm, a Control, is how the JSON path expresses jsonata:
+an async expression evaluates into a control and the prop simply is that control.</aside>
+</section>
+<section class="slide " data-n="8">
+<p class="eyebrow">Code first · validation</p>
+
+<h2>Validators are declared where the field is used</h2>
+<div class="pair">
+  <figure class="frame json"><figcaption>JSON · today</figcaption><pre class="code " data-lang="json"><code>{
+  "type": "Data",
+  "field": "email",
+  "required": true,
+  "validators": [{
+    "type": "Jsonata",
+    "expression":
+      "$contains(email, '@') ? null
+        : 'That does not look like an email'"
+  }]
+}</code></pre></figure>
+  <figure class="frame jsx"><figcaption>JSX · v2</figcaption><pre class="code " data-lang="tsx"><code>&lt;TextField
+  field={f.email}
+  label="Email"
+  inputType="email"
+  validate={{
+    shape: (v) =&gt; !v || v.includes("@")
+      ? null : "That does not look like an email",
+    length: (v) =&gt; !v || v.length &lt; 60
+      ? null : "Too long",
+  }}
+/&gt;
+
+&lt;Stars field={f.rating} required
+       requiredMessage="Please rate us" /&gt;</code></pre></figure>
+</div>
+<ul class="notes-inline">
+  <li><b>On the usage, as today.</b> <code>required</code> and <code>validators</code> already live on the control definition, not the <code>SchemaField</code>, and the client never read the schema's. v2 keeps that and writes it down as a rule.</li>
+  <li><b>What's new:</b> registered <em>above</em> the renderer. An implementation never receives a validator, so it cannot drop one. A third-party widget gets them right by construction.</li>
+</ul>
+<aside class="notes">Two things here, and only one of them is new. Validators live on the usage, not the schema. That
+is how it already works: the legacy client never read required or validators off the SchemaField,
+and two controls on the same field can differ today. v2 keeps that and writes it down as a rule,
+so a label default from the schema is fine and a validator default never is.
+
+The new part, and the one to remember for the demo: the validator is registered by the wrapper
+around the renderer, before the renderer runs. The thing that draws the input never sees it. That
+is what makes the Stars widget later validate correctly without its author knowing validation exists,
+and it's a property we could never guarantee in the current renderer set, where every custom
+renderer had to remember to wire it up.</aside>
+</section>
+<section class="slide " data-n="9">
+<p class="eyebrow">Code first · regions and rows</p>
+
+<h2>Regions and collections are components too</h2>
+<div class="pair">
+<figure class="frame jsx wide"><figcaption>JSX · v2</figcaption><pre class="code " data-lang="tsx"><code>&lt;Elements field={f.pets} label="Pets"
+          minLength={1} maxLength={3}
+          empty={&lt;p&gt;No pets yet.&lt;/p&gt;}&gt;
+  {(pet, i, row) =&gt; (
+    &lt;div className="row"&gt;
+      &lt;TextField field={pet.fields.name} required
+                 label={`Pet ${i + 1}`} /&gt;
+      &lt;Action actionId={StandardActionIds.remove}
+              text="Remove" disabled={!row.canRemove}
+              onClick={() =&gt; row.remove(i)} /&gt;
+    &lt;/div&gt;
+  )}
+&lt;/Elements&gt;
+&lt;Action actionId={StandardActionIds.add} text="Add pet"
+        disabled={!pets.canAdd}
+        onClick={() =&gt; pets.add({ name: "" })} /&gt;</code></pre></figure>
+<div class="presence">
+  <h3>Three presence states, not a boolean</h3>
+  <table>
+    <thead><tr><th>state</th><th>renders</th><th>validates</th><th>clearHidden</th></tr></thead>
+    <tbody>
+      <tr><td><code>rendered</code></td><td>yes</td><td>yes</td><td>no</td></tr>
+      <tr><td><code>silent</code></td><td>no</td><td><b>yes</b></td><td>no</td></tr>
+      <tr><td><code>hidden</code></td><td>no</td><td>no</td><td>yes</td></tr>
+    </tbody>
+  </table>
+  <p><code>silent</code> exists because unmounted is not hidden. A tab you're not looking at still validates, and switching tabs must not wipe what you typed.</p>
+</div>
+</div>
+<aside class="notes">A repeated row is a render prop: you get the element control, the index, and a row handle with
+canRemove and remove. The array-level length rule is on the array. The buttons are the same Action
+component you'd write yourself, so a host can override the Add button by id and every collection in
+the app picks it up.
+
+The table on the right is a semantic we got wrong before and fixed in the design. Legacy had visible
+or not. But a wizard page you're not on, or a tab you've left, is not "hidden": it still has to
+validate, and it must not clear its data. That's "silent", and it's produced by the containers,
+never by a renderer.</aside>
+</section>
+<section class="slide " data-n="10">
+<p class="eyebrow">Code first · reuse</p>
+
+<h2>Reuse is a function</h2>
+<div class="pair tight">
+  <figure class="frame json"><figcaption>JSON · today, ×454</figcaption><pre class="code " data-lang="json"><code>{ "type": "Display",
+  "textClass": "body",
+  "displayData": { "type": "Text",
+    "text": "Changes to your address…" } }
+
+… 453 more times, in 41 forms</code></pre></figure>
+  <figure class="frame jsx"><figcaption>JSX · once</figcaption><pre class="code " data-lang="tsx"><code>export function Body({ bold, children }: BodyProps) {
+  return (
+    &lt;TextDisplay text={children}
+                 textClassName={bold ? "body-bold" : "body"} /&gt;
+  );
+}
+
+export const LinkButton = (p: LinkProps) =&gt; (
+  &lt;Action {...p} style="link" className="p-0"
+          textClassName="text-accent underline body-bold" /&gt;
+);
+
+// The 69 gap-16 groups need no component at all:
+&lt;Stack gap={16}&gt;…&lt;/Stack&gt;   // the framework's layout box</code></pre></figure>
+</div>
+<p class="rule">Nothing new to learn. A form component is a React component. The 130 repeated shapes from slide 3 are a shared package of small functions, some of them already built in, and a design-system change is one edit.</p>
+<aside class="notes">Back to the copy-paste slide. This is what those four hundred and fifty four Displays become:
+a function called Body. The link-styled action becomes LinkButton. And the gap-16 group doesn't
+even need a component, because the framework ships a layout box called Stack. You've written
+components like this a thousand times, and that's the point. There is no form-specific component model to learn, because
+the form components are React components and compose the way React components do.
+
+And when a shared component changes, every form that uses it changes. Today that's a search and
+replace across JSON files that no tool understands.</aside>
+</section>
+<section class="slide demo" data-n="11">
+<p class="eyebrow">Demo · 1</p>
+
+<h2 class="demo-h">Same source, four libraries</h2>
+<div class="demo-card">
+  <p class="what">What you're about to see</p>
+  <ol>
+    <li><code>PersonForm.tsx</code> names no UI library. The switcher swaps HTML, MUI, Ant and Mantine at runtime.</li>
+    <li>Presence: move the email field to <code>silent</code>. It leaves the screen and its error stays in the state table.</li>
+    <li>Lock the pets region. Edit and Remove grey out; the dialog can't open locked.</li>
+    <li><b>Stars.</b> A widget that imports nothing from MUI, and gets MUI's label, required marker, help text and error chrome.</li>
+  </ol>
+</div>
+<aside class="notes">Switch to the browser. Details tab first, HTML implementation. Type nothing, hit "Touch all and
+validate" so the errors show. Then change the implementation dropdown: MUI, Ant, Mantine. Point out
+the errors are identical and the state table didn't change. Same form, same data, same validation.
+
+Then the email presence dropdown to "silent": the field disappears, the email row in the table still
+has its error. That's the tab-you're-not-on case.
+
+Then the Pets tab, tick "Lock the pets region", show the buttons grey out.
+
+Finish on Stars, in Details near the bottom, under MUI. Ask: who wrote MUI code for this? Nobody.
+Next slide explains how.</aside>
+</section>
+<section class="slide " data-n="12">
+<p class="eyebrow">The abstraction layer</p>
+
+<h2>What every UI library has</h2>
+<div class="cols two">
+  <div>
+    <div class="shell-diagram">
+      <div class="lbl">Label <span class="req">*</span></div>
+      <div class="frame-diagram"><span class="slot">start</span><span class="ctl">the editable surface</span><span class="slot">end</span></div>
+      <div class="help">Help text</div>
+      <div class="err">Error</div>
+    </div>
+    <p class="cap">Surveyed eight libraries: MUI, Ant, Mantine, Chakra, shadcn, Base UI, RN Paper, Bootstrap. Every one draws this. They only differ in <em>who</em> renders the input.</p>
+  </div>
+  <div>
+    <h3>Two primitives, resolved from the active implementation</h3>
+    <dl class="prims">
+      <dt><code>FieldShell</code></dt><dd>label · required · help · error · disabled. A widget that draws its own surface (stars, a map, a signature pad) uses this and nothing else.</dd>
+      <dt><code>InputFrame</code></dt><dd>the bordered editable surface with start and end slots <em>inside</em> the border. The control reaches it through a render prop, never as children.</dd>
+    </dl>
+    <h3>Three families</h3>
+    <ul>
+      <li><b>Children-hosting</b>, class-driven: Bootstrap, shadcn, our HTML</li>
+      <li><b>Self-rendering</b> input, private state: MUI, Ant, Mantine. MUI's notched outline is the hardest case</li>
+      <li><b>Headless, render props</b>: Base UI. The generalisation of the other two, and the shape the primitives copy</li>
+    </ul>
+  </div>
+</div>
+<aside class="notes">Here's the abstraction, and it's deliberately small. Every UI library in the survey draws a label
+with a required marker, help text, an error, and a framed editable surface with optional icons at
+either end. They disagree wildly on how, but not on what.
+
+So the contract has two composable primitives: the shell and the frame. An implementation, meaning
+MUI or Ant or our own HTML, provides both. A third-party widget asks for the shell from whichever
+implementation is active and draws its own surface inside it. That's how Stars got MUI chrome
+without importing MUI.
+
+The frame was the hard one. MUI's floating label that notches the border needs to know if the
+field is filled, and the frame never sees the value. We tell it. That's finding three in the POC
+readme if anyone wants the gore.</aside>
+</section>
+<section class="slide " data-n="13">
+<p class="eyebrow">The abstraction layer</p>
+
+<h2>Everything the framework guarantees happens in the boundary</h2>
+<div class="boundary">
+  <div class="b-author"><code>&lt;TextField field={f.name} required label="Name" /&gt;</code><span>what the author writes</span></div>
+  <div class="b-box">
+    <div class="b-title">the boundary <span>generated by <code>fieldRenderer(…)</code></span></div>
+    <ul>
+      <li>resolve every <code>FormProp</code> in its own tracking window</li>
+      <li>register validators, <code>required</code>, defaults</li>
+      <li>attach to the nearest validation scope</li>
+      <li>apply presence · narrow the disabled / readOnly scope</li>
+      <li>route the five class slots · wrap design-mode chrome</li>
+      <li>resolve the implementation from the registry</li>
+    </ul>
+  </div>
+  <div class="b-impl"><code>&lt;TextFieldImpl {...resolved} /&gt;</code><span>what actually draws · html / mui / native / yours</span></div>
+</div>
+<p class="rule">A custom renderer is not a special case. <code>fieldRenderer(MyImpl)</code> produces the same wrapper as the built-in, differing only in how the implementation is found.</p>
+<aside class="notes">This is the mechanism behind the last two slides. The component you write in a form is a boundary,
+a generated wrapper. It does everything the framework promises: resolves the reactive props,
+registers validators, joins the validation scope, applies presence and the lock cascade, routes
+the class slots, wraps design mode chrome. Then it dispatches to an implementation that just draws.
+
+Because all of that happens before dispatch, an implementation can't drop any of it. And because
+a custom renderer goes through the same generator, yours can't either. In the current renderer set,
+every one of those was something a custom renderer author had to remember. Here they can't forget.</aside>
+</section>
+<section class="slide " data-n="14">
+<p class="eyebrow">The abstraction layer</p>
+
+<h2>The third-party widget, in full</h2>
+<div class="pair">
+<figure class="frame jsx wide"><figcaption>Stars.tsx · imports nothing from MUI, Ant or Mantine</figcaption><pre class="code " data-lang="tsx"><code>function StarsImpl(p: FieldRenderProps&lt;number | undefined&gt;) {
+  const Shell = useFieldShell();        // the active implementation's
+  const ctl = useNumberInput(p.field);  // value · setValue · state · onBlur
+  const max = getProp(ctl.rc, p.maxStars) ?? 5;
+  return ctl.rendered(
+    &lt;Shell id={p.id} label={p.label} labelAs="legend" surface="custom"
+           required={p.required} disabled={ctl.state.disabled}
+           helpText={p.helpText} error={p.error}&gt;
+      &lt;div className="stars" onBlur={ctl.onBlur}&gt;
+        {range(max).map((n) =&gt; (
+          &lt;button key={n} aria-pressed={n &lt;= (ctl.value ?? 0)}
+                  onClick={() =&gt; ctl.setValue(n)}&gt;
+            {n &lt;= (ctl.value ?? 0) ? "★" : "☆"}
+          &lt;/button&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/Shell&gt;,
+  );
+}
+export const Stars = fieldRenderer(StarsImpl);</code></pre></figure>
+<div class="side">
+  <h3>What it got for free</h3>
+  <ul>
+    <li>MUI's, Ant's and Mantine's label, marker, help and error chrome</li>
+    <li><code>required</code> and its message, validated before it ever ran</li>
+    <li>the lock cascade: <code>disabled</code> and <code>readOnly</code> from any ancestor</li>
+    <li>presence, <code>clearHidden</code>, design-mode chrome</li>
+    <li>a reactive <code>maxStars</code> prop, because every prop is a <code>FormProp</code></li>
+  </ul>
+</div>
+</div>
+<aside class="notes">Here's the whole widget, lightly trimmed. One hook for the shell, one controller hook for a number
+input, and the last line turns the implementation into a boundary.
+
+The right column is what it didn't have to write. Every item there is something that in the
+current renderer set a custom renderer author had to know about and wire up, and usually missed one.
+That is the concrete payoff of the "guarantees live in the boundary" rule, and it's also what makes
+it safe for a team to write their own widgets: the framework can't be bypassed by accident.</aside>
+</section>
+<section class="slide " data-n="15">
+<p class="eyebrow">The shape</p>
+
+<h2>Where things live</h2>
+<div class="pkgs">
+  <div class="pkg keep"><code>@rx-controls/core</code><span>unchanged, published</span></div>
+  <div class="pkg keep"><code>@rx-controls/react</code><span>unchanged, published</span></div>
+  <div class="pkg ochre"><code>@rx-controls/forms-schema</code><span>SchemaField + ControlDefinition JSON types. No React.</span></div>
+  <div class="pkg"><code>@rx-controls/forms-state</code><span>fieldState, cascades, validators, expressions. No React.</span></div>
+  <div class="pkg teal big"><code>@rx-controls/forms-react</code><span><b>the contract</b>: boundaries, primitives, controllers, prop types, the loader's registry. No DOM, no class strings.</span></div>
+  <div class="pkg impl"><code>forms-html</code></div>
+  <div class="pkg impl"><code>forms-native</code></div>
+  <div class="pkg impl"><code>forms-mui</code></div>
+</div>
+<p class="rule">A form imports from <code>forms-react</code> and nothing else. An MUI implementation is the contract's real test, which is why the POC built one.</p>
+<aside class="notes">Quickly, the package shape, because people will ask what they'd import. Core and react you already
+have and they don't change. The contract package is forms-react: every component a form author
+writes comes from there, and it has no DOM in it, which is what keeps React Native honest.
+Implementations are siblings. The JSON types sit in their own package that the loader and the
+editor depend on and forms don't.
+
+This is a proposal, from the goals doc. The layout could shift. The rule at the bottom won't.</aside>
+</section>
+<section class="slide " data-n="16">
+<p class="eyebrow">JSON</p>
+
+<h2>JSON is not going anywhere</h2>
+<div class="thesis two-tone">
+  <p><span class="teal-t">Developers write JSX.</span></p>
+  <p><span class="ochre-t">The editor is for the people who use the systems we build</span>, and need to shape a form inside them.</p>
+</div>
+<div class="cols two">
+  <div class="teal-col"><h3>Reach for JSX when</h3><ul>
+    <li>we are the authors of the form</li>
+    <li>it has logic, reuse, or a custom widget</li>
+    <li>it lives in a codebase with tests and review</li>
+  </ul></div>
+  <div class="ochre-col"><h3>Reach for the editor when</h3><ul>
+    <li>the author is an admin user, not us</li>
+    <li>the form has to change without a deploy</li>
+    <li>the form is data that the system stores and versions</li>
+  </ul></div>
+</div>
+<p class="rule">The JSON path gets <b>better</b>, not smaller: every improvement below the boundary line reaches both.</p>
+<aside class="notes">Now the half of the talk for the people who've been living in the editor.
+
+The rule is about who the author is, not about what the form is. If a developer is writing it,
+it's code. If a customer's admin user is configuring a workflow form inside the product we shipped
+them, that has to be data, and the editor is exactly the right tool. Nothing about that changes.
+
+And I want to be precise about "second class". In the design docs it means architecturally
+downstream: the JSON compiles to the JSX surface. It does not mean lower quality or best effort.
+The loader has an acceptance test against every legacy form we could find. Next slide.</aside>
+</section>
+<section class="slide " data-n="17">
+<p class="eyebrow">JSON</p>
+
+<h2>The loader</h2>
+<div class="cols two">
+  <div>
+    <ul class="loader-pts">
+      <li><b>The only code that reads a <code>ControlDefinition</code>.</b> What it produces is what a JSX author would have typed by hand.</li>
+      <li><b>Expressions terminate here.</b> A literal becomes <code>T</code>. A synchronous expression becomes <code>(rc) =&gt; T</code>. Jsonata evaluates into a <code>Control&lt;T&gt;</code> and the prop is that control.</li>
+      <li><b>Field references need a cursor, and it's the loader's.</b> <code>a/b</code>, <code>../x</code>, <code>$i</code>, <code>$$</code> resolve exactly as legacy did, on the JSON side only.</li>
+      <li><b>It renders anyway, and returns what it couldn't translate.</b> A control no translator matched renders a visible placeholder. Every property nothing read, and every property read but never used, is reported.</li>
+    </ul>
+  </div>
+  <figure class="frame ochre-frame"><figcaption>what a host does with the gaps is the host's choice</figcaption><pre class="code " data-lang="tsx"><code>const { tree, warnings } =
+  translateForm(ctx, data, schema, controls);
+
+// or, in a component:
+&lt;JsonForm controls={controls} schema={schema}
+          data={data}
+          renderWarnings={(ws) =&gt;
+            &lt;WarningList warnings={ws} /&gt;} /&gt;
+
+// warnings[i] = { path, kind, subject?, detail }
+// kind: control | renderOptions | adornment
+//   | dynamic | validator | expression
+//   | schema | unread | action</code></pre></figure>
+</div>
+<aside class="notes">The loader is a translator table: one translator per shape in the format, each producing ordinary
+components. Two design points worth saying out loud.
+
+Expressions stop at the loader. A dynamic Visible becomes a hidden prop that's a function; a
+jsonata expression becomes a control the prop follows. No component below knows jsonata exists,
+which is why the same components serve both paths.
+
+And the loader never silently drops anything. It renders what it can and hands back a list of what
+it couldn't. Render them, log them, fail a build over them: that's the host's policy. It's also how
+we measure progress, which is the next slide.</aside>
+</section>
+<section class="slide " data-n="18">
+<p class="eyebrow">JSON</p>
+
+<h2>Promises, and one aspiration</h2>
+<div class="promises">
+  <div class="promise"><span class="tag">promise</span><h3>The editor is reimplemented against the v2 renderers.</h3><p>Not dropped, not frozen. It keeps producing the same JSON, previews against any web implementation, and needs only two things from the forms library: an editing mode and a preview.</p></div>
+  <div class="promise"><span class="tag">promise</span><h3>Forms in production keep running.</h3><p>The legacy <code>@react-typed-forms/schemas</code> stack runs unchanged on the compat engine (<code>@react-typed-forms/core@5</code>) today. Nothing shipped has to move to move forward.</p></div>
+  <div class="promise asp"><span class="tag">aspiration · goal 6</span><h3>Existing JSON loads with identical semantics.</h3><p>Measured two ways over the corpus, <b>83 forms, 4,283 controls</b>. The loader's own work list: <b>777</b> warnings, almost none a missing translator. And a parity run, every form through legacy and through v2 over the same data, diffing values and errors at every path: <b>140 of 144 runs identical</b>, 19 differences, all classified.</p></div>
+</div>
+<p class="rule">No timeline. When there is one, it will be because the work list says so.</p>
+<aside class="notes">Read the labels. Two promises, one aspiration, and I'm choosing the words deliberately.
+
+The editor gets reimplemented against the new renderers. It's in the goals as goal seven and it's
+scoped: the editor needs an editing mode and a preview from the forms library, and both exist in
+the POC already. Your existing skill with the editor carries over because the format it produces
+doesn't change.
+
+Production forms keep running. That's not future tense. The legacy schemas stack already runs on
+the new engine via the compat package, in a real app, in production.
+
+The aspiration is that every existing JSON form loads and behaves identically. Two instruments.
+The first counts what the loader couldn't translate: seven hundred and seventy seven, mostly
+decisions about host extensions and designer flags rather than missing translators. The second is
+the one that matters: every corpus form run through the legacy stack itself and through v2, over
+the same data, and a diff of every value and every error at every path. A hundred and forty of a
+hundred and forty four runs identical. Nineteen differences, and we know what each one is.
+
+Worth saying: the first time that parity run executed it found a real v2 bug the work list could
+never have seen. A visibility expression that hadn't answered yet was treated as hidden for one
+tick, and clearHidden wiped the field at mount. That's exactly the class of bug this is for. It's
+still labelled aspiration because nineteen is not zero. No timeline, and if anyone asks me for one
+I'll say exactly that.</aside>
+</section>
+<section class="slide demo" data-n="19">
+<p class="eyebrow">Demo · 2</p>
+
+<h2 class="demo-h">A real form, through the loader</h2>
+<div class="demo-card">
+  <p class="what">What you're about to see</p>
+  <ol>
+    <li>The <b>Legacy form</b> tab loads <code>formDefs/MastSummary.json</code> from ServiceTas, unchanged, through <code>&lt;JsonForm&gt;</code>: four sections, nested groups, text fields, checkboxes, arrays.</li>
+    <li>Switch the implementation to MUI. The same JSON, MUI chrome. Nobody wrote an MUI renderer for it.</li>
+    <li>Tick <b>show what the loader could not translate</b>. This is the burndown list for one form: rendered anyway, reported honestly.</li>
+    <li>The ServiceTas class names come through untouched; the POC just has no CSS for them.</li>
+  </ol>
+</div>
+<aside class="notes">Back to the browser. Legacy form tab. MastSummary is selected: sixty-three controls, the marine
+licences and registrations data, four sections with nested groups and arrays. Switch to MUI, then Ant.
+
+Then tick the warnings box. Five items for this form. Read one or two aloud: they're specific,
+they name the path and the property. This is what "returns what it couldn't translate" looks like,
+and multiplied over eighty-three forms it's the number on the previous slide.
+
+If time allows, pick Fire or Address from the dropdown. If a form looks rough, say why: the classes
+are ServiceTas's Tailwind, and the demo has no stylesheet for them. The structure and the bindings
+are what to look at.</aside>
+</section>
+<section class="slide " data-n="20">
+<p class="eyebrow">What it means for you</p>
+
+<h2>When it ships</h2>
+<div class="cols three">
+  <div><h3 class="teal-t">New forms</h3><p>Written in JSX, in the app's codebase, out of shared components. The 130 repeated shapes become a package.</p></div>
+  <div><h3 class="ochre-t">Editor forms</h3><p>Still the editor, still the same JSON, loaded through the loader. Choose it because of who the author is.</p></div>
+  <div><h3>Custom widgets</h3><p>One function and <code>fieldRenderer(…)</code>. The shell gives you the active library's chrome; the boundary gives you everything else.</p></div>
+</div>
+<h3>Where to read</h3>
+<ul class="reading">
+  <li><code>docs/FORMS-V2-GOALS.md</code> the seven goals, the open decisions, the settled structure</li>
+  <li><code>docs/FORMS-V2-INTERFACES.md</code> the types a form is built from, with a <em>From JSON</em> note per section</li>
+  <li><code>poc/forms-v2/</code> the build, four implementations, and a README of 57 numbered findings</li>
+</ul>
+<aside class="notes">So, concretely. Nothing changes today; the current stack stays. When v2 ships, new forms we author go
+in JSX. Editor forms stay editor forms. Custom widgets get a lot easier and a lot safer.
+
+The docs are the real source. The goals doc is the one to read if you read one. The interfaces doc
+is for when you want to argue with a type. The POC readme is fifty-seven findings, each one a place
+the design bent when it met a real UI library, and it's honest about what it doesn't answer.</aside>
+</section>
+<section class="slide " data-n="21">
+<p class="eyebrow">Still open</p>
+
+<h2>What isn't decided</h2>
+<ul class="open">
+  <li><b>What's left of the renderer-facing API.</b> The level is settled, semantic not element-level. The remaining surface is being trimmed.</li>
+  <li><b>Base UI.</b> The headless, render-prop library the shell and frame are shaped like. The POC validated them against MUI, Ant, Mantine and HTML, but never built a Base UI implementation.</li>
+  <li><b>The 19 parity differences are decisions, not translators.</b> Sixteen are one form, where legacy expands a radio's per-option children over options an expression computed at runtime and v2 expands over the schema's. Matching it means allocating during render. Three are the <code>Date</code> validator, not yet built.</li>
+  <li><b>Recorded divergences.</b> A hidden display-only value: legacy cleared it from the data, v2 never writes from a display. Chosen, and it shows up in the parity run as 37 lines classified "expected".</li>
+  <li><b>Package layout</b> is proposed, not fixed.</li>
+</ul>
+<p class="rule">Questions on any of these are the useful ones.</p>
+<aside class="notes">And what's open, so the Q&amp;A has somewhere to go. None of these are "should we do this". They're
+"how does this bit work". The parity differences are the interesting ones: sixteen of the nineteen
+are a single form doing something legacy allowed and v2 chose not to, expanding a radio's children
+over options that only exist at runtime. Reproducing it costs a rule we'd rather keep. That's a
+decision for this room, not a bug to fix quietly. The display-only one is the same shape: legacy
+wrote data from a display, v2 won't, and we've said so.</aside>
+</section>
+<section class="slide title-slide" data-n="22">
+
+
+<div class="title end">
+  <h1>Questions</h1>
+  <p class="sub">A form is React. JSON loads onto it. No renderer knows the difference.</p>
+</div>
+<aside class="notes">Leave the thesis on screen while taking questions.</aside>
+</section>
+</div>
+<div class="hud">
+  <span class="counter"><span id="cur">1</span> / 22</span>
+  <span class="hint">← → to move · N notes · F fullscreen · O overview</span>
+</div>
+<div class="drawer" id="drawer" hidden><div class="drawer-in"><p class="drawer-title">Speaker notes</p><div id="drawer-body"></div></div></div>
+</div>
+<script>
+(function () {
+  const deck = document.getElementById("deck");
+  const stage = document.getElementById("stage");
+  const slides = Array.from(stage.querySelectorAll(".slide"));
+  const cur = document.getElementById("cur");
+  const drawer = document.getElementById("drawer");
+  const drawerBody = document.getElementById("drawer-body");
+  let i = 0;
+  let overview = null;
+
+  // ── scale the 1280x720 stage to the viewport ──
+  function fit() {
+    const drawerH = drawer.hidden ? 0 : drawer.getBoundingClientRect().height;
+    const w = window.innerWidth, h = window.innerHeight - drawerH - 28;
+    const s = Math.min(w / 1280, h / 720);
+    stage.style.setProperty("--s", String(s));
+    stage.style.top = drawerH ? `calc(50% - ${drawerH / 2}px)` : "50%";
+  }
+  window.addEventListener("resize", fit);
+
+  // ── navigation ──
+  function show(n, push) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    cur.textContent = String(i + 1);
+    if (push !== false) history.replaceState(null, "", `#/${i + 1}`);
+    renderNotes();
+  }
+  function fromHash() {
+    const m = location.hash.match(/#\/(\d+)/);
+    show(m ? parseInt(m[1], 10) - 1 : 0, false);
+  }
+  window.addEventListener("hashchange", fromHash);
+
+  function renderNotes() {
+    if (drawer.hidden) return;
+    const notes = slides[i].querySelector(".notes");
+    const text = notes ? notes.textContent.trim() : "";
+    drawerBody.innerHTML = text
+      .split(/\n\s*\n/)
+      .map((p) => `<p>${p.replace(/\s*\n\s*/g, " ").replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`)
+      .join("");
+  }
+  function toggleNotes() {
+    drawer.hidden = !drawer.hidden;
+    try { localStorage.setItem("deck-notes", drawer.hidden ? "0" : "1"); } catch (e) {}
+    renderNotes();
+    fit();
+  }
+
+  function toggleOverview() {
+    if (overview) {
+      overview.remove(); overview = null; deck.hidden = false; return;
+    }
+    overview = document.createElement("div");
+    overview.className = "overview";
+    slides.forEach((s, k) => {
+      const t = document.createElement("div");
+      t.className = "thumb" + (k === i ? " current" : "");
+      const c = s.cloneNode(true);
+      c.classList.add("active");
+      c.style.transform = "scale(0.2)";
+      t.appendChild(c);
+      const n = document.createElement("span");
+      n.className = "n"; n.textContent = String(k + 1);
+      t.appendChild(n);
+      t.addEventListener("click", () => { show(k); toggleOverview(); });
+      overview.appendChild(t);
+    });
+    deck.hidden = true;
+    document.body.appendChild(overview);
+    // thumbs scale with their cell: 0.2 assumes 256px cells; correct after layout
+    requestAnimationFrame(() => {
+      overview.querySelectorAll(".thumb").forEach((t) => {
+        const w = t.getBoundingClientRect().width;
+        t.querySelector(".slide").style.transform = `scale(${w / 1280})`;
+      });
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key) {
+      case "ArrowRight": case "ArrowDown": case " ": case "PageDown": case "Enter":
+        e.preventDefault(); if (overview) toggleOverview(); show(i + 1); break;
+      case "ArrowLeft": case "ArrowUp": case "PageUp": case "Backspace":
+        e.preventDefault(); if (overview) toggleOverview(); show(i - 1); break;
+      case "Home": show(0); break;
+      case "End": show(slides.length - 1); break;
+      case "n": case "N": toggleNotes(); break;
+      case "o": case "O": toggleOverview(); break;
+      case "f": case "F":
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen?.();
+        break;
+      case "Escape": if (overview) toggleOverview(); break;
+    }
+  });
+  document.addEventListener("fullscreenchange", () => {
+    deck.classList.toggle("fullscreen", !!document.fullscreenElement);
+    fit();
+  });
+  // click right/left third to advance/retreat (touch-friendly)
+  stage.addEventListener("click", (e) => {
+    if (e.target.closest("a, button, .frame")) return;
+    const x = e.clientX / window.innerWidth;
+    if (x > 0.66) show(i + 1); else if (x < 0.2) show(i - 1);
+  });
+
+  // ── syntax highlighting: small, predictable, no CDN ──
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const span = (cls, t) => (cls ? `<span class="tk-${cls}">${esc(t)}</span>` : esc(t));
+  const KW = /^(?:const|let|var|function|return|import|from|export|type|interface|null|undefined|true|false|new|if|else|await|async|as|extends|typeof)\b/;
+
+  function tokTsx(src) {
+    let out = "", i = 0;
+    const stack = []; // "tag" | {expr depth}
+    const top = () => stack[stack.length - 1];
+    while (i < src.length) {
+      const rest = src.slice(i);
+      let m;
+      if ((m = rest.match(/^(?:\/\/.*|\/\*[\s\S]*?\*\/)/))) { out += span("com", m[0]); i += m[0].length; continue; }
+      if ((m = rest.match(/^(?:"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)/))) { out += span("str", m[0]); i += m[0].length; continue; }
+      const t = top();
+      if (t === "tag") {
+        if ((m = rest.match(/^\/?>/))) { out += span("punc", m[0]); stack.pop(); i += m[0].length; continue; }
+        if ((m = rest.match(/^[A-Za-z_$][\w$-]*/))) { out += span("attr", m[0]); i += m[0].length; continue; }
+        if (rest[0] === "{") { out += span("punc", "{"); stack.push({ d: 0 }); i++; continue; }
+        if ((m = rest.match(/^(?:\.\.\.|=|\s+)/))) { out += span(m[0] === "=" || m[0] === "..." ? "punc" : null, m[0]); i += m[0].length; continue; }
+        out += esc(rest[0]); i++; continue;
+      }
+      // code, or an expression inside a tag / between tags
+      const prev = out.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").trimEnd().slice(-1);
+      if ((m = rest.match(/^<\/[A-Za-z][\w.]*\s*>/))) { out += span("punc", "</") + span("tag", m[0].slice(2, -1).trim()) + span("punc", ">"); i += m[0].length; continue; }
+      if ((m = rest.match(/^<\/?>/))) { out += span("punc", m[0]); i += m[0].length; continue; }
+      if ((m = rest.match(/^<[A-Za-z][\w.]*/)) && !/[\w)\]]/.test(prev)) {
+        out += span("punc", "<") + span("tag", m[0].slice(1)); stack.push("tag"); i += m[0].length; continue;
+      }
+      if (rest[0] === "{") { if (t && typeof t === "object") t.d++; out += span("punc", "{"); i++; continue; }
+      if (rest[0] === "}") {
+        if (t && typeof t === "object") { if (t.d === 0) stack.pop(); else t.d--; }
+        out += span("punc", "}"); i++; continue;
+      }
+      if ((m = rest.match(KW))) { out += span("kw", m[0]); i += m[0].length; continue; }
+      if ((m = rest.match(/^\d+(?:\.\d+)?\b/))) { out += span("num", m[0]); i += m[0].length; continue; }
+      if ((m = rest.match(/^[A-Za-z_$][\w$]*/))) { out += esc(m[0]); i += m[0].length; continue; }
+      if ((m = rest.match(/^(?:=>|\.\.\.|[=(){}[\];,.:?|&<>!+\-*/])/))) { out += span("punc", m[0]); i += m[0].length; continue; }
+      out += esc(rest[0]); i++;
+    }
+    return out;
+  }
+
+  function tokJson(src) {
+    return src.replace(
+      /("(?:[^"\\]|\\.)*")(\s*:)|("(?:[^"\\]|\\.)*")|(\b-?\d+(?:\.\d+)?\b)|\b(true|false|null)\b|([{}[\],])/g,
+      (all, key, colon, str, num, lit, punc) => {
+        if (key) return span("key", key) + span("punc", colon);
+        if (str) return span("str", str);
+        if (num) return span("num", num);
+        if (lit) return span("kw", lit);
+        if (punc) return span("punc", punc);
+        return esc(all);
+      },
+    );
+  }
+  // tokJson escapes inside span(); the untouched remainder needs escaping too
+  function highlightJson(src) {
+    let out = "", last = 0;
+    const re = /("(?:[^"\\]|\\.)*")(\s*:)|("(?:[^"\\]|\\.)*")|(\b-?\d+(?:\.\d+)?\b)|\b(true|false|null)\b|([{}[\],])/g;
+    let m;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      out += tokJson(m[0]);
+      last = m.index + m[0].length;
+    }
+    return out + esc(src.slice(last));
+  }
+
+  document.querySelectorAll("pre.code").forEach((pre) => {
+    const code = pre.querySelector("code");
+    const src = code.textContent;
+    code.innerHTML = pre.dataset.lang === "json" ? highlightJson(src) : tokTsx(src);
+  });
+
+  // ── boot ──
+  try { if (localStorage.getItem("deck-notes") === "1") drawer.hidden = false; } catch (e) {}
+  fromHash();
+  fit();
+})();
+
+</script>

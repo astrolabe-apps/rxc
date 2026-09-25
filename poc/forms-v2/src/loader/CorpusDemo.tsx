@@ -37,7 +37,7 @@ function countControls(cs: ControlDefinition[]): number {
 
 export function CorpusDemo() {
   const [name, setName] = useState(
-    forms.find((f) => f.name === "Address")?.name ?? forms[0]?.name ?? "",
+    forms.find((f) => f.name === "MastSummary")?.name ?? forms[0]?.name ?? "",
   );
   const [showWarnings, setShowWarnings] = useState(false);
   const current = forms.find((f) => f.name === name);
