@@ -46,6 +46,7 @@ import {
 import type {
   ControlAdornment,
   ControlDefinition,
+  IconReference,
   SchemaField,
 } from "./json.js";
 import {
@@ -141,6 +142,8 @@ export interface TranslateArgs {
    * lists it in `dynamics`, or it is reported as dropped.
    */
   dynamicValue: (type: string) => FormProp<unknown> | undefined;
+  /** The host's icon drawing (`LoaderOptions.icon`), or legacy's `<i>`. */
+  icon: IconTranslator;
 }
 
 export interface Translator {
@@ -216,12 +219,45 @@ export interface AdornmentTranslator {
  */
 export type DisplayTranslator = (a: TranslateArgs) => ReactNode;
 
+/**
+ * What draws an `IconReference`. The default is legacy's: an `<i>` carrying
+ * `{library} fa-{name}` (`fa fa-{name}` for the old `FontAwesome` library,
+ * the bare name for `Material` / `CssClass`) plus any `iconClass` — which
+ * renders wherever Font Awesome's CSS is loaded, as it is in every legacy
+ * host. A host on another icon set maps the name here instead.
+ */
+export type IconTranslator = (
+  icon: IconReference,
+  className?: string,
+) => ReactNode;
+
+export function legacyIconClass(icon: IconReference): string {
+  switch (icon.library) {
+    case "FontAwesome":
+      return `fa fa-${icon.name}`;
+    case "Material":
+    case "CssClass":
+      return icon.name;
+    default:
+      return `${icon.library ?? "fa"} fa-${icon.name}`;
+  }
+}
+
+const defaultIcon: IconTranslator = (icon, className) => (
+  <i
+    className={[legacyIconClass(icon), className].filter(Boolean).join(" ")}
+    aria-hidden
+  />
+);
+
 export interface LoaderOptions {
   translators?: Translator[];
   /** Keyed by adornment `type`. An entry shadows the loader's own. */
   adornments?: Record<string, AdornmentTranslator>;
   /** Keyed by `displayData.customId`. */
   displays?: Record<string, DisplayTranslator>;
+  /** Draws every icon the format names; legacy's `<i>` when absent. */
+  icon?: IconTranslator;
   onUnsupported?: (def: ControlDefinition) => ReactNode;
   actionHandler?: ActionHandler;
 }
@@ -286,7 +322,7 @@ const hasOptions = (d: ControlDefinition, s?: SchemaField) =>
 export const defaultTranslators: Translator[] = [
   {
     match: (d) => d.type === "Action",
-    render: ({ def, props, children, onClick }) => (
+    render: ({ def, props, children, onClick, icon }) => (
       <Action
         actionId={def.actionId ?? "action"}
         text={def.actionText ?? def.title}
@@ -297,11 +333,7 @@ export const defaultTranslators: Translator[] = [
         shellClassName={props.shellClassName}
         textClassName={props.textClassName}
         style={actionStyleOf(def.actionStyle)}
-        icon={
-          def.icon?.name ? (
-            <span aria-hidden>{glyph(def.icon.name)}</span>
-          ) : undefined
-        }
+        icon={def.icon?.name ? icon(def.icon) : undefined}
         iconPlacement={
           def.iconPlacement === "AfterText"
             ? "after"
@@ -387,16 +419,20 @@ export const defaultTranslators: Translator[] = [
     // The one display whose accessible name is load-bearing — and where the
     // legacy `Tooltip` adornment lands (goals doc, open decision 1).
     match: (d) => d.type === "Display" && d.displayData?.type === "Icon",
-    render: ({ def, props }) => (
-      <IconDisplay
-        icon={def.displayData?.icon?.name}
-        accessibleName={tooltipOf(def)}
-        hidden={props.hidden}
-        className={props.className}
-        shellClassName={props.shellClassName}
-        textClassName={props.textClassName}
-      />
-    ),
+    render: ({ def, props, icon }) => {
+      const ref = def.displayData?.icon;
+      const iconClass = str(def.displayData?.iconClass);
+      return (
+        <IconDisplay
+          icon={ref?.name ? icon(ref, iconClass) : undefined}
+          accessibleName={tooltipOf(def)}
+          hidden={props.hidden}
+          className={props.className}
+          shellClassName={props.shellClassName}
+          textClassName={props.textClassName}
+        />
+      );
+    },
   },
   {
     // Legacy's DisplayOnly: the value as text — options by name, dates and
@@ -729,6 +765,7 @@ function buildProps(
   warn: Warn,
   seen: Set<string>,
   hostAdornments: Set<string>,
+  icon: IconTranslator,
 ): FieldProps<any> {
   const schema = ref?.schema;
   // A reference that walks off the data binds a detached control, so the
@@ -849,6 +886,21 @@ function buildProps(
       ? help.helpText
       : undefined;
 
+  // An Icon adornment at the control's start or end is the field's
+  // `startIcon` / `endIcon` (§7); anywhere else it has no slot and is
+  // reported. Data only — a display has no icon slots of its own.
+  let startIcon: ReactNode | undefined;
+  let endIcon: ReactNode | undefined;
+  if (def.type === "Data" && !hostAdornments.has("Icon"))
+    for (const a of def.adornments ?? []) {
+      if (a.type !== "Icon") continue;
+      const ref = a.icon as IconReference | undefined;
+      if (!ref?.name) continue;
+      const node = icon(ref, str(a.iconClass));
+      if (a.placement === "ControlEnd") endIcon = node;
+      else if (a.placement === "ControlStart") startIcon = node;
+    }
+
   // Legacy renders a label for Data and Group controls only: a Display's
   // `title` is the designer's name for it, an Action's is the button text
   // fallback (read by the action translator). Building a label for them
@@ -865,6 +917,8 @@ function buildProps(
     required: def.required,
     requiredMessage: def.requiredErrorText,
     helpText,
+    startIcon,
+    endIcon,
     hidden: hiddenFromExpr ?? staticHidden,
     // A pending async `disabled` is not disabled; there is no third state here.
     disabled: disabledProp
@@ -1053,6 +1107,8 @@ const propSources: Record<string, (keyof ControlDefinition)[]> = {
   dontClearHidden: ["dontClearHidden"],
   defaultValue: ["defaultValue"],
   validate: ["validators"],
+  startIcon: ["adornments"],
+  endIcon: ["adornments"],
   className: ["styleClass"],
   textClassName: ["textClass"],
   shellClassName: ["layoutClass"],
@@ -1142,19 +1198,6 @@ function formatFor(
 
 function actionStyleOf(s: ControlDefinition["actionStyle"]) {
   return s === "Secondary" ? "secondary" : s === "Link" ? "link" : "primary";
-}
-
-const glyphs: Record<string, string> = {
-  plus: "+",
-  trash: "\u{1F5D1}",
-  pen: "\u270E",
-  check: "\u2713",
-  xmark: "\u2715",
-  "arrow-right": "\u2192",
-  "arrow-left": "\u2190",
-};
-function glyph(name: string): string {
-  return glyphs[name] ?? name;
 }
 
 /**
@@ -1255,6 +1298,13 @@ function warnUnhandled(
     if (a.type === "Tooltip" && def.type === "Display") continue;
     // HelpText on a data control is the `helpText` prop (buildProps).
     if (a.type === "HelpText" && def.type === "Data") continue;
+    // Icon at a control's edge on a data control is startIcon / endIcon.
+    if (
+      a.type === "Icon" &&
+      def.type === "Data" &&
+      (a.placement === "ControlStart" || a.placement === "ControlEnd")
+    )
+      continue;
     markSeen(seen, `adornments.${a.type}`, a);
     warn({
       kind: "adornment",
@@ -1311,6 +1361,7 @@ export function translate(
 ): ReactNode {
   const translators = opts.translators ?? defaultTranslators;
   const hostAdornments = new Set(Object.keys(opts.adornments ?? {}));
+  const icon = opts.icon ?? defaultIcon;
   const seen = new Set<string>();
   const def = recording(rawDef, seen);
   // `a/b` and `../x` resolve here — data and schema together, legacy's
@@ -1418,7 +1469,7 @@ export function translate(
       subject: def.field,
       detail: `no schema field named "${def.field}"`,
     });
-  let props = buildProps(ctx, scope, def, ref, at, seen, hostAdornments);
+  let props = buildProps(ctx, scope, def, ref, at, seen, hostAdornments, icon);
 
   // The host's adornments, both phases. An entry that declines both — or
   // has neither — leaves the adornment dropped, and that is reported like
@@ -1507,6 +1558,7 @@ export function translate(
       onClick,
       retranslate,
       dynamicValue,
+      icon,
     }),
   );
   warnUnread(rawDef, seen, at);

@@ -32,7 +32,7 @@ Both scripts typecheck the whole POC first, so they need a **built** `@rx-contro
 — `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
 `createDerivedGroup` against a stale `lib/`.
 
-83 forms, 4,283 controls, 21 clean, **630 warnings**. Re-extracted 2026-09-24: the legacy
+83 forms, 4,283 controls, 21 clean, **622 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream
 (`MastEoiRegistrationWizard`, `SeniorsCardApplicationForm`, `RenderTestForm`), which
 carry 130 warnings over 284 controls between them and took the count 1,674 → 1,822
@@ -43,7 +43,7 @@ and an honest one: those 820 were always dropped and never counted. The burndown
 standing in for a host that claims every action id (a host wires its buttons; their absence
 is not the loader's gap), which took the 489 `action` lines out: **1,706**. `--no-actions`
 restores them as an inventory of what a host has to wire. Finding 63 (the five class slots on
-every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65 (`defaultValue`) 792 → 777; finding 68 (the `Date` validator) 777 → 760; finding 70 (the host's extension hooks, and the POC standing in as a host) 760 → **630**. Kind totals: `unread` 326, `renderOptions` 105, `adornment` 62, `schema` 55, `control` 37, `dynamic` 32, `expression` 13.
+every boundary kind) 1,706 → 996; finding 64 (the mechanical four) 996 → 792; finding 65 (`defaultValue`) 792 → 777; finding 68 (the `Date` validator) 777 → 760; finding 70 (the host's extension hooks, and the POC standing in as a host) 760 → 630; finding 71 (icons as nodes, drawn by the loader) 630 → **622**. Kind totals: `unread` 322, `renderOptions` 105, `adornment` 58, `schema` 55, `control` 37, `dynamic` 32, `expression` 13.
 
 ## What it builds
 
@@ -1747,6 +1747,50 @@ Numbered; each is cited at the matching line of code.
     properties (`HelpText.placement` 15), the datagrid (`ColumnOptions` 26,
     `DataGrid` 7, `Pager` 5), and the seven schema-less forms — which is to
     say the POC has run out of loader questions to ask.
+
+71. **Icons are nodes, and the loader draws them.** The icon display's
+    prop was `icon?: FormProp<string>` — "a named glyph; the implementation
+    decides what draws it" — and each implementation drew it from a
+    four-entry table of Unicode stand-ins, so `Address.json`'s
+    `fa-regular circle-exclamation` rendered as the words
+    `circle-exclamation`. The library was dropped on the way, and the
+    library is the half that matters: the corpus's 154 icon displays are
+    `fa-regular` 135, `FontAwesome` 15, `fa-solid` 4 and one `Material`,
+    with 43 more on actions and 8 as adornments. The contract's other two
+    icon slots — `ActionProps.icon` and a field's `startIcon`/`endIcon` —
+    were already `FormProp<ReactNode>`, so the string was the odd one out:
+    it made the display the one place an author could not put an icon of
+    their own, and it forced every implementation to own an icon vocabulary
+    it has no business owning.
+
+    `IconDisplayExtra.icon` is now `FormProp<ReactNode>` like the other
+    two, and the implementations place the node and name it
+    (`accessibleName`), which is all they ever should have done. Drawing
+    the format's `IconReference` is the loader's job, and legacy's rule is
+    reproduced exactly (`schemas-html`'s `toIconClass`): an `<i>` carrying
+    `{library} fa-{name}`, `fa fa-{name}` for the old `FontAwesome`
+    library, the bare name for `Material` / `CssClass`, plus the
+    definition's `iconClass`. That renders wherever Font Awesome's CSS is
+    loaded, which is every legacy host — and now the POC, which loads the
+    same kit the dev app and the legacy reference apps do. A host on
+    another icon set maps the name in one place, `LoaderOptions.icon`,
+    the fourth and last host hook alongside `translators`, `adornments`
+    and `displays`. The JSX form draws its own `<i>` for the Mast pair,
+    as any author on that host would.
+
+    Two things rode along. An `Icon` adornment at `ControlStart` /
+    `ControlEnd` on a data control is the field's `startIcon` / `endIcon`,
+    as the interfaces doc had said and the loader had not done (4 of the
+    corpus's 8; the other 4 sit on displays, which have no such slot, and
+    stay reported). And `displayData.iconClass` is read — it was the one
+    property of an icon display the audit still listed.
+
+    Verified on the Legacy form tab, `Address.json`, under all four
+    implementations: one `<i class="fa-regular fa-circle-exclamation">`,
+    24px wide, resolving to the "Font Awesome 6 Pro" face with the `\f06a`
+    glyph. Its `text-[28px] text-danger` is the host's Tailwind and does
+    not apply here, which is the POC's known state for every class string
+    in the corpus. Burndown 630 → **622**; parity unchanged.
 
 ## Where to pick up
 

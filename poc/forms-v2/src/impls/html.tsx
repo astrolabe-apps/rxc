@@ -42,7 +42,6 @@ import {
   Inline,
   ElementsList,
   FadeVisibility,
-  glyphFor,
   DisplayShell,
 } from "./shared.js";
 
@@ -477,7 +476,7 @@ function HtmlIcon(p: IconDisplayRenderProps) {
         aria-label={p.accessibleName}
         title={p.accessibleName}
       >
-        {glyphFor(getProp(rc, p.icon))}
+        {getProp(rc, p.icon)}
       </span>
     </DisplayShell>,
   );

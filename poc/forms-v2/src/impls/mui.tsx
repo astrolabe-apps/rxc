@@ -70,7 +70,6 @@ import {
   Inline,
   ElementsList,
   DefaultVisibility,
-  glyphFor,
   DisplayShell,
 } from "./shared.js";
 
@@ -456,7 +455,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
       )}
       sx={{ fontSize: 24, lineHeight: 1 }}
     >
-      {glyphFor(getProp(rc, p.icon))}
+      {getProp(rc, p.icon)}
     </Typography>
   );
   return rendered(

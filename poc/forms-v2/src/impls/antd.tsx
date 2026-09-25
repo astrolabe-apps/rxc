@@ -53,7 +53,6 @@ import {
   Inline,
   ElementsList,
   DefaultVisibility,
-  glyphFor,
   DisplayShell,
 } from "./shared.js";
 
@@ -419,7 +418,7 @@ function AntIcon(p: IconDisplayRenderProps) {
       )}
       style={{ fontSize: 24, lineHeight: 1 }}
     >
-      {glyphFor(getProp(rc, p.icon))}
+      {getProp(rc, p.icon)}
     </span>
   );
   return rendered(

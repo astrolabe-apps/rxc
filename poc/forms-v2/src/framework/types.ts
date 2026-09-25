@@ -494,8 +494,13 @@ export interface DisplayRenderProps {
 
 export type TextDisplayExtra = { text?: FormProp<ReactNode> };
 export type HtmlDisplayExtra = { html?: FormProp<string> };
-/** A named glyph. The implementation decides what draws it. */
-export type IconDisplayExtra = { icon?: FormProp<string> };
+/**
+ * The icon, as a node — the same shape as `ActionProps.icon` and a field's
+ * `startIcon`/`endIcon`, so one icon vocabulary serves all three slots. The
+ * author (or the loader, from the format's `IconReference`) decides what
+ * draws it; the implementation places it and names it (`accessibleName`).
+ */
+export type IconDisplayExtra = { icon?: FormProp<ReactNode> };
 
 export type TextDisplayRenderProps = DisplayRenderProps & TextDisplayExtra;
 export type HtmlDisplayRenderProps = DisplayRenderProps & HtmlDisplayExtra;

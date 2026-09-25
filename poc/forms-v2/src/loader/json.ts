@@ -70,6 +70,12 @@ export type ValidatorDef =
       daysFromCurrent?: number;
     };
 
+/** The format's icon: a library and a name — `fa-regular` / `circle-info`. */
+export interface IconReference {
+  library?: string;
+  name: string;
+}
+
 /**
  * Deliberately open: the real format has six adornment types and hosts add
  * their own, so a loader meets ones it has never heard of. Nothing here
@@ -109,7 +115,9 @@ export interface ControlDefinition {
     type: string;
     text?: string;
     html?: string;
-    icon?: { library?: string; name: string };
+    icon?: IconReference;
+    /** `Icon`: extra classes on the icon element. */
+    iconClass?: string;
     /** `Custom`: the id a host's `displays` map answers to. */
     customId?: string;
   };
@@ -123,7 +131,7 @@ export interface ControlDefinition {
   actionText?: string;
   actionData?: string | null;
   actionStyle?: "Button" | "Secondary" | "Link" | "Group" | null;
-  icon?: { library?: string; name: string } | null;
+  icon?: IconReference | null;
   iconPlacement?: "BeforeText" | "AfterText" | "ReplaceText" | null;
   disableType?: "None" | "Self" | "Global" | null;
   /** Children of a Dialog group: `"trigger"` renders outside the dialog. */

@@ -53,7 +53,6 @@ import {
   Inline,
   ElementsList,
   DefaultVisibility,
-  glyphFor,
   DisplayShell,
 } from "./shared.js";
 
@@ -378,7 +377,7 @@ function MantineIcon(p: IconDisplayRenderProps) {
       )}
       style={{ fontSize: 24, lineHeight: 1 }}
     >
-      {glyphFor(getProp(rc, p.icon))}
+      {getProp(rc, p.icon)}
     </Text>
   );
   return rendered(

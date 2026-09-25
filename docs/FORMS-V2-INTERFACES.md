@@ -473,8 +473,10 @@ kinds — and its take-over of a built-in one, to read a property the loader doe
 (`helpLabel`) — go through `LoaderOptions.adornments`: per type, amend the props before the
 control translates or wrap what translated, declining by returning `undefined`, which the
 loader then reports as dropped. Custom displays go through `LoaderOptions.displays`, keyed
-by `customId` (legacy's `customDisplays`). A host render type needs neither: a `Translator`
-already gets the props the loader built. README finding 70. `def.hidden` /
+by `customId` (legacy's `customDisplays`), and icons through `LoaderOptions.icon`, which
+draws every `IconReference` the format names (legacy's `<i>` by default — finding 71). A host
+render type needs none of these: a `Translator` already gets the props the loader built.
+README finding 70. `def.hidden` /
 `def.disabled` / `def.readonly` → the three flags, and a `Visible` / `Disabled` dynamic
 property → the same prop as a `(rc) => …` — the spelling shifts to `readOnly` to match
 `@rx-controls/react`, which the boundary folds with; `def.dontClearHidden` →
@@ -549,6 +551,11 @@ interface DisplayProps {
 of it — three, all in `MastRegistrationsSummary` — is on a `Display` whose `displayData` is a
 bare icon, with the tooltip supplying the meaning the glyph does not carry: a `fa-regular
 person` / `fa-regular building` pair switched by Jsonata `Visible` expressions, plus one more.
+The icon itself is a node — `IconDisplayExtra.icon: FormProp<ReactNode>`, the same shape as
+`ActionProps.icon` and a field's `startIcon`/`endIcon` — so the author draws it and the
+implementation places and names it; the loader draws the format's `IconReference` as
+legacy's `<i class="{library} fa-{name}">` unless `LoaderOptions.icon` says otherwise
+(README finding 71).
 None is on a data field, so nothing is added to `FieldProps`; the loader converts a `Tooltip`
 adornment on a display to this prop.
 

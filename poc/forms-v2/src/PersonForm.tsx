@@ -314,12 +314,12 @@ export function PersonForm({
             implementation's answer to "is the name also visible". */}
                 <Stack direction="row" gap={8} align="center">
                   <IconDisplay
-                    icon="person"
+                    icon={<i className="fa-regular fa-person" aria-hidden />}
                     accessibleName="The operator is a person."
                     hidden={(rc) => rc.getValue(f.status) === "inactive"}
                   />
                   <IconDisplay
-                    icon="building"
+                    icon={<i className="fa-regular fa-building" aria-hidden />}
                     accessibleName="The operator is a business or group."
                     hidden={(rc) => rc.getValue(f.status) !== "inactive"}
                   />
