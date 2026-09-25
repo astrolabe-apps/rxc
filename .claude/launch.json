@@ -18,6 +18,24 @@
       ],
       "cwd": "poc/forms-v2",
       "port": 5183
+    },
+    {
+      "name": "legacy-demos",
+      "runtimeExecutable": "rushx",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "cwd": "apps/legacy-demos",
+      "port": 3001
+    },
+    {
+      "name": "legacy-compare",
+      "runtimeExecutable": "rushx",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "cwd": "apps/legacy-compare",
+      "port": 3002
     }
   ]
 }

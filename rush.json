@@ -83,13 +83,11 @@
     {
       "packageName": "rxc-legacy-demos",
       "projectFolder": "apps/legacy-demos",
-      "decoupledLocalDependencies": ["@react-typed-forms/core"],
       "shouldPublish": false
     },
     {
       "packageName": "rxc-legacy-compare-demo",
       "projectFolder": "apps/legacy-compare",
-      "decoupledLocalDependencies": ["@react-typed-forms/core"],
       "shouldPublish": false
     },
     {

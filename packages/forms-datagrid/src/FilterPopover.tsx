@@ -32,25 +32,28 @@ export interface FilterPopoverProps {
  * SchemaInterface) and passed in, rather than via a `getFilterOptions` hook.
  */
 export function FilterPopover({
-      filtersControl,
-      offsetControl,
-      colKey,
-      options,
-      popoverClass,
-      clearText = "Clear",
-      clearClass = "",
-      disableClear,
-    }: FilterPopoverProps): Rendered {
+  filtersControl,
+  offsetControl,
+  colKey,
+  options,
+  popoverClass,
+  clearText = "Clear",
+  clearClass = "",
+  disableClear,
+}: FilterPopoverProps): Rendered {
   const { rc, rendered, update } = useReactive();
   const baseId = useId();
   const filters = rc.getValue(filtersControl) ?? {};
   const current = (filters[colKey] as unknown[] | undefined) ?? [];
   const isAnyChecked = current.length > 0;
 
+  // `@astroapps/searchstate` 2.1 types a filter value as `string`, but its
+  // `makeFilterFunc` still matches by identity against the row's own value —
+  // so the option's value goes in as-is, and a numeric column keeps matching.
   const setOption = (v: unknown, checked: boolean) =>
     update((wc) => {
       wc.updateValue(filtersControl, (cur) =>
-        setFilterValue(colKey, v, checked)(cur ?? undefined),
+        setFilterValue(colKey, v as string, checked)(cur ?? undefined),
       );
       wc.setValue(offsetControl, 0);
     });
@@ -99,6 +102,6 @@ export function FilterPopover({
         aria-hidden
         className={clsx(isAnyChecked ? "fa-solid" : "fa-light", "fa-filter")}
       />
-    </Popover>
+    </Popover>,
   );
 }

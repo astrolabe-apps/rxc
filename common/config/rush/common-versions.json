@@ -66,25 +66,13 @@
    * This design avoids unnecessary churn in this file.
    */
   "allowedAlternativeVersions": {
-    "next": ["15.5.12"],
-
+    "next": ["15.5.12"]
     /**
-     * The compat package (packages/compat-controls) IS @react-typed-forms/core@5 —
-     * apps/dev consumes it via workspace:*, while the legacy reference apps
-     * (legacy-demos, legacy-compare) deliberately stay on the published 4.6
-     * baseline (decoupledLocalDependencies in rush.json).
+     * Nothing else. The compat package (packages/compat-controls) IS
+     * @react-typed-forms/core@5, and every consumer in the repo — the legacy
+     * reference apps included — takes it as workspace:^, so the published
+     * @react-typed-forms/* and @astroapps/* libraries resolve their peer on
+     * it to the local build: one engine copy, which the prototype patch needs.
      */
-    "@react-typed-forms/schemas": ["^19.0.0"],
-    "@react-typed-forms/core": ["^4.6.0", "workspace:*"],
-
-    /**
-     * poc/forms-v2 only. @mantine/core 9.6 peers on react ^19.2 (it calls
-     * useEffectEvent), so the throwaway POC runs a newer React than the rest
-     * of the repo. Separate app, separate install — nothing else sees it.
-     */
-    "react": ["~19.2.0"],
-    "react-dom": ["~19.2.0"],
-    "@types/react": ["~19.2.0"],
-    "@types/react-dom": ["~19.2.0"]
   }
 }

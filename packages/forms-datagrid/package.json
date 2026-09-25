@@ -16,8 +16,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@astroapps/datagrid": "^1.2.0",
-    "@astroapps/searchstate": "^2.0.0",
+    "@astroapps/datagrid": "^1.3.0",
+    "@astroapps/searchstate": "^2.1.0",
     "@radix-ui/react-popover": "^1.1.6",
     "@rx-controls/react": "workspace:^",
     "@rx-controls/core": "workspace:^",
@@ -29,10 +29,10 @@
     "react": "^18 || ^19"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
-    "@types/react-dom": "~19.1.0",
-    "react": "~19.1.0",
-    "react-dom": "~19.1.0",
+    "@types/react": "~19.2.0",
+    "@types/react-dom": "~19.2.0",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0",
     "typescript": "~5.8.0",
     "vitest": "~3.1.0"
   },

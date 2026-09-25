@@ -1552,7 +1552,8 @@ Numbered; each is cited at the matching line of code.
     with the caveat that a difference can be a compat regression rather
     than a loader one. Two copies of React bit first: the packages resolve
     `react@19.1` and the POC pinned `~19.2`, which Vite dedupes and Node does
-    not; the POC now shares the packages' line.
+    not; the POC first came down to the packages' line, and the repo later
+    moved up to `~19.2.0` as one (finding 70's Mantine note).
 
     **First run: 114 of 144 identical, 312 differences.** Four causes, in
     the order they were found:
@@ -1735,9 +1736,11 @@ Numbered; each is cited at the matching line of code.
     current standing.", the message box, section and spotlight ring render,
     the `greeting` display resolves, and the fixture's `HelpText` on a
     *group* is reported as declined by the host — the loader's rule,
-    now the host's to keep. Mantine could not be checked: it renders blank
-    since the React pin in finding 66 (`@mantine/core` 9.6 calls React
-    19.2's `useEffectEvent`), which predates this and is filed separately.
+    now the host's to keep. Mantine was blank at first — it had been since
+    the React pin in finding 66, because `@mantine/core` 9.6 calls React
+    19.2's `useEffectEvent` — and the fix was the repo's, not the POC's: the
+    whole workspace now develops on `~19.2.0`, one line again, and the
+    fourth implementation renders the same tab.
 
     Burndown 760 → **630**; parity unchanged at 144 of 144. The remaining
     list is now designer flags (`noSelection` 108), dropped-on-purpose
