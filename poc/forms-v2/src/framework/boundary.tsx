@@ -142,7 +142,13 @@ function republish(
  */
 function designChrome(node: React.ReactNode, on: boolean): React.ReactNode {
   return (
-    <div className="ff-boundary" data-design={on ? "" : undefined}>
+    <div
+      className="ff-boundary"
+      data-design={on ? "" : undefined}
+      // Inline, not in the stylesheet: a host theme that never loads the
+      // POC's css must not get a block around every boundary (finding 72).
+      style={on ? undefined : { display: "contents" }}
+    >
       {node}
     </div>
   );

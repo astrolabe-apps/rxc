@@ -102,6 +102,8 @@ interface Pairing {
   form: string;
   file: string;
   schemaVar?: string;
+  /** ServiceTas's `defaultConfig.style` — which `formStyles` overlay applies. */
+  style?: string;
 }
 const pairings: Pairing[] = [];
 for (const m of defs.matchAll(/export const (\w+)[^=]*= \{([\s\S]*?)\n\};/g)) {
@@ -110,7 +112,8 @@ for (const m of defs.matchAll(/export const (\w+)[^=]*= \{([\s\S]*?)\n\};/g)) {
   const file = c && jsonVars.get(c[1]);
   if (!file) continue;
   const s = /schema:\s*(\w+)/.exec(body);
-  pairings.push({ form: m[1], file, schemaVar: s?.[1] });
+  const st = /defaultConfig:\s*\{[\s\S]*?style:\s*"(\w+)"/.exec(body);
+  pairings.push({ form: m[1], file, schemaVar: s?.[1], style: st?.[1] });
 }
 
 // 3. Write the corpus.
@@ -135,7 +138,13 @@ for (const p of pairings) {
   writeFileSync(
     join(out, `${p.form}.json`),
     JSON.stringify(
-      { controls: json.controls, fields, source: p.file, schema: p.schemaVar },
+      {
+        controls: json.controls,
+        fields,
+        source: p.file,
+        schema: p.schemaVar,
+        style: p.style,
+      },
       null,
       1,
     ),

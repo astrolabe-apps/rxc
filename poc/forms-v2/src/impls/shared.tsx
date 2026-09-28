@@ -8,6 +8,7 @@ import {
   type GroupRenderProps,
   type VisibilityProps,
 } from "../framework/index.js";
+import { defaultHtmlTheme, type HtmlTheme } from "./htmlTheme.js";
 
 /** The no-op: a hard mount/unmount. Cannot animate an exit. */
 export function DefaultVisibility({ visible, children }: VisibilityProps) {
@@ -60,29 +61,33 @@ export function Contents({
   hidden,
   invalid,
   children,
-}: GroupRenderProps) {
+  classes = defaultHtmlTheme.contents,
+}: GroupRenderProps & { classes?: HtmlTheme["contents"] }) {
   // Legacy's anatomy, one element each: wrapper, title, body (finding 63).
   return (
     <div
-      className={mergeClass("ff-contents", shellClassName)}
+      className={mergeClass(
+        hidden && classes.hidden
+          ? `${classes.wrapper} ${classes.hidden}`
+          : classes.wrapper,
+        shellClassName,
+      )}
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
     >
-      <div className="ff-contents-inner">
+      <div className={classes.inner}>
         {title !== undefined && title !== null && (
           <div
             className={mergeClass(
-              "ff-group-title",
+              classes.title,
               combineClass(labelClassName, labelTextClassName),
             )}
           >
             {title}
           </div>
         )}
-        <div className={mergeClass("ff-contents-body", className)}>
-          {children}
-        </div>
+        <div className={mergeClass(classes.body, className)}>{children}</div>
       </div>
     </div>
   );
@@ -102,17 +107,19 @@ export function Inline({
   labelTextClassName,
   hidden,
   children,
-}: GroupRenderProps) {
+  classes = defaultHtmlTheme.inline,
+}: GroupRenderProps & { classes?: HtmlTheme["inline"] }) {
   return (
     <span
-      className={mergeClass("ff-inline", shellClassName)}
+      className={mergeClass(classes.wrapper, shellClassName)}
       data-hidden={hidden ? "" : undefined}
       inert={hidden || undefined}
+      hidden={hidden || undefined}
     >
       {title !== undefined && title !== null && (
         <span
           className={mergeClass(
-            "ff-group-title",
+            classes.title,
             combineClass(labelClassName, labelTextClassName),
           )}
         >
@@ -135,15 +142,17 @@ export function DisplayShell({
   inline,
   kind = "display",
   children,
+  classes = defaultHtmlTheme.displayShell,
 }: {
   shellClassName?: ClassValue;
   inline?: boolean;
   kind?: "display" | "action";
   children: ReactNode;
+  classes?: HtmlTheme["displayShell"];
 }) {
   const Tag = inline ? "span" : "div";
   return (
-    <Tag className={mergeClass(`ff-${kind}`, shellClassName)}>{children}</Tag>
+    <Tag className={mergeClass(classes[kind], shellClassName)}>{children}</Tag>
   );
 }
 
@@ -154,7 +163,10 @@ export function DisplayShell({
  * the buttons, so they can live outside the list and a read-only list costs
  * nothing.
  */
-export function ElementsList(p: CollectionRenderProps<unknown>) {
+export function ElementsList(
+  p: CollectionRenderProps<unknown> & { classes?: HtmlTheme["elements"] },
+) {
+  const classes = p.classes ?? defaultHtmlTheme.elements;
   const Shell = useFieldShell();
   return (
     <Shell
@@ -169,7 +181,7 @@ export function ElementsList(p: CollectionRenderProps<unknown>) {
       labelClassName={p.labelClassName}
       labelTextClassName={p.labelTextClassName}
     >
-      <div className="ff-elements">
+      <div className={classes.className}>
         {p.elements.length ? p.elements.map((e) => e.node) : p.empty}
       </div>
     </Shell>

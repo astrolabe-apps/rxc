@@ -974,6 +974,14 @@ could never do, being a flat sibling of the input in `DefaultLayout`.
 The box renders unconditionally, even with no slots. Two code paths means two appearances that
 drift.
 
+**Themed (built), and the move is the theme's to make.** Every class the html implementation
+emits is a slot of an `HtmlTheme`, provided through nesting context — `forms-html` API, not
+contract (README finding 72). The ServiceTas theme, the worked example, keeps the border on the
+`<input>` because Bootstrap 3's `.form-control` carries `:focus` / `:disabled`, which a `<div>`
+frame cannot; `frame.classNameOn: "input"` then sends the control's `className` there too, where
+legacy put `styleClass`. So the split above is the default, and a host that has not made the move
+says so in one slot rather than forking the renderer.
+
 ```ts
 interface StackProps {
   direction?: FormProp<"column" | "row">;        // Row is sugar

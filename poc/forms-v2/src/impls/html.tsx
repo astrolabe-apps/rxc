@@ -35,6 +35,8 @@ import {
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
+  type GroupRenderProps,
+  type CollectionRenderProps,
   combineClass,
 } from "../framework/index.js";
 import {
@@ -44,30 +46,34 @@ import {
   FadeVisibility,
   DisplayShell,
 } from "./shared.js";
+import { useHtmlTheme } from "./htmlTheme.js";
 
 // ── Shell: family 1 (children-hosting, class-driven — Bootstrap / shadcn) ──
 
 function HtmlFieldShell(p: FieldShellProps) {
+  const t = useHtmlTheme().shell;
   const legend = p.labelAs === "legend";
   const after = p.labelPosition === "after";
   const Outer = legend ? "fieldset" : "div";
   const Label = legend ? "legend" : "label";
   const hasLabel = p.label !== undefined && p.label !== null;
+  const required = p.required && (
+    <span className={t.required.className}>{t.required.text}</span>
+  );
+  const labelClass = mergeClass(
+    t.label,
+    combineClass(p.labelClassName, p.labelTextClassName),
+  );
   const labelText = (
-    <span
-      className={mergeClass(
-        "ff-label",
-        combineClass(p.labelClassName, p.labelTextClassName),
-      )}
-    >
+    <span className={labelClass}>
       {p.label}
-      {p.required && <span className="ff-required">*</span>}
+      {required}
     </span>
   );
   return (
     <Outer
       className={mergeClass(
-        `ff-shell ff-shell--${p.orientation ?? "vertical"}`,
+        p.orientation === "horizontal" ? t.horizontal : t.vertical,
         p.className,
       )}
       data-invalid={p.error ? "" : undefined}
@@ -75,7 +81,7 @@ function HtmlFieldShell(p: FieldShellProps) {
     >
       {hasLabel && after ? (
         // The label wraps the control, which is how html does a trailing one.
-        <label className="ff-label-after">
+        <label className={t.labelAfter}>
           {p.children}
           {labelText}
         </label>
@@ -83,29 +89,29 @@ function HtmlFieldShell(p: FieldShellProps) {
         <>
           {hasLabel && (
             <Label
-              className={mergeClass(
-                "ff-label",
-                combineClass(p.labelClassName, p.labelTextClassName),
-              )}
+              className={labelClass}
               {...(legend ? {} : { htmlFor: p.id })}
             >
               {p.label}
-              {p.required && <span className="ff-required">*</span>}
+              {required}
             </Label>
           )}
-          <div className="ff-control">{p.children}</div>
+          <div className={t.control}>{p.children}</div>
         </>
       )}
       {p.helpText && !p.error && (
-        <p className="ff-help" id={`${p.id}-help`}>
+        <p className={t.help} id={`${p.id}-help`}>
           {p.helpText}
         </p>
       )}
-      {p.error && (
-        <p className="ff-error" id={`${p.id}-error`}>
-          {p.error}
-        </p>
-      )}
+      {p.error &&
+        (t.renderError ? (
+          t.renderError(p.error, `${p.id}-error`)
+        ) : (
+          <p className={t.error} id={`${p.id}-error`}>
+            {p.error}
+          </p>
+        ))}
     </Outer>
   );
 }
@@ -113,6 +119,7 @@ function HtmlFieldShell(p: FieldShellProps) {
 // ── Frame: the box the border lives on ───────────────────────────────
 
 function HtmlInputFrame(p: InputFrameProps) {
+  const t = useHtmlTheme().frame;
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -126,20 +133,27 @@ function HtmlInputFrame(p: InputFrameProps) {
     typeof s === "function" ? s(state) : s;
   return (
     <div
-      className={mergeClass("ff-frame", p.className)}
+      className={
+        t.classNameOn === "frame"
+          ? mergeClass(t.className, p.className)
+          : t.className || undefined
+      }
       data-focused={focused ? "" : undefined}
       data-invalid={p.invalid ? "" : undefined}
       data-disabled={p.disabled ? "" : undefined}
       data-readonly={p.readOnly ? "" : undefined}
       data-multiline={p.multiline ? "" : undefined}
     >
-      {p.start !== undefined && (
-        <span className="ff-slot">{slot(p.start)}</span>
-      )}
+      {p.start !== undefined && <span className={t.slot}>{slot(p.start)}</span>}
       {p.render(
         {
           id: p.id,
-          className: "ff-input",
+          className: (() => {
+            const own = p.multiline ? join(t.input, t.multiline) : t.input;
+            return t.classNameOn === "input"
+              ? mergeClass(own, p.className)
+              : own;
+          })(),
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
           disabled: p.disabled,
@@ -149,7 +163,7 @@ function HtmlInputFrame(p: InputFrameProps) {
         },
         state,
       )}
-      {p.end !== undefined && <span className="ff-slot">{slot(p.end)}</span>}
+      {p.end !== undefined && <span className={t.slot}>{slot(p.end)}</span>}
     </div>
   );
 }
@@ -218,16 +232,14 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
 function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  const t = useHtmlTheme().displayOnly;
   // Inline: the value in prose — no shell, no label, a span (legacy's
   // `inline ? "span" : "div"`, with Field skipping the layout wrapper).
   if (p.inline)
     return ctl.rendered(
       <span
         id={p.id}
-        className={mergeClass(
-          "ff-readonly-inline",
-          p.className ?? p.textClassName,
-        )}
+        className={mergeClass(t.inline, p.className ?? p.textClassName)}
       >
         {ctl.content}
       </span>,
@@ -246,7 +258,7 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     >
       <div
         id={p.id}
-        className={mergeClass("ff-readonly", p.className ?? p.textClassName)}
+        className={mergeClass(t.className, p.className ?? p.textClassName)}
         style={p.noSelection ? { userSelect: "none" } : undefined}
         aria-describedby={describedBy(p)}
       >
@@ -259,6 +271,7 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
 function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
+  const t = useHtmlTheme().checkbox;
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -276,6 +289,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       <input
         id={p.id}
         type="checkbox"
+        className={t.input || undefined}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         aria-describedby={describedBy(p)}
@@ -294,6 +308,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
 function HtmlRadio(p: RadioRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
+  const t = useHtmlTheme().radio;
   const entryCls = getProp(ctl.rc, p.entryClassName);
   const onCls = getProp(ctl.rc, p.selectedClassName);
   const offCls = getProp(ctl.rc, p.notSelectedClassName);
@@ -303,10 +318,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
     selected: ctl.stringValue === String(o.value),
   }));
   const entryClass = (selected: boolean) =>
-    mergeClass(
-      mergeClass("ff-radio-entry", entryCls),
-      selected ? onCls : offCls,
-    );
+    mergeClass(mergeClass(t.entryWrapper, entryCls), selected ? onCls : offCls);
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -323,7 +335,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
     >
       <div
         role="radiogroup"
-        className={mergeClass("ff-radio", p.className)}
+        className={mergeClass(t.className, p.className)}
         aria-describedby={describedBy(p)}
       >
         {entries.map(({ o, selected }, i) => (
@@ -332,10 +344,11 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
             className={entryClass(selected)}
             data-selected={selected ? "" : undefined}
           >
-            <label className="ff-radio-option">
+            <label className={t.entry || undefined}>
               <input
                 id={`${p.id}_${i}`}
                 type="radio"
+                className={t.input || undefined}
                 name={p.id}
                 value={String(o.value)}
                 checked={selected}
@@ -343,7 +356,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
                 onChange={() => ctl.setFromString(String(o.value))}
                 onBlur={ctl.onBlur}
               />
-              <span className={mergeClass(undefined, p.textClassName)}>
+              <span className={mergeClass(t.label, p.textClassName)}>
                 {o.name}
               </span>
             </label>
@@ -357,13 +370,14 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
 
 function HtmlStack(p: StackProps) {
   const { rc, rendered } = useReactive();
+  const t = useHtmlTheme().stack;
   return rendered(
     <div
-      className={mergeClass("ff-stack", getProp(rc, p.className))}
+      className={mergeClass(t.className, getProp(rc, p.className))}
       style={{
         display: "flex",
         flexDirection: getProp(rc, p.direction) ?? "column",
-        gap: getProp(rc, p.gap) ?? 16,
+        gap: getProp(rc, p.gap) ?? t.defaultGap,
         justifyContent: getProp(rc, p.justify),
         alignItems: getProp(rc, p.align),
         flexWrap: getProp(rc, p.wrap) ? "wrap" : undefined,
@@ -375,28 +389,27 @@ function HtmlStack(p: StackProps) {
 }
 
 function HtmlTabs(p: TabsRenderProps) {
+  const t = useHtmlTheme().tabs;
   return (
     <div
-      className={mergeClass("ff-tabs", p.className)}
+      className={mergeClass(t.className, p.className)}
       data-hidden={p.hidden ? "" : undefined}
+      hidden={p.hidden || undefined}
     >
-      <div className="ff-tabstrip" role="tablist">
+      <div className={t.list} role="tablist">
         {p.items.map((i) => (
           <button
             key={i.key}
             type="button"
             role="tab"
             aria-selected={i.active}
-            className={mergeClass(
-              "ff-tab",
-              i.active ? "ff-tab--active" : undefined,
-            )}
+            className={mergeClass(t.tab, i.active ? t.active : t.inactive)}
             data-invalid={i.invalid ? "" : undefined}
             onClick={() => p.setActive(i.key)}
           >
             {i.title}
             {i.invalid && (
-              <span className="ff-tab-dot" title="has errors">
+              <span className={t.invalidMarker} title="has errors">
                 {"\u25CF"}
               </span>
             )}
@@ -408,8 +421,9 @@ function HtmlTabs(p: TabsRenderProps) {
         <div
           key={i.key}
           role="tabpanel"
-          className="ff-tabpanel"
+          className={t.panel}
           data-inactive={i.active ? undefined : ""}
+          hidden={!i.active || undefined}
         >
           {i.content}
         </div>
@@ -419,25 +433,36 @@ function HtmlTabs(p: TabsRenderProps) {
 }
 
 function HtmlAction(p: ActionRenderProps) {
+  const { displayShell, action: t } = useHtmlTheme();
+  const style = t.styles[p.style];
+  const busy = p.busy ? t.busy : p.icon;
   return (
-    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={true}
+      kind="action"
+      classes={displayShell}
+    >
       <button
         type="button"
-        className={mergeClass(`ff-btn ff-btn--${p.style}`, p.className)}
+        className={mergeClass(join(t.className, style.className), p.className)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         onClick={p.onClick}
       >
-        {p.iconPlacement !== "after" &&
-          (p.busy ? <span className="ff-spinner" /> : p.icon)}
+        {p.iconPlacement !== "after" && busy}
         {p.iconPlacement !== "replace" &&
           (p.children ?? (
-            <span className={mergeClass(undefined, p.textClassName)}>
+            <span
+              className={mergeClass(
+                join(t.textClassName, style.textClassName),
+                p.textClassName,
+              )}
+            >
               {p.text}
             </span>
           ))}
-        {p.iconPlacement === "after" &&
-          (p.busy ? <span className="ff-spinner" /> : p.icon)}
+        {p.iconPlacement === "after" && busy}
       </button>
     </DisplayShell>
   );
@@ -445,11 +470,18 @@ function HtmlAction(p: ActionRenderProps) {
 
 function HtmlText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
+  const { displayShell, text: t } = useHtmlTheme();
   const Tag = p.inline ? "span" : "p";
   // Three slots, three elements: wrapper, element, text (finding 63).
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
-      <Tag className={mergeClass("ff-text", p.className)}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      classes={displayShell}
+    >
+      <Tag
+        className={mergeClass(p.inline ? t.inline : t.className, p.className)}
+      >
         <span className={mergeClass(undefined, p.textClassName)}>
           {getProp(rc, p.text) ?? p.children}
         </span>
@@ -465,11 +497,16 @@ function HtmlText(p: TextDisplayRenderProps) {
  */
 function HtmlIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
+  const { displayShell, icon: t } = useHtmlTheme();
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={true}
+      classes={displayShell}
+    >
       <span
         className={mergeClass(
-          "ff-icon",
+          t.className,
           combineClass(p.className, p.textClassName),
         )}
         role="img"
@@ -484,12 +521,17 @@ function HtmlIcon(p: IconDisplayRenderProps) {
 
 function HtmlHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
+  const { displayShell, html: t } = useHtmlTheme();
   // The html *is* the text, so both slots land on the one element.
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      classes={displayShell}
+    >
       <div
         className={mergeClass(
-          "ff-html",
+          t.className,
           combineClass(p.className, p.textClassName),
         )}
         dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
@@ -502,6 +544,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useSelectController(p.field, p.options);
+  const t = useHtmlTheme().select;
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -535,7 +578,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
               ctl.onBlur();
             }}
           >
-            <option value="" />
+            <option value="">{t.emptyText}</option>
             {ctl.options.map((o) => (
               <option
                 key={String(o.value)}
@@ -553,13 +596,14 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
 }
 
 function HtmlWizard(p: WizardRenderProps) {
+  const t = useHtmlTheme().wizard;
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
-      <ol className="ff-steps">
+      <ol className={t.steps}>
         {p.items.map((i, n) => (
           <li
             key={i.key}
-            className="ff-step"
+            className={t.step}
             data-active={n === p.index ? "" : undefined}
             data-invalid={i.invalid && i.visited ? "" : undefined}
           >
@@ -573,13 +617,14 @@ function HtmlWizard(p: WizardRenderProps) {
       {p.items.map((i) => (
         <div
           key={i.key}
-          className="ff-wizard-page"
+          className={t.page}
           data-inactive={i.active ? undefined : ""}
+          hidden={!i.active || undefined}
         >
           {i.content}
         </div>
       ))}
-      <div className="ff-row" style={{ marginTop: 12 }}>
+      <div className={t.nav} style={{ marginTop: 12 }}>
         <Action
           actionId={StandardActionIds.back}
           text="Back"
@@ -605,6 +650,7 @@ function HtmlWizard(p: WizardRenderProps) {
  * closed the UA hides it, mounted, which is what `silent` needs.
  */
 function HtmlDialog(p: DialogRenderProps) {
+  const { dialog: t, action } = useHtmlTheme();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -614,7 +660,7 @@ function HtmlDialog(p: DialogRenderProps) {
   }, [p.open, p.inline]);
   if (p.inline) {
     return (
-      <div className={mergeClass("ff-modal-inline", p.className)}>
+      <div className={mergeClass(t.inline, p.className)}>
         {p.title && <strong>{p.title}</strong>}
         {p.content}
       </div>
@@ -623,26 +669,50 @@ function HtmlDialog(p: DialogRenderProps) {
   return (
     <dialog
       ref={ref}
-      className={mergeClass("ff-modal", p.className)}
+      className={mergeClass(t.className, p.className)}
       onClose={p.onClose}
       onCancel={(e) => {
         e.preventDefault();
         p.onClose();
       }}
     >
-      {p.title && <strong className="ff-modal-title">{p.title}</strong>}
+      {p.title && <strong className={t.title}>{p.title}</strong>}
       {p.content}
-      <div className="ff-row" style={{ marginTop: 12 }}>
+      <div className={t.actions} style={{ marginTop: 12 }}>
         <button
           type="button"
-          className="ff-btn ff-btn--secondary"
+          className={join(action.className, action.styles.secondary.className)}
           onClick={p.onClose}
         >
-          Close
+          <span
+            className={join(
+              action.textClassName,
+              action.styles.secondary.textClassName,
+            )}
+          >
+            Close
+          </span>
         </button>
       </div>
     </dialog>
   );
+}
+
+/** Two own classes on one element; empty slots drop out. */
+function join(...cs: string[]): string | undefined {
+  return cs.filter(Boolean).join(" ") || undefined;
+}
+
+// The shared pieces take their classes as a parameter; the html set passes
+// the theme's, and the other three implementations keep the defaults.
+function HtmlContents(p: GroupRenderProps) {
+  return <Contents {...p} classes={useHtmlTheme().contents} />;
+}
+function HtmlInline(p: GroupRenderProps) {
+  return <Inline {...p} classes={useHtmlTheme().inline} />;
+}
+function HtmlElements(p: CollectionRenderProps<unknown>) {
+  return <ElementsList {...p} classes={useHtmlTheme().elements} />;
 }
 
 export const htmlRenderers: FormRenderers = {
@@ -656,12 +726,12 @@ export const htmlRenderers: FormRenderers = {
   html: HtmlHtml,
   icon: HtmlIcon,
   action: HtmlAction,
-  contents: Contents,
-  inline: Inline,
+  contents: HtmlContents,
+  inline: HtmlInline,
   wizard: HtmlWizard,
   dialog: HtmlDialog,
   tabs: HtmlTabs,
-  elements: ElementsList,
+  elements: HtmlElements,
   visibility: FadeVisibility,
   fieldShell: HtmlFieldShell,
   inputFrame: HtmlInputFrame,

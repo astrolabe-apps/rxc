@@ -54,6 +54,7 @@ export function displayRenderer<P extends object = {}>(
       <div
         className="ff-boundary"
         data-design={scope.designMode ? "" : undefined}
+        style={scope.designMode ? undefined : { display: "contents" }}
       >
         <Visibility visible={presenceNow === "rendered"}>
           <Impl

@@ -64,6 +64,8 @@ that returns what it could not translate.
 | `src/loader/` | the JSON loader — translators, expressions, `translateForm`, `<JsonForm>` |
 | `src/loader/CorpusDemo.tsx` | the **Legacy form** tab: any extracted `corpus/servicetas/*.json` through `<JsonForm>` under the active implementation, with the loader's warnings on a toggle. A presentation aid; renders a note when no corpus is extracted |
 | `src/impls/html.tsx` | family 1 — children-hosting, class-driven (Bootstrap / shadcn shaped) |
+| `src/impls/htmlTheme.tsx` | the html implementation's `HtmlTheme`: every class it emits, a nesting `HtmlThemeProvider`, defaults = the `ff-*` classes `demo.css` styles |
+| `src/servicetas/` · `/servicetas.html` | the html implementation under **ServiceTas's theme** and its `formStyles` overlays, on Bootstrap 3 + the portal css + Tailwind — compare with `apps/legacy-compare` (finding 72) |
 | `src/impls/mui.tsx` | family 2, hardest case — self-rendering input, notched outline |
 | `src/impls/antd.tsx` | family 2 — `Form.Item` standalone, runtime theme tokens |
 | `src/impls/mantine.tsx` | family 2 — `Input.Wrapper` wired by `id`, polymorphic `Input` |
@@ -1792,10 +1794,102 @@ Numbered; each is cited at the matching line of code.
     not apply here, which is the POC's known state for every class string
     in the corpus. Burndown 630 → **622**; parity unchanged.
 
+72. **The html implementation has a theme, and ServiceTas is one.** Every
+    class `impls/html.tsx` emitted was a hardcoded `ff-*` string styled by
+    `demo.css`, so nothing could restyle it. Now each element reads a slot
+    of an `HtmlTheme` (`impls/htmlTheme.tsx`) — legacy `defaultTailwindTheme`'s
+    model and the rxc POC's `defaultHtmlTheme`'s lessons: the type is the
+    *resolved* theme, every slot required, so a renderer reads with no
+    fallback and a new slot does not compile until the default fills it; a
+    host passes a `DeepPartial`. The defaults are the old `ff-*` strings, so
+    the four-implementation page is unchanged. It is `forms-html`'s API, not
+    the contract's — MUI, Ant and Mantine never read it, and a third-party
+    renderer still gets chrome through `useFieldShell` / `useInputFrame`.
+    A slot is the implementation's *own* class, the left side of
+    `mergeClass`: the JSON's class props still merge onto it or
+    `{ replace }` it (decision 4), so theme and definition compose.
+
+    **Context, and it nests.** `HtmlThemeProvider` merges over the
+    enclosing theme — overlay wins slot by slot and *replaces* rather than
+    appends, legacy's `deepMerge(value, fallback)` — memoised on the two
+    identities, since the boundaries are memo bailouts a fresh context
+    value would punch through. Nesting is what ServiceTas needs:
+    `formStyles.ts` has five overlays (`compact`, `medium`, `mrs`, `mast`,
+    `defaults`) picked per form by `defaultConfig.style`, each one more
+    provider over a single base. A factory (`createDefaultRenderers(opts)`,
+    legacy's shape) would have built a renderer set per overlay.
+
+    **ServiceTas is the worked example** (`src/servicetas/`, the second page,
+    `/servicetas.html`): its `DefaultRenderOptions` over
+    `defaultTailwindTheme`, restated as a complete `HtmlTheme` with each
+    slot's source noted, the five overlays, and the page's css baseline —
+    Bootstrap 3, the portal `theme.css`, and a Tailwind v4 build scanning the
+    corpus JSON for the classes the definitions carry. A page of its own
+    because those are global stylesheets. `extract-corpus` now records each
+    form's `style` (corpus otherwise byte-identical), so the page picks the
+    overlay legacy would have: 36 `defaults`, 14 `mrs`, 5 `compact`, 5
+    `mast`, 3 `medium`, 7 with none, and one `"default"` — a ServiceTas
+    typo that silently falls through to the base. Fire under `defaults`
+    against `legacy-compare` matches down to the radio cards; the error is
+    ServiceTas's glyph-and-underline component, the buttons are its green
+    primary and outlined secondary.
+
+    What building it found:
+
+    1. **Behaviour must not hang on a theme class.** Hidden regions,
+       inactive tab panels, wizard pages and `display: contents` on every
+       boundary wrapper were all rules in `demo.css` keyed on the default
+       classes — replace the class and hidden content showed. Tab panels,
+       wizard pages, tabs and inline groups now carry the `hidden`
+       attribute; the boundary wrappers get `display: contents` inline.
+       `Contents` could not, because Ant's reset forces `[hidden]` to
+       `display: none !important` and that kills the default theme's
+       collapse animation — so hiding a region is a theme slot,
+       `contents.hidden`, which must hide (`hidden` for ServiceTas, `""` for
+       the default, whose stylesheet animates `[data-hidden]`).
+    2. **Which element is "the control" is the theme's call.** v2 hands the
+       control's `className` (the JSON's `styleClass`) to the frame. That is
+       right when the border is on the frame, and wrong under Bootstrap 3,
+       whose `.form-control` is the `<input>`'s border, `:focus` and
+       `:disabled` — none of which fire on a `<div>`, so ServiceTas keeps
+       the border on the input. Then a `!bg-gray-200` meant for the input
+       painted a band around it (101 data controls in the corpus carry a
+       `styleClass`). `frame.classNameOn: "frame" | "input"` says which.
+       The frame/input split of §7 holds; a host that has not made the move
+       says so in one slot.
+    3. **The theme is classes, the registry is components.** Legacy's theme
+       also held render functions, and two are kept as slots because
+       ServiceTas uses them — `renderError` (its error is a component) and
+       the required marker (a span with no asterisk). But its help text is
+       a Radix popover at `LabelEnd`, and the exit fade is a wrapper `<div>`
+       that breaks prose without `demo.css`: those are a shell override and
+       a `visibility: DefaultVisibility` swap, not slots. The page does the
+       second and leaves help as a footnote.
+    4. **Anatomy that differs has to be restated.** Legacy's group title was
+       a `<label>`, which Bootstrap bolds; v2's is a `<div>`, so the theme
+       says `font-bold` where the element used to imply it. Legacy computed
+       the group title as `label.className` + `groupLabelClass` at render
+       time; a slot is a plain string, so an overlay that moves one restates
+       the other.
+    5. **The theme cannot tell legacy's group kinds apart.** Standard,
+       Contents and Flex groups all translate to the one `contents`
+       renderer, where legacy gave `standardClassName` to Standard only and
+       rendered Contents with no wrapper at all. One `contents.body` slot
+       serves all three. Harmless on the forms checked, and it is the
+       contract's question (`GroupRenderProps` has no kind), not the theme's.
+
+    Also noted and left: `legacy-compare` renders every form with the
+    `defaults` overlay folded into its base, so it is ServiceTas under
+    `defaults`, not ServiceTas — Fire itself has no `defaultConfig` and
+    renders with `py-4` labels and `text-2xl` group titles in the portal.
+    And the loader's own collection rows (`ff-row`, `ff-empty` in
+    `translate.tsx`) are markup in a package that should have none — the
+    theme cannot reach them. Burndown and parity unchanged (622; 144 of 144).
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
-<kind:shape>` names the controls behind any line. At the last run (630),
+<kind:shape>` names the controls behind any line. At the last run (622),
 nothing left is a translator: `noSelection` 108 is a designer flag with no
 contract role; `ColumnOptions` 26, `DataGrid` 7 and `Pager` 5 are the
 datagrid; `Radio` 24 are forms that shipped neither a schema nor an

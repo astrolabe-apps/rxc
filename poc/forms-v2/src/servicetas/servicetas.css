@@ -1,0 +1,276 @@
+/* ServiceTas's portal look, for the html implementation under
+ * `serviceTasTheme`. Ported from `apps/rxc-compare/app/globals.css`, itself a
+ * Tailwind v4 port of `ServiceTas/…/client-common/globals.css`. Bootstrap 3
+ * and the portal `theme.css` load first, from `servicetas.html`.
+ *
+ * Tailwind preflight is left out, as the legacy config did
+ * (`corePlugins: { preflight: false }`). */
+@import "tailwindcss/theme.css" layer(theme);
+
+/* The theme's classes, and the ones the form JSON carries itself
+ * (`styleClass`, `textClass`, … — e.g. `bg-[#f5f5f5]`, `!text-accent`). */
+@source "./theme.tsx";
+@source "./main.tsx";
+@source "../../corpus/servicetas/*.json";
+
+/* ServiceTas "portal" site palette + font-size / spacing scale —
+ * mirrored from apps/legacy-compare/app/globals.css. See that file for
+ * commentary on the rem-scaling convention. */
+@theme {
+  --text-xs: 1.2rem;
+  --text-sm: 1.4rem;
+  --text-base: 1.6rem;
+  --text-lg: 1.8rem;
+  --text-xl: 2rem;
+  --text-2xl: 2.4rem;
+  --text-3xl: 3rem;
+
+  --spacing: 0.4rem;
+
+  --font-sans: nunito, sans-serif;
+  --font-regular: "Nunito-Regular", sans-serif;
+
+  --color-primary-50: #f0f9f4;
+  --color-primary-100: #dbf0e3;
+  --color-primary-200: #b9e1cb;
+  --color-primary-300: #8acbaa;
+  --color-primary-400: #59ae86;
+  --color-primary-500: #37926a;
+  --color-primary-600: #256f50;
+  --color-primary-700: #1f5d44;
+  --color-primary-800: #1b4a38;
+  --color-primary-900: #173d2f;
+  --color-primary-950: #0c221b;
+  --color-primary: #098851;
+
+  --color-secondary-50: #e8eff7;
+  --color-secondary-100: #d1e0f0;
+  --color-secondary-200: #a7c3e2;
+  --color-secondary-300: #79a4d2;
+  --color-secondary-400: #4f88c4;
+  --color-secondary-500: #3669a1;
+  --color-secondary-600: #2c5582;
+  --color-secondary-700: #203f5f;
+  --color-secondary-800: #162b41;
+  --color-secondary-900: #0a141f;
+  --color-secondary-950: #050a0f;
+  --color-secondary: #3669a1;
+
+  --color-surface-50: #fafafa;
+  --color-surface-100: #f4f4f5;
+  --color-surface-200: #e4e4e7;
+  --color-surface-300: #d4d4d8;
+  --color-surface-400: #a1a1aa;
+  --color-surface-500: #71717a;
+  --color-surface-600: #52525b;
+  --color-surface-700: #3f3f46;
+  --color-surface-800: #27272a;
+  --color-surface-900: #18181b;
+
+  --color-accent: #267151;
+  --color-primaryText: #ffffff;
+  --color-primaryLight: #098851;
+  --color-text: #343534;
+  --color-darkGrey: #404041;
+  --color-grey: #c4c4c4;
+  --color-lightGrey: #f5f5f5;
+  --color-lightGreen: #e6f3ee;
+  --color-border: #e7e7e8;
+
+  /* `danger` from ServiceTas client-common/tailwindColours.ts —
+   * tailwind v3 red scale with a custom DEFAULT (#A30000). */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-200: #fecaca;
+  --color-danger-300: #fca5a5;
+  --color-danger-400: #f87171;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-danger-800: #991b1b;
+  --color-danger-900: #7f1d1d;
+  --color-danger-950: #450a0a;
+  --color-danger: #a30000;
+}
+
+body {
+  font-size: 16px;
+}
+
+* {
+  @apply border-gray-200 border-0 border-solid;
+}
+
+label {
+  margin: 0;
+}
+
+/* Tailwind preflight is disabled (see top of file), so the user-agent
+ * styles on <fieldset>/<legend> bleed through — visible groove border,
+ * ~6/10/12px padding, 2px margin-inline. The rxc renderers use these
+ * elements for semantic radio/checklist groups; legacy used a plain
+ * <div role="group">. Reset to baseline so the rendered box matches. */
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+/* Bootstrap 3 styles <legend> as a section header (22.5px font, full-width
+ * bottom border, 21px margin-bottom). The rxc Radio/Checklist renderers
+ * use <legend> as the accessible label for the group; neutralize back to
+ * a plain inline label so it matches the legacy external-label rendering.
+ *
+ * `!important` is required: Next.js 16 / Turbopack injects this CSS chunk
+ * BEFORE the `<link>` tags rendered in `app/layout.tsx`, so bootstrap.min.css
+ * loads after globals.css in cascade order. Without `!important`, the
+ * legacy `legend { font-size:22.5px; border-bottom:... }` rule wins. */
+legend {
+  display: inline-block !important;
+  width: auto !important;
+  max-width: 100% !important;
+  margin: 0 0 5px !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: bold !important;
+  line-height: inherit !important;
+  color: inherit !important;
+  border: 0 !important;
+}
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+button {
+  @apply bg-transparent;
+}
+
+svg {
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  @apply font-bold text-3xl text-inherit;
+}
+
+.link,
+.html a {
+  @apply font-extrabold underline text-primary;
+}
+
+.html p {
+  @apply mb-2.5 leading-snug;
+}
+
+.form-control {
+  @apply border bg-white disabled:bg-neutral-50 border-neutral-400 focus:outline-none focus:ring-0 shadow-inner focus:border-primary-500 p-2;
+}
+
+.form-container {
+  width: 614px;
+  @apply mx-auto pb-4 max-md:w-full max-md:px-8;
+}
+
+.button {
+  @apply inline-flex items-baseline bg-primary py-3 justify-center px-2 md:px-10 text-primaryText no-underline font-semibold;
+}
+
+.button:disabled {
+  @apply opacity-50;
+}
+
+.error {
+  @apply text-red-700;
+}
+
+input[type="radio"] {
+  @apply border-primary-600 border-2 rounded-3xl w-[20px] h-[20px] checked:border-[7px];
+}
+
+input[type="checkbox"] {
+  @apply border-primary-500 border-2 rounded-[0.15em]! grid place-content-center;
+}
+
+.large-title {
+  @apply font-extrabold text-[34px] leading-[41px] tracking-[0.4px] text-text;
+}
+.title1 {
+  @apply font-extrabold text-[28px] leading-[34px] tracking-[0.38px] text-text;
+}
+.title2 {
+  @apply font-extrabold text-[22px] leading-[28px] tracking-[-0.26px] text-text;
+}
+.title3 {
+  @apply font-extrabold text-[20px] leading-[25px] tracking-[-0.45px] text-text;
+}
+.headline {
+  @apply font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+.body {
+  @apply font-normal text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+.body-bold {
+  @apply font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+.body-extra-bold {
+  @apply font-extrabold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+.callout {
+  @apply font-semibold text-[16px] leading-[21px] tracking-[-0.31px] text-text;
+}
+.subhead {
+  @apply font-semibold text-[15px] leading-[20px] tracking-[-0.23px] text-text;
+}
+.footnote {
+  @apply font-normal text-[13px] leading-[18px] tracking-[-0.08px] text-text;
+}
+.footnote-bold {
+  @apply font-semibold text-[13px] leading-[18px] tracking-[-0.08px] text-text;
+}
+.caption1 {
+  @apply font-semibold text-[12px] leading-[16px] tracking-[0px] text-text;
+}
+.caption2 {
+  @apply font-semibold text-[11px] leading-[13px] tracking-[0.06px] text-text;
+}
+
+.large-title-italic {
+  @apply italic font-extrabold text-[34px] leading-[41px] tracking-[0.4px] text-text;
+}
+.title1-italic {
+  @apply italic font-extrabold text-[28px] leading-[34px] tracking-[0.38px] text-text;
+}
+.title2-italic {
+  @apply italic font-extrabold text-[22px] leading-[28px] tracking-[-0.26px] text-text;
+}
+.title3-italic {
+  @apply italic font-extrabold text-[20px] leading-[25px] tracking-[-0.45px] text-text;
+}
+.headline-italic {
+  @apply italic font-bold text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+.body-italic {
+  @apply italic font-normal text-[17px] leading-[22px] tracking-[-0.43px] text-text;
+}
+.callout-italic {
+  @apply italic font-semibold text-[16px] leading-[21px] tracking-[-0.31px] text-text;
+}
+.subhead-italic {
+  @apply italic font-semibold text-[15px] leading-[20px] tracking-[-0.23px] text-text;
+}
+.footnote-italic {
+  @apply italic font-normal text-[13px] leading-[18px] tracking-[-0.08px] text-text;
+}
+.caption1-italic {
+  @apply italic font-semibold text-[12px] leading-[16px] tracking-[0px] text-text;
+}
+.caption2-italic {
+  @apply italic font-semibold text-[11px] leading-[13px] tracking-[0.06px] text-text;
+}
+
+@tailwind utilities;
