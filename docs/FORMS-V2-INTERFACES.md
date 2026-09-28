@@ -1213,7 +1213,7 @@ placeholder. They are features on a control that translated *fine*: an adornment
 claimed, a dynamic property nobody reads, a `renderOptions` that silently fell back to the
 default widget, a validator that is not enforced, a jsonata expression that does not compile.
 Each renders something plausible and drops what the JSON asked for. Whether such a control
-should render at all is open decision 2 in the goals doc; the list is what makes the question
+should render at all is decision 2 in the goals doc; the list is what makes the question
 answerable.
 
 **Translation allocates, and that is the loader's defining hazard.** Every scripted prop costs
@@ -1228,8 +1228,6 @@ defeats a memo.
 
 ## Still open
 
-- **Whether `forms-html` and `forms-native` share renderer source** — decidable when the second
-  package exists, and it changes nothing above.
 - **Base UI** (family 3, the shape the primitives are modelled on) has not been built against.
 
 Every boundary kind has now been written from outside the package — `Stars` (field), `PetCards`

@@ -61,9 +61,10 @@ inversion of how forms work today, and the goals below are ordered by it: 1–3 
    the forms library is small* below.
 
 
-## Open decisions — pick up here
+## Decisions — pick up here
 
-Nothing below is settled. In rough order of how much else depends on it:
+All six are now decided; each says where, and what residue it left. In rough order of how much
+else depends on it:
 
 1. **The renderer-facing API surface — what is left of it.** The level is settled (semantic,
    not element-level — see *The contract is semantic* below) and so is the shape: a renderer
@@ -265,12 +266,20 @@ Nothing below is settled. In rough order of how much else depends on it:
    (the POC hit this with a `Display`-typed script). A JSX form has no async expressions, and
    embedding a JSON section in a JSX form is a stated non-goal, so the loader owns the queue
    and hand-written forms never touch it.
-6. **Do `forms-html` and `forms-native` share renderer source, or just a contract?** A
-   semantic contract means each implementation writes its own renderers, so this is no longer
-   an architectural fork — it is whether those two particular packages can share source by
-   both being Tailwind-shaped, which is what NativeWind v5 (an RC) would gate. Sharing is an
-   optimisation *inside* two packages; not sharing costs duplicated renderer source and
-   nothing else. Either way NativeWind stops being a prerequisite for the design.
+6. **Do `forms-html` and `forms-native` share renderer source, or just a contract? Decided:
+   a contract only.** The question dates from when behaviour lived in the renderers, so sharing
+   source was how a second platform would have got it for free. The build moved it all into the
+   framework: the boundary owns the cascade, validation, `defaultValue`/`clearHidden`,
+   presence and staged edits, and the controllers own the tab, wizard and dialog state machines
+   (~2,000 lines in `poc/forms-v2/src/framework`). What is left for an implementation is the
+   drawing — some 600–670 lines each for HTML, MUI, Ant and Mantine — and even those four, all
+   DOM, share only 177 lines (`impls/shared.tsx`: visibility wrappers, `Contents`, `Inline`).
+   The one thing `forms-html` and `forms-native` could still share is element structure, and
+   sharing that means an element-level seam — `div`/`input`/`label` against
+   `View`/`TextInput`/`Text` — which is exactly the legacy `HtmlComponents` shape rejected
+   under *The contract is semantic* below. Default Tailwind class strings are theme **data**,
+   and `forms-native` may import them without the packages sharing a component. NativeWind is
+   therefore `forms-native`'s own styling choice, not a design question.
 
 Settled, and no longer open here: *what carries the cascade in a JSX form*, *does
 `FormStateNode` survive*, and *how adornments behave when a panel renders nothing* (they are
@@ -322,8 +331,8 @@ implementations. Its own list had already sprung a leak — `CheckButtons` sits 
 and is not an element, because a radio/checkbox group could not be expressed as div-plus-class.
 So element-level did not hold even for goal 4 alone.
 
-Two consequences: **NativeWind stops being a prerequisite** (see open decision 6 — it is now an
-internal question for two packages, not an architectural fork), and **platform-specific
+Two consequences: **NativeWind stops being a prerequisite** (decision 6 — it is `forms-native`'s
+styling choice, and the two packages share a contract, not source), and **platform-specific
 degradation is normal rather than exceptional**. `Grid` is the worked example: the RN renderer
 chunks children into rows of N and gives each cell `flex-1` or a per-column class
 (`schemas-rn/src/components/GridRenderer.tsx`), which renders correctly but loses cross-row
@@ -366,7 +375,7 @@ sees the word:
 |---|---|
 | `HelpText` | a `helpText` prop |
 | `Icon` | a `startIcon` / `endIcon` prop |
-| `Tooltip` | `accessibleName` on the display it sits on — every real use is on an icon display; see open decision 1 |
+| `Tooltip` | `accessibleName` on the display it sits on — every real use is on an icon display; see decision 1 |
 | `Optional` | an `optional` prop |
 | `Accordion` | a `<Accordion>` wrapper the loader emits |
 | `SetField` | a computed-write registration — see *Settled structure* |
