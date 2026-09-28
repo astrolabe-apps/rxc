@@ -603,16 +603,23 @@ here.
 @rx-controls/core           unchanged, published
 @rx-controls/react          unchanged, published
 @rx-controls/forms-schema   SchemaField + ControlDefinition JSON types, builders. No React.
-@rx-controls/forms-state    FormNode, fieldState, cascades, validators, expressions. No React.
-@rx-controls/forms-react    THE contract: dispatch components, structural primitives,
-                            controllers, prop types, the loader's registry. No DOM,
-                            no class strings.
+@rx-controls/forms-react    THE contract: dispatch components, scope + cascades, validation,
+                            structural primitives, controllers, prop types, the registry.
+                            No DOM, no class strings.
+@rx-controls/forms-json     the loader: translators, expressions + jsonata, host hooks.
+                            The only package that reads a ControlDefinition.
 @rx-controls/forms-html     the HTML implementation
 @rx-controls/forms-native   the React Native implementation
 @rx-controls/forms-mui      an MUI implementation — the contract's real test
 ```
 
-A form imports from `forms-react` and nothing else.
+A form imports from `forms-react` and nothing else; a JSON form adds `forms-json`.
+
+There is no `forms-state`. It was to be the React-free layer, but the build put its contents
+elsewhere — the cascade is React context, validators register from boundaries, `FormNode` is the
+loader's — and the React-free remainder (~250 lines) has no non-React consumer, since
+`forms-native` is React too. Expressions sit with the loader, because a hand-written form never
+needs them. The order of work is [`FORMS-V2-PLAN.md`](./FORMS-V2-PLAN.md).
 
 ## Decided boundaries
 
