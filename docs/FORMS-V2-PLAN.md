@@ -180,7 +180,9 @@ Open for the review:
 presence, the validation tree with verdicts, field validation, the registry and primitive hooks
 **(built, 40 tests)**; (2) the boundaries — field, group, display, action, collection, staged
 edit **(built, 29 tests)**; (3) tabs, wizard, dialog, the controllers and the built-ins **(built,
-15 tests — `forms-react` complete, 84 in all)**; (4) `forms-html`; (5) the
+15 tests — `forms-react` complete, 84 in all)**; (4) `forms-html` **(built, 27 tests — both themes,
+the providers, every renderer, hiding with no CSS; still to fix: the html dialog's Close button is a
+plain `<button>`, not an `<Action>`, so a host cannot restyle it by id)**; (5) the
 Storybook app; (6) the dev-app `PersonForm` and the compat fixture.
 
 Port the framework and the HTML implementation, **with the tests the POC never had**, written as

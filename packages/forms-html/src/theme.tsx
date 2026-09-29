@@ -1,7 +1,11 @@
-import type { ReactNode } from "react";
-import type { Rendered } from "@rx-controls/react";
+import {
+  createContext,
+  isValidElement,
+  useContext,
+  useMemo,
+  type ReactNode,
+} from "react";
 import type { ActionStyle } from "@rx-controls/forms-react";
-import { notBuilt, notBuiltComponent } from "./notBuilt.js";
 
 /**
  * Every class the HTML implementation emits, one slot per element.
@@ -503,7 +507,31 @@ export const tailwindHtmlTheme: HtmlTheme = {
  * @group Theming
  */
 export function useHtmlTheme(): HtmlTheme {
-  return notBuilt("useHtmlTheme");
+  return useContext(ThemeContext);
+}
+
+const ThemeContext = createContext<HtmlTheme>(defaultHtmlTheme);
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return (
+    typeof v === "object" && v !== null && !Array.isArray(v) && !isValidElement(v)
+  );
+}
+
+/**
+ * Over wins, slot by slot: an overlay **replaces** a slot rather than
+ * appending to it. A theme names the class an element has; appending is what
+ * the author's class props are for.
+ */
+function mergeTheme<T>(base: T, over: DeepPartial<T> | undefined): T {
+  if (!over) return base;
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  for (const [k, v] of Object.entries(over)) {
+    if (v === undefined) continue;
+    const b = out[k];
+    out[k] = isPlainObject(v) && isPlainObject(b) ? mergeTheme(b, v) : v;
+  }
+  return out as T;
 }
 
 /**
@@ -529,5 +557,11 @@ export interface HtmlThemeProviderProps {
  *
  * @group Theming
  */
-export const HtmlThemeProvider: (props: HtmlThemeProviderProps) => Rendered =
-  notBuiltComponent<HtmlThemeProviderProps>("HtmlThemeProvider");
+export function HtmlThemeProvider({
+  theme,
+  children,
+}: HtmlThemeProviderProps): ReactNode {
+  const parent = useHtmlTheme();
+  const resolved = useMemo(() => mergeTheme(parent, theme), [parent, theme]);
+  return <ThemeContext value={resolved}>{children}</ThemeContext>;
+}
