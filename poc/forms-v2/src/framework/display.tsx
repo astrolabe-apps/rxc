@@ -52,7 +52,7 @@ export function displayRenderer<P extends object = {}>(
 
     return rendered(
       <div
-        className="ff-boundary"
+        className="rxf-boundary"
         data-design={scope.designMode ? "" : undefined}
         style={scope.designMode ? undefined : { display: "contents" }}
       >

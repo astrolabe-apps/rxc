@@ -43,14 +43,14 @@ export function CorpusDemo() {
   const current = forms.find((f) => f.name === name);
   if (!current) {
     return (
-      <p className="ff-plain">
+      <p className="demo-plain">
         No corpus extracted — run <code>rushx extract-corpus</code> (README).
       </p>
     );
   }
   return (
     <>
-      <div className="ff-corpus-bar">
+      <div className="demo-corpus-bar">
         <label>
           <span>Legacy form</span>
           <select value={name} onChange={(e) => setName(e.target.value)}>
@@ -90,7 +90,7 @@ function CorpusForm({
       showWarnings
         ? (ws: LoaderWarning[]) => <WarningList warnings={ws} />
         : (ws: LoaderWarning[]) => (
-            <p className="ff-plain ff-corpus-count">
+            <p className="demo-plain demo-corpus-count">
               {ws.length} thing{ws.length === 1 ? "" : "s"} the loader could not
               translate — rendered with defaults.
             </p>
@@ -113,12 +113,12 @@ function WarningList({ warnings }: { warnings: LoaderWarning[] }) {
   const byKind = new Map<string, number>();
   for (const w of warnings) byKind.set(w.kind, (byKind.get(w.kind) ?? 0) + 1);
   return (
-    <details className="ff-warnings-box" open>
+    <details className="demo-warnings-box" open>
       <summary>
         {warnings.length} warnings ·{" "}
         {[...byKind.entries()].map(([k, n]) => `${k} ${n}`).join(" · ")}
       </summary>
-      <ul className="ff-warnings">
+      <ul className="demo-warnings">
         {warnings.map((w, i) => (
           <li key={i}>
             <code>{w.path}</code> <b>{w.kind}</b>

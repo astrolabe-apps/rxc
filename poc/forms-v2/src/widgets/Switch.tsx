@@ -40,17 +40,19 @@ function SwitchImpl(
         id={p.id}
         type="button"
         role="switch"
-        className="ff-switch"
+        className="demo-switch"
         aria-checked={ctl.checked}
         disabled={locked}
         onClick={() => ctl.setChecked(!ctl.checked)}
         onBlur={ctl.onBlur}
       >
-        <span className="ff-switch-track">
-          <span className="ff-switch-thumb" />
+        <span className="demo-switch-track">
+          <span className="demo-switch-thumb" />
         </span>
         {p.showState !== false && (
-          <span className="ff-switch-state">{ctl.checked ? "On" : "Off"}</span>
+          <span className="demo-switch-state">
+            {ctl.checked ? "On" : "Off"}
+          </span>
         )}
       </button>
     </Shell>,

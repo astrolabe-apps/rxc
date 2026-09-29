@@ -284,7 +284,7 @@ export interface LoaderOptions {
 }
 
 const defaultUnsupported = (def: ControlDefinition) => (
-  <p className="ff-unsupported">
+  <p className="rxf-unsupported">
     Unsupported: {def.type}
     {def.renderOptions?.type ? ` / ${def.renderOptions.type}` : ""}
   </p>
@@ -566,11 +566,11 @@ export const defaultTranslators: Translator[] = [
           <Elements
             {...collectionProps}
             {...bounds}
-            empty={<p className="ff-empty">Nothing yet.</p>}
+            empty={<p className="rxf-empty">Nothing yet.</p>}
           >
             {(item, index, actions) => (
-              <div className="ff-row">
-                <div className="ff-row-main">{element!(item, index)}</div>
+              <div className="rxf-row">
+                <div className="rxf-row-main">{element!(item, index)}</div>
                 {!noRemove && (
                   <Action
                     actionId={removeActionId}

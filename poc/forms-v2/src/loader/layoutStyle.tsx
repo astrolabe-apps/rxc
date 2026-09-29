@@ -91,7 +91,7 @@ export function Offscreen({
   );
   return rendered(
     <div
-      className="ff-offscreen"
+      className="rxf-offscreen"
       hidden={isOff}
       style={isOff ? undefined : { display: "contents" }}
     >

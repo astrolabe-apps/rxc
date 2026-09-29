@@ -15,7 +15,7 @@ import {
   type StackLayout,
   type VisibilityProps,
 } from "../framework/index.js";
-import { defaultHtmlTheme, type HtmlTheme } from "./htmlTheme.js";
+import { defaultHtmlTheme, useHtmlTheme, type HtmlTheme } from "./htmlTheme.js";
 
 /** The no-op: a hard mount/unmount. Cannot animate an exit. */
 export function DefaultVisibility({ visible, children }: VisibilityProps) {
@@ -41,9 +41,10 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
     return () => clearTimeout(t);
   }, [visible]);
 
+  const fade = useHtmlTheme().visibility.fade;
   if (!visible && !mounted) return null;
   return (
-    <div className="ff-fade" data-leaving={visible ? undefined : ""}>
+    <div className={fade} data-leaving={visible ? undefined : ""}>
       {visible ? children : last.current}
     </div>
   );
@@ -75,7 +76,7 @@ export function Contents({
   return (
     <div
       className={mergeClass(
-        hidden && classes.hidden
+        hidden && classes.hideWith === "class" && classes.hidden
           ? `${classes.wrapper} ${classes.hidden}`
           : classes.wrapper,
         shellClassName,
@@ -83,6 +84,8 @@ export function Contents({
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
+      // The one hide that needs no CSS; a theme that animates opts out.
+      hidden={(hidden && classes.hideWith === "attribute") || undefined}
     >
       <div className={classes.inner}>
         {title !== undefined && title !== null && (

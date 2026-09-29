@@ -112,10 +112,16 @@ export interface HtmlTheme {
     /** The wrapper around title and body. */
     wrapper: string;
     /**
-     * Added while hidden. The region stays mounted — each child clears its own
-     * value — so this is what takes it off screen, unless the theme leaves it
-     * to an animation keyed on `data-hidden`.
+     * How a hidden region leaves the screen. It stays mounted either way —
+     * each child clears its own value — and is always `inert`.
+     *
+     * - `"attribute"`: the `hidden` attribute. Works with no CSS at all.
+     * - `"class"`: `hidden` (below) plus whatever the theme
+     *   keys on `[data-hidden]` — the only way to animate the exit, since the
+     *   attribute removes the region at once.
      */
+    hideWith: "attribute" | "class";
+    /** Added while hidden, under `hideWith: "class"`. It must hide. */
     hidden: string;
     /** The element inside the wrapper, for a collapse animation. */
     inner: string;
@@ -134,6 +140,15 @@ export interface HtmlTheme {
     wrapper: string;
     /** Its title. */
     title: string;
+  };
+  /** {@link FadeVisibility}. */
+  visibility: {
+    /**
+     * The wrapper that holds a leaving boundary's last frame. It gets
+     * `data-leaving` for the length of the exit; with no CSS for it the
+     * content simply stays up that long, then goes.
+     */
+    fade: string;
   };
   /** The chrome-less collection. */
   elements: {
@@ -249,85 +264,236 @@ export type DeepPartial<T> = {
 export type PartialHtmlTheme = DeepPartial<HtmlTheme>;
 
 /**
- * The theme in effect when no provider sets one.
+ * The theme in effect when no provider sets one: **hook classes only** — one
+ * stable, `rxf-`-prefixed name per element and state, and no styling. A form
+ * renders and behaves with no CSS at all; a host that wants a look targets
+ * these names with its own CSS, or uses {@link tailwindHtmlTheme}.
  *
  * @group Theming
  */
 export const defaultHtmlTheme: HtmlTheme = {
   shell: {
-    vertical: "ff-shell ff-shell--vertical",
-    horizontal: "ff-shell ff-shell--horizontal",
-    label: "ff-label",
-    labelAfter: "ff-label-after",
-    control: "ff-control",
-    help: "ff-help",
-    error: "ff-error",
+    vertical: "rxf-shell rxf-shell--vertical",
+    horizontal: "rxf-shell rxf-shell--horizontal",
+    label: "rxf-label",
+    labelAfter: "rxf-label-after",
+    control: "rxf-control",
+    help: "rxf-help",
+    error: "rxf-error",
     renderError: null,
-    required: { className: "ff-required", text: "*" },
+    required: { className: "rxf-required", text: "*" },
   },
   frame: {
-    className: "ff-frame",
-    slot: "ff-slot",
-    input: "ff-input",
+    className: "rxf-frame",
+    slot: "rxf-slot",
+    input: "rxf-input",
     multiline: "",
     classNameOn: "frame",
   },
   select: { emptyText: "" },
   checkbox: { input: "" },
   radio: {
-    className: "ff-radio",
-    entryWrapper: "ff-radio-entry",
-    entry: "ff-radio-option",
+    className: "rxf-radio",
+    entryWrapper: "rxf-radio-entry",
+    entry: "rxf-radio-option",
     input: "",
     label: "",
   },
-  displayOnly: { className: "ff-readonly", inline: "ff-readonly-inline" },
-  stack: { className: "ff-stack", defaultGap: 16 },
+  displayOnly: { className: "rxf-readonly", inline: "rxf-readonly-inline" },
+  stack: { className: "rxf-stack", defaultGap: 16 },
   contents: {
-    wrapper: "ff-contents",
+    wrapper: "rxf-contents",
+    hideWith: "attribute",
     hidden: "",
-    inner: "ff-contents-inner",
-    title: "ff-group-title",
-    body: "ff-contents-body",
-    flexBody: "ff-contents-flex",
+    inner: "rxf-contents-inner",
+    title: "rxf-group-title",
+    body: "rxf-contents-body",
+    flexBody: "rxf-contents-flex",
     flexGap: 16,
   },
-  inline: { wrapper: "ff-inline", title: "ff-group-title" },
-  elements: { className: "ff-elements" },
-  displayShell: { display: "ff-display", action: "ff-action" },
-  text: { className: "ff-text", inline: "ff-text" },
-  html: { className: "ff-html" },
-  icon: { className: "ff-icon" },
+  inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
+  visibility: { fade: "rxf-fade" },
+  elements: { className: "rxf-elements" },
+  displayShell: { display: "rxf-display", action: "rxf-action" },
+  text: { className: "rxf-text", inline: "rxf-text" },
+  html: { className: "rxf-html" },
+  icon: { className: "rxf-icon" },
   action: {
-    className: "ff-btn",
+    className: "rxf-btn",
     textClassName: "",
     styles: {
-      primary: { className: "ff-btn--primary", textClassName: "" },
-      secondary: { className: "ff-btn--secondary", textClassName: "" },
-      link: { className: "ff-btn--link", textClassName: "" },
+      primary: { className: "rxf-btn--primary", textClassName: "" },
+      secondary: { className: "rxf-btn--secondary", textClassName: "" },
+      link: { className: "rxf-btn--link", textClassName: "" },
     },
-    busy: <span className="ff-spinner" />,
+    busy: <span className="rxf-spinner" />,
   },
   tabs: {
-    className: "ff-tabs",
-    list: "ff-tabstrip",
-    tab: "ff-tab",
-    active: "ff-tab--active",
+    className: "rxf-tabs",
+    list: "rxf-tabstrip",
+    tab: "rxf-tab",
+    active: "rxf-tab--active",
     inactive: "",
-    invalidMarker: "ff-tab-dot",
-    panel: "ff-tabpanel",
+    invalidMarker: "rxf-tab-dot",
+    panel: "rxf-tabpanel",
   },
   wizard: {
-    steps: "ff-steps",
-    step: "ff-step",
-    page: "ff-wizard-page",
-    nav: "ff-row",
+    steps: "rxf-steps",
+    step: "rxf-step",
+    page: "rxf-wizard-page",
+    nav: "rxf-row",
   },
   dialog: {
-    className: "ff-modal",
-    inline: "ff-modal-inline",
-    title: "ff-modal-title",
-    actions: "ff-row",
+    className: "rxf-modal",
+    inline: "rxf-modal-inline",
+    title: "rxf-modal-title",
+    actions: "rxf-row",
+  },
+};
+
+/**
+ * The Tailwind look: every hook class, plus Tailwind utilities. Nothing is
+ * shipped as CSS — the host's own Tailwind build generates it, once the
+ * package is in its scan (`@source` in v4, `content` in v3).
+ *
+ * Written for **Tailwind 3.4 and 4 alike**, because the two adopters are on
+ * 3.4 and this repo on 4: explicit colours and widths wherever a default
+ * changed between them (`border`, `ring`), none of the renamed utilities
+ * (`shadow-sm`, bare `rounded` / `shadow`, `outline-none`), no
+ * `bg-opacity-*`, opacity modifiers from 3.4's scale only, and no stacked
+ * variants (v4 reversed their order) — a single arbitrary variant instead,
+ * `[&[data-active]_button]:…`. **Does not presuppose preflight** — ServiceTas
+ * runs without it (`corePlugins: { preflight: false }`) — so each slot
+ * resets what preflight would have: a `<fieldset>` shell's border, margin
+ * and padding, a `<button>`'s border, background and font, a `<p>`'s
+ * margin.
+ *
+ * Legacy `defaultTailwindTheme`'s classes where legacy had real ones (group
+ * bodies, the tab strip, errors, radios); where legacy leaned on host CSS —
+ * `form-control` inputs, a `primary` palette — the standard palette instead,
+ * so the theme stands on its own.
+ *
+ * @group Theming
+ */
+export const tailwindHtmlTheme: HtmlTheme = {
+  shell: {
+    // A shell may be a <fieldset> (labelAs "legend"): reset its UA box.
+    vertical:
+      "rxf-shell rxf-shell--vertical m-0 flex min-w-0 flex-col gap-1 border-0 p-0",
+    horizontal:
+      "rxf-shell rxf-shell--horizontal m-0 flex min-w-0 flex-row items-baseline gap-3 border-0 p-0",
+    label: "rxf-label text-sm font-semibold text-gray-700",
+    labelAfter: "rxf-label-after inline-flex items-center gap-2 cursor-pointer",
+    control: "rxf-control block",
+    help: "rxf-help m-0 text-xs text-gray-500",
+    // layout.errorClass
+    error: "rxf-error m-0 text-sm text-red-500",
+    renderError: null,
+    // label.requiredElement
+    required: { className: "rxf-required text-red-500", text: " *" },
+  },
+  frame: {
+    className:
+      "rxf-frame flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 data-[multiline]:items-start data-[focused]:border-blue-600 data-[focused]:ring-2 data-[focused]:ring-blue-600/20 data-[invalid]:border-red-600 data-[disabled]:bg-gray-100 data-[disabled]:text-gray-400 data-[readonly]:bg-gray-50",
+    slot: "rxf-slot inline-flex text-sm text-gray-400",
+    input:
+      "rxf-input min-w-0 flex-1 border-0 bg-transparent p-0 outline-0 text-inherit [font:inherit]",
+    multiline: "resize-y whitespace-pre-wrap",
+    classNameOn: "frame",
+  },
+  select: { emptyText: "" },
+  checkbox: { input: "h-4 w-4" },
+  // data.checkOptions
+  radio: {
+    className: "rxf-radio flex items-center gap-4",
+    entryWrapper: "rxf-radio-entry",
+    entry: "rxf-radio-option flex items-center gap-1 cursor-pointer",
+    input: "h-4 w-4",
+    label: "",
+  },
+  displayOnly: {
+    className: "rxf-readonly min-h-[1.5em] py-1.5",
+    inline: "rxf-readonly-inline font-semibold",
+  },
+  stack: { className: "rxf-stack", defaultGap: "0.5rem" },
+  contents: {
+    // The collapse: grid rows 1fr → 0fr and a fade, keyed on data-hidden.
+    wrapper:
+      "rxf-contents grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 data-[hidden]:pointer-events-none",
+    hideWith: "class",
+    hidden: "",
+    inner: "rxf-contents-inner min-h-0 overflow-hidden",
+    // group.groupLabelClass
+    title: "rxf-group-title font-bold",
+    // group.standardClassName / flexClassName
+    body: "rxf-contents-body flex flex-col gap-4",
+    flexBody: "rxf-contents-flex gap-2",
+    flexGap: "0.5rem",
+  },
+  // group.inlineClass
+  inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
+  visibility: {
+    // Inline in prose, where a block wrapper would break the sentence.
+    fade: "rxf-fade transition-[opacity,transform] duration-200 data-[leaving]:-translate-y-1 data-[leaving]:opacity-0 [.rxf-inline_&]:inline",
+  },
+  elements: { className: "rxf-elements flex flex-col gap-2.5" },
+  displayShell: {
+    display: "rxf-display block [.rxf-inline_&]:inline",
+    action: "rxf-action inline-block [.rxf-inline_&]:inline",
+  },
+  text: { className: "rxf-text m-0", inline: "rxf-text" },
+  html: { className: "rxf-html" },
+  icon: { className: "rxf-icon" },
+  // action.buttonClass, over the standard palette in place of `primary-500`.
+  action: {
+    className:
+      "rxf-btn inline-flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm [font:inherit] disabled:cursor-not-allowed disabled:opacity-75",
+    textClassName: "",
+    styles: {
+      primary: {
+        className: "rxf-btn--primary bg-blue-600 text-white hover:bg-blue-700",
+        textClassName: "",
+      },
+      secondary: {
+        className:
+          "rxf-btn--secondary border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+        textClassName: "",
+      },
+      link: {
+        className: "rxf-btn--link bg-transparent px-0 text-blue-600 underline",
+        textClassName: "",
+      },
+    },
+    busy: (
+      <span className="rxf-spinner inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+    ),
+  },
+  // group.tabs, dark: variants dropped.
+  tabs: {
+    className: "rxf-tabs",
+    list: "rxf-tabstrip flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200",
+    // A <button>: border-0 and the background reset what preflight would.
+    tab: "rxf-tab me-2 inline-flex items-center justify-center p-4 border-0 border-b-2 bg-transparent [font:inherit] group",
+    active: "rxf-tab--active text-blue-600 border-blue-600 rounded-t-lg active",
+    inactive:
+      "border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 cursor-pointer",
+    invalidMarker: "rxf-tab-dot ml-1 text-[9px] text-red-600",
+    panel: "rxf-tabpanel my-2",
+  },
+  wizard: {
+    steps:
+      "rxf-steps mb-4 mt-0 flex list-none gap-1.5 border-b border-gray-200 p-0",
+    step: "rxf-step [&_button]:border-0 [&_button]:border-b-2 [&_button]:[font:inherit] [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-2.5 [&_button]:py-2 [&_button]:text-sm [&_button]:text-gray-600 [&[data-active]_button]:border-blue-600 [&[data-active]_button]:text-blue-600 [&[data-invalid]_button]:text-red-600",
+    page: "rxf-wizard-page",
+    nav: "rxf-row flex items-end gap-2",
+  },
+  dialog: {
+    className:
+      "rxf-modal min-w-[360px] rounded-lg border border-gray-300 p-5 shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop:bg-black/40",
+    inline:
+      "rxf-modal-inline rounded-lg border border-dashed border-gray-400 p-3",
+    title: "rxf-modal-title mb-3 block font-semibold",
+    actions: "rxf-row flex justify-end gap-2",
   },
 };
 

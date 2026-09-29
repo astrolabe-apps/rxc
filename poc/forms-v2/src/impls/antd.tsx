@@ -498,7 +498,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
   }));
   const entryClass = (selected: boolean) =>
     mergeClass(
-      mergeClass("ff-radio-entry", entryCls),
+      mergeClass("rxf-radio-entry", entryCls),
       selected ? onCls : offCls,
     );
   return ctl.rendered(
@@ -553,13 +553,13 @@ function AntWizard(p: WizardRenderProps) {
       {p.items.map((i) => (
         <div
           key={i.key}
-          className="ff-wizard-page"
+          className="rxf-wizard-page"
           data-inactive={i.active ? undefined : ""}
         >
           {i.content}
         </div>
       ))}
-      <div className="ff-row" style={{ marginTop: 12 }}>
+      <div className="rxf-row" style={{ marginTop: 12 }}>
         <Action
           actionId={StandardActionIds.back}
           text="Back"

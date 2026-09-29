@@ -20,6 +20,12 @@ import { muiRenderers } from "./impls/mui.js";
 import { antdRenderers } from "./impls/antd.js";
 import { mantineRenderers } from "./impls/mantine.js";
 import { PersonForm, personFieldNames, type Person } from "./PersonForm.js";
+import {
+  HtmlThemeProvider,
+  defaultHtmlTheme,
+  tailwindHtmlTheme,
+} from "./impls/htmlTheme.js";
+import "./tailwind.css";
 import "./demo.css";
 
 const impls = [htmlRenderers, muiRenderers, antdRenderers, mantineRenderers];
@@ -27,7 +33,11 @@ const impls = [htmlRenderers, muiRenderers, antdRenderers, mantineRenderers];
 /** An app overriding one button it never wrote, by id. */
 function FancyAdd(p: ActionRenderProps) {
   return (
-    <button className="ff-fancy-add" disabled={p.disabled} onClick={p.onClick}>
+    <button
+      className="demo-fancy-add"
+      disabled={p.disabled}
+      onClick={p.onClick}
+    >
       {"\u2728"} {p.text}
     </button>
   );
@@ -72,6 +82,7 @@ function Demo(): Rendered {
   const [fancyAdd, setFancyAdd] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [designMode, setDesignMode] = useState(false);
+  const [htmlTheme, setHtmlTheme] = useState<"hooks" | "tailwind">("hooks");
 
   const impl = impls.find((i) => i.name === implName) ?? impls[0];
   const fields = data as unknown as Control<Record<string, unknown>>;
@@ -100,6 +111,21 @@ function Demo(): Rendered {
             {impls.map((i) => (
               <option key={i.name}>{i.name}</option>
             ))}
+          </select>
+        </label>
+
+        <label className="row">
+          <span>html theme</span>
+          <select
+            value={htmlTheme}
+            onChange={(e) =>
+              setHtmlTheme(e.target.value as "hooks" | "tailwind")
+            }
+          >
+            <option value="hooks">
+              hooks — rxf- classes, styled by demo.css
+            </option>
+            <option value="tailwind">tailwindHtmlTheme</option>
           </select>
         </label>
 
@@ -226,23 +252,35 @@ function Demo(): Rendered {
         </p>
       </aside>
 
-      <main className="canvas">
-        <FormProvider renderers={impl}>
-          <ActionOverrideProvider
-            value={fancyAdd ? fancyOverrides : noOverrides}
-          >
-            <PersonForm
-              data={data}
-              emailPresence={presence}
-              showReference={impl.name === "Ant"}
-              lockPets={lockPets}
-              readOnly={readOnly}
-              disabled={disabled}
-              clearHidden={clearHidden}
-              designMode={designMode}
-            />
-          </ActionOverrideProvider>
-        </FormProvider>
+      <main
+        className="canvas"
+        // demo.css styles the hook classes only under "hooks": the Tailwind
+        // theme carries the same hooks, and its utilities must win. The other
+        // implementations draw shared pieces with the default's classes.
+        data-html-theme={impl.name === "html" ? htmlTheme : "hooks"}
+      >
+        <HtmlThemeProvider
+          theme={
+            htmlTheme === "tailwind" ? tailwindHtmlTheme : defaultHtmlTheme
+          }
+        >
+          <FormProvider renderers={impl}>
+            <ActionOverrideProvider
+              value={fancyAdd ? fancyOverrides : noOverrides}
+            >
+              <PersonForm
+                data={data}
+                emailPresence={presence}
+                showReference={impl.name === "Ant"}
+                lockPets={lockPets}
+                readOnly={readOnly}
+                disabled={disabled}
+                clearHidden={clearHidden}
+                designMode={designMode}
+              />
+            </ActionOverrideProvider>
+          </FormProvider>
+        </HtmlThemeProvider>
       </main>
     </div>,
   );

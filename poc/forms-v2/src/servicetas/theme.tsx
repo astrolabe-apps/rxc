@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
-import type { HtmlTheme, PartialHtmlTheme } from "../impls/htmlTheme.js";
+import {
+  deepMergeTheme,
+  tailwindHtmlTheme,
+  type HtmlTheme,
+  type PartialHtmlTheme,
+} from "../impls/htmlTheme.js";
 
 /**
  * ServiceTas's legacy renderer options, restated as an `HtmlTheme`.
@@ -8,9 +13,11 @@ import type { HtmlTheme, PartialHtmlTheme } from "../impls/htmlTheme.js";
  * which is `deepMerge(serviceTasOptions, defaultTailwindTheme)` — legacy's
  * `deepMerge(value, fallback)`, so ServiceTas wins and `defaultTailwindTheme`
  * (`@react-typed-forms/schemas-html@6`) fills the rest. Every slot below says
- * which of the two it came from. Complete rather than partial on purpose: it
- * is a whole look, and a slot left to `defaultHtmlTheme` would leak the POC's
- * `ff-*` classes into a page that never loads `demo.css`.
+ * which of the two it came from. An overlay on `tailwindHtmlTheme`, which
+ * *is* `defaultTailwindTheme` restated (README finding 79): a slot is here
+ * only where ServiceTas's classes differ from it, and the ones it leaves —
+ * the error, the group bodies, the tab strip, the inline group — come from
+ * there with their `rxf-` hooks, which nothing on this page styles.
  *
  * Legacy's classes landed on legacy's elements; where v2's anatomy differs
  * the comment says what was chosen (README finding 72).
@@ -36,7 +43,7 @@ function ErrorMessage({ children, id }: { children: ReactNode; id: string }) {
   );
 }
 
-export const serviceTasTheme: HtmlTheme = {
+const serviceTasOverlay: PartialHtmlTheme = {
   shell: {
     // layout.className (defaultTailwindTheme). Legacy has no horizontal
     // layout; this is the nearest shape.
@@ -52,8 +59,6 @@ export const serviceTasTheme: HtmlTheme = {
     // ServiceTas draws help as a Radix popover at LabelEnd — a component,
     // not a class, so a theme cannot express it (a shell override can).
     help: "footnote",
-    // layout.errorClass (defaultTailwindTheme); unused while renderError is set.
-    error: "text-sm text-red-500",
     // layout.renderError (ServiceTas).
     renderError: (e, id) => <ErrorMessage id={id}>{e}</ErrorMessage>,
     // label.requiredElement (ServiceTas): the span, no asterisk.
@@ -96,7 +101,8 @@ export const serviceTasTheme: HtmlTheme = {
   contents: {
     // layout.className — a group's title and body sat in the same layout.
     wrapper: "flex flex-col",
-    // Legacy had no exit animation; the region just goes.
+    // Legacy had no exit animation; the region just goes — a class, so the
+    // Tailwind theme's `hideWith: "class"` stands.
     hidden: "hidden",
     inner: "",
     // label.className + label.groupLabelClass: legacy's group label is the
@@ -104,23 +110,16 @@ export const serviceTasTheme: HtmlTheme = {
     // which Bootstrap 3 makes bold; v2's title is a <div>, so the theme says
     // what the element used to imply.
     title: "font-bold py-4 text-2xl",
-    // group.standardClassName (defaultTailwindTheme; ServiceTas leaves it).
-    body: "flex flex-col gap-4",
-    // group.flexClassName (defaultTailwindTheme) + group.defaultFlexGap
-    // (ServiceTas). A Flex group's body; the formStyles overlays set only
-    // standardClassName, so they do not reach it.
-    flexBody: "gap-2",
+    // body / flexBody: group.standardClassName / flexClassName, from the
+    // Tailwind theme. group.defaultFlexGap is ServiceTas's.
     flexGap: "1em",
   },
-  // group.inlineClass (defaultTailwindTheme).
-  inline: { wrapper: "", title: "" },
   elements: { className: "flex flex-col" },
   displayShell: { display: "", action: "" },
   // Legacy's text display is a <div>; v2's is a <p>, which Bootstrap margins.
   text: { className: "m-0", inline: "" },
   // display.htmlClassName (ServiceTas).
   html: { className: "html" },
-  icon: { className: "" },
   action: {
     // action.buttonClass / textClass (ServiceTas blanks both).
     className: "",
@@ -146,18 +145,8 @@ export const serviceTasTheme: HtmlTheme = {
     // action.busyIcon (defaultTailwindTheme) + iconBeforeClass.
     busy: <i className="fa-solid fa-spinner fa-spin px-2" />,
   },
-  tabs: {
-    // group.tabs (defaultTailwindTheme). Legacy's tab was an <li> (tabClass)
-    // around a label (labelClass + active/inactive); v2's is one <button>.
-    className: "",
-    list: "flex flex-wrap text-sm font-medium text-center text-gray-500 border-b border-gray-200",
-    tab: "me-2 inline-flex items-center justify-center p-4 border-b-2 group",
-    active: "text-blue-600 border-blue-600 rounded-t-lg active",
-    inactive:
-      "border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 cursor-pointer",
-    invalidMarker: "ml-1 text-danger",
-    panel: "my-2",
-  },
+  // The strip is group.tabs, from the Tailwind theme; only the marker is ours.
+  tabs: { invalidMarker: "ml-1 text-danger" },
   // Legacy's wizard is ServiceTas's own SteppedProcess renderer, not a theme.
   wizard: {
     steps: "flex gap-4 mb-4 list-none p-0",
@@ -172,6 +161,11 @@ export const serviceTasTheme: HtmlTheme = {
     actions: "flex gap-2 justify-end",
   },
 };
+
+export const serviceTasTheme: HtmlTheme = deepMergeTheme(
+  tailwindHtmlTheme,
+  serviceTasOverlay,
+);
 
 /**
  * `client-common/formStyles.ts`, restated. Each is an overlay picked per form

@@ -79,7 +79,7 @@ function Branch({
     [parent, presence],
   );
   return (
-    <div className="ff-branch" hidden={!on}>
+    <div className="demo-branch" hidden={!on}>
       <FormScopeProvider scope={scope}>{children}</FormScopeProvider>
     </div>
   );

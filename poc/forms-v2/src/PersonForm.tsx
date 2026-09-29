@@ -122,7 +122,7 @@ function DraftHost({ field }: { field: Control<Pets> }) {
   const session = edit.session(rc);
   if (!session) return rendered(null);
   return rendered(
-    <div className="ff-dialog">
+    <div className="demo-dialog">
       <strong>Editing pet {session.index + 1}</strong>
       <TextField
         field={session.draft.fields.name}
@@ -134,7 +134,7 @@ function DraftHost({ field }: { field: Control<Pets> }) {
         there, so that region's lock ends it. An edit begun from the Cards tab
         is not affected, because its origin is a different boundary.
       </p>
-      <div className="ff-row">
+      <div className="rxf-row">
         <Action
           actionId={StandardActionIds.apply}
           text="Apply"
@@ -190,7 +190,7 @@ function ValidationTree({
     </Fragment>
   );
   return rendered(
-    <details className="ff-plain ff-vtree">
+    <details className="demo-plain demo-vtree">
       <summary>Validation tree</summary>
       <ul style={{ listStyle: "none", padding: 0, margin: "4px 0" }}>
         {row(root, 0, "0")}
@@ -233,7 +233,7 @@ function WhoStatus(): Rendered {
   const { rc, rendered } = useReactive();
   const who = useValidation().root.find(rc, "signup")?.child(rc, "who");
   return rendered(
-    <p className="ff-plain" data-who>
+    <p className="demo-plain" data-who>
       Who page, read from the form's root:{" "}
       <b>
         {!who
@@ -503,10 +503,10 @@ export function PersonForm({
                       label="Pets"
                       {...petBounds}
                       helpText="Length 1–3, validated on the array itself."
-                      empty={<p className="ff-empty">No pets yet.</p>}
+                      empty={<p className="rxf-empty">No pets yet.</p>}
                     >
                       {(pet, i, row) => (
-                        <div className="ff-row">
+                        <div className="rxf-row">
                           <TextField
                             field={pet.fields.name}
                             required
@@ -562,7 +562,7 @@ export function PersonForm({
                     />
                   </Contents>
 
-                  <p className="ff-plain">
+                  <p className="demo-plain">
                     Plain JSX inside the Pets tab — no boundary suppresses this,
                     so the panel itself has to hide it.
                   </p>
@@ -575,7 +575,7 @@ export function PersonForm({
               title: "Cards",
               children: (
                 <Stack gap={4}>
-                  <p className="ff-plain">
+                  <p className="demo-plain">
                     The same pets array through a third-party collection
                     renderer — no UI library imported, per-row chrome composed
                     from the implementation's buttons, Edit through the shared
@@ -605,7 +605,7 @@ export function PersonForm({
                       {...petBounds}
                       columns={2}
                       onCardClick={(i) => console.log("card", i)}
-                      empty={<p className="ff-empty">No cards.</p>}
+                      empty={<p className="rxf-empty">No cards.</p>}
                     >
                       {(pet, i) => (
                         <TextField
@@ -682,7 +682,7 @@ export function PersonForm({
               title: "From JSON",
               children: (
                 <Stack gap={4}>
-                  <p className="ff-plain">
+                  <p className="demo-plain">
                     Loaded from a ControlDefinition[], bound to the same data as
                     the other tabs. No renderer knows JSON exists.
                   </p>
@@ -704,7 +704,7 @@ export function PersonForm({
                       return undefined;
                     }}
                     renderWarnings={(ws) => (
-                      <ul className="ff-warnings">
+                      <ul className="demo-warnings">
                         {ws.map((w, i) => (
                           <li key={i}>
                             <code>{w.path}</code> <b>{w.kind}</b>
@@ -722,7 +722,7 @@ export function PersonForm({
               title: "Legacy form",
               children: (
                 <Stack gap={4}>
-                  <p className="ff-plain">
+                  <p className="demo-plain">
                     A real ServiceTas form, straight from its JSON, through the
                     same loader and the same implementation as every other tab.
                   </p>

@@ -80,92 +80,8 @@ body {
 }
 
 /* ── the html implementation ─────────────────────────────────────── */
-.ff-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border: 0;
-  margin: 0;
-  padding: 0;
-}
-.ff-shell--horizontal {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 12px;
-}
-.ff-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #3f3f46;
-}
-.ff-required {
-  color: #dc2626;
-  margin-left: 2px;
-}
-.ff-help {
-  margin: 0;
-  font-size: 12px;
-  color: #71717a;
-}
-.ff-error {
-  margin: 0;
-  font-size: 12px;
-  color: #dc2626;
-}
-.ff-control {
-  display: block;
-}
 
 /* The border is on the FRAME, not the input — see the doc's "HTML default". */
-.ff-frame {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 1px solid #d4d4d8;
-  border-radius: 6px;
-  background: #fff;
-  padding: 6px 10px;
-  transition:
-    border-color 0.12s,
-    box-shadow 0.12s;
-}
-.ff-frame[data-multiline] {
-  align-items: flex-start;
-}
-.ff-frame[data-focused] {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px #2563eb22;
-}
-.ff-frame[data-invalid] {
-  border-color: #dc2626;
-}
-.ff-frame[data-invalid][data-focused] {
-  box-shadow: 0 0 0 3px #dc262622;
-}
-.ff-frame[data-disabled] {
-  background: #f4f4f5;
-  color: #a1a1aa;
-}
-.ff-frame[data-readonly] {
-  background: #fafafa;
-}
-.ff-slot {
-  color: #a1a1aa;
-  font-size: 13px;
-  display: inline-flex;
-}
-.ff-input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  font: inherit;
-  color: inherit;
-  padding: 0;
-  resize: vertical;
-}
 
 /* ── the third-party widget ──────────────────────────────────────── */
 .stars {
@@ -187,10 +103,10 @@ body {
 }
 
 /* ── design mode ─────────────────────────────────────────────────── */
-.ff-boundary {
+.rxf-boundary {
   display: contents;
 }
-.ff-boundary[data-design] {
+.rxf-boundary[data-design] {
   display: block;
   outline: 1px dashed #a855f7;
   outline-offset: 3px;
@@ -198,41 +114,28 @@ body {
 }
 
 /* ── the visibility slot (html implementation) ───────────────────── */
-.ff-fade {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-.ff-fade[data-leaving] {
-  opacity: 0;
-  transform: translateY(-4px);
-}
 
 /* ── collections ─────────────────────────────────────────────────── */
-.ff-elements {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ff-row {
+
+.rxf-row {
   display: flex;
   align-items: flex-end;
   gap: 8px;
 }
-.ff-row > :first-child {
+.rxf-row > :first-child {
   flex: 1;
 }
-.ff-row button,
+.rxf-row button,
 .canvas > * button {
   font: inherit;
   padding: 4px 8px;
 }
-.ff-empty {
+.rxf-empty {
   margin: 0;
   font-size: 13px;
   color: #71717a;
 }
-.ff-row button:disabled,
+.rxf-row button:disabled,
 .canvas button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -240,12 +143,12 @@ body {
 .canvas button {
   align-self: flex-start;
 }
-.ff-row button {
+.rxf-row button {
   align-self: flex-end;
 }
 
 /* ── the staged-edit host ────────────────────────────────────────── */
-.ff-dialog {
+.demo-dialog {
   border: 1px solid #d4d4d8;
   border-radius: 8px;
   background: #fff;
@@ -259,91 +162,26 @@ body {
 }
 
 /* ── a region that animates its own exit ─────────────────────────── */
-.ff-contents {
-  display: grid;
-  grid-template-rows: 1fr;
-  opacity: 1;
-  transition:
-    grid-template-rows 0.22s ease,
-    opacity 0.22s ease;
-}
-.ff-contents[data-hidden] {
-  grid-template-rows: 0fr;
-  opacity: 0;
-  pointer-events: none;
-}
-.ff-contents-inner {
-  overflow: hidden;
-  min-height: 0;
-}
 
 /* ── the self-labelling widget ───────────────────────────────────── */
-.ff-check {
+.rxf-check {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
 }
-.ff-check input {
+.rxf-check input {
   width: 16px;
   height: 16px;
 }
-.ff-label-after {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-.ff-label-after input {
-  width: 16px;
-  height: 16px;
-}
+
 .canvas .stars-btn:disabled {
   opacity: 1;
 } /* beats .canvas button:disabled */
 
 /* ── tabs (html implementation) ──────────────────────────────────── */
-.ff-tabs[data-hidden] {
-  display: none;
-}
-.ff-tabstrip {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid #e4e4e7;
-  margin-bottom: 16px;
-}
-.ff-tab {
-  font: inherit;
-  font-size: 14px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-bottom: 2px solid transparent;
-  color: #52525b;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: auto;
-}
-.ff-tab--active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
-}
-.ff-tab[data-invalid] {
-  color: #dc2626;
-}
-.ff-tab[data-invalid].ff-tab--active {
-  border-bottom-color: #dc2626;
-}
-.ff-tab-dot {
-  font-size: 9px;
-  line-height: 1;
-}
-.ff-tabpanel[data-inactive] {
-  display: none;
-}
-.ff-plain {
+
+.demo-plain {
   margin: 0;
   font-size: 12px;
   color: #a1a1aa;
@@ -351,47 +189,13 @@ body {
 }
 
 /* ── buttons (html implementation) ───────────────────────────────── */
-.ff-btn {
-  font: inherit;
-  font-size: 13px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid #d4d4d8;
-  background: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.ff-btn--primary {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-}
-.ff-btn--link {
-  border-color: transparent;
-  background: none;
-  color: #2563eb;
-  text-decoration: underline;
-}
-.ff-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.ff-spinner {
-  width: 10px;
-  height: 10px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: ff-spin 0.6s linear infinite;
-}
-@keyframes ff-spin {
+
+@keyframes rxf-spin {
   to {
     transform: rotate(360deg);
   }
 }
-.ff-fancy-add {
+.demo-fancy-add {
   font: inherit;
   font-size: 13px;
   padding: 5px 12px;
@@ -401,11 +205,11 @@ body {
   color: #fff;
   background: linear-gradient(90deg, #a855f7, #ec4899);
 }
-.ff-fancy-add:disabled {
+.demo-fancy-add:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.ff-unsupported {
+.rxf-unsupported {
   margin: 0;
   padding: 6px 10px;
   font-size: 12px;
@@ -416,48 +220,15 @@ body {
 }
 
 /* ── wizard (html implementation) ────────────────────────────────── */
-.ff-steps {
-  list-style: none;
-  display: flex;
-  gap: 6px;
-  padding: 0;
-  margin: 0 0 16px;
-  border-bottom: 1px solid #e4e4e7;
-}
-.ff-step button {
-  font: inherit;
-  font-size: 13px;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 8px 10px;
-  color: #52525b;
-  border-bottom: 2px solid transparent;
-  align-self: auto;
-}
-.ff-step[data-active] button {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
-}
-.ff-step[data-invalid] button {
-  color: #dc2626;
-}
-.ff-wizard-page[data-inactive] {
-  display: none;
-}
-.ff-row > button:first-child {
+
+.rxf-row > button:first-child {
   flex: 0 0 auto;
-}
-.ff-contents[data-invalid] {
-  border-left: 3px solid #dc2626;
-  padding-left: 10px;
-  margin-left: -13px;
 }
 
 /* The loader's returned warnings, rendered by the host because the host
    chose to. Deliberately styled as a report rather than as an error: every
    control below still rendered. */
-.ff-warnings {
+.demo-warnings {
   margin: 0;
   padding: 8px 10px 8px 26px;
   font-size: 12px;
@@ -468,7 +239,7 @@ body {
   border-radius: 6px;
 }
 
-.ff-warnings code {
+.demo-warnings code {
   padding: 0 4px;
   border-radius: 3px;
   background: #fef3c7;
@@ -476,19 +247,14 @@ body {
 }
 
 /* ── icon display ────────────────────────────────────────────────── */
-.ff-icon {
-  font-size: 24px;
-  line-height: 1;
-  display: inline-block;
-}
 
 /* ── third-party cards collection ────────────────────────────────── */
-.ff-cards {
+.demo-cards {
   display: grid;
   gap: 12px;
   margin-bottom: 12px;
 }
-.ff-card {
+.demo-card {
   border: 1px solid #e4e4e7;
   border-radius: 8px;
   padding: 12px;
@@ -497,57 +263,27 @@ body {
   gap: 8px;
   background: #fafafa;
 }
-.ff-card-actions {
+.demo-card-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
 }
 
 /* ── dialog ──────────────────────────────────────────────────────── */
-.ff-modal {
-  border: 1px solid #d4d4d8;
-  border-radius: 10px;
-  padding: 18px;
-  min-width: 360px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-.ff-modal::backdrop {
-  background: rgba(0, 0, 0, 0.35);
-}
-.ff-modal-title {
-  display: block;
-  margin-bottom: 12px;
-}
-.ff-modal-inline {
-  border: 1px dashed #a1a1aa;
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.ff-group-title {
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.ff-readonly {
-  padding: 6px 0;
-  min-height: 1.5em;
-  color: #333;
-}
 
 /* ── the third-party group (Collapsible) ─────────────────────────── */
-.ff-collapsible {
+.demo-collapsible {
   border: 1px solid #e4e4e7;
   border-radius: 8px;
   padding: 0 12px 4px;
 }
-.ff-collapsible[data-hidden] {
+.demo-collapsible[data-hidden] {
   display: none;
 }
-.ff-collapsible[data-invalid] {
+.demo-collapsible[data-invalid] {
   border-color: #fca5a5;
 }
-.ff-collapsible-head {
+.demo-collapsible-head {
   font: inherit;
   font-weight: 600;
   background: none;
@@ -561,16 +297,16 @@ body {
   padding: 10px 0;
   color: inherit;
 }
-.ff-collapsible-chevron {
+.demo-collapsible-chevron {
   width: 1em;
   color: #71717a;
 }
-.ff-collapsible-summary {
+.demo-collapsible-summary {
   font-weight: 400;
   font-size: 12px;
   color: #71717a;
 }
-.ff-collapsible-badge {
+.demo-collapsible-badge {
   margin-left: auto;
   width: 18px;
   height: 18px;
@@ -583,21 +319,7 @@ body {
 }
 
 /* ── radio (html implementation) + per-option content ─────────────── */
-.ff-radio {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.ff-radio-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-.ff-radio-entry > .ff-boundary,
-.ff-radio-entry > .ff-contents {
-  margin-left: 22px;
-}
+
 /* The JSON fixture's entry classes — legacy's CheckEntryClasses. */
 .demo-entry {
   border: 1px solid #e4e4e7;
@@ -613,75 +335,49 @@ body {
 }
 
 /* ── the third-party silent container ────────────────────────────── */
-.ff-branch[hidden] {
+.demo-branch[hidden] {
   display: none;
 }
 
 /* ── inline group: prose with values and links in it ─────────────── */
-.ff-inline[data-hidden] {
-  display: none;
-}
+
 /* Every boundary is wrapped for the exit transition and design chrome;
    in prose those wrappers must not be blocks. */
-.ff-inline .ff-fade,
-.ff-inline .ff-boundary {
-  display: inline;
-}
-.ff-inline .ff-text {
-  margin: 0;
-}
-.ff-readonly-inline {
-  font-weight: 600;
-}
 
 /* ── the wrapper a display or an action sits in (legacy's layout element) ── */
-.ff-display {
-  display: block;
-}
-.ff-action,
-span.ff-display {
-  display: inline-block;
-}
-.ff-inline .ff-display,
-.ff-inline .ff-action {
-  display: inline;
-}
-.ff-contents-body {
-  display: contents;
-}
 
 /* ── a translated array row: the element, then its Remove ────────── */
-.ff-row-main {
+.rxf-row-main {
   flex: 1;
   min-width: 0;
 }
 
 /* Presentation aid: the corpus tab. */
-.ff-corpus-bar {
+.demo-corpus-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 12px 20px;
   align-items: center;
   font-size: 13px;
 }
-.ff-corpus-bar label {
+.demo-corpus-bar label {
   display: flex;
   gap: 8px;
   align-items: center;
 }
-.ff-corpus-bar code {
+.demo-corpus-bar code {
   opacity: 0.6;
 }
-.ff-corpus-count {
+.demo-corpus-count {
   font-style: italic;
 }
-.ff-warnings-box summary {
+.demo-warnings-box summary {
   cursor: pointer;
   font-size: 13px;
 }
 
 /* ── the POC's host extensions (src/loader/pocHost.tsx) ─────────── */
-.ff-switch {
+.demo-switch {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -691,11 +387,11 @@ span.ff-display {
   cursor: pointer;
   font: inherit;
 }
-.ff-switch:disabled {
+.demo-switch:disabled {
   cursor: default;
   opacity: 0.6;
 }
-.ff-switch-track {
+.demo-switch-track {
   position: relative;
   width: 36px;
   height: 20px;
@@ -703,10 +399,10 @@ span.ff-display {
   background: #d4d4d8;
   transition: background 120ms;
 }
-.ff-switch[aria-checked="true"] .ff-switch-track {
+.demo-switch[aria-checked="true"] .demo-switch-track {
   background: #2563eb;
 }
-.ff-switch-thumb {
+.demo-switch-thumb {
   position: absolute;
   top: 2px;
   left: 2px;
@@ -716,14 +412,14 @@ span.ff-display {
   background: #fff;
   transition: left 120ms;
 }
-.ff-switch[aria-checked="true"] .ff-switch-thumb {
+.demo-switch[aria-checked="true"] .demo-switch-thumb {
   left: 18px;
 }
-.ff-switch-state {
+.demo-switch-state {
   font-size: 13px;
   color: #52525b;
 }
-.ff-message {
+.demo-message {
   display: flex;
   gap: 10px;
   padding: 10px 12px;
@@ -731,36 +427,36 @@ span.ff-display {
   border: 1px solid #bfdbfe;
   background: #eff6ff;
 }
-.ff-message-warning {
+.demo-message-warning {
   border-color: #fcd34d;
   background: #fffbeb;
 }
-.ff-message-error {
+.demo-message-error {
   border-color: #fca5a5;
   background: #fef2f2;
 }
-.ff-message-success {
+.demo-message-success {
   border-color: #86efac;
   background: #f0fdf4;
 }
-.ff-message-icon {
+.demo-message-icon {
   font-size: 16px;
   line-height: 1.4;
 }
-.ff-message-body {
+.demo-message-body {
   flex: 1;
 }
-.ff-toplevel {
+.demo-toplevel {
   padding: 12px;
   border-left: 3px solid #2563eb;
 }
-.ff-spotlight {
+.demo-spotlight {
   position: relative;
   outline: 2px dashed #f59e0b;
   outline-offset: 4px;
   border-radius: 4px;
 }
-.ff-spotlight::after {
+.demo-spotlight::after {
   content: attr(data-spotlight);
   position: absolute;
   top: -12px;
@@ -774,6 +470,322 @@ span.ff-display {
   line-height: 20px;
   text-align: center;
 }
-.ff-help-labelled b {
+.demo-help-labelled b {
   color: #1e3a8a;
+}
+
+/* The hooks theme's look (README finding 79). Scoped, because
+   tailwindHtmlTheme carries the same rxf- hook classes and its utilities must
+   not be overridden by these — unlayered rules beat Tailwind's layers. The
+   canvas sets data-html-theme; the other implementations always say hooks. */
+[data-html-theme="hooks"] {
+  .rxf-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .rxf-shell--horizontal {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .rxf-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #3f3f46;
+  }
+  .rxf-required {
+    color: #dc2626;
+    margin-left: 2px;
+  }
+  .rxf-help {
+    margin: 0;
+    font-size: 12px;
+    color: #71717a;
+  }
+  .rxf-error {
+    margin: 0;
+    font-size: 12px;
+    color: #dc2626;
+  }
+  .rxf-control {
+    display: block;
+  }
+  .rxf-frame {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 1px solid #d4d4d8;
+    border-radius: 6px;
+    background: #fff;
+    padding: 6px 10px;
+    transition:
+      border-color 0.12s,
+      box-shadow 0.12s;
+  }
+  .rxf-frame[data-multiline] {
+    align-items: flex-start;
+  }
+  .rxf-frame[data-focused] {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px #2563eb22;
+  }
+  .rxf-frame[data-invalid] {
+    border-color: #dc2626;
+  }
+  .rxf-frame[data-invalid][data-focused] {
+    box-shadow: 0 0 0 3px #dc262622;
+  }
+  .rxf-frame[data-disabled] {
+    background: #f4f4f5;
+    color: #a1a1aa;
+  }
+  .rxf-frame[data-readonly] {
+    background: #fafafa;
+  }
+  .rxf-slot {
+    color: #a1a1aa;
+    font-size: 13px;
+    display: inline-flex;
+  }
+  .rxf-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    padding: 0;
+    resize: vertical;
+  }
+  .rxf-fade {
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+  .rxf-fade[data-leaving] {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  .rxf-elements {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rxf-contents {
+    display: grid;
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition:
+      grid-template-rows 0.22s ease,
+      opacity 0.22s ease;
+  }
+  .rxf-contents[data-hidden] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .rxf-contents-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .rxf-label-after {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .rxf-label-after input {
+    width: 16px;
+    height: 16px;
+  }
+  .rxf-tabs[data-hidden] {
+    display: none;
+  }
+  .rxf-tabstrip {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid #e4e4e7;
+    margin-bottom: 16px;
+  }
+  .rxf-tab {
+    font: inherit;
+    font-size: 14px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-bottom: 2px solid transparent;
+    color: #52525b;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: auto;
+  }
+  .rxf-tab--active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  .rxf-tab[data-invalid] {
+    color: #dc2626;
+  }
+  .rxf-tab[data-invalid].rxf-tab--active {
+    border-bottom-color: #dc2626;
+  }
+  .rxf-tab-dot {
+    font-size: 9px;
+    line-height: 1;
+  }
+  .rxf-tabpanel[data-inactive] {
+    display: none;
+  }
+  .rxf-btn {
+    font: inherit;
+    font-size: 13px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid #d4d4d8;
+    background: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rxf-btn--primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+  .rxf-btn--link {
+    border-color: transparent;
+    background: none;
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  .rxf-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .rxf-spinner {
+    width: 10px;
+    height: 10px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: rxf-spin 0.6s linear infinite;
+  }
+  .rxf-steps {
+    list-style: none;
+    display: flex;
+    gap: 6px;
+    padding: 0;
+    margin: 0 0 16px;
+    border-bottom: 1px solid #e4e4e7;
+  }
+  .rxf-step button {
+    font: inherit;
+    font-size: 13px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 8px 10px;
+    color: #52525b;
+    border-bottom: 2px solid transparent;
+    align-self: auto;
+  }
+  .rxf-step[data-active] button {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+  .rxf-step[data-invalid] button {
+    color: #dc2626;
+  }
+  .rxf-wizard-page[data-inactive] {
+    display: none;
+  }
+  .rxf-contents[data-invalid] {
+    border-left: 3px solid #dc2626;
+    padding-left: 10px;
+    margin-left: -13px;
+  }
+  .rxf-icon {
+    font-size: 24px;
+    line-height: 1;
+    display: inline-block;
+  }
+  .rxf-modal {
+    border: 1px solid #d4d4d8;
+    border-radius: 10px;
+    padding: 18px;
+    min-width: 360px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  }
+  .rxf-modal::backdrop {
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .rxf-modal-title {
+    display: block;
+    margin-bottom: 12px;
+  }
+  .rxf-modal-inline {
+    border: 1px dashed #a1a1aa;
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .rxf-group-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .rxf-readonly {
+    padding: 6px 0;
+    min-height: 1.5em;
+    color: #333;
+  }
+  .rxf-radio {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rxf-radio-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .rxf-radio-entry > .rxf-boundary,
+  .rxf-radio-entry > .rxf-contents {
+    margin-left: 22px;
+  }
+  .rxf-inline[data-hidden] {
+    display: none;
+  }
+  .rxf-inline .rxf-fade,
+  .rxf-inline .rxf-boundary {
+    display: inline;
+  }
+  .rxf-inline .rxf-text {
+    margin: 0;
+  }
+  .rxf-readonly-inline {
+    font-weight: 600;
+  }
+  .rxf-display {
+    display: block;
+  }
+  .rxf-action,
+  span.rxf-display {
+    display: inline-block;
+  }
+  .rxf-inline .rxf-display,
+  .rxf-inline .rxf-action {
+    display: inline;
+  }
+  .rxf-contents-body {
+    display: contents;
+  }
 }

@@ -2148,6 +2148,67 @@ Numbered; each is cited at the matching line of code.
     the chosen option, under Inactive and then under Active. No console
     output; burndown unchanged.
 
+79. **Two html themes and no stylesheet: `rxf-` hooks by default, and
+    Tailwind as a theme.** Phase 1's last review question was that
+    `defaultHtmlTheme`'s `ff-*` names meant nothing without a stylesheet
+    `forms-html` does not ship — and should not. Decided:
+
+    - **`defaultHtmlTheme` is hook classes only** — one stable name per
+      element and state, now `rxf-` (57 of them; the demo's own chrome, the
+      stand-in host's markup and the third-party example widgets moved to
+      `demo-`, since under `rxf-` they would have read as part of the
+      library's CSS contract). A form renders and behaves with no CSS;
+      `demo.css` is this POC's stylesheet for the hooks.
+    - **`tailwindHtmlTheme`** is the hooks plus Tailwind utilities — legacy
+      `defaultTailwindTheme`'s where legacy had real ones, the standard
+      palette where it leaned on host CSS (`form-control`, `primary-500`).
+      Nothing ships as CSS: the host's Tailwind build scans the package.
+      Written for **3.4 and 4 alike**, since both adopters are on 3.4 (all
+      seven HVAMS sites, both ServiceTas clients) and this repo on 4 — no
+      renamed utilities, explicit colours where a default changed, opacity
+      modifiers from 3.4's scale, no stacked variants (v4 reversed their
+      order). **And no preflight assumed**: ServiceTas runs without it, so
+      the theme resets what preflight would (a `<fieldset>` shell, `<button>`
+      tabs and steps, `<p>` margins).
+    - **The ServiceTas theme is now an overlay on `tailwindHtmlTheme`** —
+      what it was all along, legacy's `deepMerge(serviceTas,
+      defaultTailwindTheme)` — carrying only the slots where its classes
+      differ. The page's markup is **identical** to before on eight forms
+      (Fire, Burn, TUP, MrsLicenceRenewal, RWVPRenewalSearch, SimpleSearch,
+      MastLicenceSummary, AccountDetails; 106–544 elements each, inline
+      styles included), apart from the `rxf-` hooks it now carries.
+
+    **Two behaviours were hanging on CSS, and "no stylesheet" exposed
+    both.** A hidden `Contents` got `data-hidden` and `inert` but nothing
+    took it off screen — `demo.css` collapsed it — so a host on the default
+    with no CSS would have seen hidden sections. The theme now says how a
+    region hides: `contents.hideWith: "attribute" | "class"`; the default
+    uses the `hidden` attribute, a theme that animates (the Tailwind one)
+    its class. And `FadeVisibility`'s `rxf-fade` was hard-coded; it is the
+    `visibility.fade` slot, so the Tailwind theme carries the transition.
+    With no CSS at all the fade's wrapper simply holds its content for the
+    length of the exit.
+
+    Verified in the browser. With **every stylesheet disabled**, under the
+    default: the hidden region hides, shows and hides again, one tab panel
+    and one wizard page are visible, a closed dialog's content and the
+    unchosen `SelectChild` branches are off screen. Under
+    `tailwindHtmlTheme` (Tailwind on the main page now — theme and
+    utilities, no preflight, as ServiceTas): its utilities apply and
+    `demo.css` does not reach them (the hook rules are nested under
+    `[data-html-theme="hooks"]`, since unlayered rules beat Tailwind's
+    layers), the region collapses and returns, tabs, wizard and dialog
+    behave. The main page under the default is identical to before
+    (0 elements differ, all four implementations, every tab), and MUI,
+    Ant and Mantine still hide and show the region. No console output.
+
+    One thing found that is not ours: a Tailwind **4** host loading any
+    **unlayered** global CSS loses to it, since v4's utilities live in
+    cascade layers — Ant's `reset.css` (`legend { font-size: 1.5em }`),
+    loaded globally for the Ant implementation, beats `text-sm` on the
+    radio group's legend. Tailwind 3.4 emits plain rules and is not
+    affected; a v4 host puts such a reset in a layer.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show

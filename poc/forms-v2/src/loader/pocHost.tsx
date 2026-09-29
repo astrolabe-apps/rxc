@@ -136,17 +136,20 @@ const messageBoxTranslator: Translator = {
         hidden={props.hidden}
         disabled={props.disabled}
         title={props.label}
-        className={withOwn(`ff-message ff-message-${level}`, props.className)}
+        className={withOwn(
+          `demo-message demo-message-${level}`,
+          props.className,
+        )}
         shellClassName={props.shellClassName}
         labelClassName={props.labelClassName}
         labelTextClassName={props.labelTextClassName}
       >
         {go?.hideIcon !== true && (
-          <span className="ff-message-icon" aria-hidden>
+          <span className="demo-message-icon" aria-hidden>
             {levelGlyph[level] ?? levelGlyph.info}
           </span>
         )}
-        <div className="ff-message-body">{children}</div>
+        <div className="demo-message-body">{children}</div>
       </Contents>
     );
   },
@@ -165,7 +168,7 @@ const topLevelGroupTranslator: Translator = {
       hidden={props.hidden}
       disabled={props.disabled}
       title={props.label}
-      className={withOwn("ff-toplevel", props.className)}
+      className={withOwn("demo-toplevel", props.className)}
       shellClassName={props.shellClassName}
       labelClassName={props.labelClassName}
       labelTextClassName={props.labelTextClassName}
@@ -189,7 +192,7 @@ function HelpWithLabel({
   text?: string;
 }): ReactNode {
   return (
-    <span className="ff-help-labelled">
+    <span className="demo-help-labelled">
       {label && <b>{label}</b>}
       {label && text && " "}
       {text}
@@ -229,7 +232,7 @@ export const pocHost: LoaderOptions = {
     // ServiceTas's onboarding spotlight: a ring and a step number.
     Spotlight: {
       wrap: (a, node) => (
-        <div className="ff-spotlight" data-spotlight={String(a.index ?? 0)}>
+        <div className="demo-spotlight" data-spotlight={String(a.index ?? 0)}>
           {node}
         </div>
       ),
@@ -237,7 +240,7 @@ export const pocHost: LoaderOptions = {
   },
   displays: {
     greeting: ({ props }) => (
-      <p className="ff-plain ff-greeting" hidden={props.hidden === true}>
+      <p className="demo-plain demo-greeting" hidden={props.hidden === true}>
         A host component, found by <code>customId</code>.
       </p>
     ),

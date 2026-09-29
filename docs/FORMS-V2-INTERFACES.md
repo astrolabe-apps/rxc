@@ -1133,6 +1133,22 @@ frame cannot; `frame.classNameOn: "input"` then sends the control's `className` 
 legacy put `styleClass`. So the split above is the default, and a host that has not made the move
 says so in one slot rather than forking the renderer.
 
+**Two themes, and no stylesheet (decided, built).** `forms-html` ships no CSS. Its
+`defaultHtmlTheme` is **hook classes only** — one stable `rxf-`-prefixed name per element and
+state, a CSS contract a host may target and a form never needs. `tailwindHtmlTheme` is the hooks
+plus Tailwind utilities, which the host's own Tailwind build generates once the package is in
+its scan; legacy's `defaultTailwindTheme` classes where legacy had real ones, the standard
+palette where it leaned on host CSS. It is written for **Tailwind 3.4 and 4 alike** (both adopters
+are on 3.4), and assumes **no preflight** (ServiceTas runs without it), so each slot resets what
+preflight would. A host theme that replaces a slot owns it outright, hook included. Behaviour
+hangs on neither theme: everything works with no CSS at all, which is why the two places it did
+not became theme *data* rather than classes — `contents.hideWith: "attribute" | "class"` (the
+`hidden` attribute by default; a class, so the exit can animate, for a theme that says so) and a
+`visibility.fade` slot for `FadeVisibility`'s wrapper. ServiceTas's theme is an overlay on
+`tailwindHtmlTheme`, identical in markup to the complete theme it replaced (README finding 79).
+One caveat belongs to hosts: Tailwind 4's utilities live in cascade layers, so unlayered global
+CSS — a UI library's reset — beats them, and a v4 host puts such a reset in a layer.
+
 ```ts
 interface StackProps {
   direction?: FormProp<"column" | "row">;        // Row is sugar

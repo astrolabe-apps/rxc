@@ -52,35 +52,35 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
   const summary = getProp(rc, p.summary);
   return rendered(
     <section
-      className={mergeClass("ff-collapsible", p.shellClassName)}
+      className={mergeClass("demo-collapsible", p.shellClassName)}
       data-hidden={p.hidden ? "" : undefined}
       data-invalid={p.invalid ? "" : undefined}
       inert={p.hidden || undefined}
     >
       <button
         type="button"
-        className="ff-collapsible-head"
+        className="demo-collapsible-head"
         aria-expanded={shown}
         onClick={() => {
           if (!designMode) setOpen((o) => !o);
         }}
       >
-        <span className="ff-collapsible-chevron" aria-hidden>
+        <span className="demo-collapsible-chevron" aria-hidden>
           {shown ? "▾" : "▸"}
         </span>
         <span
           className={mergeClass(
-            "ff-collapsible-title",
+            "demo-collapsible-title",
             combineClass(p.labelClassName, p.labelTextClassName),
           )}
         >
           {p.title}
         </span>
         {!shown && summary != null && (
-          <span className="ff-collapsible-summary">{summary}</span>
+          <span className="demo-collapsible-summary">{summary}</span>
         )}
         {p.invalid && (
-          <span className="ff-collapsible-badge" title="Contains errors">
+          <span className="demo-collapsible-badge" title="Contains errors">
             !
           </span>
         )}

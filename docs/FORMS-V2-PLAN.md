@@ -42,7 +42,7 @@ Amends *Proposed package layout* in the goals doc (updated to match).
 | `@rx-controls/forms-schema` | `packages/forms-core/src/json/*` | Canonical `ControlDefinition` / `SchemaField` types, builders, `schemaSchemas`. No React. A **move**: the JSON must match the C# server's byte for byte. |
 | `@rx-controls/forms-react` | `poc/forms-v2/src/framework/` | The contract: `FormProp`, scope and presence, the boundaries, validation scopes, collections, actions, tab / wizard / dialog controllers, staged edit, primitive prop types, the registry. No DOM, no class strings. |
 | `@rx-controls/forms-json` | `poc/forms-v2/src/loader/` | The loader: translators, expressions + jsonata, the data cursor, host hooks, `<JsonForm>`, `strict`. The only package that reads a `ControlDefinition`. |
-| `@rx-controls/forms-html` | `impls/html.tsx`, `shared.tsx`, `htmlTheme.tsx` | The HTML implementation, its `HtmlTheme`, and a small structural stylesheet. |
+| `@rx-controls/forms-html` | `impls/html.tsx`, `shared.tsx`, `htmlTheme.tsx` | The HTML implementation and its `HtmlTheme`: `defaultHtmlTheme` (`rxf-` hook classes only) and `tailwindHtmlTheme`. No stylesheet. |
 | `@rx-controls/forms-mui` | `impls/mui.tsx` | The MUI implementation, and the contract's regression gate. |
 | `@rx-controls/forms-antd` | `impls/antd.tsx` | The Ant Design implementation. The second family-2 library, and the one whose chrome is runtime tokens rather than classes. |
 | `apps/forms-storybook` | `poc/forms-v2/src/App.tsx`, `PersonForm.tsx`, `widgets/` | Private. A story per boundary kind under every implementation — the demos, and a CI smoke test. |
@@ -168,8 +168,11 @@ Open for the review:
   README finding 78). Its one use was the radio adding per-option expression variables, which
   the narrowed type could not do anyway. `retranslate` takes a declarative `rebuild` — `at`,
   `variables: { key, values }`, `collectWarnings` — instead.
-- `defaultHtmlTheme` carries the POC's `ff-*` class names, which are only meaningful with a
-  stylesheet `forms-html` does not ship yet.
+- ~~`defaultHtmlTheme`'s `ff-*` names need a stylesheet.~~ **Decided: no stylesheet, two
+  themes** (POC README finding 79). `defaultHtmlTheme` is `rxf-` hook classes only and works
+  with no CSS; `tailwindHtmlTheme` is the hooks plus Tailwind utilities, valid in 3.4 and 4 and
+  assuming no preflight. `contents.hideWith` and `visibility.fade` moved the two behaviours that
+  hung on CSS into theme data. With this, all three review questions are closed.
 
 ### 2 — `forms-react` + `forms-html`, the JSX path
 
@@ -209,7 +212,7 @@ the compat-app fixture green; every boundary kind has a story, and the story smo
 - Replace the POC's hand-written JSON subset (`loader/json.ts`) with `forms-schema`.
 - Port the translators, expressions and data cursor, **with tests per translator** from the
   fixture form (`loader/demoForm.ts`).
-- Take the loader's DOM out: `translate.tsx` still emits `ff-row` / `ff-empty` markup for
+- Take the loader's DOM out: `translate.tsx` still emits `rxf-row` / `rxf-empty` markup for
   collection rows, which a platform-independent package cannot own.
 - Move the corpus tooling to `tools/forms-corpus`.
 

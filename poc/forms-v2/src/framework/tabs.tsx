@@ -141,5 +141,5 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
 
 /** Shared by the implementations that want it. */
 export function tabPanelClass(active: boolean): string | undefined {
-  return mergeClass("ff-tabpanel", active ? undefined : "ff-tabpanel--off");
+  return mergeClass("rxf-tabpanel", active ? undefined : "rxf-tabpanel--off");
 }

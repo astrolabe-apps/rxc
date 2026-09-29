@@ -10,6 +10,8 @@
 /* The theme's classes, and the ones the form JSON carries itself
  * (`styleClass`, `textClass`, … — e.g. `bg-[#f5f5f5]`, `!text-accent`). */
 @source "./theme.tsx";
+/* The base the theme overlays: tailwindHtmlTheme (README finding 79). */
+@source "../impls/htmlTheme.tsx";
 @source "./main.tsx";
 @source "../../corpus/servicetas/*.json";
 

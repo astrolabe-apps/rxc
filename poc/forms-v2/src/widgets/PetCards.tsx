@@ -49,19 +49,19 @@ function PetCardsImpl<T>(
       labelTextClassName={p.labelTextClassName}
     >
       <div
-        className="ff-cards"
+        className="demo-cards"
         style={{ gridTemplateColumns: `repeat(${columns ?? 2}, 1fr)` }}
       >
         {p.elements.length === 0 && p.empty}
         {p.elements.map((e) => (
           <div
             key={e.key}
-            className="ff-card"
+            className="demo-card"
             onClick={() => p.onCardClick?.(e.index)}
           >
-            <div className="ff-card-body">{e.node}</div>
+            <div className="demo-card-body">{e.node}</div>
             {!locked && (
-              <div className="ff-card-actions">
+              <div className="demo-card-actions">
                 <Action
                   actionId={StandardActionIds.edit}
                   text="Edit"
