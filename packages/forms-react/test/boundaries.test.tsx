@@ -1,0 +1,527 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { act, type ReactNode } from "react";
+import { untrackedRead, type Control } from "@rx-controls/core";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import {
+  actionRenderer,
+  collectionRenderer,
+  displayRenderer,
+  fieldRenderer,
+  Form,
+  FormProvider,
+  FormScopeProvider,
+  narrowScope,
+  useFormScope,
+  getExternalEdit,
+  groupRenderer,
+  useFormValidation,
+  type ActionRenderProps,
+  type FieldRenderProps,
+  type TextDisplayExtra,
+  type TextFieldExtra,
+  type ValidationScope,
+} from "../src/index";
+import { flush, setupDom } from "./harness";
+import { mounts, testRenderers } from "./testRenderers";
+
+const dom = setupDom();
+beforeEach(() => mounts.clear());
+
+const Text = fieldRenderer<string | undefined | null, TextFieldExtra>({
+  key: "textfield",
+});
+const Group = groupRenderer({ key: "contents" });
+const Section = groupRenderer({ key: "contents" }, { scope: true });
+const Inline = groupRenderer({ key: "inline" }, { inline: true });
+const List = collectionRenderer<unknown>({ key: "elements" });
+const Button = actionRenderer({ key: "action" });
+const Show = displayRenderer<TextDisplayExtra>({ key: "text" });
+const ReadOnlyText = fieldRenderer<string | undefined | null>(
+  { key: "textfield" },
+  { writes: false },
+);
+
+function mount(ui: ReactNode, formProps: Parameters<typeof Form>[0] | {} = {}) {
+  dom.mount(
+    <FormProvider renderers={testRenderers}>
+      <Form {...(formProps as object)}>{ui}</Form>
+    </FormProvider>,
+  );
+}
+const $ = <E extends Element = HTMLElement>(sel: string) =>
+  dom.container.querySelector(sel) as E | null;
+const $$ = (sel: string) => [...dom.container.querySelectorAll(sel)];
+const set = <T,>(c: Control<T>, v: T) =>
+  act(() => dom.ctx.update((wc) => wc.setValue(c, v)));
+
+describe("the field boundary", () => {
+  it("hands the implementation resolved props, and an id when none is given", () => {
+    const c = dom.ctx.newControl("ada");
+    const label = dom.ctx.newControl("Name");
+    mount(<Text field={c} label={label} required className="x" />);
+    expect($("[data-label]")!.textContent).toBe("Name");
+    expect($("[data-required]")).not.toBeNull();
+    expect($<HTMLInputElement>("input")!.value).toBe("ada");
+    expect($("input")!.className).toBe("x");
+    expect($("input")!.id).toBeTruthy();
+    set(label, "Given name");
+    expect($("[data-label]")!.textContent).toBe("Given name");
+  });
+
+  it("passes props outside the contract through unresolved", () => {
+    const c = dom.ctx.newControl("");
+    const placeholder = dom.ctx.newControl("type here");
+    mount(<Text field={c} placeholder={placeholder} />);
+    expect($("input")!.getAttribute("placeholder")).toBe("type here");
+    set(placeholder, "changed");
+    expect($("input")!.getAttribute("placeholder")).toBe("changed");
+  });
+
+  it("shows its own error once touched, and only its own", () => {
+    const c = dom.ctx.newControl("");
+    mount(
+      <>
+        <Text field={c} id="req" required />
+        <Text field={c} id="plain" />
+      </>,
+    );
+    expect($("[data-error]")).toBeNull();
+    act(() => dom.ctx.update((wc) => wc.setTouched(c, true)));
+    expect($('[data-field="req"] [data-error]')!.textContent).toBe(
+      "Please enter a value",
+    );
+    // The same control, no `required` here: another boundary's rule.
+    expect($('[data-field="plain"] [data-error]')).toBeNull();
+  });
+
+  it("shows an error no rule wrote — a server rejection — on every field of the value", () => {
+    const c = dom.ctx.newControl("a@b");
+    mount(
+      <>
+        <Text field={c} id="one" />
+        <Text field={c} id="two" />
+      </>,
+    );
+    act(() =>
+      dom.ctx.update((wc) => {
+        wc.setError(c, "server", "Already registered");
+        wc.setTouched(c, true);
+      }),
+    );
+    expect($$("[data-error]").map((e) => e.textContent)).toEqual([
+      "Already registered",
+      "Already registered",
+    ]);
+  });
+
+  it("unmounts its widget when hidden, and keeps it mounted when silent", () => {
+    const c = dom.ctx.newControl("x");
+    const hide = dom.ctx.newControl(false);
+    mount(<Text field={c} id="f" hidden={hide} />);
+    const input = $("input");
+    set(hide, true);
+    expect($("input")).toBeNull();
+    set(hide, false);
+    expect($("input")).not.toBe(input);
+    expect(mounts.get("f")).toBe(2);
+  });
+
+  it("keeps its widget mounted — the same node — while its container makes it silent", () => {
+    const c = dom.ctx.newControl("x");
+    const offScreen = dom.ctx.newControl(false);
+    function Container({ children }: { children: ReactNode }) {
+      const parent = useFormScope();
+      const scope = narrowScope(parent, {
+        presence: (rc) => (rc.getValue(offScreen) ? "silent" : "rendered"),
+      });
+      return <FormScopeProvider scope={scope}>{children}</FormScopeProvider>;
+    }
+    mount(
+      <Container>
+        <Text field={c} id="f" />
+      </Container>,
+      { clearHidden: true },
+    );
+    const input = $("input");
+    set(offScreen, true);
+    expect($("input")).toBe(input);
+    // Silent is not hidden: nothing is cleared.
+    expect(untrackedRead.getValue(c)).toBe("x");
+    set(offScreen, false);
+    expect($("input")).toBe(input);
+    expect(mounts.get("f")).toBe(1);
+  });
+
+  it("clears its value when hidden under clearHidden, and defaults it when shown", () => {
+    const c = dom.ctx.newControl<string | undefined>("typed");
+    const hide = dom.ctx.newControl(false);
+    mount(<Text field={c} hidden={hide} defaultValue="dflt" />, {
+      clearHidden: true,
+    });
+    set(hide, true);
+    expect(untrackedRead.getValue(c)).toBeUndefined();
+    set(hide, false);
+    expect(untrackedRead.getValue(c)).toBe("dflt");
+  });
+
+  it("keeps its value with dontClearHidden, or without the form's clearHidden", () => {
+    const a = dom.ctx.newControl("a");
+    const b = dom.ctx.newControl("b");
+    mount(
+      <>
+        <Text field={a} hidden dontClearHidden />
+      </>,
+      { clearHidden: true },
+    );
+    expect(untrackedRead.getValue(a)).toBe("a");
+    mount(<Text field={b} hidden />);
+    expect(untrackedRead.getValue(b)).toBe("b");
+  });
+
+  it("never writes when built { writes: false }", () => {
+    const c = dom.ctx.newControl<string | undefined>("shown");
+    const d = dom.ctx.newControl<string | undefined>(undefined);
+    mount(
+      <>
+        <ReadOnlyText field={c} hidden />
+        <ReadOnlyText field={d} defaultValue="never" />
+      </>,
+      { clearHidden: true },
+    );
+    expect(untrackedRead.getValue(c)).toBe("shown");
+    expect(untrackedRead.getValue(d)).toBeUndefined();
+  });
+
+  it("hands its folded locks down as FormEditState", () => {
+    const c = dom.ctx.newControl("x");
+    const lock = dom.ctx.newControl(false);
+    mount(<Text field={c} disabled={lock} />, { readOnly: true });
+    const input = $<HTMLInputElement>("input")!;
+    expect(input.readOnly).toBe(true);
+    expect(input.disabled).toBe(false);
+    set(lock, true);
+    expect($<HTMLInputElement>("input")!.disabled).toBe(true);
+    // A lock toggling never remounts the widget.
+    expect($("input")).toBe(input);
+  });
+
+  it("outlines itself in design mode, and wraps with display: contents otherwise", () => {
+    const c = dom.ctx.newControl("x");
+    mount(<Text field={c} />);
+    expect($(".rxf-boundary")!.getAttribute("style")).toContain("contents");
+    mount(<Text field={c} />, { designMode: true });
+    expect($(".rxf-boundary")!.hasAttribute("data-design")).toBe(true);
+  });
+
+  it("validates even when its implementation renders nothing", () => {
+    const c = dom.ctx.newControl("");
+    const Invisible = fieldRenderer<string>(() => null);
+    let root!: ValidationScope;
+    function Owner() {
+      root = useFormValidation();
+      return (
+        <Form validation={root}>
+          <Invisible field={c} required />
+        </Form>
+      );
+    }
+    dom.mount(
+      <FormProvider renderers={testRenderers}>
+        <Owner />
+      </FormProvider>,
+    );
+    expect(root.isValid(untrackedRead)).toBe(false);
+  });
+});
+
+describe("the group boundary", () => {
+  it("hides without unmounting what is inside", () => {
+    const c = dom.ctx.newControl("x");
+    const hide = dom.ctx.newControl(false);
+    mount(
+      <Group hidden={hide}>
+        <p data-plain>plain JSX</p>
+      </Group>,
+    );
+    const p = $("[data-plain]");
+    set(hide, true);
+    expect($<HTMLElement>("[data-group]")!.hidden).toBe(true);
+    expect($("[data-plain]")).toBe(p);
+    void c;
+  });
+
+  it("narrows its children: a hidden group hides the fields inside", () => {
+    const c = dom.ctx.newControl("x");
+    const hide = dom.ctx.newControl(false);
+    mount(
+      <Group hidden={hide}>
+        <Text field={c} />
+      </Group>,
+    );
+    set(hide, true);
+    expect($("input")).toBeNull();
+  });
+
+  it("with { scope: true }, reports its content's validity and joins the tree", () => {
+    const c = dom.ctx.newControl("");
+    let root!: ValidationScope;
+    function Owner() {
+      root = useFormValidation();
+      return (
+        <Form validation={root}>
+          <Section validationKey="s">
+            <Text field={c} required />
+          </Section>
+        </Form>
+      );
+    }
+    dom.mount(
+      <FormProvider renderers={testRenderers}>
+        <Owner />
+      </FormProvider>,
+    );
+    expect($("[data-group]")!.hasAttribute("data-invalid")).toBe(true);
+    expect(root.find(untrackedRead, "s")!.kind).toBe("section");
+    set(c, "filled");
+    expect($("[data-group]")!.hasAttribute("data-invalid")).toBe(false);
+  });
+
+  it("passes layout and extra props, and marks inline children", () => {
+    const c = dom.ctx.newControl("x");
+    mount(
+      <>
+        <Group layout={{ direction: "row", gap: 4 }}>{null}</Group>
+        <Inline>
+          <Text field={c} />
+        </Inline>
+      </>,
+    );
+    expect(JSON.parse($("[data-layout]")!.getAttribute("data-layout")!)).toEqual({
+      direction: "row",
+      gap: 4,
+    });
+    expect($("[data-field]")!.hasAttribute("data-inline")).toBe(true);
+  });
+});
+
+describe("the display boundary", () => {
+  it("renders content, its accessible name, and leaves when hidden", () => {
+    const hide = dom.ctx.newControl(false);
+    mount(<Show text="Hello" accessibleName="greeting" hidden={hide} />);
+    expect($("[data-text]")!.textContent).toBe("Hello");
+    expect($("[data-text]")!.getAttribute("aria-label")).toBe("greeting");
+    set(hide, true);
+    expect($("[data-text]")).toBeNull();
+  });
+});
+
+describe("the action boundary", () => {
+  it("runs its handler, shows busy and holds itself while a promise runs", async () => {
+    let resolve!: () => void;
+    const clicks: number[] = [];
+    mount(
+      <Button
+        actionId="save"
+        text="Save"
+        onClick={() => {
+          clicks.push(1);
+          return new Promise<void>((r) => (resolve = r));
+        }}
+      />,
+    );
+    const btn = () => $<HTMLButtonElement>("[data-action=save]")!;
+    act(() => btn().click());
+    expect(clicks).toHaveLength(1);
+    expect(btn().disabled).toBe(true);
+    expect(btn().hasAttribute("data-busy")).toBe(true);
+    act(() => btn().click());
+    expect(clicks).toHaveLength(1);
+    await act(async () => resolve());
+    await flush();
+    expect(btn().disabled).toBe(false);
+  });
+
+  it("with disableType global, locks the whole form while it runs", async () => {
+    let resolve!: () => void;
+    const c = dom.ctx.newControl("x");
+    mount(
+      <>
+        <Text field={c} />
+        <Button
+          actionId="save"
+          disableType="global"
+          onClick={() => new Promise<void>((r) => (resolve = r))}
+        />
+      </>,
+    );
+    act(() => $<HTMLButtonElement>("[data-action=save]")!.click());
+    expect($<HTMLInputElement>("input")!.disabled).toBe(true);
+    await act(async () => resolve());
+    await flush();
+    expect($<HTMLInputElement>("input")!.disabled).toBe(false);
+  });
+
+  it("does nothing in design mode", () => {
+    let clicked = false;
+    mount(<Button actionId="go" onClick={() => void (clicked = true)} />, {
+      designMode: true,
+    });
+    act(() => $<HTMLButtonElement>("[data-action=go]")!.click());
+    expect(clicked).toBe(false);
+  });
+
+  it("is replaced by an override for its id", async () => {
+    const { ActionOverrideProvider } = await import("../src/index");
+    const Fancy = (p: ActionRenderProps) => <a data-fancy={p.actionId}>fancy</a>;
+    dom.mount(
+      <FormProvider renderers={testRenderers}>
+        <ActionOverrideProvider value={{ add: Fancy }}>
+          <Form>
+            <Button actionId="add" />
+            <Button actionId="remove" />
+          </Form>
+        </ActionOverrideProvider>
+      </FormProvider>,
+    );
+    expect($("[data-fancy=add]")).not.toBeNull();
+    expect($("[data-action=remove]")).not.toBeNull();
+  });
+});
+
+describe("the collection boundary", () => {
+  type Pet = { name: string };
+  function Pets({
+    pets,
+    minLength,
+    maxLength,
+    disabled,
+  }: {
+    pets: Control<Pet[]>;
+    minLength?: number;
+    maxLength?: number;
+    disabled?: boolean;
+  }) {
+    return (
+      <List
+        field={pets as Control<unknown[]>}
+        minLength={minLength}
+        maxLength={maxLength}
+        disabled={disabled}
+        empty={<i data-empty />}
+      >
+        {(item, index, actions) => (
+          <>
+            <Text field={(item as Control<Pet>).fields.name} id={`pet${index}`} />
+            <span data-can={`${actions.canAdd}|${actions.canRemove}`} />
+          </>
+        )}
+      </List>
+    );
+  }
+
+  it("renders a row per element, keyed by the element's control", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }, { name: "Tom" }]);
+    mount(<Pets pets={pets} />);
+    expect($$("[data-row]")).toHaveLength(2);
+    const first = $("#pet0");
+    act(() => dom.ctx.update((wc) => wc.addElement(pets, { name: "Zed" }, 0)));
+    // The row that was first is now second, and was not remounted.
+    expect($$("input").map((i) => (i as HTMLInputElement).value)).toEqual([
+      "Zed",
+      "Rex",
+      "Tom",
+    ]);
+    expect($$("input")[1]).toBe(first);
+  });
+
+  it("shows the empty slot with no elements", () => {
+    mount(<Pets pets={dom.ctx.newControl<Pet[]>([])} />);
+    expect($("[data-empty]")).not.toBeNull();
+  });
+
+  it("registers its length bounds on the array and reports can* from them", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }]);
+    mount(<Pets pets={pets} minLength={1} maxLength={2} />);
+    expect($("[data-can]")!.getAttribute("data-can")).toBe("true|false");
+    act(() => dom.ctx.update((wc) => wc.removeElement(pets, 0)));
+    expect(untrackedRead.getErrors(pets).length).toBe("At least 1 required");
+  });
+
+  it("reports every can* false when locked", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }]);
+    mount(<Pets pets={pets} disabled />);
+    expect($("[data-can]")!.getAttribute("data-can")).toBe("false|false");
+  });
+
+  it("re-renders one row, not the list, when one element changes", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }, { name: "Tom" }]);
+    const renders = new Map<string, number>();
+    function Counting({ id, field }: FieldRenderProps<string>): Rendered {
+      const { rc, rendered } = useReactive();
+      renders.set(id, (renders.get(id) ?? 0) + 1);
+      return rendered(<i>{rc.getValue(field)}</i>);
+    }
+    const Counted = fieldRenderer<string>(Counting);
+    mount(
+      <List field={pets as Control<unknown[]>}>
+        {(item, index) => (
+          <Counted field={(item as Control<Pet>).fields.name} id={`r${index}`} />
+        )}
+      </List>,
+    );
+    const before = { ...Object.fromEntries(renders) };
+    act(() =>
+      dom.ctx.update((wc) =>
+        wc.setValue(untrackedRead.getElements(pets)[1].fields.name, "Tim"),
+      ),
+    );
+    expect(renders.get("r0")).toBe(before.r0);
+    expect(renders.get("r1")).toBeGreaterThan(before.r1);
+  });
+
+  it("stages an edit: the draft is a copy until applied", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }]);
+    mount(<Pets pets={pets} />);
+    const edit = getExternalEdit(dom.ctx, pets);
+    act(() => edit.beginEdit(0));
+    const session = edit.session(untrackedRead)!;
+    set(session.draft.fields.name, "Rex II");
+    expect(untrackedRead.getValue(pets)[0].name).toBe("Rex");
+    act(() => edit.apply());
+    expect(untrackedRead.getValue(pets)[0].name).toBe("Rex II");
+    expect(edit.session(untrackedRead)).toBeUndefined();
+  });
+
+  it("ends a staged edit it began when it locks", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }]);
+    const lock = dom.ctx.newControl(false);
+    let beginEdit!: () => void;
+    const Row = actionRenderer((p) => {
+      beginEdit = p.onClick;
+      return null;
+    });
+    mount(
+      <List field={pets as Control<unknown[]>} disabled={lock}>
+        {(_item, index, actions) => (
+          <Row actionId="edit" onClick={() => actions.edit(index)} />
+        )}
+      </List>,
+    );
+    act(() => beginEdit());
+    const edit = getExternalEdit(dom.ctx, pets);
+    expect(edit.session(untrackedRead)).toBeDefined();
+    set(lock, true);
+    expect(edit.session(untrackedRead)).toBeUndefined();
+  });
+
+  it("clears the array itself when hidden under clearHidden", () => {
+    const pets = dom.ctx.newControl<Pet[] | undefined>([{ name: "Rex" }]);
+    mount(
+      <List field={pets as Control<unknown[]>} hidden>
+        {() => null}
+      </List>,
+      { clearHidden: true },
+    );
+    expect(untrackedRead.getValue(pets)).toBeUndefined();
+  });
+});

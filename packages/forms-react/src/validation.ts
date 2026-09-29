@@ -1,5 +1,8 @@
 import type { ReadContext } from "@rx-controls/core";
-import { notBuilt } from "./notBuilt.js";
+import {
+  useChildValidationScope,
+  useValidationScope,
+} from "./validationScope.js";
 
 /**
  * What made a validation scope.
@@ -97,7 +100,12 @@ export interface ValidationScope {
  * @group Authoring
  */
 export function useValidation(): ValidationScope {
-  return notBuilt("useValidation");
+  const scope = useValidationScope();
+  if (!scope)
+    throw new Error(
+      "useValidation() needs a <Form> above it — the form owns the root validation scope. The component that renders the <Form> uses useFormValidation() instead.",
+    );
+  return scope;
 }
 
 /**
@@ -127,5 +135,7 @@ export function useValidation(): ValidationScope {
  * @group Authoring
  */
 export function useFormValidation(validationKey?: string): ValidationScope {
-  return notBuilt("useFormValidation");
+  // The parent is the owner's context — the context the `<Form>` it renders
+  // sits in — so a form inside a form still attaches under the outer one.
+  return useChildValidationScope(useValidationScope(), "form", validationKey);
 }

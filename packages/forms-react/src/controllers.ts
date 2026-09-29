@@ -1,10 +1,14 @@
 import type { ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
-import type { Rendered } from "@rx-controls/react";
-import type { FormProp } from "./props.js";
-import type { FieldState } from "./scope.js";
+import { useReactive, type Rendered } from "@rx-controls/react";
+import { getProp, type FormProp } from "./props.js";
+import {
+  fieldState,
+  useFormScope,
+  useFieldState,
+  type FieldState,
+} from "./scope.js";
 import type { DisplayOnlyExtra, FieldOption, OptionValue } from "./widgets.js";
-import { notBuilt } from "./notBuilt.js";
 
 /*
  * Controllers: the platform-agnostic half of a widget. An implementation calls
@@ -52,7 +56,17 @@ export interface TextInputController extends FieldController {
 export function useTextInput(
   field: Control<string | undefined | null>,
 ): TextInputController {
-  return notBuilt("useTextInput");
+  const { rc, rendered, update } = useReactive();
+  const value = rc.getValue(field) ?? "";
+  return {
+    rc,
+    rendered,
+    state: useFieldState(rc, field),
+    value,
+    filled: value !== "",
+    setValue: (v) => update((wc) => wc.setValue(field, v)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
+  };
 }
 
 /**
@@ -79,7 +93,17 @@ export interface NumberInputController extends FieldController {
 export function useNumberInput(
   field: Control<number | undefined | null>,
 ): NumberInputController {
-  return notBuilt("useNumberInput");
+  const { rc, rendered, update } = useReactive();
+  const value = rc.getValue(field) ?? undefined;
+  return {
+    rc,
+    rendered,
+    state: useFieldState(rc, field),
+    value,
+    filled: value !== undefined,
+    setValue: (v) => update((wc) => wc.setValue(field, v)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
+  };
 }
 
 /**
@@ -104,7 +128,15 @@ export interface CheckboxController extends FieldController {
 export function useCheckbox(
   field: Control<boolean | undefined | null>,
 ): CheckboxController {
-  return notBuilt("useCheckbox");
+  const { rc, rendered, update } = useReactive();
+  return {
+    rc,
+    rendered,
+    state: useFieldState(rc, field),
+    checked: rc.getValue(field) ?? false,
+    setChecked: (v) => update((wc) => wc.setValue(field, v)),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
+  };
 }
 
 /**
@@ -137,7 +169,27 @@ export function useSelectController(
   field: Control<OptionValue>,
   options?: FormProp<FieldOption[]>,
 ): SelectController {
-  return notBuilt("useSelectController");
+  const { rc, rendered, update } = useReactive();
+  // Resolved here, in the implementation's window: the boundary hands a
+  // widget's own props through unresolved.
+  const list = getProp(rc, options) ?? [];
+  const value = rc.getValue(field);
+  const setValue = (v: OptionValue) => update((wc) => wc.setValue(field, v));
+  return {
+    rc,
+    rendered,
+    state: useFieldState(rc, field),
+    options: list,
+    stringValue: value === undefined || value === null ? "" : String(value),
+    setValue,
+    // Round-trip through the option list rather than `Number(s)`: that is
+    // what keeps a numeric option numeric without guessing.
+    setFromString: (s) =>
+      setValue(
+        s === "" ? undefined : (list.find((o) => String(o.value) === s)?.value ?? s),
+      ),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
+  };
 }
 
 /**
@@ -164,5 +216,33 @@ export function useDisplayValue(
   field: Control<unknown>,
   extra: DisplayOnlyExtra,
 ): DisplayValueController {
-  return notBuilt("useDisplayValue");
+  const { rc, rendered } = useReactive();
+  const scope = useFormScope();
+  const value = rc.getValue(field);
+  const list = getProp(rc, extra.options) ?? [];
+  const format = extra.format ?? String;
+  const one = (v: unknown) =>
+    list.find((o) => o.value === v)?.name ?? format(v);
+  const empty =
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0);
+  const text = empty
+    ? undefined
+    : Array.isArray(value)
+      ? value.map(one).join(", ")
+      : one(value);
+  const sample = getProp(rc, extra.sampleText);
+  const emptyText = getProp(rc, extra.emptyText);
+  return {
+    rc,
+    rendered,
+    state: fieldState(rc, field, scope),
+    text,
+    empty,
+    // The one place design mode enters a widget's data path: a designer's
+    // stand-in for a value that is not there.
+    content: text ?? (scope.designMode && sample != null ? sample : emptyText),
+  };
 }

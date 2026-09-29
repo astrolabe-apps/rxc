@@ -1,9 +1,30 @@
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, useId, type ComponentType, type ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
-import type { Rendered } from "@rx-controls/react";
-import type { ClassValue, FormProp } from "./props.js";
-import type { RegistrySlot } from "./registry.js";
-import { notBuiltComponent } from "./notBuilt.js";
+import {
+  useControl,
+  useControlContext,
+  useReactive,
+  type Rendered,
+} from "@rx-controls/react";
+import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { useRenderers, type RegistrySlot } from "./registry.js";
+import { FormScopeProvider, useBoundScope } from "./scope.js";
+import {
+  hiddenPending,
+  useDefaultValue,
+  useFieldValidation,
+  useMirror,
+} from "./fieldValidation.js";
+import { useValidationScope } from "./validationScope.js";
+import {
+  boundaryName,
+  boundaryState,
+  designChrome,
+  extraProps,
+  fieldContractKeys,
+  republish,
+  resolveImpl,
+} from "./boundaryParts.js";
 
 /**
  * A validator's verdict: a message, or nothing when the value is valid.
@@ -182,5 +203,87 @@ export function fieldRenderer<T, P extends object = {}>(
   source: FieldImplSource<T, P>,
   options?: FieldBoundaryOptions,
 ): (props: FieldProps<T> & P) => Rendered {
-  return notBuiltComponent("fieldRenderer");
+  const writes = options?.writes !== false;
+  function FieldBoundary(props: FieldProps<T> & P): Rendered {
+    const { rc, rendered } = useReactive();
+    const renderers = useRenderers();
+    const ctx = useControlContext();
+    const autoId = useId();
+    const { field: control, dontClearHidden, validate } = props;
+    const id = props.id ?? autoId;
+
+    const scope = useBoundScope(props);
+    const presence = scope.presence(rc);
+    const required = getProp(rc, props.required) ?? false;
+    const requiredMessage =
+      getProp(rc, props.requiredMessage) ?? "Please enter a value";
+
+    // Validates only while shown and decided: a `hidden` still pending does
+    // not report yet. Registration and the verdict live here, so they happen
+    // whether or not the field is on screen — an inactive tab still reports.
+    const cfg = useMirror({
+      active: presence !== "hidden" && !hiddenPending(rc, props.hidden),
+      required,
+      requiredMessage,
+    });
+    const vscope = useValidationScope();
+    const verdict = useControl<unknown>(undefined);
+    useFieldValidation(control, validate, cfg, vscope, id, verdict);
+    useEffect(
+      () => vscope?.register(verdict, control),
+      [vscope, verdict, control],
+    );
+
+    // The boundary that bound the data is the only thing that knows what to
+    // clear: each clears its own binding when it becomes hidden.
+    const clear =
+      writes && presence === "hidden" && scope.clearHidden && !dontClearHidden;
+    useEffect(() => {
+      if (clear) ctx.update((wc) => wc.setValue(control, undefined as T));
+    }, [clear, control, ctx]);
+    useDefaultValue(control, props.defaultValue, scope, writes, props.hidden);
+
+    const state = boundaryState(rc, control as Control<unknown>, scope);
+    // The field shows its verdict — its own rules and the errors no rule
+    // claims — the same judgement its validation scope makes.
+    const own = [...new Set(Object.values(rc.getErrors(verdict)).filter(Boolean))];
+
+    const renderProps: FieldRenderProps<T> = {
+      field: control,
+      id,
+      label: getProp(rc, props.label),
+      required,
+      error: state.touched && own.length ? own[0] : undefined,
+      helpText: getProp(rc, props.helpText),
+      startIcon: getProp(rc, props.startIcon),
+      endIcon: getProp(rc, props.endIcon),
+      inline: scope.inline,
+      className: getProp(rc, props.className),
+      labelClassName: getProp(rc, props.labelClassName),
+      labelTextClassName: getProp(rc, props.labelTextClassName),
+      shellClassName: getProp(rc, props.shellClassName),
+      textClassName: getProp(rc, props.textClassName),
+    };
+    const Impl = resolveImpl(source as ComponentType<never>, renderers);
+    const Visibility = renderers.visibility;
+    const body = republish(
+      <FormScopeProvider scope={scope}>
+        <Impl {...renderProps} {...extraProps(props, fieldContractKeys)} />
+      </FormScopeProvider>,
+      state.disabled,
+      state.readOnly,
+    );
+    // `silent` keeps the widget mounted; its container hides it.
+    return rendered(
+      designChrome(
+        <Visibility visible={presence !== "hidden"}>{body}</Visibility>,
+        scope.designMode,
+      ),
+    );
+  }
+  FieldBoundary.displayName = boundaryName(
+    "FieldBoundary",
+    source as ComponentType<never>,
+  );
+  return FieldBoundary;
 }

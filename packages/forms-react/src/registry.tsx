@@ -1,5 +1,9 @@
-import type { ComponentType, ReactNode } from "react";
-import type { Rendered } from "@rx-controls/react";
+import {
+  createContext,
+  useContext,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import type { ActionRenderProps } from "./action.js";
 import type { CollectionRenderProps } from "./collection.js";
 import type {
@@ -26,7 +30,6 @@ import type {
   SelectRenderProps,
   TextFieldRenderProps,
 } from "./widgets.js";
-import { notBuilt, notBuiltComponent } from "./notBuilt.js";
 
 /**
  * An implementation: one component per built-in, plus the structural
@@ -121,8 +124,19 @@ export interface FormProviderProps {
  *
  * @group Authoring
  */
-export const FormProvider: (props: FormProviderProps) => Rendered =
-  notBuiltComponent<FormProviderProps>("FormProvider");
+export function FormProvider({
+  renderers,
+  children,
+}: FormProviderProps): ReactNode {
+  const Root = renderers.root;
+  return (
+    <RenderersContext value={renderers}>
+      {Root ? <Root>{children}</Root> : children}
+    </RenderersContext>
+  );
+}
+
+const RenderersContext = createContext<FormRenderers | null>(null);
 
 /**
  * The active implementation. Throws when there is no {@link FormProvider}
@@ -131,5 +145,10 @@ export const FormProvider: (props: FormProviderProps) => Rendered =
  * @group Extensions
  */
 export function useRenderers(): FormRenderers {
-  return notBuilt("useRenderers");
+  const r = useContext(RenderersContext);
+  if (!r)
+    throw new Error(
+      "No form implementation: wrap the app in <FormProvider renderers={…}>.",
+    );
+  return r;
 }

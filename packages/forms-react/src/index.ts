@@ -16,7 +16,22 @@
  */
 
 export * from "./props.js";
-export * from "./scope.js";
+// Named, not `*`: scope.tsx also holds the framework's own scope facets.
+export {
+  Form,
+  FormScopeProvider,
+  narrowScope,
+  useBoundScope,
+  useFieldState,
+  useFormScope,
+  type BoundScopeProps,
+  type FieldState,
+  type FormProps,
+  type FormScopeProviderProps,
+  type Presence,
+  type ScopeNarrowing,
+  type ScopeState,
+} from "./scope.js";
 export * from "./field.js";
 export * from "./validation.js";
 export * from "./collection.js";

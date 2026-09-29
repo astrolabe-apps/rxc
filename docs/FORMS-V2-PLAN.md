@@ -132,7 +132,7 @@ symbols from the start, so the rule never has to be retrofitted onto a finished 
 *Exit:* the type surface of `forms-react`, `forms-json` and `forms-html` is signed off, from the
 generated reference, with every export documented.
 
-**Built, awaiting sign-off.** `forms-schema` is the move (`forms-core/src/json` → its own
+**Built and signed off.** `forms-schema` is the move (`forms-core/src/json` → its own
 package, which `forms-core` now depends on and re-exports until phase 6). `forms-react`,
 `forms-json` and `forms-html` are skeletons: every export has its real signature and a body that
 throws "not built yet", so they build, import and document, and `rush docs` passes with
@@ -175,6 +175,13 @@ Open for the review:
   hung on CSS into theme data. With this, all three review questions are closed.
 
 ### 2 — `forms-react` + `forms-html`, the JSX path
+
+**In progress.** Slices, each with its tests: (1) `forms-react` foundations — props, scope and
+presence, the validation tree with verdicts, field validation, the registry and primitive hooks
+**(built, 40 tests)**; (2) the boundaries — field, group, display, action, collection, staged
+edit **(built, 29 tests)**; (3) tabs, wizard, dialog, the controllers and the built-ins **(built,
+15 tests — `forms-react` complete, 84 in all)**; (4) `forms-html`; (5) the
+Storybook app; (6) the dev-app `PersonForm` and the compat fixture.
 
 Port the framework and the HTML implementation, **with the tests the POC never had**, written as
 each piece lands:

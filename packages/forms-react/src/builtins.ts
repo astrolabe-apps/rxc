@@ -18,7 +18,12 @@ import type {
   SelectExtra,
   TextFieldExtra,
 } from "./widgets.js";
-import { notBuiltComponent } from "./notBuilt.js";
+import { actionRenderer } from "./action.js";
+import { collectionRenderer } from "./collection.js";
+import { dialogRenderer, tabsRenderer, wizardRenderer } from "./containers.js";
+import { displayRenderer } from "./display.js";
+import { fieldRenderer } from "./field.js";
+import { groupRenderer } from "./group.js";
 
 /*
  * The built-ins. Each is a boundary over a registry slot, so
@@ -34,7 +39,7 @@ import { notBuiltComponent } from "./notBuilt.js";
  */
 export const TextField: <T extends string | undefined | null>(
   props: FieldProps<T> & TextFieldExtra,
-) => Rendered = notBuiltComponent("TextField");
+) => Rendered = fieldRenderer<string | undefined | null, TextFieldExtra>({ key: "textfield" }) as never;
 
 /**
  * A checkbox. It labels itself.
@@ -43,7 +48,7 @@ export const TextField: <T extends string | undefined | null>(
  */
 export const CheckboxField: <T extends boolean | undefined | null>(
   props: FieldProps<T>,
-) => Rendered = notBuiltComponent("CheckboxField");
+) => Rendered = fieldRenderer<boolean | undefined | null>({ key: "checkbox" }) as never;
 
 /**
  * A choice from a list.
@@ -52,7 +57,7 @@ export const CheckboxField: <T extends boolean | undefined | null>(
  */
 export const SelectField: <T extends OptionValue>(
   props: FieldProps<T> & SelectExtra,
-) => Rendered = notBuiltComponent("SelectField");
+) => Rendered = fieldRenderer<OptionValue, SelectExtra>({ key: "select" }) as never;
 
 /**
  * A choice from a list, as radio buttons, with optional content per option.
@@ -61,7 +66,7 @@ export const SelectField: <T extends OptionValue>(
  */
 export const RadioField: <T extends OptionValue>(
   props: FieldProps<T> & RadioExtra,
-) => Rendered = notBuiltComponent("RadioField");
+) => Rendered = fieldRenderer<OptionValue, RadioExtra>({ key: "radio" }) as never;
 
 /**
  * A bound value shown as text and never edited.
@@ -75,7 +80,10 @@ export const RadioField: <T extends OptionValue>(
  */
 export const DisplayOnlyField: <T>(
   props: FieldProps<T> & DisplayOnlyExtra,
-) => Rendered = notBuiltComponent("DisplayOnlyField");
+) => Rendered = fieldRenderer<unknown, DisplayOnlyExtra>(
+  { key: "displayOnly" },
+  { writes: false },
+) as never;
 
 /**
  * The chrome-less collection: its rows, with nothing drawn around them.
@@ -83,7 +91,7 @@ export const DisplayOnlyField: <T>(
  * @group Authoring
  */
 export const Elements: <T>(props: CollectionProps<T>) => Rendered =
-  notBuiltComponent("Elements");
+  collectionRenderer<unknown>({ key: "elements" }) as never;
 
 /**
  * The standard group: a region with an optional title, which narrows the scope
@@ -92,7 +100,7 @@ export const Elements: <T>(props: CollectionProps<T>) => Rendered =
  * @group Authoring
  */
 export const Contents: ComponentType<GroupProps> =
-  notBuiltComponent<GroupProps>("Contents");
+  groupRenderer({ key: "contents" });
 
 /**
  * {@link Contents} with a validation scope: the implementation is told when
@@ -101,7 +109,7 @@ export const Contents: ComponentType<GroupProps> =
  * @group Authoring
  */
 export const Section: ComponentType<GroupProps> =
-  notBuiltComponent<GroupProps>("Section");
+  groupRenderer({ key: "contents" }, { scope: true });
 
 /**
  * A group whose children are prose: fields and displays inside draw a bare
@@ -110,7 +118,7 @@ export const Section: ComponentType<GroupProps> =
  * @group Authoring
  */
 export const InlineGroup: ComponentType<GroupProps> =
-  notBuiltComponent<GroupProps>("InlineGroup");
+  groupRenderer({ key: "inline" }, { inline: true });
 
 /**
  * A tab strip.
@@ -118,7 +126,7 @@ export const InlineGroup: ComponentType<GroupProps> =
  * @group Authoring
  */
 export const Tabs: ComponentType<TabsProps> =
-  notBuiltComponent<TabsProps>("Tabs");
+  tabsRenderer({ key: "tabs" });
 
 /**
  * A multi-page form with Next and Back, whose Next waits for the page's
@@ -127,7 +135,7 @@ export const Tabs: ComponentType<TabsProps> =
  * @group Authoring
  */
 export const Wizard: ComponentType<WizardProps> =
-  notBuiltComponent<WizardProps>("Wizard");
+  wizardRenderer({ key: "wizard" });
 
 /**
  * A modal dialog. Closed is `silent`; in design mode it draws inline.
@@ -135,7 +143,7 @@ export const Wizard: ComponentType<WizardProps> =
  * @group Authoring
  */
 export const Dialog: ComponentType<DialogProps> =
-  notBuiltComponent<DialogProps>("Dialog");
+  dialogRenderer({ key: "dialog" });
 
 /**
  * A button.
@@ -143,7 +151,7 @@ export const Dialog: ComponentType<DialogProps> =
  * @group Authoring
  */
 export const Action: ComponentType<ActionProps> =
-  notBuiltComponent<ActionProps>("Action");
+  actionRenderer({ key: "action" });
 
 /**
  * Static text.
@@ -151,7 +159,7 @@ export const Action: ComponentType<ActionProps> =
  * @group Authoring
  */
 export const TextDisplay: ComponentType<DisplayProps & TextDisplayExtra> =
-  notBuiltComponent<DisplayProps & TextDisplayExtra>("TextDisplay");
+  displayRenderer<TextDisplayExtra>({ key: "text" });
 
 /**
  * Static markup.
@@ -159,7 +167,7 @@ export const TextDisplay: ComponentType<DisplayProps & TextDisplayExtra> =
  * @group Authoring
  */
 export const HtmlDisplay: ComponentType<DisplayProps & HtmlDisplayExtra> =
-  notBuiltComponent<DisplayProps & HtmlDisplayExtra>("HtmlDisplay");
+  displayRenderer<HtmlDisplayExtra>({ key: "html" });
 
 /**
  * A static icon. Give it an `accessibleName`: it has no text of its own.
@@ -167,4 +175,4 @@ export const HtmlDisplay: ComponentType<DisplayProps & HtmlDisplayExtra> =
  * @group Authoring
  */
 export const IconDisplay: ComponentType<DisplayProps & IconDisplayExtra> =
-  notBuiltComponent<DisplayProps & IconDisplayExtra>("IconDisplay");
+  displayRenderer<IconDisplayExtra>({ key: "icon" });

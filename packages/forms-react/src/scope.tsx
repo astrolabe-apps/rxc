@@ -1,9 +1,14 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
-import type { Rendered } from "@rx-controls/react";
-import type { FormProp } from "./props.js";
+import { useControl, useFormEdit } from "@rx-controls/react";
+import { getProp, type FormProp } from "./props.js";
 import type { ValidationScope } from "./validation.js";
-import { notBuilt, notBuiltComponent } from "./notBuilt.js";
+import {
+  useChildValidationScope,
+  useValidationScope,
+  ValidationScopeProvider,
+  type ValidationScopeImpl,
+} from "./validationScope.js";
 
 /**
  * Where a boundary is, as far as the form is concerned.
@@ -141,8 +146,86 @@ export interface FormProps extends ScopeNarrowing {
  *
  * @group Authoring
  */
-export const Form: (props: FormProps) => Rendered =
-  notBuiltComponent<FormProps>("Form");
+export function Form({
+  children,
+  validationKey,
+  validation: given,
+  ...narrowing
+}: FormProps): ReactNode {
+  const parent = useFormScope();
+  const globalLock = useControl(0);
+  // The root of the validation tree: the owner's, when it made one with
+  // useFormValidation(); otherwise the form's own.
+  const own = useChildValidationScope(
+    useValidationScope(),
+    "form",
+    validationKey,
+    !given,
+  );
+  const validation = (given as ValidationScopeImpl | undefined) ?? own!;
+  const { presence, disabled, readOnly, clearHidden, designMode, inline } =
+    narrowing;
+  const scope = useMemo((): InternalScope => {
+    const s = narrowScope(parent, {
+      presence,
+      readOnly,
+      clearHidden,
+      designMode,
+      inline,
+      // The global lock is the form's: a running `disableType: "global"`
+      // action holds it, and every boundary reads it as `disabled`.
+      disabled: (rc) =>
+        (getProp(rc, disabled) ?? false) || rc.getValue(globalLock) > 0,
+    });
+    return { ...s, globalLock };
+  }, [
+    parent,
+    globalLock,
+    presence,
+    disabled,
+    readOnly,
+    clearHidden,
+    designMode,
+    inline,
+  ]);
+  return (
+    <ScopeContext value={scope}>
+      <ValidationScopeProvider value={validation}>
+        {children}
+      </ValidationScopeProvider>
+    </ScopeContext>
+  );
+}
+
+/**
+ * The scope as the framework holds it: the public facets plus the form's
+ * global lock, which the action boundary takes. Not exported from the package.
+ */
+export interface InternalScope extends ScopeState {
+  globalLock?: Control<number>;
+}
+
+const rootScope: InternalScope = {
+  presence: () => "rendered",
+  disabled: () => false,
+  readOnly: () => false,
+  clearHidden: false,
+  designMode: false,
+  inline: false,
+};
+
+const ScopeContext = createContext<InternalScope>(rootScope);
+
+const presenceOrder: Record<Presence, number> = {
+  hidden: 0,
+  silent: 1,
+  rendered: 2,
+};
+
+/** Narrow, never widen: a child cannot be more present than its parent. */
+function narrowPresence(parent: Presence, child: Presence): Presence {
+  return presenceOrder[parent] <= presenceOrder[child] ? parent : child;
+}
 
 /**
  * The scope at this component's position.
@@ -150,7 +233,12 @@ export const Form: (props: FormProps) => Rendered =
  * @group Extensions
  */
 export function useFormScope(): ScopeState {
-  return notBuilt("useFormScope");
+  return useContext(ScopeContext);
+}
+
+/** The scope with the framework's own facets — for the action boundary. */
+export function useInternalScope(): InternalScope {
+  return useContext(ScopeContext);
 }
 
 /**
@@ -165,7 +253,23 @@ export function useFieldState<T>(
   rc: ReadContext,
   control: Control<T>,
 ): FieldState {
-  return notBuilt("useFieldState");
+  return fieldState(rc, control, useFormScope());
+}
+
+/** {@link FieldState} against a given scope — what a boundary computes. */
+export function fieldState<T>(
+  rc: ReadContext,
+  control: Control<T>,
+  scope: ScopeState,
+): FieldState {
+  return {
+    disabled: rc.isDisabled(control) || scope.disabled(rc),
+    readOnly: scope.readOnly(rc),
+    touched: rc.isTouched(control),
+    dirty: rc.isDirty(control),
+    // A set: two boundaries over one control may publish the same verdict.
+    errors: [...new Set(Object.values(rc.getErrors(control)).filter(Boolean))],
+  };
 }
 
 /**
@@ -178,7 +282,18 @@ export function narrowScope(
   parent: ScopeState,
   narrowing: ScopeNarrowing,
 ): ScopeState {
-  return notBuilt("narrowScope");
+  const n = narrowing;
+  const scope: InternalScope = {
+    presence: (rc) =>
+      narrowPresence(parent.presence(rc), getProp(rc, n.presence) ?? "rendered"),
+    disabled: (rc) => parent.disabled(rc) || (getProp(rc, n.disabled) ?? false),
+    readOnly: (rc) => parent.readOnly(rc) || (getProp(rc, n.readOnly) ?? false),
+    clearHidden: n.clearHidden ?? parent.clearHidden,
+    designMode: n.designMode ?? parent.designMode,
+    inline: n.inline ?? parent.inline,
+    globalLock: (parent as InternalScope).globalLock,
+  };
+  return scope;
 }
 
 /**
@@ -202,8 +317,12 @@ export interface FormScopeProviderProps {
  *
  * @group Extensions
  */
-export const FormScopeProvider: (props: FormScopeProviderProps) => Rendered =
-  notBuiltComponent<FormScopeProviderProps>("FormScopeProvider");
+export function FormScopeProvider({
+  scope,
+  children,
+}: FormScopeProviderProps): ReactNode {
+  return <ScopeContext value={scope as InternalScope}>{children}</ScopeContext>;
+}
 
 /**
  * The flags any boundary takes, as a narrowing of the scope around it.
@@ -232,5 +351,18 @@ export interface BoundScopeProps {
  * @group Extensions
  */
 export function useBoundScope(props: BoundScopeProps): ScopeState {
-  return notBuilt("useBoundScope");
+  const parent = useFormScope();
+  const edit = useFormEdit();
+  const { hidden, disabled, readOnly } = props;
+  return useMemo(
+    () =>
+      narrowScope(parent, {
+        // `undefined` is pending, and pending is shown — the boundary holds
+        // its write cycles until the answer lands.
+        presence: (rc) => (getProp(rc, hidden) ?? false ? "hidden" : "rendered"),
+        disabled: (rc) => (getProp(rc, disabled) ?? false) || !!edit.disabled,
+        readOnly: (rc) => (getProp(rc, readOnly) ?? false) || !!edit.readOnly,
+      }),
+    [parent, hidden, disabled, readOnly, edit.disabled, edit.readOnly],
+  );
 }

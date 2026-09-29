@@ -1,8 +1,15 @@
-import type { ComponentType, ReactNode } from "react";
-import type { Rendered } from "@rx-controls/react";
-import type { ClassValue, FormProp } from "./props.js";
-import type { RegistrySlot } from "./registry.js";
-import { notBuilt, notBuiltComponent } from "./notBuilt.js";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  type ComponentType,
+  type ReactNode,
+} from "react";
+import { useControl, useReactive, type Rendered } from "@rx-controls/react";
+import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { useRenderers, type RegistrySlot } from "./registry.js";
+import { useBoundScope, useInternalScope } from "./scope.js";
+import { boundaryName, resolveImpl } from "./boundaryParts.js";
 
 /**
  * A button's emphasis.
@@ -131,11 +138,16 @@ export interface ActionOverrideProviderProps {
  *
  * @group Authoring
  */
-export const ActionOverrideProvider: (
-  props: ActionOverrideProviderProps,
-) => Rendered = notBuiltComponent<ActionOverrideProviderProps>(
-  "ActionOverrideProvider",
-);
+export function ActionOverrideProvider({
+  value,
+  children,
+}: ActionOverrideProviderProps): ReactNode {
+  const parent = useActionOverrides();
+  const merged = useMemo(() => ({ ...parent, ...value }), [parent, value]);
+  return <OverridesContext value={merged}>{children}</OverridesContext>;
+}
+
+const OverridesContext = createContext<ActionOverrides>({});
 
 /**
  * The overrides in effect at this position.
@@ -143,7 +155,7 @@ export const ActionOverrideProvider: (
  * @group Extensions
  */
 export function useActionOverrides(): ActionOverrides {
-  return notBuilt("useActionOverrides");
+  return useContext(OverridesContext);
 }
 
 /**
@@ -197,5 +209,65 @@ export type ActionImplSource = ComponentType<ActionRenderProps> | RegistrySlot;
 export function actionRenderer(
   source: ActionImplSource,
 ): ComponentType<ActionProps> {
-  return notBuiltComponent("actionRenderer");
+  function ActionBoundary(props: ActionProps): Rendered {
+    const { rc, rendered, update } = useReactive();
+    const renderers = useRenderers();
+    const overrides = useActionOverrides();
+    const scope = useBoundScope(props);
+    // The form's lock lives on the framework's own scope facet.
+    const lock = useInternalScope().globalLock;
+    const busy = useControl(false);
+
+    // `silent` keeps the button, like every boundary; its container hides it.
+    const hidden = scope.presence(rc) === "hidden";
+    const disabled = scope.disabled(rc) || rc.getValue(busy);
+    const disableType = props.disableType ?? "self";
+    const onClick = () => {
+      if (scope.designMode || disabled) return;
+      const result = props.onClick?.();
+      if (!(result instanceof Promise)) return;
+      // `self` holds this button; `global` also holds the form's lock, which
+      // the form reads as `disabled` for every boundary in it.
+      const global = disableType === "global" ? lock : undefined;
+      update((wc) => {
+        if (disableType !== "none") wc.setValue(busy, true);
+        if (global) wc.updateValue(global, (n) => n + 1);
+      });
+      void result.finally(() =>
+        update((wc) => {
+          wc.setValue(busy, false);
+          if (global) wc.updateValue(global, (n) => Math.max(0, n - 1));
+        }),
+      );
+    };
+    const Impl = (overrides[props.actionId] ??
+      resolveImpl(
+        source as ComponentType<never>,
+        renderers,
+      )) as ComponentType<ActionRenderProps>;
+    return rendered(
+      hidden ? null : (
+        <Impl
+          actionId={props.actionId}
+          text={getProp(rc, props.text)}
+          icon={getProp(rc, props.icon)}
+          iconPlacement={getProp(rc, props.iconPlacement) ?? "before"}
+          className={getProp(rc, props.className)}
+          textClassName={getProp(rc, props.textClassName)}
+          shellClassName={getProp(rc, props.shellClassName)}
+          onClick={onClick}
+          disabled={disabled}
+          busy={rc.getValue(busy)}
+          style={getProp(rc, props.style) ?? "secondary"}
+        >
+          {props.children}
+        </Impl>
+      ),
+    );
+  }
+  ActionBoundary.displayName = boundaryName(
+    "ActionBoundary",
+    source as ComponentType<never>,
+  );
+  return ActionBoundary;
 }

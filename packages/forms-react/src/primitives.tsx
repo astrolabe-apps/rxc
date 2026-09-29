@@ -5,9 +5,8 @@ import type {
   ReactNode,
   Ref,
 } from "react";
-import type { Rendered } from "@rx-controls/react";
 import type { ClassValue, FormProp } from "./props.js";
-import { notBuilt, notBuiltComponent } from "./notBuilt.js";
+import { useRenderers } from "./registry.js";
 
 /**
  * The chrome around one field: label, control, help and error, laid out and
@@ -191,7 +190,7 @@ export interface VisibilityProps {
  * @group Implementations
  */
 export function useFieldShell(): ComponentType<FieldShellProps> {
-  return notBuilt("useFieldShell");
+  return useRenderers().fieldShell;
 }
 
 /**
@@ -200,7 +199,7 @@ export function useFieldShell(): ComponentType<FieldShellProps> {
  * @group Implementations
  */
 export function useInputFrame(): ComponentType<InputFrameProps> {
-  return notBuilt("useInputFrame");
+  return useRenderers().inputFrame;
 }
 
 /**
@@ -209,7 +208,7 @@ export function useInputFrame(): ComponentType<InputFrameProps> {
  * @group Implementations
  */
 export function useStack(): ComponentType<StackProps> {
-  return notBuilt("useStack");
+  return useRenderers().stack;
 }
 
 /**
@@ -217,8 +216,10 @@ export function useStack(): ComponentType<StackProps> {
  *
  * @group Authoring
  */
-export const Stack: (props: StackProps) => Rendered =
-  notBuiltComponent<StackProps>("Stack");
+export function Stack(props: StackProps): ReactNode {
+  const S = useStack();
+  return <S {...props} />;
+}
 
 /**
  * The id a control's `aria-describedby` should name: the shell's error when
@@ -232,5 +233,9 @@ export function describedBy(field: {
   error?: ReactNode;
   helpText?: ReactNode;
 }): string | undefined {
-  return notBuilt("describedBy");
+  return field.error
+    ? `${field.id}-error`
+    : field.helpText
+      ? `${field.id}-help`
+      : undefined;
 }

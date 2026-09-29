@@ -1,5 +1,4 @@
 import type { Control, ReadContext } from "@rx-controls/core";
-import { notBuilt } from "./notBuilt.js";
 
 /**
  * A prop that may be reactive. One of three shapes:
@@ -51,7 +50,20 @@ export function getProp<T>(
   rc: ReadContext,
   prop: FormProp<T> | undefined,
 ): T | undefined {
-  return notBuilt("getProp");
+  if (prop === undefined) return undefined;
+  if (isControl(prop)) return rc.getValue(prop) as T;
+  if (typeof prop === "function") return (prop as (rc: ReadContext) => T)(rc);
+  return prop;
+}
+
+/** A `Control` by shape: core's controls carry `subscribe` and a numeric `uniqueId`. */
+function isControl(x: unknown): x is Control<unknown> {
+  return (
+    typeof x === "object" &&
+    x !== null &&
+    typeof (x as { subscribe?: unknown }).subscribe === "function" &&
+    typeof (x as { uniqueId?: unknown }).uniqueId === "number"
+  );
 }
 
 /**
@@ -65,7 +77,9 @@ export function mergeClass(
   own: string | undefined,
   given: ClassValue | undefined,
 ): string | undefined {
-  return notBuilt("mergeClass");
+  if (given === undefined) return own;
+  if (typeof given === "object") return given.replace;
+  return [own, given].filter(Boolean).join(" ") || undefined;
 }
 
 /**
@@ -80,5 +94,9 @@ export function combineClass(
   a: ClassValue | undefined,
   b: ClassValue | undefined,
 ): ClassValue | undefined {
-  return notBuilt("combineClass");
+  if (b === undefined) return a;
+  if (a === undefined) return b;
+  if (typeof b === "object") return b;
+  if (typeof a === "object") return { replace: `${a.replace} ${b}` };
+  return `${a} ${b}`;
 }
