@@ -8,6 +8,7 @@ import {
   type FormProp,
 } from "../framework/index.js";
 import { SwitchField } from "../widgets/Switch.js";
+import { TextField } from "../framework/index.js";
 import {
   CompoundCycle,
   defaultTranslators,
@@ -51,6 +52,61 @@ const switchTranslator: Translator = {
   ),
 };
 
+/**
+ * ServiceTas extends Textfield's render options with `keyboardType` and
+ * `autoComplete` (its `formExtensions.ts`, "Mobile Only" — only its React
+ * Native renderer read them). Not the canonical format, so the loader does
+ * not know them; the host translates, onto `TextField`'s contract props.
+ * `keyboardType` is React Native's vocabulary; `inputMode` is the one HTML
+ * and React Native share.
+ */
+const inputModeFor: Record<string, FieldInputMode | undefined> = {
+  default: undefined,
+  numeric: "numeric",
+  "number-pad": "numeric",
+  "decimal-pad": "decimal",
+  "phone-pad": "tel",
+  "email-address": "email",
+  url: "url",
+  "web-search": "search",
+};
+type FieldInputMode =
+  | "numeric"
+  | "decimal"
+  | "tel"
+  | "email"
+  | "url"
+  | "search";
+
+const textInputTranslator: Translator = {
+  match: (d) => {
+    const ro = d.renderOptions as
+      | { type?: string; keyboardType?: string; autoComplete?: string }
+      | undefined;
+    return (
+      d.type === "Data" &&
+      ro?.type === "Textfield" &&
+      (ro.keyboardType !== undefined || ro.autoComplete !== undefined)
+    );
+  },
+  renderTypes: ["Textfield"],
+  render: ({ props, def }) => {
+    const ro = def.renderOptions as {
+      placeholder?: string;
+      keyboardType?: string;
+      autoComplete?: string;
+    };
+    return (
+      <TextField
+        {...props}
+        placeholder={ro.placeholder}
+        inputMode={ro.keyboardType ? inputModeFor[ro.keyboardType] : undefined}
+        autoComplete={ro.autoComplete || undefined}
+      />
+    );
+  },
+};
+
 /** The host's own class under the definition's, resolved per read. */
 const withOwn =
   (
@@ -72,7 +128,8 @@ const messageBoxTranslator: Translator = {
   renderTypes: ["MessageBox"],
   render: ({ def, props, children }) => {
     const go = def.groupOptions as
-      { level?: string; hideIcon?: boolean } | undefined;
+      | { level?: string; hideIcon?: boolean }
+      | undefined;
     const level = go?.level ?? "info";
     return (
       <Contents
@@ -143,6 +200,7 @@ function HelpWithLabel({
 export const pocHost: LoaderOptions = {
   translators: [
     switchTranslator,
+    textInputTranslator,
     messageBoxTranslator,
     topLevelGroupTranslator,
     ...defaultTranslators,

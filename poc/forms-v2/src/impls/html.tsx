@@ -179,6 +179,8 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const placeholder = getProp(ctl.rc, p.placeholder);
   const inputType = getProp(ctl.rc, p.inputType) ?? "text";
   const multiline = !!getProp(ctl.rc, p.multiline);
+  const inputMode = getProp(ctl.rc, p.inputMode);
+  const autoComplete = getProp(ctl.rc, p.autoComplete);
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -210,6 +212,8 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
             ...slot,
             value: ctl.value,
             placeholder,
+            inputMode,
+            autoComplete,
             onChange: (e: { target: { value: string } }) =>
               ctl.setValue(e.target.value),
             onBlur: (e: FocusEvent<HTMLElement>) => {

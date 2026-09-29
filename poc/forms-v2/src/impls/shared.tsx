@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   combineClass,
   mergeClass,
@@ -6,6 +12,7 @@ import {
   type ClassValue,
   type CollectionRenderProps,
   type GroupRenderProps,
+  type StackLayout,
   type VisibilityProps,
 } from "../framework/index.js";
 import { defaultHtmlTheme, type HtmlTheme } from "./htmlTheme.js";
@@ -60,6 +67,7 @@ export function Contents({
   labelTextClassName,
   hidden,
   invalid,
+  layout,
   children,
   classes = defaultHtmlTheme.contents,
 }: GroupRenderProps & { classes?: HtmlTheme["contents"] }) {
@@ -87,10 +95,50 @@ export function Contents({
             {title}
           </div>
         )}
-        <div className={mergeClass(classes.body, className)}>{children}</div>
+        {/* One body element either way, so a layout arriving later changes
+            attributes and not the tree. */}
+        <div
+          className={mergeClass(
+            layout ? classes.flexBody : classes.body,
+            className,
+          )}
+          style={layout ? flexStyle(layout, classes.flexGap) : undefined}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
+}
+
+const justifyCss = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  "space-between": "space-between",
+  "space-around": "space-around",
+} as const;
+const alignCss = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  stretch: "stretch",
+  baseline: "baseline",
+} as const;
+
+/** Legacy's `flexStyles`: display, gap, and a direction only when given. */
+export function flexStyle(
+  l: StackLayout,
+  defaultGap: string | number,
+): CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: l.direction,
+    gap: l.gap ?? defaultGap,
+    justifyContent: l.justify && justifyCss[l.justify],
+    alignItems: l.align && alignCss[l.align],
+    flexWrap: l.wrap ? "wrap" : undefined,
+  };
 }
 
 /**

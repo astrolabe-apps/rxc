@@ -246,7 +246,24 @@ export interface GroupProps {
   shellClassName?: FormProp<ClassValue>;
   labelClassName?: FormProp<ClassValue>;
   labelTextClassName?: FormProp<ClassValue>;
+  /**
+   * The body as a flex box — legacy's Flex group. Absent, the body is the
+   * implementation's standard group body. A property of the body rather than
+   * a `<Stack>` inside it, because legacy's body *was* the layout element:
+   * `className` (the JSON's `styleClass`, `justify-between` and friends) has
+   * to land on the flex box, and a theme styles the two bodies differently.
+   */
+  layout?: FormProp<StackLayout | undefined>;
   children: ReactNode;
+}
+
+/** A flex body: `StackProps` without the children, resolved. */
+export interface StackLayout {
+  direction?: "column" | "row";
+  gap?: string | number;
+  justify?: "start" | "center" | "end" | "space-between" | "space-around";
+  align?: "start" | "center" | "end" | "stretch" | "baseline";
+  wrap?: boolean;
 }
 
 /**
@@ -331,6 +348,12 @@ export interface GroupRenderProps {
   hidden?: boolean;
   /** Only when the boundary was built with `{ scope: true }`. */
   invalid?: boolean;
+  /**
+   * Draw the body as this flex box. An implementation that has one body
+   * shape may ignore it; the group kinds of legacy's corpus are Standard
+   * (absent) and Flex (present).
+   */
+  layout?: StackLayout;
   children: ReactNode;
 }
 
@@ -377,6 +400,20 @@ export interface TextFieldExtra {
   placeholder?: FormProp<string>;
   multiline?: FormProp<boolean>;
   inputType?: FormProp<"text" | "email" | "password" | "tel">;
+  /**
+   * The on-screen keyboard to offer. HTML's `inputmode` and React Native's
+   * `TextInput.inputMode` take the same values, so this is one vocabulary on
+   * both platforms: legacy's `keyboardType` translates onto it.
+   */
+  inputMode?: FormProp<
+    "text" | "numeric" | "decimal" | "tel" | "email" | "url" | "search" | "none"
+  >;
+  /**
+   * An autofill token — `cc-number`, `postal-code`, `off`. The WHATWG tokens,
+   * which React Native's `TextInput.autoComplete` shares, so the value passes
+   * through untranslated on either platform.
+   */
+  autoComplete?: FormProp<string>;
 }
 
 export type TextFieldRenderProps = FieldRenderProps<string | undefined | null> &

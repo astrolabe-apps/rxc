@@ -429,6 +429,18 @@ export const demoControls: ControlDefinition[] = [
     ],
     children: [],
   },
+  // ServiceTas's Textfield extension, translated by the host (pocHost), not
+  // the loader: `keyboardType` → `inputMode`, `autoComplete` as is.
+  {
+    type: "Data",
+    field: "vetName",
+    title: "Vet's phone (host keyboardType + autoComplete)",
+    renderOptions: {
+      type: "Textfield",
+      keyboardType: "phone-pad",
+      autoComplete: "tel",
+    } as never,
+  },
   // A shape that renders *something* and quietly loses what the JSON asked
   // for — the failure the warning list exists to catch.
   {

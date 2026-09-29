@@ -94,7 +94,12 @@ export interface HtmlTheme {
     hidden: string;
     inner: string;
     title: string;
+    /** The standard body — legacy's `standardClassName`. */
     body: string;
+    /** A body with a `layout`: a flex box — legacy's `flexClassName`. */
+    flexBody: string;
+    /** Its gap when the layout has none — legacy's `defaultFlexGap`. */
+    flexGap: number | string;
   };
   inline: { wrapper: string; title: string };
   elements: { className: string };
@@ -182,6 +187,8 @@ export const defaultHtmlTheme: HtmlTheme = {
     inner: "ff-contents-inner",
     title: "ff-group-title",
     body: "ff-contents-body",
+    flexBody: "ff-contents-flex",
+    flexGap: 16,
   },
   inline: { wrapper: "ff-inline", title: "ff-group-title" },
   elements: { className: "ff-elements" },

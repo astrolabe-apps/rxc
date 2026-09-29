@@ -13,7 +13,6 @@ import {
 import {
   Action,
   arrayActions,
-  Stack,
   StandardActionIds,
   useDefaultValue,
   useFormScope,
@@ -32,6 +31,7 @@ import {
   TextDisplay,
   TextField,
   type ClassValue,
+  type StackLayout,
   type FieldOption,
   type FieldProps,
   type FormProp,
@@ -270,6 +270,18 @@ const defaultUnsupported = (def: ControlDefinition) => (
   </p>
 );
 
+/**
+ * Legacy's Flex options onto a group layout. `direction` unset is CSS's
+ * default, a row — legacy set `flexDirection` only when given. `gap` unset
+ * is the theme's.
+ */
+function flexLayout(go: Record<string, unknown>): StackLayout {
+  return {
+    direction: (go.direction as "row" | "column" | undefined) ?? undefined,
+    gap: (go.gap as string | undefined) || undefined,
+  };
+}
+
 const hasDynamic = (d: ControlDefinition, t: string) =>
   !!d.dynamic?.some((x) => x.type === t);
 
@@ -498,17 +510,11 @@ export const defaultTranslators: Translator[] = [
       if (kind === "Inline")
         return <InlineGroup {...groupProps}>{withDefault}</InlineGroup>;
       return (
-        <Contents {...groupProps}>
-          {kind === "Flex" ? (
-            <Stack
-              direction={(nested.direction as "row" | "column") ?? "row"}
-              gap={nested.gap as string | undefined}
-            >
-              {withDefault}
-            </Stack>
-          ) : (
-            withDefault
-          )}
+        <Contents
+          {...groupProps}
+          layout={kind === "Flex" ? flexLayout(nested) : undefined}
+        >
+          {withDefault}
         </Contents>
       );
     },
@@ -705,9 +711,10 @@ export const defaultTranslators: Translator[] = [
     ),
   },
   {
-    // Legacy's Flex group: a flex box, `direction` (default row) and `gap`.
-    // 36 in the corpus, 35 of them on the defaults. A group boundary around
-    // the layout box, so it keeps title, hidden and the class slots.
+    // Legacy's Flex group: a flex box, `direction` and `gap`. 36 in the
+    // corpus, 35 of them on the defaults. The group's *body* is the flex box,
+    // as legacy's was, so `styleClass` (`justify-between`, `items-end`: 21 of
+    // them) lands on it, and the theme gives it its own class.
     match: (d) => d.type === "Group" && d.groupOptions?.type === "Flex",
     renderTypes: ["Flex"],
     render: ({ def, props, children }) => (
@@ -719,16 +726,9 @@ export const defaultTranslators: Translator[] = [
         shellClassName={props.shellClassName}
         labelClassName={props.labelClassName}
         labelTextClassName={props.labelTextClassName}
+        layout={flexLayout(def.groupOptions ?? {})}
       >
-        <Stack
-          direction={
-            (def.groupOptions?.direction as "row" | "column" | undefined) ??
-            "row"
-          }
-          gap={def.groupOptions?.gap as string | undefined}
-        >
-          {children}
-        </Stack>
+        {children}
       </Contents>
     ),
   },

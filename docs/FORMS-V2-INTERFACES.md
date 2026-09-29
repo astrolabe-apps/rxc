@@ -424,11 +424,42 @@ can express it.
 
 ```ts
 interface GroupProps  { hidden?; disabled?; readOnly?; title?; children: ReactNode;
-                        className?; shellClassName?; labelClassName?; labelTextClassName? }
+                        className?; shellClassName?; labelClassName?; labelTextClassName?;
+                        layout?: FormProp<StackLayout | undefined> }
 // The same slots a field has, for the same anatomy — body, wrapper, title container, title text.
 // Legacy styled groups against all of them (224 / 127 / 39 uses); built, README finding 63.
 // `title` is a heading the implementation draws when given (built); a JSON group's `title`
 // arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
+
+/** A flex body: the §7 `Stack`'s props, resolved, without children or class. */
+interface StackLayout { direction?; gap?; justify?; align?; wrap? }
+// `layout` makes the group's *body* the flex box (decided, built — README finding 74). Absent,
+// the body is the implementation's standard one. Legacy's Standard and Flex groups differ in
+// exactly this, and in nothing else: one body element, whose class is `standardClassName` or
+// `flexClassName`, with the definition's `styleClass` merged onto it. The first cut nested a
+// `<Stack>` inside the body instead, which put `styleClass` on the wrong element — 21 Flex groups
+// in the corpus carry `justify-between` / `items-end` meant for the flex box — gave a theme no
+// way to style the two bodies apart, and forced `flexDirection: row` over a responsive
+// `flex-col lg:flex-row`. So the group kind is not an enum on `GroupRenderProps` but the layout
+// the kind stood for, in the §7 vocabulary; `GroupRenderProps.layout` hands it over resolved,
+// and an implementation with one body shape may ignore it. Legacy's `Contents` kind (no body
+// at all) has zero corpus uses and is not carried.
+
+/** The text field's extras (built). */
+interface TextFieldExtra {
+  placeholder?: FormProp<string>;
+  multiline?: FormProp<boolean>;
+  inputType?: FormProp<"text" | "email" | "password" | "tel">;
+  inputMode?: FormProp<"text" | "numeric" | "decimal" | "tel" | "email" | "url" | "search" | "none">;
+  autoComplete?: FormProp<string>;               // a WHATWG autofill token, passed through
+}
+// `inputMode` and `autoComplete` are contract props, not host input options (decided, built —
+// README finding 74), because they are the same on both platforms: HTML's `inputmode` /
+// `autocomplete` and React Native's `TextInput.inputMode` / `autoComplete` take the same values.
+// In the corpus they are a *ServiceTas* extension of Textfield's render options, labelled
+// "Mobile Only" because only its React Native renderer read them — `keyboardType` (14, RN's
+// vocabulary) and `autoComplete` (13). So the host translates them, `keyboardType` onto
+// `inputMode`; the loader does not know them, since they are not the canonical format.
 
 /** The radio's extras — the select's, plus legacy's per-option content and entry classes (built). */
 interface RadioExtra extends SelectExtra {
@@ -1046,6 +1077,10 @@ inside the field": intended, and the one visible difference this section causes.
 `Stack` is also exported as a component over the `stack` slot, for code that cannot call the
 hook — the loader's translators, which build elements rather than render them (README finding 64).
 
+A group's own body takes the same props as its `layout` (§5), and that is the right tool when
+the flex box *is* the group's body: a `Stack` inside a group is a second element, and the
+group's `className` does not reach it.
+
 ## 8. Collections
 
 A collection is a `fieldRenderer` that happens to take a render prop for its rows — not a
@@ -1285,7 +1320,10 @@ Every boundary kind has now been written from outside the package — `Stars` (f
 `ActionRenderProps` as the registry slot) and `Collapsible` (group). Two small residues, neither
 asked for yet: `FancyAdd` reads only `disabled`, `onClick` and `text`, so `busy`, `icon` and
 `style` from outside are unexercised; and `GroupRenderProps` carries `invalid` but not
-`pending`, so a group header cannot show "checking…" for an async validator beneath it.
+`pending`, so a group header cannot show "checking…" for an async validator beneath it. That
+second one is **deliberately absent (decided)**: nothing in the corpus or the build asks for it,
+and adding it later is not breaking — it is an optional render prop an implementation may
+ignore, over a count the validation scope already keeps (§6, *Validation scopes*).
 
 The §7 primitives themselves are no longer paper: `poc/forms-v2` builds them four times over,
 and both shapes flagged there as most likely to move were the right two — the MUI shell→frame

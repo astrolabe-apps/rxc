@@ -106,6 +106,11 @@ export const serviceTasTheme: HtmlTheme = {
     title: "font-bold py-4 text-2xl",
     // group.standardClassName (defaultTailwindTheme; ServiceTas leaves it).
     body: "flex flex-col gap-4",
+    // group.flexClassName (defaultTailwindTheme) + group.defaultFlexGap
+    // (ServiceTas). A Flex group's body; the formStyles overlays set only
+    // standardClassName, so they do not reach it.
+    flexBody: "gap-2",
+    flexGap: "1em",
   },
   // group.inlineClass (defaultTailwindTheme).
   inline: { wrapper: "", title: "" },

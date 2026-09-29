@@ -76,9 +76,11 @@ has to stand on its own or point at a design doc.
 
 ## Phases
 
-### 0 — Settle what the POC left open
+### 0 — Settle what the POC left open ✅
 
-Small, and each is a contract question that is cheaper before phase 1 than after:
+Small, and each is a contract question that is cheaper before phase 1 than after. All four are
+decided and built in the POC (README findings 73 and 74), and the interfaces doc carries each
+one.
 
 - **`LayoutStyle` — decided, no slot** (POC README finding 73). The 15 corpus uses are two
   shapes, and neither is a style. 13 toggle `{ display: "none" }` over payment sections that hold
@@ -95,11 +97,27 @@ Small, and each is a contract question that is cheaper before phase 1 than after
   their effects and unmounted every widget inside them, so the iframe above would have
   reinitialised on every switch of payment method. The interfaces doc's presence and visibility
   sections have to say this.
-- **`keyboardType` / `autoComplete`** (14 / 13): contract props or host input options?
-- **Group kind on `GroupRenderProps`.** The loader maps legacy Standard, Contents and Flex onto one
-  renderer, so a theme cannot give them legacy's different body classes (finding 72, item 5).
-- **`pending` on `GroupRenderProps`**, so a header can show "checking…" — asked for by nothing
-  yet; decide now or record it as deliberately absent.
+- **`keyboardType` / `autoComplete` (14 / 13) — decided, contract props.** They are a
+  ServiceTas extension of Textfield's render options, not the canonical format, and only its
+  React Native renderer read them. But the hints are the same on both platforms: HTML and React
+  Native's `TextInput` take the same `inputMode` and `autoComplete` values. So `TextField` gains
+  `inputMode` and `autoComplete`, and the **host** translates, mapping `keyboardType` (React
+  Native's vocabulary) onto `inputMode`. The loader never learns a host's render-option
+  extensions.
+- **Group kind on `GroupRenderProps` — decided, a `layout`, not a kind.** Legacy's Standard and
+  Flex groups differ in one element, the body, which carries `standardClassName` or
+  `flexClassName` with `styleClass` merged onto it. The POC nested a `Stack` inside a standard
+  body instead. That put `styleClass` on the wrong element (21 corpus Flex groups carry one meant
+  for the flex box), let the `formStyles` overlays reach Flex bodies, and overrode responsive
+  direction classes. `GroupProps.layout` (the `Stack` props, resolved) makes the body itself the
+  flex box, and the html theme gains `contents.flexBody` / `flexGap`. The markup now matches
+  `legacy-compare`. Legacy's `Contents` kind has zero corpus uses and is not carried.
+- **`pending` on `GroupRenderProps` — decided, deliberately absent.** Nothing asks for it, and
+  adding an optional render prop later breaks no implementation.
+
+*Exit:* met. Parity is unchanged, and the burndown drops by the 15 `LayoutStyle` and 27
+input-hint warnings, less the 2 `LayoutStyle` uses that stay as warnings (a net fall of 40 on the
+local corpus).
 
 ### 1 — Types only
 

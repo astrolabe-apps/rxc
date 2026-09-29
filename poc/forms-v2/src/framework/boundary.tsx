@@ -295,6 +295,7 @@ const groupContractKeys = new Set([
   "shellClassName",
   "labelClassName",
   "labelTextClassName",
+  "layout",
   "children",
 ]);
 
@@ -359,6 +360,7 @@ export function groupRenderer<P extends object = {}>(
       labelTextClassName: getProp(rc, props.labelTextClassName),
       hidden: presenceNow !== "rendered",
       invalid: validation ? !validation.isValid(rc) : undefined,
+      layout: getProp(rc, props.layout),
       children: props.children,
     };
     const body = (

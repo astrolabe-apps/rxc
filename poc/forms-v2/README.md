@@ -1948,6 +1948,57 @@ Numbered; each is cited at the matching line of code.
     colours want a translator into a theme hook, or stay a warning — two
     uses in one app says warning.
 
+74. **The rest of phase 0: input hints are contract props, a group's kind is
+    its body's layout, and `pending` stays out.** Three questions the plan
+    left open before the types are written.
+
+    **`keyboardType` / `autoComplete` (14 / 13) → `TextField` props
+    `inputMode` / `autoComplete`.** They are not the canonical format:
+    ServiceTas extends Textfield's render options with them
+    (`formExtensions.ts`, "Keyboard Type (Mobile Only)"), and only its React
+    Native renderer read them — legacy's html one dropped both. "Mobile only"
+    was a fact about that renderer, not about the hints: `inputmode` picks
+    the on-screen keyboard on mobile web too, and HTML and React Native's
+    `TextInput` accept the same `inputMode` and `autoComplete` values, so
+    one vocabulary serves both platforms and none of it is a host concern.
+    The *translation* is the host's, since the loader does not know a
+    host's render-option extensions: `pocHost` gains a Textfield
+    translator mapping `keyboardType` (RN's words — `phone-pad`,
+    `email-address`) onto `inputMode`. Verified: a fixture field arrives as
+    `inputmode="tel" autocomplete="tel"` on the `<input>` in all four
+    implementations. The corpus's 12 card tokens sit in a "Card Payment
+    Mobile" group whose `Visible` is `$platform = "mobile"` — hidden on the
+    web, where the Quickstream iframe takes the card — which is correct.
+
+    **Group kind → `layout` on the group.** Legacy's Standard and Flex
+    groups differ in one element: the body, whose class is
+    `standardClassName` or `flexClassName` (plus inline `display: flex`,
+    `gap`, and a direction only when given), with `styleClass` merged on.
+    The loader had mapped Flex onto `<Contents>` with a `<Stack>` inside, so
+    the theme's standard body wrapped the flex box and `styleClass` landed
+    on the wrapper — 21 Flex groups carry one meant for the flex box
+    (`justify-between items-center`, `items-end`, `flex-wrap`) — the
+    `formStyles` overlays, which set only `standardClassName`, reached Flex
+    bodies too, and the Stack's explicit `flexDirection: row` beat the
+    responsive `flex flex-col … lg:flex-row` the Actions rows use.
+    `GroupProps.layout` (a `StackLayout`: `Stack`'s props, resolved) makes
+    the body itself the flex box; the theme gains `contents.flexBody` and
+    `contents.flexGap` (ServiceTas: `gap-2`, `1em`). Not a kind enum: the
+    layout the kind stood for, in §7's vocabulary. Verified against
+    `legacy-compare` on RWVPRenewalSearch — the search row's body is
+    `gap-2` with `display: flex; gap: 1em`, children direct, identical to
+    legacy's markup — and SimpleSearch's TopBar is now a `justify-between`
+    flex box. The fixture's Flex compound draws as one row under all four
+    implementations. Legacy's `Contents` kind (no body) has zero uses and
+    is not carried.
+
+    **`pending` on `GroupRenderProps` → deliberately absent.** Nothing asks
+    for it, and adding an optional render prop later breaks no
+    implementation.
+
+    Burndown 572 → 545 on the local corpus (the 27 hints); parity 138 of
+    138; no console output under any implementation.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
@@ -1958,7 +2009,8 @@ datagrid; `Radio` 24 are forms that shipped neither a schema nor an
 `AllowedOptions`; `Accordion` 20 is finding 55's shape as an adornment;
 `dynamic Display` 15 is DisplayOnly's `overrideText`; `LayoutStyle` is down
 to 2, both a theme's job (finding 73); `keyboardType` 14 and
-`autoComplete` 13 are host input options; `HelpText.placement` 15 is dropped
+`autoComplete` 13 are gone to `TextField` props through a host
+translator (finding 74); `HelpText.placement` 15 is dropped
 on purpose (finding 61); `textClass` 16 sits on groups, where legacy had no
 text either. The host-extension family — `helpLabel`, `Switch`,
 `MessageBox`, `TopLevelGroup`, `Spotlight`, `customId` — went to the hooks
