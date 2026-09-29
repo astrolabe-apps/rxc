@@ -18,6 +18,7 @@
 export * from "./props.js";
 export * from "./scope.js";
 export * from "./field.js";
+export * from "./validation.js";
 export * from "./collection.js";
 export * from "./group.js";
 export * from "./display.js";

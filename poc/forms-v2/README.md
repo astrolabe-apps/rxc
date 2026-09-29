@@ -1999,6 +1999,131 @@ Numbered; each is cited at the matching line of code.
     Burndown 572 → 545 on the local corpus (the 27 hints); parity 138 of
     138; no console output under any implementation.
 
+75. **The validation scopes are a tree an author can walk, and submit is
+    the root's `check()`.** Phase 1's review asked whether authors get a
+    "validate this form" call. The POC's own submit was core
+    (`wc.setTouched(data); wc.validate(data)`), and so is HVAMS's
+    (`form.validate(); form.touched = true; if (form.valid) save()`, four
+    call sites). That mostly works in v2 — boundaries publish errors onto
+    the data continuously — but misses two things: an **async** validator
+    in flight leaves `valid` optimistic, so a sync submit can save a form
+    whose server check has not answered (legacy's wizard slept 100 ms over
+    the same hole, `b5f67aae`); and a field bound **outside** the root
+    control is invisible to the data tree but registered with a scope. The
+    wizard's Next was already the gate that handles both.
+
+    So the scope got what an author needs, and `<Form>` a root:
+
+    - `kind` (`form` / `section` / `tabs` / `tab` / `wizard` / `page` /
+      `dialog`), an optional `key`, `parent`, `root`, and reactive
+      `children(rc)` / `child(rc, key)` / `find(rc, key)` (depth-first). A
+      tab strip and a wizard now make a scope of their own with their
+      tabs / pages under it, keyed by item key; `Tabs`, `Wizard`, `Dialog`,
+      `Section` and `Form` take a `validationKey`.
+    - `check()`: settle, touch everything if invalid, resolve to validity.
+      The wizard's Next is now `page.check()`, and a submit is
+      `root.check()`.
+    - `useValidation()` hands an author the nearest scope; `.root` is the
+      form's from anywhere. "Is page Who of the signup wizard still
+      checking?" is
+      `useValidation().root.find(rc, "signup")?.child(rc, "who")?.pending(rc)`.
+    - A child joins its parent's `children` from the owner's **effect**,
+      not at creation, so a render that never commits leaves nothing
+      behind. Validity still aggregates through `register` exactly as
+      before; the child list is only for walking.
+
+    Built into the demo as an author would write it — `ValidationTree`
+    (every scope, live, with a "Check form" button) and `WhoStatus` (the
+    wizard page, read from the root) in `PersonForm.tsx`, neither using
+    anything framework-internal. Verified: typing into the Who page's
+    800 ms async field turns page, wizard and form to "checking…" and back,
+    and the status line outside the wizard follows; "Check form" clicked
+    while that validator is in flight stays busy until it answers, then
+    touches everything and shows its error; Next still refuses "Smith" and
+    advances on "Jones". 16 scopes under all four implementations, no
+    duplicates under StrictMode, no console output.
+
+    **What it exposed: a scope judges controls, not rules.** The wizard's
+    Detail page reads *invalid* with nothing required on it. It binds
+    `email`, and the Details tab's `SelectChild` branch makes `email`
+    required; errors live on the control, so every scope that registered
+    the control sees them, and a Next from Detail would refuse over a rule
+    written on another tab. Legacy behaves the same (its errors were on the
+    data control too), but a page gate is exactly where it bites. The
+    alternative is feasible — the framework's own error keys already carry
+    the boundary's id, so a scope could count only errors published by
+    boundaries registered in it — and is a decision, not a fix.
+
+76. **A scope judges its own rules, and so does the field.** Finding 75's
+    open question, decided: a page is judged only by the rules written on
+    it. Encoded as a **verdict** per boundary — a control of its own,
+    allocated once. Each validator result is published twice: onto the
+    data control as before, so `valid` on the data still means "the data
+    is valid" and HVAMS's core-only submit is unchanged; and onto the
+    verdict, which is what the boundary registers with its scope.
+    `register(judge, touch)` now takes both: validity is read from the
+    verdict, and `touchAll` touches the data control, since that is what
+    makes a field show its error. A child scope's entry forwards its touch
+    to its own members.
+
+    Filtering by error key could not have done it. The framework's
+    `required` key carries the boundary's id, but author keys (`taken`,
+    `shape`) and the JSON validators' `jsonata` — which parity needs to
+    stay exactly that — do not, and two boundaries may share one. A
+    per-boundary control says who wrote a rule; a key does not.
+
+    **Errors nobody wrote count everywhere.** A server rejection set by
+    hand (`wc.setError(email, "server", …)`) is about the value, not a
+    rule, so every boundary showing the field counts it. Each mounted
+    boundary claims its keys on the control's meta (a reactive,
+    reference-counted record — two boundaries may share an author key),
+    and a per-boundary effect copies any unclaimed key into the verdict,
+    gated like the boundary's own rules: a hidden field's server error
+    blocks nothing the user cannot see.
+
+    **And the field displays its verdict, not the control's first error.**
+    The first browser run found the display half of the same bug: the
+    wizard's Detail page, now valid, still *showed* "Please enter a value"
+    on its email — the `required` from the Details tab's branch, because a
+    field showed whatever any boundary put on its control. A page that
+    reads valid while its field shows an error is incoherent, so a field
+    shows its own rules and the unclaimed errors, the same judgement its
+    scope makes. **A divergence from legacy**, which showed every error on
+    the data control; parity cannot see it (it compares the data's errors,
+    which are unchanged).
+
+    Verified in the browser: the Detail page reads valid, the Details tab
+    still invalid by its own rules; the two plain Email fields show
+    nothing while the required "Contact email" shows its message; a server
+    error on `email` shows on every email field and turns the Detail page
+    invalid while the Who page — which does not show `email` — stays valid
+    and its Next advances; clearing it restores all of that. The same
+    tree under all four implementations, no console output, parity 138 of
+    138, burndown unchanged.
+
+77. **The component that renders the `<Form>` owns its root scope.**
+    `useValidation()` reads context, so it serves components *inside* the
+    form — and cannot serve the one that renders it, which is where a Save
+    button usually lives. The demo's panel only worked because it had been
+    put inside the form. A ref would reach it for an event handler, but
+    `current` is null on the first render and setting it re-renders
+    nothing, so the owner could not render "checking…" or disable Save
+    from it. So the owner makes the handle and hands it in, the pattern
+    `WizardProps.page` already set: `const v = useFormValidation();
+    <Form validation={v}>`. It exists from the first render, reads
+    reactively, and walks like any scope; `<Form>` without it makes its
+    own. Its parent comes from the owner's context, which is the context
+    the `<Form>` renders in, so a nested form still attaches under the
+    outer. `useValidation()` stays, for the opposite direction.
+
+    Verified: the panel moved beside the `<Form>` in `PersonForm`, reading
+    the handle it owns — the same 16 scopes under all four
+    implementations, its Check button's label turning to "checking…"
+    while the Who page's async validator runs (the reactive read a ref
+    could not give), `check()` waiting and then showing the error, and the
+    in-form status line still resolving through `useValidation()`. No
+    console output.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show

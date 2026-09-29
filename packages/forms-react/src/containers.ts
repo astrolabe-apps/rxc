@@ -39,6 +39,11 @@ export interface TabsProps {
   readOnly?: FormProp<boolean>;
   /** The tab strip's outer element. */
   className?: FormProp<ClassValue>;
+  /**
+   * The tab strip's name in the validation tree. Its tabs are its children,
+   * keyed by item key.
+   */
+  validationKey?: string;
 }
 
 /**
@@ -55,7 +60,7 @@ export interface TabsRenderItem {
   content: ReactNode;
   /** The active panel — or every panel, in design mode. */
   active: boolean;
-  /** Something in this panel has a published error. */
+  /** A rule in this panel has a published error. */
   invalid: boolean;
 }
 
@@ -137,6 +142,12 @@ export interface WizardProps {
   readOnly?: FormProp<boolean>;
   /** The outer element. */
   className?: FormProp<ClassValue>;
+  /**
+   * The wizard's name in the validation tree. Its pages are its children,
+   * keyed by item key — so "is the Who page still checking?" is
+   * `useValidation().root.find(rc, "signup")?.child(rc, "who")?.pending(rc)`.
+   */
+  validationKey?: string;
 }
 
 /**
@@ -153,7 +164,7 @@ export interface WizardRenderItem {
   content: ReactNode;
   /** The current page — or every page, in design mode. */
   active: boolean;
-  /** Something on this page has a published error. */
+  /** A rule on this page has a published error. */
   invalid: boolean;
   /** The user has been to this page. */
   visited: boolean;
@@ -175,9 +186,10 @@ export interface WizardRenderProps {
   /** There is a page after this one. */
   canNext: boolean;
   /**
-   * Wait for this page's asynchronous validators to settle, then advance — or,
-   * if the page is invalid, touch it so its errors show, and stay. Returns the
-   * promise, so a button drawing it shows busy.
+   * The page's {@link ValidationScope.check}, then advance if it passed: wait
+   * for the page's asynchronous validators, and if a rule on the page fails,
+   * touch the page so its errors show and stay. Returns the promise, so a
+   * button drawing it shows busy.
    */
   next(): Promise<void>;
   /** Go back a page. */
@@ -232,6 +244,8 @@ export interface DialogProps {
   readOnly?: FormProp<boolean>;
   /** The dialog. */
   className?: FormProp<ClassValue>;
+  /** The dialog's name in the validation tree. */
+  validationKey?: string;
   /** The content. */
   children: ReactNode;
 }
@@ -257,7 +271,7 @@ export interface DialogRenderProps {
   title?: ReactNode;
   /** The content, already scoped. Always rendered. */
   content: ReactNode;
-  /** Something inside has a published error. */
+  /** A rule inside has a published error. */
   invalid: boolean;
   /** Call when the user dismisses it. */
   onClose(): void;

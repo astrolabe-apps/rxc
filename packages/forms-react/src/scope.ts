@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import type { Rendered } from "@rx-controls/react";
 import type { FormProp } from "./props.js";
+import type { ValidationScope } from "./validation.js";
 import { notBuilt, notBuiltComponent } from "./notBuilt.js";
 
 /**
@@ -44,7 +45,11 @@ export interface FieldState {
   touched: boolean;
   /** The value differs from the control's initial value. */
   dirty: boolean;
-  /** The control's published errors, de-duplicated. Empty when valid. */
+  /**
+   * Every error on the control, de-duplicated — including ones published by
+   * rules on other boundaries over the same control. What a field *shows* is
+   * narrower: see {@link FieldRenderProps.error}.
+   */
   errors: string[];
 }
 
@@ -113,13 +118,26 @@ export interface ScopeNarrowing {
 export interface FormProps extends ScopeNarrowing {
   /** The form. */
   children: ReactNode;
+  /**
+   * The form's name in the validation tree, so an author can find it with
+   * {@link ValidationScope.find}.
+   */
+  validationKey?: string;
+  /**
+   * The form's root validation scope, made by the component rendering this
+   * `<Form>` with {@link useFormValidation} so that component can check and
+   * read it. Absent, the form makes its own.
+   */
+  validation?: ValidationScope;
 }
 
 /**
  * The root of one form. It makes the scope's root explicit, so locking a whole
  * form is `<Form readOnly>` rather than a separate provider, and it carries
- * what is genuinely per form: `clearHidden`, and the lock that a
- * `disableType: "global"` action holds while it runs.
+ * what is genuinely per form: `clearHidden`, the lock that a
+ * `disableType: "global"` action holds while it runs, and the root of the
+ * validation tree — what {@link useValidation} reaches from inside, and
+ * {@link useFormValidation} hands to the component rendering the form.
  *
  * @group Authoring
  */

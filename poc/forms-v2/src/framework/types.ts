@@ -254,6 +254,11 @@ export interface GroupProps {
    * to land on the flex box, and a theme styles the two bodies differently.
    */
   layout?: FormProp<StackLayout | undefined>;
+  /**
+   * The group's name in the validation tree — meaningful only on a group
+   * built `{ scope: true }` (`Section`), the only kind that makes a scope.
+   */
+  validationKey?: string;
   children: ReactNode;
 }
 

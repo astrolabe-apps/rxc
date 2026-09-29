@@ -1,15 +1,11 @@
 import { useMemo, type ComponentType, type ReactNode } from "react";
-import {
-  useControlContext,
-  useReactive,
-  type Rendered,
-} from "@rx-controls/react";
+import { useReactive, type Rendered } from "@rx-controls/react";
 import { useBoundScope } from "./boundary.js";
 import { getProp } from "./prop.js";
 import { FormScopeProvider, narrowScope } from "./scope.js";
 import { useRenderers } from "./renderers.js";
 import {
-  createValidationScope,
+  useChildValidationScope,
   useValidationScope,
   ValidationScopeProvider,
 } from "./validationScope.js";
@@ -24,6 +20,8 @@ export interface DialogProps {
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   className?: FormProp<ClassValue>;
+  /** The dialog's name in the validation tree. */
+  validationKey?: string;
   children: ReactNode;
 }
 
@@ -64,7 +62,6 @@ export function dialogRenderer(
   function DialogBoundary(props: DialogProps): Rendered {
     const { rc, rendered } = useReactive();
     const renderers = useRenderers();
-    const ctx = useControlContext();
     const scope = useBoundScope(props);
     const parentValidation = useValidationScope();
 
@@ -73,9 +70,10 @@ export function dialogRenderer(
     const hidden = scope.presence(rc) !== "rendered";
     const presence: Presence = open || inline ? "rendered" : "silent";
 
-    const validation = useMemo(
-      () => createValidationScope(ctx, parentValidation, "dialog"),
-      [ctx, parentValidation],
+    const validation = useChildValidationScope(
+      parentValidation,
+      "dialog",
+      props.validationKey,
     );
     const contentScope = useMemo(
       () => narrowScope(scope, { presence: () => presence }),

@@ -1,6 +1,11 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { Control } from "@rx-controls/core";
-import { deepEquals, effect, untrackedRead } from "@rx-controls/core";
+import {
+  deepEquals,
+  effect,
+  ensureMetaValue,
+  untrackedRead,
+} from "@rx-controls/core";
 import {
   SubscriptionReconciler,
   TrackingReadContext,
@@ -67,6 +72,16 @@ function isEmpty(v: unknown): boolean {
  * nothing flickers. While a promise is outstanding the field counts as
  * *pending* in `scope` and every scope above it; that is what `settled()`
  * waits on. No debounce here — that is the validator's own business.
+ *
+ * **Each result is published twice** (README finding 76): onto the data
+ * control, so the field shows it and `valid` on the data still means "the
+ * data is valid"; and onto `verdict`, the boundary's own control, which is
+ * what the boundary registers with its validation scope. A scope therefore
+ * judges only the rules written inside it — a page is not invalid because a
+ * rule on another tab fails for a field it also shows. Errors *nobody*
+ * claims — a server rejection set by hand — are about the value, not a
+ * rule, so every boundary showing the field copies them into its verdict
+ * while it is validating.
  */
 export function useFieldValidation<T>(
   control: Control<T>,
@@ -75,6 +90,8 @@ export function useFieldValidation<T>(
   scope?: ValidationScope,
   /** The boundary's id — namespaces the framework's `required` key. */
   owner = "",
+  /** The boundary's own control, which its scope judges. */
+  verdict?: Control<unknown>,
 ): void {
   const ctx = useControlContext();
   const entries: Record<string, Validator<T>> = typeof validate === "function"
@@ -99,7 +116,10 @@ export function useFieldValidation<T>(
         release = undefined;
       };
       const publish = (m: ValidatorResult) =>
-        ctx.update((wc) => wc.setError(control, errorKey, m ?? null));
+        ctx.update((wc) => {
+          wc.setError(control, errorKey, m ?? null);
+          if (verdict) wc.setError(verdict, errorKey, m ?? null);
+        });
       const run = () => {
         // A newer run supersedes an outstanding one: it stops counting as
         // pending now, and its answer is dropped when it arrives.
@@ -141,12 +161,72 @@ export function useFieldValidation<T>(
         runId++; // drop any answer still in flight
         settle();
         reconciler.cleanup();
-        ctx.update((wc) => wc.setError(control, errorKey, null));
+        ctx.update((wc) => {
+          wc.setError(control, errorKey, null);
+          if (verdict) wc.setError(verdict, errorKey, null);
+        });
       };
     });
     return () => disposers.forEach((d) => d());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, control, cfg, keyId, scope, owner]);
+  }, [ctx, control, cfg, keyId, scope, owner, verdict]);
+
+  // Claim this boundary's keys on the control, and mirror what nobody claims.
+  const ownKeys = keys.map((k) => (k === "required" ? `required@${owner}` : k));
+  const ownId = ownKeys.join("|");
+  useLayoutEffect(() => {
+    if (!verdict) return;
+    const claims = errorClaims(ctx, control);
+    const own = ownId.split("|");
+    ctx.update((wc) =>
+      wc.updateValue(claims, (c) => {
+        const next = { ...c };
+        for (const k of own) next[k] = (next[k] ?? 0) + 1;
+        return next;
+      }),
+    );
+    let copied = new Set<string>();
+    const mirror = effect(ctx, (rc) => {
+      const active = rc.getValue(cfg).active;
+      const claimed = rc.getValue(claims);
+      const errors = rc.getErrors(control);
+      const now = new Set(
+        active
+          ? Object.keys(errors).filter((k) => errors[k] && !claimed[k])
+          : [],
+      );
+      ctx.update((wc) => {
+        for (const k of copied) if (!now.has(k)) wc.setError(verdict, k, null);
+        for (const k of now) wc.setError(verdict, k, errors[k]);
+      });
+      copied = now;
+    });
+    return () => {
+      mirror.cleanup();
+      ctx.update((wc) => {
+        for (const k of copied) wc.setError(verdict, k, null);
+        wc.updateValue(claims, (c) => {
+          const next = { ...c };
+          for (const k of own) if (--next[k] <= 0) delete next[k];
+          return next;
+        });
+      });
+    };
+  }, [ctx, control, cfg, ownId, verdict]);
+}
+
+/**
+ * The error keys some mounted boundary publishes on a control, counted —
+ * two boundaries may share an author key. Anything on the control outside
+ * this set was set by hand, and counts for every boundary showing it.
+ */
+function errorClaims(
+  ctx: ReturnType<typeof useControlContext>,
+  control: Control<unknown>,
+): Control<Record<string, number>> {
+  return ensureMetaValue(control, "$errorClaims", () =>
+    ctx.newControl<Record<string, number>>({}),
+  );
 }
 
 /**

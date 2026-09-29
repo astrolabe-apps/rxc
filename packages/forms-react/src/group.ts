@@ -56,6 +56,11 @@ export interface GroupProps {
    * `Stack` would be a second element it does not reach.
    */
   layout?: FormProp<StackLayout | undefined>;
+  /**
+   * The group's name in the validation tree. Meaningful only on a group that
+   * makes a scope — one built `{ scope: true }`, such as {@link Section}.
+   */
+  validationKey?: string;
   /** The content. */
   children: ReactNode;
 }
@@ -83,8 +88,9 @@ export interface GroupRenderProps {
    */
   hidden?: boolean;
   /**
-   * Something inside the region has a published error. Present only when the
-   * boundary was built with `{ scope: true }`.
+   * A rule inside the region has a published error — rules written elsewhere
+   * over the same data do not count. Present only when the boundary was built
+   * with `{ scope: true }`.
    */
   invalid?: boolean;
   /**
@@ -113,9 +119,10 @@ export type GroupImplSource<P extends object> =
  */
 export interface GroupBoundaryOptions {
   /**
-   * Aggregate the validity of everything inside, and hand it to the
-   * implementation as `invalid` — for a section header that shows a marker.
-   * Only a boundary that is asked pays for it.
+   * Make a validation scope for the region — a node in the tree
+   * {@link useValidation} walks — and hand its validity to the implementation
+   * as `invalid`, for a header that shows a marker. Only a boundary that is
+   * asked pays for it.
    */
   scope?: boolean;
   /** The children are inline prose: fields and displays inside draw no shell. */

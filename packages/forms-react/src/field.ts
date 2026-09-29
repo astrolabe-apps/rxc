@@ -112,7 +112,13 @@ export interface FieldRenderProps<T> {
   label?: ReactNode;
   /** Draw the required marker. */
   required: boolean;
-  /** The error to show now, or nothing. Shown only once the field is touched. */
+  /**
+   * The error to show now, or nothing: once the field is touched, the first
+   * failure of **this field's own rules**, or an error on the data that no
+   * rule wrote (a server rejection). Not a rule another boundary over the
+   * same control applies — a field without `required` never shows "Please
+   * enter a value" because a field elsewhere requires the same value.
+   */
   error?: ReactNode;
   /** Help shown with the field. */
   helpText?: ReactNode;
@@ -161,8 +167,9 @@ export interface FieldBoundaryOptions {
 /**
  * Build a field component. The boundary it returns resolves every
  * {@link FormProp}, narrows presence and the locks, registers the validators
- * (so no implementation can drop one), runs `clearHidden` and `defaultValue`
- * on its own binding, and hands `source` a {@link FieldRenderProps}. Props
+ * (so no implementation can drop one) and judges them into its validation
+ * scope, runs `clearHidden` and `defaultValue` on its own binding, and hands
+ * `source` a {@link FieldRenderProps}. Props
  * outside the contract pass through to `source` untouched.
  *
  * This is how a third-party widget becomes a field: it gets the label, help,

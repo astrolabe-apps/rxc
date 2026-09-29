@@ -399,7 +399,11 @@ disabled itself.
 `error` is resolved by the boundary and handed *to* the implementation (**built**), because the
 implementation is what renders the shell; it is also what makes `<Shell {...p}>` line up slot
 for slot. Whether an error is shown *at all* — in the build, only once touched — stays boundary
-policy; the implementation draws what it is given.
+policy; the implementation draws what it is given. **Which** error is boundary policy too: the
+first failure of the field's own rules, or an error on the data no rule wrote — never a rule
+another boundary over the same control applies (§6, *Validation scopes*; decided, built).
+`useFieldState(rc, field).errors` still lists everything on the control, for an implementation
+that wants it.
 
 `required` is a flag, never baked into `label`: MUI renders its own asterisk from
 `<FormControl required>`.
@@ -687,10 +691,78 @@ the seam to watch if error publication ever moves off the commit effect.
 
 A group can be invalid because its descendants are, and the data tree cannot express that —
 non-data groups, per-control validators, per-node gating, array-level errors. React cannot walk
-its own children, so it works in reverse: **a field's boundary attaches its validity-bearing
-control to the nearest ancestor scope from context**, and a scope-bearing group attaches its
-scope to *its* parent. Scopes nest, validity bubbles, and it all still happens under `silent`
-because the boundary runs even when nothing renders.
+its own children, so it works in reverse: **a field's boundary attaches its verdict to the
+nearest ancestor scope from context**, and a scope-bearing group attaches its scope to *its*
+parent. Scopes nest, validity bubbles, and it all still happens under `silent` because the
+boundary runs even when nothing renders.
+
+**A scope judges the rules written inside it, and a field shows its own (decided, built).** A
+field boundary owns a **verdict** — a control of its own. Each of its validators publishes
+twice: onto the data control, so `valid` on the data still means "the data is valid" and a
+core-only submit (`form.validate(); form.touched = true; if (form.valid) …`) keeps working;
+and onto the verdict, which is what the boundary registers with its scope. So a wizard page is
+not invalid, and a tab's marker does not light, because a rule written on *another* tab fails
+for a field it also shows — the POC's Detail page read invalid for exactly that, from a
+`required` on the Details tab (README finding 76). The field **displays** the same judgement:
+`FieldRenderProps.error` is the first failure of its own rules, never another boundary's, so a
+field without `required` does not show "Please enter a value" because a field elsewhere
+requires the value. **A divergence from legacy**, which showed every error on the data control.
+
+Errors **no rule wrote** — a server rejection set by hand, `wc.setError(email, "server", …)` —
+are about the value, so they count in every scope, and show on every field, that binds it.
+Mechanically: each mounted boundary claims the keys it publishes on the control's meta
+(reference-counted, since two boundaries may share an author key), and copies any unclaimed
+key into its verdict while it is validating — a hidden field's server error blocks nothing the
+user cannot see. An error key alone could not have said who wrote a rule: the framework's
+`required@<boundary id>` does, but author keys and the loader's `jsonata` do not, and parity
+needs `jsonata` to stay exactly that.
+
+**The scopes are a tree an author can walk (decided, built).** `<Form>` owns the root, and
+every container that makes a scope attaches it under the one it sits in, as a child as well
+as a member — from its effect, so a render that never commits leaves nothing behind:
+
+```ts
+type ValidationScopeKind = "form" | "section" | "tabs" | "tab" | "wizard" | "page" | "dialog";
+
+interface ValidationScope {
+  readonly kind: ValidationScopeKind;
+  readonly key?: string;                 // item key, or the container's `validationKey`
+  readonly parent?: ValidationScope;
+  readonly root: ValidationScope;        // the form's
+  children(rc): ValidationScope[];
+  child(rc, key): ValidationScope | undefined;
+  find(rc, key): ValidationScope | undefined;   // first descendant, depth-first
+  isValid(rc): boolean;                  // optimistic while pending
+  pending(rc): boolean;
+  settled(): Promise<void>;
+  touchAll(): void;
+  check(): Promise<boolean>;             // settle → touch if invalid → valid?
+}
+function useValidation(): ValidationScope;      // the nearest, from inside; throws outside a <Form>
+function useFormValidation(validationKey?: string): ValidationScope;  // the owner's: <Form validation={…}>
+```
+
+**Two hooks, for the two directions (decided, built).** `useValidation()` reads context, so it
+serves components *inside* the form and cannot serve the one that renders it — which is where a
+Save button usually lives. A ref would reach that component for an event handler, but `current`
+is null on the first render and setting it re-renders nothing, so it could not render
+"checking…" or a disabled Save. So the component that renders the `<Form>` owns the root and
+hands it in — `const v = useFormValidation(); <Form validation={v}>` — the same pattern as
+`WizardProps.page`. The handle exists from the first render and reads reactively like any
+scope; a `<Form>` given none makes its own; its parent is the owner's context, the context the
+form renders in, so a nested form still attaches under the outer (README finding 77).
+
+A tab strip and a wizard make a scope of their own with their tabs or pages under it, keyed by
+item key; `Form`, `Tabs`, `Wizard`, `Dialog` and a `{ scope: true }` group take a
+`validationKey`. So "is the Who page still checking?" is
+`useValidation().root.find(rc, "signup")?.child(rc, "who")?.pending(rc)`, from anywhere in the
+form, and **a submit is the root's `check()`** — which answers the question the first skeleton left
+open, whether authors get a "validate this form" call. The core-only submit is still correct
+for a form with synchronous validators only; `check()` is what waits for an asynchronous one
+and what sees a field bound outside the root control. Registration (`register`,
+`beginPending`, `attach`) is the framework's half and is not on the public surface. Built into
+the POC as an author would write it — a live tree panel with a "Check form" button, and a
+status line reading the wizard page from the root (README findings 75 and 76).
 
 `{ scope: true }` is opt-in — only containers that get asked "is my content invalid" need one
 (a tab header, a step marker). A collection needs none: array elements are already children of
@@ -707,7 +779,7 @@ unmount from a legitimate one. For a field the contract makes the equivalent mis
 implementation may not lazily mount panels". The third-party `Collapsible` in the POC is the
 worked example; README finding 55.
 
-**Built (built).** A field's boundary attaches its validity-bearing control to the nearest
+**Built (built).** A field's boundary attaches its verdict to the nearest
 scope; a scope attaches itself to *its* parent, so validity reaches every enclosing scope and
 nesting is just another member. `{ scope: true }` is a boundary option, not a renderer one —
 `<Contents>` and `<Section>` in the build are the same implementation with and without it, and
@@ -746,10 +818,10 @@ an optional `page?: Control<number>` — bound, the index lives in the data and 
 payload; omitted, it is component state. A container that only offers the second is unusable for
 half its cases, and one that only offers the first pollutes the schema for the other half.
 
-**Gating is what a validation scope is actually for.** The wizard refuses Next while the current
-page's scope reports invalid, and a refusal `touchAll()`s that page so the errors it already had
-become visible. Next first awaits the page's `settled()`, so an async validator that has not
-answered cannot let it through — and because `next()` returns that promise, the `<Action>`
+**Gating is what a validation scope is actually for.** The wizard's Next is the page's
+`check()`: it refuses while the page's scope reports invalid, and a refusal `touchAll()`s that
+page so the errors it already had become visible. It first awaits the page's `settled()`, so an
+async validator that has not answered cannot let it through — and because `next()` returns that promise, the `<Action>`
 drawing it shows busy for the wait with no wizard code involved. That needs two methods beyond
 `isValid` (`touchAll`, `settled`), and it only works because an unreached
 page is `silent` — validating without rendering, so the step marker can show a page invalid

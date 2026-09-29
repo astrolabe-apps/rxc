@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, type ComponentType } from "react";
 import {
   FormEditProvider,
   Reactive,
+  useControl,
   useControlContext,
   useFormEdit,
   useReactive,
@@ -25,7 +26,7 @@ import {
 } from "./validation.js";
 import { useRenderers } from "./renderers.js";
 import {
-  createValidationScope,
+  useChildValidationScope,
   useValidationScope,
   ValidationScopeProvider,
 } from "./validationScope.js";
@@ -211,7 +212,10 @@ export function fieldRenderer<T, P extends object = {}>(
     // whether or not the field is on screen — an inactive tab still reports.
     // The same scope counts this field's async validators as pending.
     const vscope = useValidationScope();
-    useFieldValidation(field, validate, cfg, vscope, id ?? autoId);
+    // The boundary's own verdict: its rules, and the errors nobody claims.
+    // What its validation scope judges — see useFieldValidation.
+    const verdict = useControl<unknown>(undefined);
+    useFieldValidation(field, validate, cfg, vscope, id ?? autoId, verdict);
 
     // Per-boundary, because the boundary that bound the data is the only thing
     // that knows what to clear — see the POC README, finding 16.
@@ -227,17 +231,27 @@ export function fieldRenderer<T, P extends object = {}>(
     // The other half of the cycle: defaulted while shown and undefined.
     useDefaultValue(control, props.defaultValue, scope, writes, props.hidden);
 
-    useEffect(() => vscope?.register(control), [vscope, control]);
+    useEffect(
+      () => vscope?.register(verdict, control),
+      [vscope, verdict, control],
+    );
 
     const state = fieldState(rc, control, scope);
-    const showError = state.touched && state.errors.length > 0;
+    // What the field shows is its verdict — its own rules and the errors
+    // nobody claims — not whatever any boundary put on the control: a field
+    // without `required` must not show another field's "Please enter a
+    // value" (README finding 76). The same judgement its scope makes.
+    const ownErrors = [
+      ...new Set(Object.values(rc.getErrors(verdict)).filter(Boolean)),
+    ];
+    const showError = state.touched && ownErrors.length > 0;
 
     const renderProps: FieldRenderProps<T> = {
       field,
       id: id ?? autoId,
       label: getProp(rc, props.label),
       required,
-      error: showError ? state.errors[0] : undefined,
+      error: showError ? ownErrors[0] : undefined,
       helpText: getProp(rc, props.helpText),
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),
@@ -296,6 +310,7 @@ const groupContractKeys = new Set([
   "labelClassName",
   "labelTextClassName",
   "layout",
+  "validationKey",
   "children",
 ]);
 
@@ -316,7 +331,6 @@ export function groupRenderer<P extends object = {}>(
   function GroupBoundary(props: GroupProps & P): Rendered {
     const { rc, rendered } = useReactive();
     const renderers = useRenderers();
-    const ctx = useControlContext();
     const bound = useBoundScope(props);
     // `inline` is structural — the container's kind, not a prop — so it is a
     // boundary option like `scope`, and reaches the children as a facet.
@@ -329,12 +343,11 @@ export function groupRenderer<P extends object = {}>(
     // Opt-in: only a container that gets asked "is my content invalid" pays
     // for one. It attaches to the enclosing scope, so validity bubbles.
     const parentValidation = useValidationScope();
-    const validation = useMemo(
-      () =>
-        opts?.scope
-          ? createValidationScope(ctx, parentValidation, "section")
-          : undefined,
-      [ctx, parentValidation],
+    const validation = useChildValidationScope(
+      parentValidation,
+      "section",
+      props.validationKey,
+      !!opts?.scope,
     );
 
     const Impl = (
@@ -455,7 +468,10 @@ export function collectionRenderer<T, P extends object = {}>(
       requiredMessage,
     });
     const vscope = useValidationScope();
-    useFieldValidation(field, validators, cfg, vscope, id ?? autoId);
+    // The boundary's own verdict: its rules, and the errors nobody claims.
+    // What its validation scope judges — see useFieldValidation.
+    const verdict = useControl<unknown>(undefined);
+    useFieldValidation(field, validators, cfg, vscope, id ?? autoId, verdict);
 
     const control = field;
     const shouldClear =
@@ -466,10 +482,20 @@ export function collectionRenderer<T, P extends object = {}>(
     }, [shouldClear, control, ctx]);
     useDefaultValue(control, props.defaultValue, scope, true, props.hidden);
 
-    useEffect(() => vscope?.register(control), [vscope, control]);
+    useEffect(
+      () => vscope?.register(verdict, control),
+      [vscope, verdict, control],
+    );
 
     const state = fieldState(rc, control, scope);
-    const showError = state.touched && state.errors.length > 0;
+    // What the field shows is its verdict — its own rules and the errors
+    // nobody claims — not whatever any boundary put on the control: a field
+    // without `required` must not show another field's "Please enter a
+    // value" (README finding 76). The same judgement its scope makes.
+    const ownErrors = [
+      ...new Set(Object.values(rc.getErrors(verdict)).filter(Boolean)),
+    ];
+    const showError = state.touched && ownErrors.length > 0;
 
     // The boundary's own actions know its scope: a locked region reports
     // every `can*` false, and `edit` stamps the session with this boundary.
@@ -514,7 +540,7 @@ export function collectionRenderer<T, P extends object = {}>(
       id: id ?? autoId,
       label: getProp(rc, props.label),
       required,
-      error: showError ? state.errors[0] : undefined,
+      error: showError ? ownErrors[0] : undefined,
       helpText: getProp(rc, props.helpText),
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),

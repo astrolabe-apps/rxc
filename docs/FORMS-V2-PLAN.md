@@ -156,10 +156,14 @@ POC:
 
 Open for the review:
 
-- **There is no author-level "validate this form" call.** The POC's submit uses core
-  (`wc.validate` plus touching), and a `Section`'s `invalid` reaches only its implementation.
-  Either the contract exports a gate (a validation scope an author can await), or submit stays a
-  core operation and the reference says so.
+- ~~**There is no author-level "validate this form" call.**~~ **Decided and in the skeleton**
+  (POC README findings 75 and 76). The validation scopes are a tree an author walks —
+  `useValidation()` from inside a form, and `useFormValidation()` + `<Form validation>` for the
+  component that renders it, with `children` / `child` / `find`, `pending`, `isValid` and
+  `check()` — and a submit is the root's `check()`: settle, touch if invalid, report. A scope judges only the rules
+  written inside it, and a field displays only its own; errors no rule wrote (a server
+  rejection) count everywhere. `Form`, `Tabs`, `Wizard`, `Dialog` and `Section` take a
+  `validationKey`.
 - Is `DataScope`'s `control` / `field` / `parent` enough for a host translator that rebuilds its
   children elsewhere in the data?
 - `defaultHtmlTheme` carries the POC's `ff-*` class names, which are only meaningful with a

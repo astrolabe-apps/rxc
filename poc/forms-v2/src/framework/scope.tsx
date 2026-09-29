@@ -3,6 +3,12 @@ import type { Control, ReadContext } from "@rx-controls/core";
 import { useControl } from "@rx-controls/react";
 import { getProp, narrowPresence } from "./prop.js";
 import type { FieldState, FormProp, Presence } from "./types.js";
+import {
+  useChildValidationScope,
+  useValidationScope,
+  ValidationScopeProvider,
+  type ValidationScope,
+} from "./validationScope.js";
 
 /**
  * The scope holds **rc-resolvers, not values** — a facet driven by form data
@@ -123,6 +129,14 @@ export function FormScopeProvider({
 
 export interface FormProps extends ScopeNarrowing {
   children: ReactNode;
+  /** The form's name in the validation tree, when forms nest. */
+  validationKey?: string;
+  /**
+   * The form's root scope, made by the component rendering this `<Form>`
+   * with `useFormValidation()` so it can check and read it. Absent, the
+   * form makes its own.
+   */
+  validation?: ValidationScope;
 }
 
 /**
@@ -130,8 +144,23 @@ export interface FormProps extends ScopeNarrowing {
  * here just `clearHidden` — and makes the scope root explicit, so locking a
  * whole form is `<Form readOnly>` rather than a separate provider.
  */
-export function Form({ children, ...narrowing }: FormProps) {
+export function Form({
+  children,
+  validationKey,
+  validation: given,
+  ...narrowing
+}: FormProps) {
   const parent = useFormScope();
+  // The root of the validation tree — what `useValidation().root` is, and
+  // what a submit checks. The owner's, when it made one; otherwise ours.
+  // A form inside a form attaches under the outer one.
+  const own = useChildValidationScope(
+    useValidationScope(),
+    "form",
+    validationKey,
+    !given,
+  );
+  const validation = (given ?? own)!;
   const globalLock = useControl(0);
   const scope = useMemo(
     () => {
@@ -154,5 +183,11 @@ export function Form({ children, ...narrowing }: FormProps) {
       narrowing.designMode,
     ],
   );
-  return <ScopeContext value={scope}>{children}</ScopeContext>;
+  return (
+    <ScopeContext value={scope}>
+      <ValidationScopeProvider value={validation}>
+        {children}
+      </ValidationScopeProvider>
+    </ScopeContext>
+  );
 }

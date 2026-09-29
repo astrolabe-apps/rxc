@@ -1,20 +1,15 @@
-import { useMemo, type ComponentType, type ReactNode } from "react";
-import { untrackedRead, type Control } from "@rx-controls/core";
-import {
-  useControl,
-  useControlContext,
-  useReactive,
-  type Rendered,
-} from "@rx-controls/react";
+import { type ComponentType, type ReactNode } from "react";
+import type { Control } from "@rx-controls/core";
+import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import { useBoundScope } from "./boundary.js";
 import { getProp } from "./prop.js";
 import { FormScopeProvider, narrowScope } from "./scope.js";
 import { useRenderers } from "./renderers.js";
 import {
-  createValidationScope,
+  useChildValidationScope,
+  useChildValidationScopes,
   useValidationScope,
   ValidationScopeProvider,
-  type ValidationScope,
 } from "./validationScope.js";
 import type { ClassValue, FormProp, FormRenderers, Presence } from "./types.js";
 
@@ -37,6 +32,12 @@ export interface WizardProps {
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   className?: FormProp<ClassValue>;
+  /**
+   * The wizard's name in the validation tree. Its pages are its children,
+   * keyed by item key — so "is the Who page still checking?" is
+   * `useValidation().root.find(rc, validationKey)?.child(rc, "who")?.pending(rc)`.
+   */
+  validationKey?: string;
 }
 
 export interface WizardRenderProps {
@@ -74,7 +75,6 @@ export function wizardRenderer(
 ): ComponentType<WizardProps> {
   function WizardBoundary(props: WizardProps): Rendered {
     const { rc, rendered, update } = useReactive();
-    const ctx = useControlContext();
     const renderers = useRenderers();
     const scope = useBoundScope(props);
     const parentScope = useValidationScope();
@@ -88,15 +88,16 @@ export function wizardRenderer(
     );
     const stacked = scope.designMode;
     const hidden = scope.presence(rc) !== "rendered";
-    const keyList = items.map((i) => i.key).join("|");
-
-    const scopes = useMemo(() => {
-      const m = new Map<string, ValidationScope>();
-      for (const i of items)
-        m.set(i.key, createValidationScope(ctx, parentScope, "page:" + i.key));
-      return m;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ctx, parentScope, keyList]);
+    const wizardScope = useChildValidationScope(
+      parentScope,
+      "wizard",
+      props.validationKey,
+    );
+    const scopes = useChildValidationScopes(
+      wizardScope,
+      "page",
+      items.map((i) => i.key),
+    );
 
     const rendering = items.map((item, i) => {
       const active = i === index;
@@ -140,13 +141,8 @@ export function wizardRenderer(
         canBack={index > 0}
         canNext={index < items.length - 1}
         next={async () => {
-          const vscope = scopes.get(items[index].key)!;
-          await vscope.settled();
-          if (!vscope.isValid(untrackedRead)) {
-            vscope.touchAll();
-            return;
-          }
-          goTo(index + 1);
+          // The page's gate — the same `check()` a form's submit is.
+          if (await scopes.get(items[index].key)!.check()) goTo(index + 1);
         }}
         back={() => goTo(index - 1)}
         goTo={goTo}

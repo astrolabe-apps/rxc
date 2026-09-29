@@ -1,19 +1,14 @@
-import { useEffect, useMemo, type ComponentType, type ReactNode } from "react";
-import {
-  useControl,
-  useControlContext,
-  useReactive,
-  type Rendered,
-} from "@rx-controls/react";
+import { useEffect, type ComponentType, type ReactNode } from "react";
+import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import { useBoundScope } from "./boundary.js";
 import { getProp, mergeClass } from "./prop.js";
 import { FormScopeProvider, narrowScope } from "./scope.js";
 import { useRenderers } from "./renderers.js";
 import {
-  createValidationScope,
+  useChildValidationScope,
+  useChildValidationScopes,
   useValidationScope,
   ValidationScopeProvider,
-  type ValidationScope,
 } from "./validationScope.js";
 import type { ClassValue, FormProp, FormRenderers, Presence } from "./types.js";
 
@@ -33,6 +28,12 @@ export interface TabsProps {
   disabled?: FormProp<boolean>;
   readOnly?: FormProp<boolean>;
   className?: FormProp<ClassValue>;
+  /**
+   * The tab strip's name in the validation tree, so an author can find it:
+   * `useValidation().root.child(rc, validationKey)`. Its tabs are its
+   * children, keyed by item key.
+   */
+  validationKey?: string;
 }
 
 export interface TabsRenderProps {
@@ -70,7 +71,6 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
   function TabsBoundary(props: TabsProps): Rendered {
     const { rc, rendered, update } = useReactive();
     const renderers = useRenderers();
-    const ctx = useControlContext();
     const scope = useBoundScope(props);
     const parentScope = useValidationScope();
     const { items } = props;
@@ -79,17 +79,18 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
     const activeKey = rc.getValue(active);
     const stacked = scope.designMode;
     const hidden = scope.presence(rc) !== "rendered";
-    const keyList = items.map((i) => i.key).join("|");
-
-    // One validation scope per tab, kept across renders so registrations made
-    // by fields inside survive a tab switch.
-    const scopes = useMemo(() => {
-      const m = new Map<string, ValidationScope>();
-      for (const i of items)
-        m.set(i.key, createValidationScope(ctx, parentScope, "tab:" + i.key));
-      return m;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ctx, parentScope, keyList]);
+    // The strip's own scope, then one per tab under it, kept across renders
+    // so registrations made by fields inside survive a tab switch.
+    const stripScope = useChildValidationScope(
+      parentScope,
+      "tabs",
+      props.validationKey,
+    );
+    const scopes = useChildValidationScopes(
+      stripScope,
+      "tab",
+      items.map((i) => i.key),
+    );
 
     const rendering = items.map((item) => {
       const isActive = item.key === activeKey;
