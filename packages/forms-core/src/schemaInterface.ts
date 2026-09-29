@@ -4,7 +4,7 @@ import {
   type FieldOption,
   type SchemaField,
   ValidationMessageType,
-} from "./json";
+} from "@rx-controls/forms-schema";
 import type { DataCursor, SchemaCursor } from "./types";
 
 /**

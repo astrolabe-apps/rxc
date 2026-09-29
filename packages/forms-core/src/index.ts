@@ -1,5 +1,5 @@
 // Pure types (no control deps)
-export * from "./json";
+export * from "@rx-controls/forms-schema";
 export * from "./types";
 export * from "./cursorUtils";
 export * from "./schemaInterface";

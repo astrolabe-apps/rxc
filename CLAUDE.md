@@ -10,6 +10,10 @@ RXC is a Rush monorepo for reactive controls and schema-driven forms. It unifies
 |---|---|---|
 | `@rx-controls/core` | `packages/core` | Pure TypeScript control tree. No React, no globals. Zero dependencies. |
 | `@rx-controls/react` | `packages/react` | React adapter: `useReactive()` hook (rc + the `rendered()` render boundary), `useControl`, `useComputed`, `useControlEffect`, `useValidator`/`useAsyncValidator`, `useControlGroup`, `useValueWithPrevious`, `useSelectableArray`/`selectableValues`, the binding layer (`useFormControlProps`, `ControlInput`/`ControlSelect`/`ControlCheckbox`, `FormEditState`/`FormEditProvider`/`useFormEdit`), `ControlContextProvider`, and the nested-scope render helpers (`RenderControl`, `RenderElements`, `RenderOptional`, `whenAllDefined`, `RenderArrayElements`, `NotDefinedContext`). Re-exports all of controls-core. |
+| `@rx-controls/forms-schema` | `packages/forms-schema` | **Forms v2.** The canonical `ControlDefinition` / `SchemaField` JSON types, builders and `schemaSchemas` — moved out of `forms-core/src/json` (phase 1 of `docs/FORMS-V2-PLAN.md`). No React. `forms-core` depends on it and re-exports it until the POC is retired. Exempt from TypeDoc's `notDocumented` for now. |
+| `@rx-controls/forms-react` | `packages/forms-react` | **Forms v2, phase 1 skeleton.** The contract's public types and signatures; every function body throws "not built yet". Grouped by audience (Authoring / Implementations / Extensions). A `./internal` subpath carries what sibling packages need (`useDefaultValue`, `hiddenPending`). |
+| `@rx-controls/forms-json` | `packages/forms-json` | **Forms v2, phase 1 skeleton.** The loader's public types (Loading / Hosts), incl. `strict` + `LoaderStrictError`. |
+| `@rx-controls/forms-html` | `packages/forms-html` | **Forms v2, phase 1 skeleton.** `htmlRenderers`, `HtmlTheme` + providers, the visibility slots (Rendering / Theming). |
 | `@rx-controls/forms-core` | `packages/forms-core` | Full canonical schema types + persistent SchemaNode/DataNode/FormNode handles, cursor-based reactive traversal, FormStateNode, validators, jsonata, scripted-proxy. |
 | `@rx-controls/forms-react-core` | `packages/forms-react-core` | Headless React forms layer: registry, matchers, dispatch helpers, adornment composition, plugin builders, contexts (Registry/Options/ActionScope/DesignMode), hooks (useFormStateNode/useExpression/useAsyncAction/useFormErrors) plus the non-hook `resolveLabelText`, and the `getExternalEdit` staged-edit controller accessor (a memoized get-or-create on the array Control's meta — deliberately **not** a `use*` hook). Also exports `<Action>` (the only "component" — a one-liner over `pickActionRenderer`). No DOM-emitting components — platform packages provide those. |
 | `@rx-controls/forms` | `packages/forms` | HTML platform package on top of forms-react-core. Provides `<Form>`/`<Field>`/`<Label>`/`<Error>`/`<Layout>`/`<Visibility>`, all default data + group + display + adornment renderers, and `defaultRegistry()`. Re-exports the headless surface so consumers import from `@rx-controls/forms` only. |
@@ -30,6 +34,7 @@ rush update          # Install/update all dependencies
 rush build           # Build all packages
 rush build --to X    # Build package X and its deps
 rush test            # Run tests across all packages
+rush docs            # TypeDoc over the Forms v2 packages → api-docs/ (needs a built tree; fails on any warning)
 
 # Inside a package dir:
 rushx test           # Run that package's tests
@@ -171,6 +176,7 @@ Only three packages are published, gated by `shouldPublish` in `rush.json`:
 | `@rx-controls/core` | 1.0.0 | `@rx-controls/forms-core` |
 | `@rx-controls/react` | 1.0.0 | `@rx-controls/forms-react-core` |
 | `@react-typed-forms/core` (the compat package) | 5.0.0 | `@rx-controls/forms`, `-motion`, `-dnd`, `-datagrid` |
+| | | Forms v2: `@rx-controls/forms-schema`, `-react`, `-json`, `-html` (until HVAMS ships a form on them) |
 
 **All three publish to `latest`** — 1.0.0 / 5.0.0 final, no prerelease tag. The
 compat package taking `latest` is safe despite v4 consumers: it is a major, so
@@ -273,9 +279,9 @@ Fully implemented. Core control tree, reactive ReadContext/WriteContext, compute
 
 ### Phase 3c: Layer 4b — Nested compound proxies + schema-driven walker ✅
 
-- `src/json/schemaSchemas.ts` — ported verbatim from `astrolabe-common` (1705 lines). Provides `ControlDefinitionSchema` and `ControlDefinitionSchemaMap` as the self-describing metadata for scripting.
-- `src/json/controlDefinitionSchemas.ts` — `Coerce` type + `coerceForFieldType` (shared helper)
-- `src/json/schemaField.ts` — added `hasSchemaTag` helper
+- `src/json/schemaSchemas.ts` (now `packages/forms-schema/src/schemaSchemas.ts`) — ported verbatim from `astrolabe-common` (1705 lines). Provides `ControlDefinitionSchema` and `ControlDefinitionSchemaMap` as the self-describing metadata for scripting.
+- `src/json/controlDefinitionSchemas.ts` (now in `forms-schema`) — `Coerce` type + `coerceForFieldType` (shared helper)
+- `src/json/schemaField.ts` (now in `forms-schema`) — added `hasSchemaTag` helper
 - `src/scriptedProxy.ts` — `createEvaluatedDefinition` now walks `ControlDefinitionSchema` recursively: discovers scriptable fields at every level (scalar + non-collection compound), uses `_ScriptNullInit` tags dynamically, allocates nested override controls via `overridesControl.fields.X` (lazy subcontrol nesting), and `subtreeHasScripts` gates recursion so compounds without scripts don't pollute `existingFields`. The old hardcoded `SCRIPTABLE_FIELDS` table is gone — user-extended `ControlDefinitionSchemaMap` entries work with no additional wiring.
 - `src/overrideProxy.ts::createOverrideProxy` — accepts `nestedBuilders: Map<string, NestedProxyBuilder>`; the `get` trap wraps nested compound values via the builder when the override rollup would otherwise shadow them.
 - `src/legacyScripts.ts` — `Display` and `GridColumns` now route to nested paths (`displayData.text`/`html`, `renderOptions.overrideText`, `groupOptions.columns`, `renderOptions.groupOptions.columns`), matching legacy `formStateNode.ts`.

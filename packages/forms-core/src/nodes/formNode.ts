@@ -8,7 +8,7 @@ import {
   ControlDefinitionType,
   isCompoundField,
   type SchemaField,
-} from "../json";
+} from "@rx-controls/forms-schema";
 import type {
   FormNode,
   FormCursor,

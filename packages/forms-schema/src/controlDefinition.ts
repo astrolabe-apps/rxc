@@ -1,5 +1,5 @@
-import type { SchemaValidator } from "./schemaValidator";
-import type { EntityExpression } from "./entityExpression";
+import type { SchemaValidator } from "./schemaValidator.js";
+import type { EntityExpression } from "./entityExpression.js";
 
 /**
  * Represents any control definition.

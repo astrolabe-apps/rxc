@@ -18,7 +18,7 @@ import {
   type JsonataExpression,
   type NotEmptyExpression,
   type NotExpression,
-} from "./json";
+} from "@rx-controls/forms-schema";
 import { dataRef } from "./cursorUtils";
 import type { DataCursor, DataNode, VariablesFunc } from "./types";
 import type { SchemaInterface } from "./schemaInterface";

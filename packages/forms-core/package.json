@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@rx-controls/core": "workspace:^",
+    "@rx-controls/forms-schema": "workspace:^",
     "jsonata": "^2.1.0"
   },
   "devDependencies": {

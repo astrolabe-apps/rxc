@@ -12,7 +12,7 @@ import {
   FieldType,
   type ControlDefinition,
   ControlDefinitionType,
-} from "../src/json";
+} from "@rx-controls/forms-schema";
 import {
   createStaticSchemaTree as csst,
   createReactiveSchemaTree as crst,

@@ -10,7 +10,7 @@ import {
   isGroupControl,
   isHtmlDisplay,
   isTextDisplay,
-} from "./json";
+} from "@rx-controls/forms-schema";
 
 /**
  * Convert a {@link ControlDefinition}'s legacy `dynamic[]` entries into the

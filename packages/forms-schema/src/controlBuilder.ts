@@ -6,7 +6,7 @@ import {
   DynamicPropertyType,
   GroupRenderType,
   IconLibrary,
-} from "./controlDefinition";
+} from "./controlDefinition.js";
 import type {
   AccordionAdornment,
   AccordionRenderer,
@@ -47,15 +47,15 @@ import type {
   TextfieldRenderOptions,
   TooltipAdornment,
   WizardRenderOptions,
-} from "./controlDefinition";
-import { AdornmentPlacement } from "./controlDefinition";
-import { ValidatorType } from "./schemaValidator";
+} from "./controlDefinition.js";
+import { AdornmentPlacement } from "./controlDefinition.js";
+import { ValidatorType } from "./schemaValidator.js";
 import type {
   DateValidator,
   JsonataValidator,
   LengthValidator,
-} from "./schemaValidator";
-import { ExpressionType } from "./entityExpression";
+} from "./schemaValidator.js";
+import { ExpressionType } from "./entityExpression.js";
 import type {
   DataExpression,
   DataMatchExpression,
@@ -63,7 +63,7 @@ import type {
   JsonataExpression,
   NotEmptyExpression,
   NotExpression,
-} from "./entityExpression";
+} from "./entityExpression.js";
 
 export function dataControl(
   field: string,

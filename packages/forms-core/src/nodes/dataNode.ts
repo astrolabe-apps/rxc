@@ -1,5 +1,5 @@
 import type { Control, ReadContext } from "@rx-controls/core";
-import { isCompoundField } from "../json";
+import { isCompoundField } from "@rx-controls/forms-schema";
 import type { SchemaNode, DataNode, DataCursor } from "../types";
 
 /**

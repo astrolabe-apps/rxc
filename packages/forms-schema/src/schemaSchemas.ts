@@ -12,16 +12,16 @@ import {
   type IconReference,
   type RenderOptions,
   SyncTextType,
-} from "./controlDefinition";
-import { applyDefaultValues, defaultValueForFields } from "./defaultValues";
+} from "./controlDefinition.js";
+import { applyDefaultValues, defaultValueForFields } from "./defaultValues.js";
 import {
   buildSchema,
   makeCompoundField,
   makeScalarField,
-} from "./schemaBuilder";
-import { type FieldOption, FieldType, type SchemaField } from "./schemaField";
-import { DateComparison, type SchemaValidator } from "./schemaValidator";
-import type { EntityExpression } from "./entityExpression";
+} from "./schemaBuilder.js";
+import { type FieldOption, FieldType, type SchemaField } from "./schemaField.js";
+import { DateComparison, type SchemaValidator } from "./schemaValidator.js";
+import type { EntityExpression } from "./entityExpression.js";
 export interface FieldOptionForm {
   name: string;
   value: any;

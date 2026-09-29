@@ -1,10 +1,10 @@
-import { FieldType, isCompoundField } from "./schemaField";
+import { FieldType, isCompoundField } from "./schemaField.js";
 import type {
   CompoundField,
   FieldOption,
   SchemaField,
   SchemaMap,
-} from "./schemaField";
+} from "./schemaField.js";
 
 export type AllowedSchema<T> = T extends string
   ? SchemaField & {

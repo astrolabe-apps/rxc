@@ -1,5 +1,5 @@
-import { isCompoundField } from "./schemaField";
-import type { SchemaField } from "./schemaField";
+import { isCompoundField } from "./schemaField.js";
+import type { SchemaField } from "./schemaField.js";
 
 /**
  * Applies default values to the given record based on the provided schema fields.

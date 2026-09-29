@@ -16,7 +16,7 @@ import {
   type DataControlDefinition,
   ValidatorType,
   type JsonataValidator,
-} from "../src/json";
+} from "@rx-controls/forms-schema";
 import {
   createStaticSchemaTree as csst,
   createDataNode,

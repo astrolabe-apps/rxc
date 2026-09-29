@@ -11,7 +11,7 @@ import {
   isCompoundField,
   isDataControl,
   isGroupControl,
-} from "./json";
+} from "@rx-controls/forms-schema";
 
 // ── Schema cursor utils ─────────────────────────────────────────────
 

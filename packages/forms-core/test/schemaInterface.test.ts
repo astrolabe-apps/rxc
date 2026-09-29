@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DefaultSchemaInterface } from "../src/schemaInterface";
-import { FieldType, type SchemaField } from "../src/json";
+import { FieldType, type SchemaField } from "@rx-controls/forms-schema";
 
 const si = new DefaultSchemaInterface();
 

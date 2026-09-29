@@ -1,0 +1,10 @@
+{
+  "name": "docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autoinstaller for `rush docs` — TypeDoc over the Forms v2 packages.",
+  "dependencies": {
+    "typedoc": "~0.28.20",
+    "typescript": "~5.8.0"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@rx-controls/forms-json",
+  "version": "0.1.0",
+  "description": "The Forms v2 JSON loader: ControlDefinition and SchemaField in, the same JSX a hand-written form would be out, plus a list of everything it could not carry across. The only package that reads a ControlDefinition, and the only one that depends on jsonata.",
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/forms-json"
+  },
+  "type": "module",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-schema": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
+    "jsonata": "^2.1.0"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "react": "~19.2.0",
+    "typescript": "~5.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

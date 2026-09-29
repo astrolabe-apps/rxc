@@ -21,6 +21,15 @@
     },
     {
       "commandKind": "global",
+      "name": "docs",
+      "summary": "Generate the Forms v2 API reference",
+      "description": "Runs TypeDoc over the Forms v2 packages (typedoc.json) into api-docs/, using the `docs` autoinstaller. Fails on any warning, including an undocumented export; see docs/FORMS-V2-PLAN.md phase 1. Needs a built tree (`rush build`): the packages resolve each other through their lib/ types.",
+      "safeForSimultaneousRushProcesses": true,
+      "autoinstallerName": "docs",
+      "shellCommand": "typedoc"
+    },
+    {
+      "commandKind": "global",
       "name": "publish-check",
       "summary": "Publish all packages to npm",
       "description": "Runs rush publish --include-all with XDG_CONFIG_HOME preserved so browser authentication works correctly",

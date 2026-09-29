@@ -18,7 +18,7 @@ import {
   isControlDisabled,
   isControlReadonly,
   isDataControl,
-} from "../json";
+} from "@rx-controls/forms-schema";
 import type {
   ChildNodeSpec,
   ChildResolverFunc,
@@ -469,7 +469,7 @@ function initFormState(
       const explicit =
         ((target as unknown as Record<string, unknown>)?.["$scripts"] as Record<
           string,
-          import("../json").EntityExpression
+          import("@rx-controls/forms-schema").EntityExpression
         >) ?? {};
       const legacy = legacyMap.get(path) ?? {};
       return { ...legacy, ...explicit };

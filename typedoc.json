@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Forms v2",
+  "entryPointStrategy": "packages",
+  "entryPoints": [
+    "packages/forms-schema",
+    "packages/forms-react",
+    "packages/forms-json",
+    "packages/forms-html"
+  ],
+  "packageOptions": {
+    "entryPoints": [
+      "src/index.ts"
+    ],
+    "readme": "none",
+    "validation": {
+      "notExported": true,
+      "invalidLink": true,
+      "notDocumented": true
+    }
+  },
+  "out": "api-docs",
+  "readme": "none",
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true
+  },
+  "treatWarningsAsErrors": true
+}

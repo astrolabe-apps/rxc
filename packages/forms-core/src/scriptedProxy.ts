@@ -10,7 +10,7 @@ import {
   isCompoundField,
   type SchemaField,
   SchemaTags,
-} from "./json";
+} from "@rx-controls/forms-schema";
 import {
   createEvalExpr,
   defaultEvaluators,

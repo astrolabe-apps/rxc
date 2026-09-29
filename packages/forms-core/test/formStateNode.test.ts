@@ -22,7 +22,7 @@ import {
   type NotEmptyExpression,
   type NotExpression,
   DataControlDefinition,
-} from "../src/json";
+} from "@rx-controls/forms-schema";
 import {
   createStaticSchemaTree as csst,
   createDataNode,
@@ -949,7 +949,7 @@ describe("FormStateNode — Layer 4b: nested scripted overrides", () => {
           type: DisplayDataType.Text,
           text: "static",
           $scripts: { text: dataExpr },
-        } as unknown as import("../src/json").DisplayData,
+        } as unknown as import("@rx-controls/forms-schema").DisplayData,
       } as ControlDefinition,
     ];
     const { ctx, formTree, dataNode, globals } = makeEnv(fields, defs, {

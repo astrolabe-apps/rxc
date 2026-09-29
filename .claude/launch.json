@@ -36,6 +36,18 @@
       ],
       "cwd": "apps/legacy-compare",
       "port": 3002
+    },
+    {
+      "name": "api-docs",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5190",
+        "--directory",
+        "api-docs"
+      ],
+      "port": 5190
     }
   ]
 }

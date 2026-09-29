@@ -1,4 +1,4 @@
-import { FieldType } from "./schemaField";
+import { FieldType } from "./schemaField.js";
 
 /** Coercion function registered for a scriptable field. */
 export type Coerce = (v: unknown) => unknown;

@@ -16,7 +16,7 @@ import {
   type SchemaValidator,
   ValidationMessageType,
   ValidatorType,
-} from "./json";
+} from "@rx-controls/forms-schema";
 import type {
   DataCursor,
   DataNode,

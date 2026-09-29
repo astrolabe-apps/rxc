@@ -1,4 +1,4 @@
-import type { SchemaValidator } from "./schemaValidator";
+import type { SchemaValidator } from "./schemaValidator.js";
 
 export type EqualityFunc = (a: any, b: any) => boolean;
 

@@ -3,7 +3,7 @@ import {
   ControlDisableType,
   type FieldOption,
   type SchemaField,
-} from "./json";
+} from "@rx-controls/forms-schema";
 import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
 import type { SchemaInterface } from "./schemaInterface";
 

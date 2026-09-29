@@ -121,3 +121,6 @@ dist-storybook/
 .cache/
 .heft/
 next-env.d.ts
+
+# TypeDoc output (`rush docs`)
+api-docs/

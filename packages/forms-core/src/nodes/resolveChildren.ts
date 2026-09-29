@@ -7,7 +7,7 @@ import {
   type GroupedControlsDefinition,
   GroupRenderType,
   isDataControl,
-} from "../json";
+} from "@rx-controls/forms-schema";
 import type {
   ChildNodeSpec,
   DataCursor,

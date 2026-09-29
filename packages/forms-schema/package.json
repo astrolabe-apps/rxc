@@ -1,0 +1,34 @@
+{
+  "name": "@rx-controls/forms-schema",
+  "version": "0.1.0",
+  "description": "The canonical ControlDefinition and SchemaField JSON types, builders and self-describing schemas — the format the C# server (Astrolabe.Schemas) emits, byte for byte. No React.",
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/forms-schema"
+  },
+  "type": "module",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

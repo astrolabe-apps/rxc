@@ -9,7 +9,7 @@ import {
   type CompoundField,
   FieldType,
   isCompoundField,
-} from "../json";
+} from "@rx-controls/forms-schema";
 import type {
   SchemaNode,
   SchemaCursor,

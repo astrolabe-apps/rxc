@@ -1,0 +1,44 @@
+{
+  "name": "@rx-controls/forms-html",
+  "version": "0.1.0",
+  "description": "The Forms v2 HTML implementation: every registry slot drawn as plain DOM, every class it emits in one HtmlTheme, and nestable theme providers.",
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/forms-html"
+  },
+  "type": "module",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "react": "~19.2.0",
+    "typescript": "~5.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

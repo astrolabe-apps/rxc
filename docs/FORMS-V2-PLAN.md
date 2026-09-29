@@ -132,6 +132,39 @@ symbols from the start, so the rule never has to be retrofitted onto a finished 
 *Exit:* the type surface of `forms-react`, `forms-json` and `forms-html` is signed off, from the
 generated reference, with every export documented.
 
+**Built, awaiting sign-off.** `forms-schema` is the move (`forms-core/src/json` → its own
+package, which `forms-core` now depends on and re-exports until phase 6). `forms-react`,
+`forms-json` and `forms-html` are skeletons: every export has its real signature and a body that
+throws "not built yet", so they build, import and document, and `rush docs` passes with
+`notDocumented` on and warnings treated as errors. CI runs it after the tests. `forms-schema` is
+exempt from `notDocumented` for now (905 undocumented exports, carried over as moved).
+
+The surface is **minimal, by audience** — Authoring, Implementations and Extensions in
+`forms-react`, Loading and Hosts in `forms-json`, Rendering and Theming in `forms-html` — taken
+from what the POC's own consumers import rather than from its export list. So compared with the
+POC:
+
+- **Internal:** the validation plumbing (`useMirror`, `useFieldValidation`, validation scopes),
+  `fieldState`, `narrowPresence`, `lengthValidator`, `peekExternalEdit`, `tabPanelClass`,
+  `deepMergeTheme`, the loader's expression and data-cursor helpers, and the edit session's
+  `origin` token. What the loader needs from the framework (`useDefaultValue`, `hiddenPending`)
+  is on a `forms-react/internal` subpath, the convention `@rx-controls/core/internal` already set.
+- **Named where the POC was inline:** `RegistrySlot`, `GroupBoundaryOptions`, `TabsRenderItem`,
+  `WizardRenderItem`, the providers' props, `TranslateResult`, `LoaderWarningKind`.
+- **New:** `LoaderOptions.strict` and `LoaderStrictError`, the CI policy the goals doc names
+  and the POC never built. `DataScope` is public but narrowed to `control` / `field` / `parent`.
+
+Open for the review:
+
+- **There is no author-level "validate this form" call.** The POC's submit uses core
+  (`wc.validate` plus touching), and a `Section`'s `invalid` reaches only its implementation.
+  Either the contract exports a gate (a validation scope an author can await), or submit stays a
+  core operation and the reference says so.
+- Is `DataScope`'s `control` / `field` / `parent` enough for a host translator that rebuilds its
+  children elsewhere in the data?
+- `defaultHtmlTheme` carries the POC's `ff-*` class names, which are only meaningful with a
+  stylesheet `forms-html` does not ship yet.
+
 ### 2 — `forms-react` + `forms-html`, the JSX path
 
 Port the framework and the HTML implementation, **with the tests the POC never had**, written as
