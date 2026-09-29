@@ -2124,6 +2124,30 @@ Numbered; each is cited at the matching line of code.
     in-form status line still resolving through `useValidation()`. No
     console output.
 
+78. **A translator never holds a data cursor.** Phase 1's skeleton made
+    `DataScope` public, narrowed to `control` / `field` / `parent` — too
+    much to hide and too little to use. Its only use anywhere was the
+    radio translator, which took its own scope and added
+    `$formData.option` / `$formData.optionSelected` through `withVariables`,
+    an internal the narrowed type gave no way to reach; no host translator
+    in `pocHost` touches one. So `retranslate`'s scope *function* became a
+    declarative `rebuild`: `at: "child" | "own"`, `variables: { key, values }`
+    (the key is what the internal `cacheKey` was — the expression cache is
+    per control and expression, so two options over one control would read
+    each other's result without it), and `collectWarnings` (the internal
+    `quiet`, which any per-variant translation needs). The radio also stopped
+    needing the callback's `field` argument: `props.field` is in hand.
+
+    **Parity cannot see this.** With `optionSelected` hard-wired to `false`
+    it still reads 138 of 138: whatever the per-option children gate, no
+    value or error in the parity fixtures moves with it. Not investigated
+    further — it is a gap in the instrument, worth a fixture of its own.
+    Verified in the browser instead, on the
+    JSON tab's radio: each option's description comes from
+    `$formData.option.value`, and the "Notes for this status" group follows
+    the chosen option, under Inactive and then under Active. No console
+    output; burndown unchanged.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show

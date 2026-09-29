@@ -197,6 +197,15 @@ becomes a `Control<T>` at translation and a `FormProp` closes over what it read.
 answer to whether v2 needs a cursor — it does, on the JSON side only. Corpus: 146 `a/b`
 references, 43 `../x`, 50 jsonata expressions inside rows, 10 reading `$i`, 5 reading `$$`.
 
+**The cursor is the loader's alone — not even a translator gets one (decided, built).** The one
+translator that needed a data position was the radio, whose per-option children bind where the
+radio sits with `$formData.option` / `$formData.optionSelected` in scope; no host translator
+touched one. So `retranslate` takes a declarative `rebuild` — `at: "child" | "own"`, `variables:
+{ key, values(rc) }` (the key keeps variants apart in the per-control expression cache), and
+`collectWarnings` for a repeat translation — and `DataScope` is not on the public surface. A host
+that one day needs an arbitrary data position brings the operations it needs with it (README
+finding 78).
+
 **`meta` schema fields bind to a side store (built, loader-only).** Legacy hangs a `metaFields`
 control off the parent's meta and binds a field flagged `meta` there, so UI state like
 `showPostalAddressDetails` or `cardDetails` is never in the submitted value. The loader's
@@ -531,7 +540,8 @@ that does nothing, which is what legacy does silently. `actionStyle` → `style`
 `placement: "trigger"` children render in place, the rest inside `<Dialog>` (§6), and the
 translator owns the `open` control and claims `openDialog` / `closeDialog` for its subtree with
 the host's handler as fall-through — a `Translator` may `retranslate` its children under its
-own options and declare `ownsChildren` so the loader does not build them twice.
+own options (and a `rebuild`, above) and declare `ownsChildren` so the loader does not build
+them twice.
 
 **From JSON:** adornments do not survive translation — `HelpText` → `helpText`, `Icon` →
 `startIcon`/`endIcon`, `Tooltip` → `accessibleName` on the display it sits on (§6),

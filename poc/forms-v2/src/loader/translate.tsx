@@ -4,6 +4,7 @@ import {
   untrackedRead,
   type Control,
   type ControlContext,
+  type ReadContext,
 } from "@rx-controls/core";
 import {
   useControlContext,
@@ -123,19 +124,7 @@ export interface TranslateArgs {
    */
   retranslate?: (
     opts: Partial<LoaderOptions>,
-    /**
-     * Rebuild the children somewhere else in the data. A radio's per-option
-     * children bind the *parent* scope with per-option bindings, as legacy
-     * did; `child` is the default, `own` the scope this definition sits in,
-     * `field` its bound control.
-     */
-    scope?: (
-      child: DataScope,
-      own: DataScope,
-      field: Control<unknown> | undefined,
-    ) => DataScope,
-    /** Skip warning collection — the children were already walked once. */
-    quiet?: boolean,
+    rebuild?: RetranslateRebuild,
   ) => ReactNode[];
   /**
    * A `dynamic` entry as a value prop — for the ones that are not field props:
@@ -145,6 +134,37 @@ export interface TranslateArgs {
   dynamicValue: (type: string) => FormProp<unknown> | undefined;
   /** The host's icon drawing (`LoaderOptions.icon`), or legacy's `<i>`. */
   icon: IconTranslator;
+}
+
+/**
+ * How `retranslate` rebuilds a definition's children, declaratively — the
+ * two things a translator ever needed from a data scope, without handing it
+ * one (README finding 78). A radio's per-option children are the case:
+ * bound where the radio sits, with `$formData.option` /
+ * `$formData.optionSelected` for their expressions, as legacy did.
+ */
+export interface RetranslateRebuild {
+  /**
+   * Where the children bind. `child` (default): inside this definition's
+   * field, as every child does. `own`: where this definition itself sits.
+   */
+  at?: "child" | "own";
+  /** Extra jsonata bindings for the children's expressions. */
+  variables?: {
+    /**
+     * Disambiguates the expression cache, which is per control and
+     * expression: two variants over one control and one expression would
+     * otherwise read each other's results. The option's value, say.
+     */
+    key: string;
+    /** Read in the evaluator's window, so a binding that reads a control re-runs it. */
+    values: (rc: ReadContext) => Record<string, unknown>;
+  };
+  /**
+   * `false` for a repeat translation of children already walked once, or
+   * every gap would be reported once per variant. Default `true`.
+   */
+  collectWarnings?: boolean;
 }
 
 export interface Translator {
@@ -598,23 +618,24 @@ export const defaultTranslators: Translator[] = [
     render: ({ def, props, schema, retranslate, dynamicValue }) => {
       const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
       const hasChildren = !!def.children?.length;
+      const field = props.field as Control<unknown>;
       const forOption = (o: FieldOption, quiet: boolean): ReactNode[] =>
         retranslate!(
           {},
-          (_child, own, field) =>
-            withVariables(
-              own,
-              (rc) => ({
+          {
+            at: "own",
+            variables: {
+              key: `option:${String(o.value)}`,
+              values: (rc) => ({
                 formData: {
                   option: o,
                   optionSelected:
-                    field !== undefined &&
                     String(rc.getValue(field)) === String(o.value),
                 },
               }),
-              `option:${String(o.value)}`,
-            ),
-          quiet,
+            },
+            collectWarnings: !quiet,
+          },
         );
       const perOption = new Map<string, ReactNode[]>();
       if (hasChildren) {
@@ -1447,12 +1468,7 @@ export function translate(
   // the host keeps the rest.
   const retranslate = (
     over: Partial<LoaderOptions>,
-    scopeFn?: (
-      child: DataScope,
-      own: DataScope,
-      field: Control<unknown> | undefined,
-    ) => DataScope,
-    quiet = false,
+    rebuild: RetranslateRebuild = {},
   ): ReactNode[] => {
     const inner = over.actionHandler;
     const merged: LoaderOptions = {
@@ -1462,7 +1478,10 @@ export function translate(
         ? (id, d) => inner(id, d) ?? opts.actionHandler?.(id, d)
         : opts.actionHandler,
     };
-    const s = scopeFn ? scopeFn(childScope, scope, ref?.control) : childScope;
+    const base = rebuild.at === "own" ? scope : childScope;
+    const v = rebuild.variables;
+    const s = v ? withVariables(base, v.values, v.key) : base;
+    const quiet = rebuild.collectWarnings === false;
     return (rawDef.children ?? []).map((c, i) =>
       translate(ctx, s, c, `${key}.${i}`, merged, quiet ? noCollect : collect),
     );

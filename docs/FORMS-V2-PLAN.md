@@ -152,7 +152,7 @@ POC:
 - **Named where the POC was inline:** `RegistrySlot`, `GroupBoundaryOptions`, `TabsRenderItem`,
   `WizardRenderItem`, the providers' props, `TranslateResult`, `LoaderWarningKind`.
 - **New:** `LoaderOptions.strict` and `LoaderStrictError`, the CI policy the goals doc names
-  and the POC never built. `DataScope` is public but narrowed to `control` / `field` / `parent`.
+  and the POC never built.
 
 Open for the review:
 
@@ -164,8 +164,10 @@ Open for the review:
   written inside it, and a field displays only its own; errors no rule wrote (a server
   rejection) count everywhere. `Form`, `Tabs`, `Wizard`, `Dialog` and `Section` take a
   `validationKey`.
-- Is `DataScope`'s `control` / `field` / `parent` enough for a host translator that rebuilds its
-  children elsewhere in the data?
+- ~~Is `DataScope` enough for a host translator?~~ **Decided: `DataScope` is not public** (POC
+  README finding 78). Its one use was the radio adding per-option expression variables, which
+  the narrowed type could not do anyway. `retranslate` takes a declarative `rebuild` — `at`,
+  `variables: { key, values }`, `collectWarnings` — instead.
 - `defaultHtmlTheme` carries the POC's `ff-*` class names, which are only meaningful with a
   stylesheet `forms-html` does not ship yet.
 

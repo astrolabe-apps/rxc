@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Control } from "@rx-controls/core";
+import type { Control, ReadContext } from "@rx-controls/core";
 import type {
   ControlAdornment,
   ControlDefinition,
@@ -11,19 +11,42 @@ import type { LoaderOptions } from "./loader.js";
 import { notBuiltComponent } from "./notBuilt.js";
 
 /**
- * A position in the form's data, as the loader walks it: the control there,
- * the schema field it is, and the scope that `..` climbs to. What a
- * translator's children bind against.
+ * How {@link TranslateArgs.retranslate} rebuilds a definition's children:
+ * where they bind, and what extra bindings their expressions see. Declarative,
+ * so a translator never handles the loader's data cursor.
+ *
+ * The case it exists for is a radio's per-option content — the children
+ * translated once per option, bound where the radio sits, with
+ * `$formData.option` and `$formData.optionSelected` for their expressions.
  *
  * @group Hosts
  */
-export interface DataScope {
-  /** The value at this position. */
-  readonly control: Control<unknown>;
-  /** The schema field whose value it is. Absent at the root. */
-  readonly field?: SchemaField;
-  /** Where `..` goes. For a row, the scope that holds the array. */
-  readonly parent?: DataScope;
+export interface RetranslateRebuild {
+  /**
+   * Where the children bind. `child` (the default): inside this definition's
+   * field, as any child does. `own`: where this definition itself sits.
+   */
+  at?: "child" | "own";
+  /** Extra bindings the children's jsonata expressions see, as `$name`. */
+  variables?: {
+    /**
+     * Distinguishes this variant in the expression cache, which is per control
+     * and expression: two variants over one control and one expression would
+     * otherwise read each other's results. The option's value, say.
+     */
+    key: string;
+    /**
+     * The bindings. Read in the evaluator's own window, so a binding that
+     * reads a control re-runs the expressions that use it.
+     */
+    values: (rc: ReadContext) => Record<string, unknown>;
+  };
+  /**
+   * `false` for a repeat translation of children already translated once — a
+   * second option's copy — or every gap is reported once per variant. Default
+   * `true`.
+   */
+  collectWarnings?: boolean;
 }
 
 /**
@@ -50,19 +73,14 @@ export interface TranslateArgs {
   /** For an action: the click the host's `actionHandler` resolved, if any. */
   onClick?: () => void | Promise<void>;
   /**
-   * Translate the children again under different options — a dialog claims
-   * its own open and close ids for its subtree, with the enclosing handler as
-   * the fall-through. `scope` rebuilds them somewhere else in the data: given
-   * the children's default scope, this definition's own, and its bound
-   * control.
+   * Translate the children again. `options` are merged over the loader's — a
+   * dialog claims its own open and close ids for its subtree, with the
+   * enclosing handler as the fall-through. `rebuild` says where the children
+   * bind and what their expressions see.
    */
   retranslate: (
-    options: Partial<LoaderOptions>,
-    scope?: (
-      child: DataScope,
-      own: DataScope,
-      field: Control<unknown> | undefined,
-    ) => DataScope,
+    options?: Partial<LoaderOptions>,
+    rebuild?: RetranslateRebuild,
   ) => ReactNode[];
   /**
    * A `dynamic` entry of the given type, as a prop — for the ones that are not
