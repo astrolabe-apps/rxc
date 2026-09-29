@@ -377,7 +377,7 @@ function AntAction(p: ActionRenderProps) {
         disabled={p.disabled}
         loading={p.busy}
         icon={p.icon}
-        iconPosition={p.iconPlacement === "after" ? "end" : "start"}
+        iconPlacement={p.iconPlacement === "after" ? "end" : "start"}
         onClick={p.onClick}
         aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
       >

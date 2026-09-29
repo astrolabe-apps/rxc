@@ -49,7 +49,8 @@ export type DynamicPropertyType =
   | "ActionData"
   | "Display"
   | "AllowedOptions"
-  | "DefaultValue";
+  | "DefaultValue"
+  | "LayoutStyle";
 
 export interface DynamicProperty {
   type: DynamicPropertyType;

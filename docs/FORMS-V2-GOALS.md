@@ -611,6 +611,7 @@ here.
 @rx-controls/forms-html     the HTML implementation
 @rx-controls/forms-native   the React Native implementation
 @rx-controls/forms-mui      an MUI implementation — the contract's real test
+@rx-controls/forms-antd     an Ant Design implementation — chrome as runtime tokens
 ```
 
 A form imports from `forms-react` and nothing else; a JSON form adds `forms-json`.

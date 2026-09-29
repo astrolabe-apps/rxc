@@ -57,6 +57,7 @@ import {
   type DataScope,
   type ResolvedRef,
 } from "./scope.js";
+import { displayToggle, Offscreen } from "./layoutStyle.js";
 
 /**
  * What the loader could not carry across.
@@ -1380,7 +1381,26 @@ export function translate(
   const t: Translator | undefined = hostDisplay
     ? { match: () => true, render: hostDisplay, dynamics: ["Display"] }
     : translators.find((t) => t.match(def, schema));
-  warnUnhandled(def, at, seen, hostAdornments, t?.renderTypes, t?.dynamics);
+  // `LayoutStyle` is consumed here or reported here — see `layoutStyle.tsx`.
+  const layoutExpr = def.dynamic?.find((d) => d.type === "LayoutStyle")?.expr;
+  const layoutToggle =
+    layoutExpr?.type === "Jsonata" &&
+    displayToggle(layoutExpr.expression as string)
+      ? toValueProp(ctx, scope, layoutExpr, (detail) =>
+          at({ kind: "expression", subject: def.title ?? def.field, detail }),
+        )
+      : undefined;
+  warnUnhandled(def, at, seen, hostAdornments, t?.renderTypes, [
+    ...(t?.dynamics ?? []),
+    "LayoutStyle",
+  ]);
+  if (layoutExpr && !layoutToggle)
+    at({
+      kind: "dynamic",
+      subject: def.title ?? def.field,
+      detail:
+        "LayoutStyle that is not a display toggle — an inline style has no contract slot; style the state in the theme. Dropped",
+    });
 
   // The children's data context: into the bound field, or unchanged. A
   // collection's children live in a *row*, so the eager pass — which exists to
@@ -1563,7 +1583,19 @@ export function translate(
   );
   warnUnread(rawDef, seen, at);
   warnDropped(props, propReads, rawDef, at);
-  return <TranslatedKey key={key}>{node}</TranslatedKey>;
+  const placed = layoutToggle ? (
+    <Offscreen
+      off={(rc) =>
+        (getProp(rc, layoutToggle) as { display?: string } | null | undefined)
+          ?.display === "none"
+      }
+    >
+      {node}
+    </Offscreen>
+  ) : (
+    node
+  );
+  return <TranslatedKey key={key}>{placed}</TranslatedKey>;
 }
 
 /**

@@ -67,7 +67,8 @@ export function actionRenderer(
     const scope = useBoundScope(props);
     const busy = useControl(false);
 
-    const hidden = scope.presence(rc) !== "rendered";
+    // `silent` keeps the button, like every boundary: its container hides it.
+    const hidden = scope.presence(rc) === "hidden";
     const disabled = scope.disabled(rc) || rc.getValue(busy);
     const disableType = props.disableType ?? "self";
     const lock = scope.globalLock;

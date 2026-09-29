@@ -272,7 +272,7 @@ export function fieldRenderer<T, P extends object = {}>(
       state.readOnly,
     );
     const out = (
-      <Visibility visible={presenceNow === "rendered"}>{el}</Visibility>
+      <Visibility visible={presenceNow !== "hidden"}>{el}</Visibility>
     );
     return rendered(designChrome(out, scope.designMode));
   }
@@ -549,7 +549,7 @@ export function collectionRenderer<T, P extends object = {}>(
       state.readOnly,
     );
     const out = (
-      <Visibility visible={presenceNow === "rendered"}>{el}</Visibility>
+      <Visibility visible={presenceNow !== "hidden"}>{el}</Visibility>
     );
     return rendered(designChrome(out, scope.designMode));
   }

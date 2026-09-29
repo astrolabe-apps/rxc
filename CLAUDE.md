@@ -122,7 +122,7 @@ All in `docs/`:
 - **COMPAT-CONTROLS-DESIGN.md** — Design for the legacy-compat package (`packages/compat-controls`, published as `@react-typed-forms/core@5`): three ambient bridges (collector → SubscriptionReconciler, ambient WriteContext, singleton ControlContext), `ControlImpl.prototype` patching, the `withAmbient(rc, fn)` rc-bridge trick, full legacy export inventory with dispositions, phasing A/B/C. Replicates the `@react-typed-forms/core@4.6.0` surface.
 - **FORM-FUTURE-API-DESIGN.md** — FormStateNode/FormState design: stable reactive handles with `getState(rc)`/`getChildren(rc)`, no exposed Controls, SchemaNode/DataNode/FormNode persistent handles with cursor-based `ReadContext` traversal.
 - **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype.
-- **FORMS-V2-PLAN.md** — How `poc/forms-v2` becomes the real libraries: the package layout (`forms-schema` / `forms-react` / `forms-json` / `forms-html` / `forms-mui`, no `forms-state`), two adopter tracks (HVAMS on the JSX path first; ServiceTas on the JSON path, protected by parity + burndown CI gates), and phases with exit criteria. **No dates, by design.**
+- **FORMS-V2-PLAN.md** — How `poc/forms-v2` becomes the real libraries: the package layout (`forms-schema` / `forms-react` / `forms-json` / `forms-html` / `forms-mui` / `forms-antd`, no `forms-state`), TypeDoc as the API reference and a Storybook over every boundary kind under every implementation, two adopter tracks (HVAMS on the JSX path first; ServiceTas on the JSON path, protected by parity + burndown CI gates), and phases with exit criteria. **No dates, by design.**
 
 ## Constraints
 

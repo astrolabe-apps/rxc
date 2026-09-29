@@ -209,11 +209,14 @@ parity run (README finding 66).
 type Presence = "rendered" | "silent" | "hidden";
 ```
 
-| state | renders | validates | `clearHidden` |
-|---|---|---|---|
-| `rendered` | yes | yes | no |
-| `silent` | no | **yes** | no |
-| `hidden` | no | no | yes |
+| state | widget mounted | on screen | validates | `clearHidden` |
+|---|---|---|---|---|
+| `rendered` | yes | yes | yes | no |
+| `silent` | **yes** | no — its container hides it | **yes** | no |
+| `hidden` | no | no | no | yes |
+
+A boundary stays mounted in all three states; the table is about its *widget*, the
+implementation it renders.
 
 **Presence is derived, never authored.** It lives in the scope context, and a component
 narrows it — never widens it, so a child cannot be more visible than its parent. Two things
@@ -224,9 +227,10 @@ narrow it, and neither of them is an author writing `presence=`:
   with the `Visible` dynamic property, which at 599 uses across 43 forms is the most-used
   thing in the format.
 - **A container implementation** narrows to `silent`: `<Tabs>` on its inactive panels, a
-  wizard on pages not yet reached, a grid on rows off the current page. `silent` has no JSON
-  counterpart and no author ever writes it — it is structural, which is precisely why it is a
-  scope facet rather than a prop.
+  wizard on pages not yet reached, a grid on rows off the current page. No author writes it;
+  it is structural, which is precisely why it is a scope facet rather than a prop. Its one
+  JSON counterpart is also structural: a legacy `LayoutStyle` that toggles
+  `{ display: "none" }`, which the loader turns into a container (below).
 
 That is the whole mechanism; there is no separate visibility system.
 
@@ -272,11 +276,41 @@ build had to get right for that, each a constraint on any container that sets `s
   is feasible and is an implementation follow-up: in a boundary's effect cleanup, a genuine
   unmount has already removed the DOM node while an `<Activity>` hide leaves it connected, so
   `ref.current?.isConnected` while presence is still `rendered` / `silent` names the misuse.
-- **The panel hides itself.** Boundaries suppress themselves under `silent`; plain JSX among
-  them does not — the same leak as a hidden group in §8, and the same fix.
+- **The panel hides itself.** Everything in a `silent` panel stays mounted, boundaries' widgets
+  and plain JSX alike (next paragraph), so the container is the only thing that takes it off
+  screen — `display: none` or the `hidden` attribute on an element that never changes, the same
+  fix as a hidden group in §8.
 
 `silent` exists because *unmounted is not hidden* — if it were, switching tabs would run
 `clearHidden` and wipe what you typed.
+
+**`silent` keeps its widgets, not just its boundaries (decided, built).** Every boundary hands
+its `visibility` slot `visible = presence !== "hidden"`, and the action boundary, which has no
+slot, renders under the same rule. The first build keyed it on `presence === "rendered"`,
+so a silent boundary kept its effects and unmounted its implementation. Every inactive tab,
+closed dialog and unchosen branch was then a set of empty boundaries, and all the keep-mounted
+work above (`forceRender`, `keepMounted`, `display-none` mode) bought effects and nothing else.
+The widget is where the state the user sees lives: focus, scroll, a half-typed composition, a
+third-party control's own internals. It is lost on every tab switch, and a payment iframe
+reinitialises. Nothing had chosen that behaviour, and the containers were already hiding their
+content themselves, so the fix changed one comparison per boundary. Measured in all four
+implementations: the same inputs and buttons visible on every tab as before, more of them
+mounted, no new console output. The cost is rendering every widget in every inactive panel. It
+was too small to measure in the build and is the thing to watch in a large form.
+
+**Legacy's `LayoutStyle` is the corpus's `silent` (decided, built).** 13 of its 15 uses toggle
+`{ display: "none" }` on a payment method, over sections that hold Quickstream payment iframes.
+Legacy never knew those sections were hidden, so it validated them and never cleared them, which
+is exactly `silent`. The loader recognises the toggle statically: every object the expression
+can produce is `{}` or `{ display: "none" }`. It wraps the node in a third-party `silent`
+container built like `SelectChild`. Parity is identical to legacy; translated to `hidden`
+instead, `clearHidden` wipes 23 values on one form. The other 2 uses set a border colour while
+an accordion is expanded, and already branch on `$platform` to emit CSS keys on web and RN keys
+on native. That is theme styling of group state, not something a form carries, so the loader
+warns and drops them. There is **no authored style prop** in the contract. An inline style is
+platform-specific by construction, and the only `LayoutStyle` in the corpus that was really a
+style shows it. The `style` on `ControlSlotProps` (§7) is a different thing: an implementation
+passing its own runtime chrome to its own frame, never something a form carries.
 
 **`clearHidden` is a form-wide option**, set on `<Form>` (§10), with `dontClearHidden` on a
 control as the only per-control knob. Its *effect* is per-node: each boundary clears the field
@@ -520,11 +554,15 @@ swap. They differ in what framework work each kind needs:
 
 | boundary | binds data | under `silent` | distinctive work |
 |---|---|---|---|
-| `fieldRenderer` | yes | `null` | register validators, attach to the nearest scope |
-| `collectionRenderer` | yes | `null` | the above, plus resolve elements into per-element scopes |
-| `groupRenderer` | no | `<>{children}</>` | derive the scope context, optional validation scope |
-| `actionRenderer` | no | `null` | async/busy, disabler acquisition, handler stubbing in design mode |
-| `displayRenderer` | no | `null` | content and presence only |
+| `fieldRenderer` | yes | rendered; the container hides it | register validators, attach to the nearest scope |
+| `collectionRenderer` | yes | rendered; the container hides it | the above, plus resolve elements into per-element scopes |
+| `groupRenderer` | no | its implementation, with `hidden: true` | derive the scope context, optional validation scope |
+| `actionRenderer` | no | rendered; the container hides it | async/busy, disabler acquisition, handler stubbing in design mode |
+| `displayRenderer` | no | rendered; the container hides it | content and presence only |
+
+Under `hidden`, the field, collection, action and display boundaries render nothing (through
+`visibility`, which may hold the last frame for an exit); a group still renders its
+implementation with `hidden: true`, which hides with CSS (§8).
 
 **A display is a boundary with the data half removed (built), and nothing else had to change.**
 With no binding there is no field to validate, nothing to clear when hidden, no locks to fold
@@ -1150,6 +1188,10 @@ has to stay mounted while it leaves. The POC already works this way (`DefaultVis
 the no-op; `@rx-controls/forms-motion` swaps in `<AnimatePresence>`-backed fade and slide
 versions). It is also why a boundary keeps its children mounted while hidden: something that
 unmounts them has nothing to hand this slot.
+
+`visible` is `presence !== "hidden"`, **not** `presence === "rendered"`. A `silent` widget stays
+mounted, and its container is what takes it off screen (§4). So this slot animates exactly one
+transition, into and out of `hidden`, and a tab switch never goes through it.
 
 For a **field** the semantics do not linger with the pixels — a boundary whose presence has
 gone `hidden` has already stopped validating and cleared its field, and the `visibility`

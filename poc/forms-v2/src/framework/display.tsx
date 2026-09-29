@@ -56,7 +56,7 @@ export function displayRenderer<P extends object = {}>(
         data-design={scope.designMode ? "" : undefined}
         style={scope.designMode ? undefined : { display: "contents" }}
       >
-        <Visibility visible={presenceNow === "rendered"}>
+        <Visibility visible={presenceNow !== "hidden"}>
           <Impl
             accessibleName={getProp(rc, props.accessibleName)}
             inline={scope.inline}

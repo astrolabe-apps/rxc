@@ -1886,6 +1886,68 @@ Numbered; each is cited at the matching line of code.
     `translate.tsx`) are markup in a package that should have none — the
     theme cannot reach them. Burndown and parity unchanged (622; 144 of 144).
 
+73. **`LayoutStyle` is not a style — it is `silent`, and `silent` now keeps
+    its widgets.** The corpus's 15 uses are two shapes. **13 toggle
+    `{ display: "none" }`** on `paymentMethod` over the payment sections of
+    MrsLicenceRenewal, MrsRegistrationRenewal, TUP and ShortTermPermit —
+    sections holding `QuickstreamCC` / `QuickstreamPay` iframes. **2 set a
+    border colour while an accordion is expanded** (LinkedServices,
+    Services), and already branch on `$platform` to write `border-color` on
+    web and `borderColor` on native: the corpus had met the agnostic problem
+    and solved it in a jsonata string. Neither wants a style slot.
+
+    The first shape is exactly `silent`. Legacy never knew those sections
+    were hidden, so it validated them and never ran `clearHidden` on them —
+    off screen, still validating, never cleared. The loader
+    (`loader/layoutStyle.tsx`) now recognises it *statically*: every object
+    the expression's AST can produce is `{}` or `{ display: "none" }`. It
+    wraps the node in `Offscreen`, a third-party container (the
+    `SelectChild` recipe, finding 57) that narrows presence to `silent` and
+    hides an unchanging wrapper, `display: contents` while shown so a flex
+    parent sees nothing. Anything else is a translate-time warning — "not a
+    display toggle … style the state in the theme". Burndown 585 → 572; the
+    two left are the borders.
+
+    **Parity cannot tell `silent` from ignoring the style, but it can tell
+    `silent` from `hidden`.** 138 of 138 identical, before and after —
+    expected, since legacy and `silent` agree. The counterfactual, `Offscreen`
+    producing `hidden`, gives **23 value differences in MrsLicenceRenewal**:
+    `clearHidden` wipes the unchosen method's BPay reference, cost line
+    items, term and fee codes. So the translation is not a matter of taste,
+    and the instrument sees it.
+
+    **The finding the toggle surfaced: `silent` kept boundaries, not
+    widgets.** The field, collection and display boundaries passed
+    `visible={presence === "rendered"}` to the `visibility` slot, so under
+    `silent` the boundary's effects lived and the implementation unmounted —
+    an empty `ff-boundary` in every inactive tab, closed dialog and
+    unchosen branch. Findings 25 and 43 went to real trouble keeping those
+    panels mounted (`forceRender`, `keepMounted`, `display-none` mode) and it
+    bought effects only. For a payment iframe that is a re-initialise on
+    every method switch; for any widget it is lost focus, scroll and
+    internal state on every tab switch. Nothing had decided it — the
+    containers already hide silent content themselves (findings 26, 57).
+    Now `visible = presence !== "hidden"` — and the action boundary, which
+    has no `visibility` slot and returned `null` under the same
+    `!== "rendered"` test, follows the same rule (visible buttons per tab
+    unchanged in all four implementations; 28 → 37 mounted).
+
+    Verified in the browser, JSON tab fixture (`hasPets` toggles a `notes`
+    section; `<Form clearHidden>` on): the input is the **same DOM node**
+    across four toggles and a tab switch; the value typed before hiding
+    survives; emptied from another boundary while silent, the silent
+    boundary still publishes its `required`. Visible controls per tab are
+    identical to before in html, Ant and Mantine; MUI counts three more,
+    which are its closed `keepMounted` dialog — `visibility: hidden`,
+    `aria-hidden`, unfocusable, i.e. correctly hidden, not a leak. Console
+    errors identical under both rules (the "state update on a component that
+    hasn't mounted yet" burst on switching *implementation* predates this).
+
+    Left open: the cost of mounting every widget in every inactive panel
+    (nothing here is large enough to measure); and whether the two border
+    colours want a translator into a theme hook, or stay a warning — two
+    uses in one app says warning.
+
 ## Where to pick up
 
 The burndown (`rushx burndown`) is the work list, top-down; `--show
@@ -1894,8 +1956,8 @@ nothing left is a translator: `noSelection` 108 is a designer flag with no
 contract role; `ColumnOptions` 26, `DataGrid` 7 and `Pager` 5 are the
 datagrid; `Radio` 24 are forms that shipped neither a schema nor an
 `AllowedOptions`; `Accordion` 20 is finding 55's shape as an adornment;
-`dynamic Display` 15 is DisplayOnly's `overrideText`; `LayoutStyle` 15 is a
-dynamic inline style with no contract slot; `keyboardType` 14 and
+`dynamic Display` 15 is DisplayOnly's `overrideText`; `LayoutStyle` is down
+to 2, both a theme's job (finding 73); `keyboardType` 14 and
 `autoComplete` 13 are host input options; `HelpText.placement` 15 is dropped
 on purpose (finding 61); `textClass` 16 sits on groups, where legacy had no
 text either. The host-extension family — `helpLabel`, `Switch`,
@@ -1925,8 +1987,7 @@ translation that is *wrong*. `rushx parity` can: it runs every corpus form
 through legacy itself (`@react-typed-forms/schemas@19`, headless) and
 through the v2 loader mounted under React, over the same fixture data, and
 diffs the values and errors each leaves at every data path. At the last run:
-**144 of 144 runs identical, 0 differences**, plus 38 classified as known divergences — 37 display-only (finding 54, v2's choice) and 1 shared jsonata key (finding 69, a legacy bug). Finding 66 has what building it found; findings 67–69 closed the rest. Still unbuilt: `LayoutStyle` (15 uses; a dynamic
-inline style, no contract slot), a loader hook for host adornments
+**144 of 144 runs identical, 0 differences**, plus 38 classified as known divergences — 37 display-only (finding 54, v2's choice) and 1 shared jsonata key (finding 69, a legacy bug). Finding 66 has what building it found; findings 67–69 closed the rest. Still unbuilt: a loader hook for host adornments
 (`Spotlight`) alongside the open `Translator[]`.
 
 ## Things the POC deliberately does not answer

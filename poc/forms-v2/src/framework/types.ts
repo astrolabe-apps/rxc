@@ -216,6 +216,11 @@ export interface FrameState {
  * Owns the mount lifetime of whatever a boundary would render. A slot rather
  * than a hard `visible ? children : null` because an exit transition needs the
  * subtree mounted while it leaves.
+ *
+ * `visible` is `presence !== "hidden"`: a `silent` widget stays mounted, and
+ * the container that made it silent hides it (findings 26, 57, 73) — so an
+ * inactive tab, a closed dialog or a legacy `display: none` section keeps
+ * its widgets, not just its boundaries.
  */
 export interface VisibilityProps {
   visible: boolean;

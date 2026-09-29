@@ -396,6 +396,39 @@ export const demoControls: ControlDefinition[] = [
       },
     ],
   },
+  // `LayoutStyle` in its two corpus shapes. A `{ display: "none" }` toggle is
+  // `silent` — off screen, still mounted and validating, never cleared (13 of
+  // the corpus's 15, all payment sections). Anything else is a warning.
+  {
+    type: "Group",
+    title: "Notes again (shown while Has pets — LayoutStyle)",
+    groupOptions: { type: "Standard" },
+    dynamic: [
+      {
+        type: "LayoutStyle",
+        expr: {
+          type: "Jsonata",
+          expression: 'hasPets ? {} : {"display":"none"}',
+        },
+      },
+    ],
+    children: [{ type: "Data", field: "notes", required: true }],
+  },
+  {
+    type: "Group",
+    title: "Bordered while Has pets — LayoutStyle, not a toggle",
+    groupOptions: { type: "Standard" },
+    dynamic: [
+      {
+        type: "LayoutStyle",
+        expr: {
+          type: "Jsonata",
+          expression: 'hasPets ? {"border-color":"#75BD43"} : ""',
+        },
+      },
+    ],
+    children: [],
+  },
   // A shape that renders *something* and quietly loses what the JSON asked
   // for — the failure the warning list exists to catch.
   {
