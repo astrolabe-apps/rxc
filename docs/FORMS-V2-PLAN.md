@@ -332,7 +332,7 @@ What each library has to be tested for is what the POC found it getting wrong si
 
 *Exit:* html, MUI and Ant all green on the shared suite and the story smoke test.
 
-### 5 — Retire the POC, and publish the alpha
+### 5 — Retire the POC, and publish the alpha ✅
 
 **The POC is retired.** Gone: `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd`,
 `-datagrid` and all of `-core` (its JSON half was already `forms-schema`, and nothing else was
@@ -345,7 +345,15 @@ stay as the legacy semantics parity holds v2 to; the v2 docs point at the POC RE
 around the v2 stack. Nothing in the repo imports a POC package, and no doc comment cites a
 finding. Two pre-publish fixes rode along: context providers are `<X.Provider value>`, not
 React 19's `<X value>`, and the v2 packages declare `react: ^19` — what they are tested on —
-rather than a range they had never run against. Still to do: the publish.
+rather than a range they had never run against.
+
+**Published.** The six v2 packages are on npm at `0.1.0-alpha.0`, and a clean install from the
+registry renders a JSX field and a JSON-loaded one under html, MUI and Ant on one engine copy.
+They went out with the stable packages' minors — `@rx-controls/core` 1.1.0 (the alphas need its
+`createDerivedGroup`), `@rx-controls/react` 1.1.0 and `@react-typed-forms/core` 5.1.0. Every
+package is now React 19 only; that narrowing shipped as a minor, since no consumer ever ran on 18,
+and the two releases that declared 18 (react 1.0.0, compat 5.0.0) are deprecated. Publishing is
+`rush publish-latest` and `rush publish-alpha`, one per version policy.
 
 Delete `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd`, `-datagrid`; the `FormStateNode` /
 scripted-proxy half of `@rx-controls/forms-core` (its JSON half having become `forms-schema`);
@@ -398,9 +406,10 @@ it from sliding backwards regardless.
 
 ## Publishing
 
-The v2 packages publish as an **alpha** at the end of phase 5: `0.1.0-alpha.0`, on the npm
-`alpha` dist-tag rather than `latest`, so a plain `npm install` does not pick them up and a
-consumer opts in with `@alpha`. Later alphas bump the `.N`. The contract can still move between
+The v2 packages publish as an **alpha**: `0.1.0-alpha.0` was the first, on the npm `alpha`
+dist-tag. npm also points `latest` at a package's first-ever version whatever `--tag` says, so
+for now `latest` is the alpha too; later alphas published with `--tag alpha` move only `alpha`,
+and `latest` moves to the first non-prerelease. A consumer should ask for `@alpha` explicitly. Later alphas bump the `.N`. The contract can still move between
 alphas; a prerelease carries no semver promise. The implementations publish with the contract:
 `forms-mui` and `forms-antd` go out alongside `forms-html`, not after. `apps/forms-storybook` and
 the `tools/` packages are never published. The repo's rules apply: `workspace:^`, versions set by

@@ -164,7 +164,10 @@ Gated by `shouldPublish` in `rush.json`:
 | `@react-typed-forms/core` (the compat package) | 5.1.0 | `latest` |
 | `@rx-controls/forms-schema`, `-react`, `-json`, `-html`, `-mui`, `-antd` | 0.1.0-alpha.0 | `alpha` |
 
-The apps and `tools/` packages are never published. **React 19 only, without a major:** react
+The apps and `tools/` packages are never published. A consumer of Forms v2 asks for `@alpha`:
+npm pointed each v2 package's `latest` at `0.1.0-alpha.0` too, since it always tags a
+package's first-ever version `latest` whatever `--tag` says; later alphas move only `alpha`.
+**React 19 only, without a major:** react
 1.1.0 and compat 5.1.0 narrowed their peer range from `^18 || ^19` to `^19` in a minor, because
 no consumer ever ran them on 18; the earlier releases that declared 18 (`@rx-controls/react@1.0.0`,
 `@react-typed-forms/core@5.0.0`) are `npm deprecate`d in favour of them rather than kept alive.
