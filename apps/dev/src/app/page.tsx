@@ -149,6 +149,18 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     description:
       "@react-typed-forms/core v5 (compat) acceptance — the legacy kitchen-sink page, imports unchanged, on the new engine",
   },
+  {
+    href: "/v2",
+    label: "/v2",
+    description:
+      "Forms v2 PersonForm from the real packages — forms-react + forms-html",
+  },
+  {
+    href: "/v2/compat",
+    label: "/v2/compat",
+    description:
+      "Forms v2 inside a compat-engine app — the HVAMS gate fixture, asserted by rushx test",
+  },
   { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
   {
     href: "/showcase",

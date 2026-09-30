@@ -12,3 +12,5 @@
  * registered explicitly so their class names are emitted into the
  * generated stylesheet. */
 @source "../../../../packages/forms/src/**/*.{ts,tsx}";
+/* Forms v2: the Tailwind html theme's classes. */
+@source "../../../../packages/forms-html/src/theme.tsx";

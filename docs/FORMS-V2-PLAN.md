@@ -188,7 +188,18 @@ overflowed the container)**; (5) the Storybook app **(built — `apps/forms-stor
 across every boundary kind and the four third-party fixtures, an implementation and a theme
 switcher in the toolbar, the `<Form>` scope as args on every story, and a smoke test in `rush test`
 that renders every story under both themes, 68 cases, failing on any console error or warning)**;
-(6) the dev-app `PersonForm` and the compat fixture.
+(6) the dev-app `PersonForm` and the compat fixture **(built — `/v2` runs the POC's `PersonForm`
+from the real packages, less its JSON and corpus tabs, which are phase 3's; `/v2/compat` is the
+HVAMS gate: a legacy compat app owning the data with a v2 form bound to its compat controls, no
+cast, and `rushx test` in the dev app asserting one engine copy, writes landing in both directions
+— v2 typing, `Finput`, a legacy mutator, array ops both ways — and validation reaching the legacy
+side, all under `setStrictAmbient("throw")`, which a single ambient `.value` read in the v2
+component fails)**.
+
+**Exit criteria met; the test list below is not, yet.** Still unwritten: SSR + hydration; the
+escaped-read guard as a `FormProp` test; memo bailouts at every boundary (only the collection's
+one-row re-render is pinned); StrictMode beyond the validation tree's single attach. Phase 2 closes
+when those land.
 
 Port the framework and the HTML implementation, **with the tests the POC never had**, written as
 each piece lands:

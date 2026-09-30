@@ -36,9 +36,15 @@ importers:
       '@rx-controls/forms-dnd':
         specifier: workspace:^
         version: link:../../packages/forms-dnd
+      '@rx-controls/forms-html':
+        specifier: workspace:^
+        version: link:../../packages/forms-html
       '@rx-controls/forms-motion':
         specifier: workspace:^
         version: link:../../packages/forms-motion
+      '@rx-controls/forms-react':
+        specifier: workspace:^
+        version: link:../../packages/forms-react
       '@rx-controls/react':
         specifier: workspace:^
         version: link:../../packages/react
@@ -64,6 +70,12 @@ importers:
       '@types/react':
         specifier: ~19.2.0
         version: 19.2.18
+      '@types/react-dom':
+        specifier: ~19.2.0
+        version: 19.2.7(@types/react@19.2.18)
+      happy-dom:
+        specifier: ~15.11.0
+        version: 15.11.7
       postcss:
         specifier: ~8.5.0
         version: 8.5.14
@@ -76,6 +88,9 @@ importers:
       typescript:
         specifier: ~5.8.0
         version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)
 
   ../../apps/forms-storybook:
     dependencies:

@@ -1,0 +1,13 @@
+/* The third-party widgets' own surfaces. The implementation's chrome comes
+ * from its theme; these are what a widget author ships alongside a widget. */
+.stars { display: flex; gap: 2px; }
+.stars-btn { border: 0; background: none; font-size: 1.4rem; cursor: pointer; padding: 0 2px; }
+.stars-btn:disabled { cursor: default; opacity: 0.5; }
+.demo-cards { display: grid; gap: 8px; margin-bottom: 8px; }
+.demo-card { border: 1px solid #ccc; border-radius: 6px; padding: 8px; }
+.demo-card-actions { display: flex; gap: 8px; margin-top: 6px; }
+.demo-collapsible { border: 1px solid #ccc; border-radius: 6px; }
+.demo-collapsible-head { display: flex; gap: 8px; align-items: center; width: 100%; border: 0; background: none; padding: 8px; font: inherit; cursor: pointer; text-align: left; }
+.demo-collapsible-summary { color: #666; }
+.demo-collapsible-badge { background: #c00; color: #fff; border-radius: 999px; padding: 0 6px; font-size: 0.75rem; }
+.demo-collapsible > :last-child { padding: 0 8px 8px; }
