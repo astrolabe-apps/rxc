@@ -118,6 +118,11 @@
       "shouldPublish": false
     },
     {
+      "packageName": "rxc-forms-storybook",
+      "projectFolder": "apps/forms-storybook",
+      "shouldPublish": false
+    },
+    {
       "packageName": "rxc-forms-v2-poc",
       "projectFolder": "poc/forms-v2",
       "shouldPublish": false

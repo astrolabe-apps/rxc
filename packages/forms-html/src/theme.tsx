@@ -398,7 +398,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
   },
   frame: {
     className:
-      "rxf-frame flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 data-[multiline]:items-start data-[focused]:border-blue-600 data-[focused]:ring-2 data-[focused]:ring-blue-600/20 data-[invalid]:border-red-600 data-[disabled]:bg-gray-100 data-[disabled]:text-gray-400 data-[readonly]:bg-gray-50",
+      "rxf-frame box-border flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 data-[multiline]:items-start data-[focused]:border-blue-600 data-[focused]:ring-2 data-[focused]:ring-blue-600/20 data-[invalid]:border-red-600 data-[disabled]:bg-gray-100 data-[disabled]:text-gray-400 data-[readonly]:bg-gray-50",
     slot: "rxf-slot inline-flex text-sm text-gray-400",
     input:
       "rxf-input min-w-0 flex-1 border-0 bg-transparent p-0 outline-0 text-inherit [font:inherit]",

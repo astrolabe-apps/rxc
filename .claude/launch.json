@@ -20,6 +20,15 @@
       "port": 5183
     },
     {
+      "name": "forms-storybook",
+      "runtimeExecutable": "rushx",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "cwd": "apps/forms-storybook",
+      "port": 6006
+    },
+    {
       "name": "legacy-demos",
       "runtimeExecutable": "rushx",
       "runtimeArgs": [

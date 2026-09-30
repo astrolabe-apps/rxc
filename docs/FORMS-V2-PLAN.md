@@ -180,10 +180,15 @@ Open for the review:
 presence, the validation tree with verdicts, field validation, the registry and primitive hooks
 **(built, 40 tests)**; (2) the boundaries — field, group, display, action, collection, staged
 edit **(built, 29 tests)**; (3) tabs, wizard, dialog, the controllers and the built-ins **(built,
-15 tests — `forms-react` complete, 84 in all)**; (4) `forms-html` **(built, 28 tests — both themes,
+15 tests — `forms-react` complete, 84 in all)**; (4) `forms-html` **(built, 29 tests — both themes,
 the providers, every renderer, hiding with no CSS; the dialog's Close is an `<Action>` with
-`StandardActionIds.close`, so a host restyles it by id like every other framework button)**; (5) the
-Storybook app; (6) the dev-app `PersonForm` and the compat fixture.
+`StandardActionIds.close`, so a host restyles it by id like every other framework button; and
+`tailwindHtmlTheme`'s full-width input frame is `box-border`, since without preflight its padding
+overflowed the container)**; (5) the Storybook app **(built — `apps/forms-storybook`, 34 stories
+across every boundary kind and the four third-party fixtures, an implementation and a theme
+switcher in the toolbar, the `<Form>` scope as args on every story, and a smoke test in `rush test`
+that renders every story under both themes, 68 cases, failing on any console error or warning)**;
+(6) the dev-app `PersonForm` and the compat fixture.
 
 Port the framework and the HTML implementation, **with the tests the POC never had**, written as
 each piece lands:

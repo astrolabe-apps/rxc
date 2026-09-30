@@ -36,6 +36,7 @@ export default [
       "**/lib/**",
       "**/dist/**",
       "**/.next/**",
+      "**/storybook-static/**",
       "**/common/temp/**",
       "**/common/autoinstallers/**",
       // Vendored verbatim from astrolabe-common; not ours to restyle.

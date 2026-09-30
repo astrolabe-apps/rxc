@@ -116,6 +116,23 @@ describe("the themes", () => {
     walk(defaultHtmlTheme, "");
   });
 
+  it("sizes a full-width slot with its padding and border inside it, without preflight", () => {
+    // Preflight makes every element border-box; without it `w-full` plus
+    // padding or a border is wider than its container.
+    const walk = (t: unknown, path: string): void => {
+      if (typeof t === "string") {
+        const cs = t.split(/\s+/);
+        const boxed = cs.some((c) => /^(p[xy]?|border)(-|$)/.test(c));
+        if (cs.includes("w-full") && boxed)
+          expect(cs, `${path} is w-full with padding or a border`).toContain(
+            "box-border",
+          );
+      } else if (t && typeof t === "object" && !("$$typeof" in t))
+        for (const [k, v] of Object.entries(t)) walk(v, path ? `${path}.${k}` : k);
+    };
+    walk(tailwindHtmlTheme, "");
+  });
+
   it("hide a region by attribute in the default, and by class in the Tailwind theme", () => {
     expect(defaultHtmlTheme.contents.hideWith).toBe("attribute");
     expect(tailwindHtmlTheme.contents.hideWith).toBe("class");
