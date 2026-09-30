@@ -1,6 +1,6 @@
 /* ServiceTas's portal look, for the html implementation under the ServiceTas
- * theme fixture. Ported from `apps/rxc-compare/app/globals.css`, itself a
- * Tailwind v4 port of `ServiceTas/…/client-common/globals.css`. Bootstrap 3
+ * theme fixture: a Tailwind v4 port of `ServiceTas/…/client-common/globals.css`.
+ * Bootstrap 3
  * and the portal `theme.css` load first, from <link> tags in `layout.tsx`.
  *
  * Tailwind preflight is left out, as the legacy config did

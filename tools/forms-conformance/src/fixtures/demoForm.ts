@@ -256,7 +256,7 @@ const controls = [
     displayData: { type: "Custom", customId: "greeting" },
     title: "Greeting",
   },
-  // ── the host's extensions (the POC's stand-in host) ──
+  // ── a host's extensions (tools/forms-corpus's stand-in host has them) ──
   // A host render type: ServiceTas's Switch, `displayLabel: false` and all.
   {
     type: "Data",

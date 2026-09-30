@@ -11,15 +11,6 @@
       "port": 3000
     },
     {
-      "name": "forms-v2-poc",
-      "runtimeExecutable": "rushx",
-      "runtimeArgs": [
-        "dev"
-      ],
-      "cwd": "poc/forms-v2",
-      "port": 5183
-    },
-    {
       "name": "forms-storybook",
       "runtimeExecutable": "rushx",
       "runtimeArgs": [

@@ -2,15 +2,13 @@
 
 Reference document for clean-room implementation. Extracted from `@astroapps/forms-core` source.
 
-> **The semantics here are authoritative and settled; the *names* are the legacy ones.** This was
-> extracted from the implementation being ported, and unlike
-> [`CONTROL-SEMANTICS.md`](CONTROL-SEMANTICS.md) it carries no `[core]`/`[patch]` tags to tell the
-> two apart. Some identifiers survived the port unchanged (`FormStateNode`, `getState`,
-> `getChildren`, `SchemaNode`, `FormNode`), others did not — `SchemaDataNode` is `DataNode`,
-> `defaultResolveChildNodes` is `defaultResolveChildren`, and helpers like `getResolvedChildren`,
-> `getChildNodes`, `wireProxies` and `validDataNode` have no rxc counterpart under those names.
-> `packages/forms-core/src` is the source of truth for what anything is called; read this for what
-> it must *do*.
+> **Legacy reference, now.** rxc's own port of these semantics (`@rx-controls/forms-core`, with
+> `FormStateNode`) was removed with the POC in phase 5 of [`FORMS-V2-PLAN.md`](FORMS-V2-PLAN.md).
+> Forms v2 carries them differently — boundaries and the loader rather than a node tree — and
+> checks them against legacy itself with the parity run in `tools/forms-corpus`. What follows is
+> what legacy does, which is what parity holds v2 to.
+
+> The names are legacy's (`@astroapps/forms-core`).
 
 ## Architecture Overview
 

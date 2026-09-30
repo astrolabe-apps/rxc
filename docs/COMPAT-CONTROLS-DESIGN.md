@@ -280,7 +280,8 @@ incremental-migration story:
 - **compat → core holds structurally.** A compat `Control<V>` declares core's
   entire surface, so it is assignable to a core `Control<V>` with no cast and
   passes into `rc.getValue`, `wc.setValue`, `@rx-controls/react` hooks and
-  `@rx-controls/forms` unchanged. This is the direction a migrating app
+  the Forms v2 bindings unchanged (the dev app's `/v2/compat` fixture asserts
+  it). This is the direction a migrating app
   actually uses — its controls stay compat-created while components convert
   one at a time. `asCore` remains exported as an explicit spelling of intent
   (and for generic positions that can't infer the relation), but it is now a

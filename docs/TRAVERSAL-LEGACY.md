@@ -1,9 +1,10 @@
 # Forms-Core Tree Traversal Semantics
 
-> **Legacy reference.** This describes traversal in the *old* `@astroapps/forms-core`, which only
-> the filename currently says. The rxc port replaced this model with persistent handles plus
-> ephemeral cursors — see [`FORM-FUTURE-API-DESIGN.md`](FORM-FUTURE-API-DESIGN.md) for the shipped
-> design and `packages/forms-core/src/nodes` for the code. Kept for the semantics it records.
+> **Legacy reference.** This describes traversal in legacy `@astroapps/forms-core`. rxc's port of
+> it (`@rx-controls/forms-core`, persistent handles plus ephemeral cursors) was removed with the
+> POC in phase 5 of [`FORMS-V2-PLAN.md`](FORMS-V2-PLAN.md); in Forms v2 the loader's data cursor
+> (`packages/forms-json/src/scope.ts`) is what resolves `a/b`, `..` and `.` references. Kept for
+> the semantics it records, which parity holds v2 to.
 
 The system has **three parallel tree structures** that work together to render schema-driven forms:
 

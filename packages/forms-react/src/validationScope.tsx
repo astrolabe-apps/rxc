@@ -249,5 +249,5 @@ export function ValidationScopeProvider({
   value: ValidationScopeImpl;
   children: ReactNode;
 }) {
-  return <Ctx value={value}>{children}</Ctx>;
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

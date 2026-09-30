@@ -40,7 +40,7 @@ export default [
       "**/common/temp/**",
       "**/common/autoinstallers/**",
       // Vendored verbatim from astrolabe-common; not ours to restyle.
-      "packages/forms-core/src/json/schemaSchemas.ts",
+      "packages/forms-schema/src/schemaSchemas.ts",
     ],
   },
   {

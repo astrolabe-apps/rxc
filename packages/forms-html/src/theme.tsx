@@ -563,5 +563,5 @@ export function HtmlThemeProvider({
 }: HtmlThemeProviderProps): ReactNode {
   const parent = useHtmlTheme();
   const resolved = useMemo(() => mergeTheme(parent, theme), [parent, theme]);
-  return <ThemeContext value={resolved}>{children}</ThemeContext>;
+  return <ThemeContext.Provider value={resolved}>{children}</ThemeContext.Provider>;
 }

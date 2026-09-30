@@ -12,8 +12,9 @@
  *
  * The build step is scoped to those same projects rather than being a bare
  * `rush build`, so it builds exactly what ends up in the tarballs and doesn't
- * spend time on the apps or the `@rx-controls/forms*` packages, none of which are
- * packed (they carry `shouldPublish: false`).
+ * spend time on the apps or tools, none of which are packed (they carry
+ * `shouldPublish: false`). The Forms v2 alphas are packed too; the
+ * overrides below name only what a compat consumer needs.
  *
  * What this script adds is the last step: writing an `overrides.json` for the
  * three packages a legacy `@react-typed-forms/core` consumer needs. Listing

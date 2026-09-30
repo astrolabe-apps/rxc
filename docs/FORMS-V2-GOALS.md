@@ -4,12 +4,15 @@ The goal statement. Get this right first; the shape follows.
 
 **Vocabulary.** *Legacy* = the `@react-typed-forms/schemas` + `-html` stack real forms run on
 in production, and the parity reference wherever this doc says "identical semantics". *The
-POC* = `@rx-controls/forms` and siblings in this repo — a proof of concept that v2 replaces,
-owed nothing. Neither is "v1".
+POC* = `@rx-controls/forms` and siblings, a proof of concept that v2 replaced — removed from
+the repo in phase 5 of [`FORMS-V2-PLAN.md`](./FORMS-V2-PLAN.md). Neither is "v1".
 
 Key interfaces: [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md). *The build* =
 `poc/forms-v2`, the throwaway that put the interfaces in front of four UI libraries; anything
-marked **(built)** below is something it settled, and its README has the long form.
+marked **(built)** below is something it settled, and its README has the long form. The build
+was removed in phase 5 too, and v2 is now the `@rx-controls/forms-*` packages; a "README
+finding N" below cites that README, readable at the commit before the removal:
+`git show a087d03:poc/forms-v2/README.md`.
 
 **JSX first.** A form is React. JSON is an input format that loads onto the same surface —
 downstream of the design, not alongside it. No renderer knows JSON exists. This is the

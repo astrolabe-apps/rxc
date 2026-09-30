@@ -2,10 +2,10 @@
 
 /**
  * Forms v2 from the real packages: `@rx-controls/forms-react` for the
- * contract and `@rx-controls/forms-html` for the implementation. The same
- * PersonForm the POC built, minus its JSON and corpus tabs (those arrive with
- * `@rx-controls/forms-json` in phase 3). Pair with /v2/compat, the same
- * packages inside a compat-engine app.
+ * contract and `@rx-controls/forms-html` for the implementation: a JSX form
+ * over every boundary kind, with the scope's switches beside it. Pair with
+ * /v2/compat, the same packages inside a compat-engine app, and
+ * /v2/servicetas, the JSON path over a real corpus.
  */
 
 import { useState } from "react";

@@ -10,9 +10,9 @@ import MrsDemeritsJson from "./formDefs/MrsDemeritsSummary.json";
 import RWVPSearchJson from "./formDefs/RWVPRenewalSearch.json";
 import { ControlDefinition, SchemaField } from "@react-typed-forms/schemas";
 
-// Same seed as the rxc compare app (apps/rxc-compare/app/formDefs.ts) so
-// the two render identical rows. Twelve listings with varied statuses;
-// page size 5 → 3 pages.
+// A fixed seed, so the grid renders the same rows every time. Twelve
+// listings with varied statuses; page size 5 → 3 pages. (The POC's rxc
+// compare app used the same seed; it was removed with the POC.)
 export const rwvpRenewalRows: Record<string, unknown>[] = [
   { id: "1", firstName: "Ava", lastName: "Nguyen", dateOfBirth: "1990-04-11", status: "Submitted", registrationNumber: "RN-1001", expiryDate: "2026-01-15", licenceNumber: "L-3001", submitAt: "2025-11-01T09:24:00" },
   { id: "2", firstName: "Liam", lastName: "Brown", dateOfBirth: "1985-09-02", status: "Draft", registrationNumber: "RN-1002", expiryDate: "2026-02-20", licenceNumber: "L-3002", submitAt: null },
@@ -110,9 +110,9 @@ export const RWVPRenewalSearch = {
   },
 };
 
-// Mirror of the rxc compare app's DataGrid scratch form (apps/rxc-compare/
-// app/formDefs.ts) so the Phase D parity fixes can be compared side-by-side
-// against the published legacy `@astroapps/schemas-datagrid` renderer:
+// A DataGrid scratch form exercising the published legacy
+// `@astroapps/schemas-datagrid` renderer (the POC's rxc compare app, removed
+// with the POC, mirrored it for side-by-side checks):
 //   • grid-level `#` row-index adornment column
 //   • `editExternal` modal Add/Edit (+ buttons disabled while open)
 //   • zebra `rowClass` (per-form via the renderer's `gridRowClass`)

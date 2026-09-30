@@ -189,11 +189,11 @@ export function Form({
     inline,
   ]);
   return (
-    <ScopeContext value={scope}>
+    <ScopeContext.Provider value={scope}>
       <ValidationScopeProvider value={validation}>
         {children}
       </ValidationScopeProvider>
-    </ScopeContext>
+    </ScopeContext.Provider>
   );
 }
 
@@ -321,7 +321,7 @@ export function FormScopeProvider({
   scope,
   children,
 }: FormScopeProviderProps): ReactNode {
-  return <ScopeContext value={scope as InternalScope}>{children}</ScopeContext>;
+  return <ScopeContext.Provider value={scope as InternalScope}>{children}</ScopeContext.Provider>;
 }
 
 /**

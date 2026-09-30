@@ -1,5 +1,5 @@
 /* Tailwind for tailwindHtmlTheme: theme + utilities, no preflight — the theme
- * does not presuppose one (POC README finding 79). */
+ * does not presuppose one. */
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 

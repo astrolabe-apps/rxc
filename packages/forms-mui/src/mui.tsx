@@ -87,7 +87,7 @@ function MuiFieldShell(p: FieldShellProps) {
   const framed = p.surface === "frame";
   const hasLabel = p.label !== undefined && p.label !== null;
   return (
-    <MuiLabelContext value={framed && !legend ? p.label : null}>
+    <MuiLabelContext.Provider value={framed && !legend ? p.label : null}>
       <FormControl
         fullWidth
         error={!!p.error}
@@ -144,7 +144,7 @@ function MuiFieldShell(p: FieldShellProps) {
           </FormHelperText>
         )}
       </FormControl>
-    </MuiLabelContext>
+    </MuiLabelContext.Provider>
   );
 }
 

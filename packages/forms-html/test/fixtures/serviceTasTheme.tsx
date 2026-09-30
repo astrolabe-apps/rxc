@@ -93,7 +93,7 @@ export const serviceTasOverlay: PartialHtmlTheme = {
       "cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-80",
   },
   // Legacy put displayOnlyClass on the layout, not the value; the value
-  // carries only the definition's textClass (as rxc-compare found).
+  // carries only the definition's textClass.
   displayOnly: { className: "", inline: "" },
   // group.flexClassName (defaultTailwindTheme) + group.defaultFlexGap (ServiceTas).
   stack: { className: "gap-2", defaultGap: "1em" },

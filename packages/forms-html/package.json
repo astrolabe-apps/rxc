@@ -37,7 +37,7 @@
     "@rx-controls/forms-react": "workspace:^"
   },
   "peerDependencies": {
-    "react": "^18 || ^19"
+    "react": "^19"
   },
   "devDependencies": {
     "@types/react": "~19.2.0",

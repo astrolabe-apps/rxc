@@ -161,37 +161,11 @@ const NAV_LINKS: { href: string; label: string; description: string }[] = [
     description:
       "Forms v2 inside a compat-engine app — the HVAMS gate fixture, asserted by rushx test",
   },
-  { href: "/tree", label: "/tree", description: "FormStateNode visualizer" },
   {
-    href: "/showcase",
-    label: "/showcase",
-    description: "kitchen-sink default renderers",
-  },
-  {
-    href: "/interactive",
-    label: "/interactive",
-    description: "tabs, dialog, accordion, async actions",
-  },
-  {
-    href: "/designer",
-    label: "/designer",
-    description: "plugin + design-mode demo",
-  },
-  {
-    href: "/phase4b",
-    label: "/phase4b",
-    description: "Phase 4b additions + motion / dnd add-ons",
-  },
-  {
-    href: "/buttons",
-    label: "/buttons",
+    href: "/v2/servicetas",
+    label: "/v2/servicetas",
     description:
-      "ButtonAction renderer — variants, icons, busy spinner, theming",
-  },
-  {
-    href: "/externaledit",
-    label: "/externaledit",
-    description: "editExternal staged-edit modal — Add + per-row Edit",
+      "Forms v2 over the ServiceTas corpus under its theme — pair with localhost:3002 (legacy-compare)",
   },
   {
     href: "/renderboundary",

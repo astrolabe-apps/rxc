@@ -130,9 +130,9 @@ export function FormProvider({
 }: FormProviderProps): ReactNode {
   const Root = renderers.root;
   return (
-    <RenderersContext value={renderers}>
+    <RenderersContext.Provider value={renderers}>
       {Root ? <Root>{children}</Root> : children}
-    </RenderersContext>
+    </RenderersContext.Provider>
   );
 }
 

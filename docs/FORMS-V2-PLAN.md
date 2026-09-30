@@ -334,6 +334,19 @@ What each library has to be tested for is what the POC found it getting wrong si
 
 ### 5 — Retire the POC, and publish the alpha
 
+**The POC is retired.** Gone: `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd`,
+`-datagrid` and all of `-core` (its JSON half was already `forms-schema`, and nothing else was
+left using the rest); the dev-app pages built on them (`/tree`, `/showcase`, `/interactive`,
+`/designer`, `/phase4b`, `/buttons`, `/externaledit`); `apps/rxc-compare`; and `poc/forms-v2`.
+`MIGRATION-FROM-LEGACY.md`, `FORM-FUTURE-API-DESIGN.md` and `RENDERER-HOOK-EXTRACTION.md`
+described only the deleted code and are removed; `FORM-SEMANTICS.md` and `TRAVERSAL-LEGACY.md`
+stay as the legacy semantics parity holds v2 to; the v2 docs point at the POC README in git
+(`git show a087d03:poc/forms-v2/README.md`) for the findings they cite. CLAUDE.md is rewritten
+around the v2 stack. Nothing in the repo imports a POC package, and no doc comment cites a
+finding. Two pre-publish fixes rode along: context providers are `<X.Provider value>`, not
+React 19's `<X value>`, and the v2 packages declare `react: ^19` — what they are tested on —
+rather than a range they had never run against. Still to do: the publish.
+
 Delete `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd`, `-datagrid`; the `FormStateNode` /
 scripted-proxy half of `@rx-controls/forms-core` (its JSON half having become `forms-schema`);
 the dev-app pages built on them; `apps/rxc-compare`; and `poc/forms-v2`. The legacy reference apps

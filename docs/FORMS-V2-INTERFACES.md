@@ -1,17 +1,18 @@
 # Forms v2 — key interfaces
 
-Status: **proposal**. Goals, and the reasoning behind everything here, are in
-[`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md).
+Status: **built.** Goals, and the reasoning behind everything here, are in
+[`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md). The contract is `@rx-controls/forms-react`, the
+loader `@rx-controls/forms-json`, and the implementations `forms-html`, `forms-mui` and
+`forms-antd`; their generated reference (`rush docs`) is the API documentation, and this is the
+design and its reasons.
 
-Nothing in `packages/` implements this. One throwaway build does — `poc/forms-v2`, a Rush
-project so it can link the workspace's own core: the field, options, collection, group, action
-and display boundaries, a tab container, a wizard, a staged-edit modal and a JSON loader, each
-in four implementations (plain HTML, MUI, Ant, Mantine), plus a third-party widget that reuses
-each one's chrome without importing it. Everything below marked **(built)** is a
-change that build forced, and its README carries the long form of each. What it never touched
-— Base UI — is listed under *Still open*.
-(`FORMS-V2-GOALS.md` reserves "the POC" for `@rx-controls/forms`, so this one is "the build"
-throughout, whatever its folder is called.)
+It was worked out on a throwaway build, `poc/forms-v2`: the boundaries, the containers, the
+staged edit and a JSON loader, each in four implementations (plain HTML, MUI, Ant, Mantine),
+plus third-party widgets reusing each one's chrome. Everything below marked **(built)** is a
+change that build forced, and "README finding N" cites its README for the long form. The build
+was removed in phase 5 of [`FORMS-V2-PLAN.md`](./FORMS-V2-PLAN.md); the README is readable at
+the commit before: `git show a087d03:poc/forms-v2/README.md`. Mantine was not carried into the
+packages. What the build never touched — Base UI — is listed under *Still open*.
 
 The shape is JSX-first: these are the types a hand-written form is built from. JSON is
 downstream — each section ends with **From JSON**, saying what the loader's translator produces
@@ -1438,7 +1439,7 @@ second one is **deliberately absent (decided)**: nothing in the corpus or the bu
 and adding it later is not breaking — it is an optional render prop an implementation may
 ignore, over a count the validation scope already keeps (§6, *Validation scopes*).
 
-The §7 primitives themselves are no longer paper: `poc/forms-v2` builds them four times over,
+The §7 primitives themselves are no longer paper: the build made them four times over,
 and both shapes flagged there as most likely to move were the right two — the MUI shell→frame
 private channel held exactly as predicted, and `filled` turned out to need telling. The group
 trial added one thing to them: a group needs no primitive of its own, because the

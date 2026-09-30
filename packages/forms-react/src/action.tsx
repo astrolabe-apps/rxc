@@ -144,7 +144,7 @@ export function ActionOverrideProvider({
 }: ActionOverrideProviderProps): ReactNode {
   const parent = useActionOverrides();
   const merged = useMemo(() => ({ ...parent, ...value }), [parent, value]);
-  return <OverridesContext value={merged}>{children}</OverridesContext>;
+  return <OverridesContext.Provider value={merged}>{children}</OverridesContext.Provider>;
 }
 
 const OverridesContext = createContext<ActionOverrides>({});
