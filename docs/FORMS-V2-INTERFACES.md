@@ -496,11 +496,11 @@ interface ActionProps {
   hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
   disableType?: "none" | "self" | "global";     // what a running async handler locks
-  style?: FormProp<ActionStyle>;
+  variant?: FormProp<ActionVariant>;           // not `style`: that is inline CSS in React
   className?: FormProp<ClassValue>;              // the control (the button)
   textClassName?: FormProp<ClassValue>;          // its text
   shellClassName?: FormProp<ClassValue>;         // the wrapper it sits in — legacy's layout element (finding 63)
-  children?: ReactNode;                          // any style, not just Group
+  children?: ReactNode;                          // any variant, not just Group
 }
 interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () => void }
 
@@ -535,7 +535,7 @@ one (`addActionId`) so two grids on a page can be styled apart. Ids name the dee
 every host already has), and the translator builds `onClick` from it — `actionData` static, or
 the `dynamic: ActionData` expression read untracked at click time. Asked at *translate* time,
 `undefined` means nobody claims the id and the loader **warns** rather than shipping a button
-that does nothing, which is what legacy does silently. `actionStyle` → `style`, `icon` /
+that does nothing, which is what legacy does silently. `actionStyle` → `variant`, `icon` /
 `iconPlacement` / `disableType` map one-to-one. Legacy's **Dialog group** is a loader component:
 `placement: "trigger"` children render in place, the rest inside `<Dialog>` (§6), and the
 translator owns the `open` control and claims `openDialog` / `closeDialog` for its subtree with

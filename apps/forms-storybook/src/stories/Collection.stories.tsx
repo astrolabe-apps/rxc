@@ -56,7 +56,7 @@ function Pets(a: CollectionArgs): Rendered {
         <Action
           actionId={StandardActionIds.add}
           text={`Add pet (${outside.length}/${a.maxLength})`}
-          style="primary"
+          variant="primary"
           disabled={!outside.canAdd}
           onClick={() => outside.add({ name: "" })}
         />

@@ -7,14 +7,14 @@ import {
   StandardActionIds,
   TextField,
   type ActionRenderProps,
-  type ActionStyle,
+  type ActionVariant,
   type IconPlacement,
 } from "@rx-controls/forms-react";
 import type { ScopeArgs } from "../support";
 
 interface ActionArgs extends ScopeArgs {
   text: string;
-  style: ActionStyle;
+  variant: ActionVariant;
   iconPlacement: IconPlacement;
   withIcon: boolean;
   actionDisabled: boolean;
@@ -24,13 +24,13 @@ const meta: Meta<ActionArgs> = {
   title: "Boundaries/Action",
   args: {
     text: "Save",
-    style: "primary",
+    variant: "primary",
     iconPlacement: "before",
     withIcon: false,
     actionDisabled: false,
   },
   argTypes: {
-    style: { control: "inline-radio", options: ["primary", "secondary", "link"] },
+    variant: { control: "inline-radio", options: ["primary", "secondary", "link"] },
     iconPlacement: {
       control: "inline-radio",
       options: ["before", "after", "replace"],
@@ -41,7 +41,7 @@ const meta: Meta<ActionArgs> = {
     <Action
       actionId="save"
       text={a.text}
-      style={a.style}
+      variant={a.variant}
       icon={a.withIcon ? <span aria-hidden>✔</span> : undefined}
       iconPlacement={a.iconPlacement}
       disabled={a.actionDisabled}
@@ -57,9 +57,9 @@ export const Button: Story = {};
 export const Styles: Story = {
   render: () => (
     <Stack direction="row" gap={8}>
-      <Action actionId="a" text="Primary" style="primary" />
-      <Action actionId="b" text="Secondary" style="secondary" />
-      <Action actionId="c" text="Link" style="link" />
+      <Action actionId="a" text="Primary" variant="primary" />
+      <Action actionId="b" text="Secondary" variant="secondary" />
+      <Action actionId="c" text="Link" variant="link" />
     </Stack>
   ),
 };
@@ -80,7 +80,7 @@ function Busy(): Rendered {
         <Action
           actionId="save"
           text="Save (self)"
-          style="primary"
+          variant="primary"
           onClick={() => wait(1500)}
         />
         <Action
@@ -115,7 +115,7 @@ export const OverrideById: Story = {
   render: () => (
     <ActionOverrideProvider value={{ [StandardActionIds.add]: Fancy }}>
       <Stack direction="row" gap={8}>
-        <Action actionId={StandardActionIds.add} text="Add" style="primary" />
+        <Action actionId={StandardActionIds.add} text="Add" variant="primary" />
         <Action actionId="other" text="Not overridden" />
       </Stack>
     </ActionOverrideProvider>

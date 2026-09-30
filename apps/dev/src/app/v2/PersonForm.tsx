@@ -153,13 +153,13 @@ function DraftBody({
         <Action
           actionId={StandardActionIds.apply}
           text="Apply"
-          style="primary"
+          variant="primary"
           onClick={apply}
         />
         <Action
           actionId={StandardActionIds.cancel}
           text="Cancel"
-          style="link"
+          variant="link"
           onClick={cancel}
         />
       </div>
@@ -207,7 +207,7 @@ function ValidationTree({
       <Action
         actionId="submit"
         text={root.pending(rc) ? "Check form (checking…)" : "Check form"}
-        style="primary"
+        variant="primary"
         onClick={async () => {
           setResult("checking…");
           const ok = await root.check();
@@ -455,7 +455,7 @@ export function PersonForm({
                     <Action
                       actionId="openDetails"
                       text="More details…"
-                      style="secondary"
+                      variant="secondary"
                       onClick={() => setDetailsOpen(true)}
                     />
                     <TextDisplay
@@ -527,14 +527,14 @@ export function PersonForm({
                           <Action
                             actionId={StandardActionIds.edit}
                             text="Edit"
-                            style="secondary"
+                            variant="secondary"
                             disabled={!row.canEdit}
                             onClick={() => row.edit(i)}
                           />
                           <Action
                             actionId={StandardActionIds.remove}
                             text="Remove"
-                            style="secondary"
+                            variant="secondary"
                             disabled={!row.canRemove}
                             onClick={() => row.remove(i)}
                           />
@@ -544,7 +544,7 @@ export function PersonForm({
                     <Action
                       actionId={StandardActionIds.add}
                       text={`Add pet (${pets.length}/${petBounds.maxLength})`}
-                      style="primary"
+                      variant="primary"
                       disabled={!pets.canAdd}
                       onClick={() => pets.add({ name: "" })}
                     />

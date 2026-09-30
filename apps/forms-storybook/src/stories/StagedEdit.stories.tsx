@@ -43,13 +43,13 @@ function DraftHost({ field }: { field: Control<Pet[]> }): Rendered {
             <Action
               actionId={StandardActionIds.apply}
               text="Apply"
-              style="primary"
+              variant="primary"
               onClick={() => edit.apply()}
             />
             <Action
               actionId={StandardActionIds.cancel}
               text="Cancel"
-              style="link"
+              variant="link"
               onClick={() => edit.cancel()}
             />
           </Stack>

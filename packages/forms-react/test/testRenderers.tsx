@@ -89,7 +89,7 @@ function Action(p: ActionRenderProps) {
       type="button"
       data-action={p.actionId}
       data-busy={p.busy ? "" : undefined}
-      data-style={p.style}
+      data-variant={p.variant}
       disabled={p.disabled}
       onClick={p.onClick}
     >

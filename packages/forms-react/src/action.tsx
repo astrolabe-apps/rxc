@@ -12,11 +12,11 @@ import { useBoundScope, useInternalScope } from "./scope.js";
 import { bailout, boundaryName, resolveImpl } from "./boundaryParts.js";
 
 /**
- * A button's emphasis.
+ * A button's emphasis. `variant`, not `style`: in React `style` is inline CSS.
  *
  * @group Authoring
  */
-export type ActionStyle = "primary" | "secondary" | "link";
+export type ActionVariant = "primary" | "secondary" | "link";
 
 /**
  * Where a button's icon goes relative to its text; `replace` draws the icon
@@ -64,7 +64,7 @@ export interface ActionProps {
   /** What an asynchronous `onClick` locks while it runs. Default `self`. */
   disableType?: DisableType;
   /** Emphasis. Default `secondary`. */
-  style?: FormProp<ActionStyle>;
+  variant?: FormProp<ActionVariant>;
   /** The button. */
   className?: FormProp<ClassValue>;
   /** Its text. */
@@ -99,7 +99,7 @@ export interface ActionRenderProps {
   /** An asynchronous handler is running. */
   busy: boolean;
   /** Emphasis. */
-  style: ActionStyle;
+  variant: ActionVariant;
   /** The button. */
   className?: ClassValue;
   /** Its text. */
@@ -260,7 +260,7 @@ export function actionRenderer(
           onClick={onClick}
           disabled={disabled}
           busy={rc.getValue(busy)}
-          style={getProp(rc, props.style) ?? "secondary"}
+          variant={getProp(rc, props.variant) ?? "secondary"}
         >
           {props.children}
         </Impl>

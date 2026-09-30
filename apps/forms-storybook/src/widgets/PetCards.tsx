@@ -64,14 +64,14 @@ function PetCardsImpl<T>(
                 <Action
                   actionId={StandardActionIds.edit}
                   text="Edit"
-                  style="secondary"
+                  variant="secondary"
                   disabled={false}
                   onClick={() => p.actions.edit(e.index)}
                 />
                 <Action
                   actionId={StandardActionIds.remove}
                   text="Remove"
-                  style="link"
+                  variant="link"
                   disabled={!p.actions.canRemove}
                   onClick={() => p.actions.remove(e.index)}
                 />
@@ -84,7 +84,7 @@ function PetCardsImpl<T>(
         <Action
           actionId={StandardActionIds.add}
           text="Add card"
-          style="primary"
+          variant="primary"
           disabled={!p.actions.canAdd}
           onClick={() => p.actions.add({ name: "" })}
         />

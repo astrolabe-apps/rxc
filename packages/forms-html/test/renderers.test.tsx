@@ -268,7 +268,7 @@ describe("Action", () => {
       <Action
         actionId="save"
         text="Save"
-        style="primary"
+        variant="primary"
         icon={<i data-icon />}
         onClick={() => new Promise<void>((r) => (resolve = r))}
       />,

@@ -5,7 +5,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { ActionStyle } from "@rx-controls/forms-react";
+import type { ActionVariant } from "@rx-controls/forms-react";
 
 /**
  * Every class the HTML implementation emits, one slot per element.
@@ -189,9 +189,9 @@ export interface HtmlTheme {
     className: string;
     /** Every button's text. */
     textClassName: string;
-    /** Added by style, on top of the two above. */
-    styles: Record<
-      ActionStyle,
+    /** Added by variant, on top of the two above. */
+    variants: Record<
+      ActionVariant,
       {
         /** Added to the button. */
         className: string;
@@ -325,7 +325,7 @@ export const defaultHtmlTheme: HtmlTheme = {
   action: {
     className: "rxf-btn",
     textClassName: "",
-    styles: {
+    variants: {
       primary: { className: "rxf-btn--primary", textClassName: "" },
       secondary: { className: "rxf-btn--secondary", textClassName: "" },
       link: { className: "rxf-btn--link", textClassName: "" },
@@ -453,7 +453,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
     className:
       "rxf-btn inline-flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm [font:inherit] disabled:cursor-not-allowed disabled:opacity-75",
     textClassName: "",
-    styles: {
+    variants: {
       primary: {
         className: "rxf-btn--primary bg-blue-600 text-white hover:bg-blue-700",
         textClassName: "",

@@ -437,7 +437,7 @@ function HtmlTabs(p: TabsRenderProps) {
 
 function HtmlAction(p: ActionRenderProps) {
   const { displayShell, action: t } = useHtmlTheme();
-  const style = t.styles[p.style];
+  const variant = t.variants[p.variant];
   const busy = p.busy ? t.busy : p.icon;
   return (
     <DisplayShell
@@ -448,7 +448,7 @@ function HtmlAction(p: ActionRenderProps) {
     >
       <button
         type="button"
-        className={mergeClass(join(t.className, style.className), p.className)}
+        className={mergeClass(join(t.className, variant.className), p.className)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         onClick={p.onClick}
@@ -458,7 +458,7 @@ function HtmlAction(p: ActionRenderProps) {
           (p.children ?? (
             <span
               className={mergeClass(
-                join(t.textClassName, style.textClassName),
+                join(t.textClassName, variant.textClassName),
                 p.textClassName,
               )}
             >
@@ -631,14 +631,14 @@ function HtmlWizard(p: WizardRenderProps) {
         <Action
           actionId={StandardActionIds.back}
           text="Back"
-          style="secondary"
+          variant="secondary"
           disabled={!p.canBack}
           onClick={p.back}
         />
         <Action
           actionId={StandardActionIds.next}
           text="Next"
-          style="primary"
+          variant="primary"
           disabled={!p.canNext}
           onClick={p.next}
         />
@@ -685,7 +685,7 @@ function HtmlDialog(p: DialogRenderProps) {
         <Action
           actionId={StandardActionIds.close}
           text="Close"
-          style="secondary"
+          variant="secondary"
           onClick={p.onClose}
         />
       </div>

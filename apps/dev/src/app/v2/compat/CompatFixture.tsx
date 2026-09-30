@@ -204,7 +204,7 @@ function V2Member({ member }: { member: Control<Member> }): Rendered {
           <Action
             actionId="check"
             text="Check form"
-            style="primary"
+            variant="primary"
             onClick={() => validation.check().then(() => {})}
           />
         </div>
