@@ -4,6 +4,7 @@ import { getProp, type ClassValue, type FormProp } from "./props.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope } from "./scope.js";
 import {
+  bailout,
   boundaryName,
   designChrome,
   extraProps,
@@ -158,7 +159,7 @@ export function displayRenderer<P extends object = {}>(
     "DisplayBoundary",
     source as ComponentType<never>,
   );
-  return DisplayBoundary;
+  return bailout(DisplayBoundary);
 }
 
 const displayContractKeys: ReadonlySet<string> = new Set([

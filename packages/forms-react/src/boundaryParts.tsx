@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import { memo, type ComponentType, type ReactNode } from "react";
 import { FormEditProvider } from "@rx-controls/react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import type { FormRenderers, RegistrySlot } from "./registry.js";
@@ -122,3 +122,23 @@ export const fieldContractKeys: ReadonlySet<string> = new Set([
   "shellClassName",
   "textClassName",
 ]);
+
+/**
+ * A leaf boundary as a memo bailout point. The boundary reads everything
+ * reactive through its own window, so it re-renders by itself when what it
+ * shows moves; what `memo` adds is that an author re-rendering with the same
+ * props stops here instead of re-running every field below it. Props an
+ * author writes inline — an arrow for a derived label, a `validate` literal —
+ * are a new identity each render and simply miss, which is correct: they may
+ * close over something that moved.
+ *
+ * Containers are not wrapped: they take `children` or `items`, which are a
+ * new identity on every render, so the comparison would always miss.
+ */
+export function bailout<C extends (props: never) => ReactNode>(component: C): C {
+  const m = memo(component as unknown as ComponentType<object>) as unknown as C & {
+    displayName?: string;
+  };
+  m.displayName = (component as { displayName?: string }).displayName;
+  return m;
+}

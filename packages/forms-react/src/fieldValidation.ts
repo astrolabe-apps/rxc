@@ -16,6 +16,15 @@ import { getProp, type FormProp } from "./props.js";
 import type { ScopeState } from "./scope.js";
 import type { ValidationScopeImpl } from "./validationScope.js";
 
+/**
+ * `useLayoutEffect` on the client, `useEffect` on the server. Validation
+ * publishes in the commit phase, before paint, so a sibling that rendered
+ * first still sees the error on screen; on the server nothing commits, and
+ * React 18 warns about a layout effect there (React 19 does not).
+ */
+const useCommitEffect =
+  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+
 /*
  * The field boundary's validation engine. Not exported from the package; the
  * loader reaches `useDefaultValue` and `hiddenPending` through
@@ -99,7 +108,7 @@ export function useFieldValidation<T>(
   const keys = ["required", ...Object.keys(entries)];
   const keyId = JSON.stringify(keys);
 
-  useLayoutEffect(() => {
+  useCommitEffect(() => {
     const disposers = (JSON.parse(keyId) as string[]).map((key) => {
       const errorKey = key === "required" ? requiredKey(owner) : key;
       const rc = new TrackingReadContext();
@@ -169,7 +178,7 @@ export function useFieldValidation<T>(
   const ownId = JSON.stringify(
     keys.map((k) => (k === "required" ? requiredKey(owner) : k)),
   );
-  useLayoutEffect(() => {
+  useCommitEffect(() => {
     const claims = errorClaims(ctx, control);
     const own = JSON.parse(ownId) as string[];
     ctx.update((wc) =>

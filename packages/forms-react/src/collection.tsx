@@ -30,6 +30,7 @@ import {
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
+  bailout,
   boundaryName,
   boundaryState,
   designChrome,
@@ -269,7 +270,7 @@ export function collectionRenderer<T, P extends object = {}>(
     "CollectionBoundary",
     source as ComponentType<never>,
   );
-  return CollectionBoundary as unknown as <V extends T>(
+  return bailout(CollectionBoundary) as unknown as <V extends T>(
     props: CollectionProps<V> & P,
   ) => Rendered;
 }

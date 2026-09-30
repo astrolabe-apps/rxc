@@ -1,4 +1,4 @@
-import { act } from "react";
+import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -7,6 +7,7 @@ import {
   ControlCheckbox,
   ControlInput,
   FormEditProvider,
+  useFormEdit,
   ControlSelect,
   useReactive,
   useValidator,
@@ -163,6 +164,28 @@ describe("FormEditState", () => {
     );
     expect(input().readOnly).toBe(true);
     expect(input().disabled).toBe(false);
+  });
+
+  it("does not re-render consumers when its parent re-renders with the same flags", () => {
+    let consumerRenders = 0;
+    const Consumer = React.memo(function Consumer() {
+      consumerRenders++;
+      return <span>{String(useFormEdit().disabled)}</span>;
+    });
+    let bump!: () => void;
+    function Parent() {
+      const [n, setN] = React.useState(0);
+      bump = () => setN(n + 1);
+      return (
+        <FormEditProvider disabled>
+          <Consumer />
+        </FormEditProvider>
+      );
+    }
+    mount(<Parent />);
+    expect(consumerRenders).toBe(1);
+    act(() => bump());
+    expect(consumerRenders).toBe(1);
   });
 
   it("readonly folds into disabled for selects and checkboxes", () => {

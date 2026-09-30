@@ -1,4 +1,4 @@
-import { act, type ComponentType } from "react";
+import { act, StrictMode, type ComponentType } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { composeStories, setProjectAnnotations } from "@storybook/react-vite";
@@ -12,8 +12,8 @@ import { themes } from "../src/support";
 setProjectAnnotations(preview);
 
 /**
- * Every story, rendered under every theme, fails on any console error or
- * warning — the rule `rush test` already enforces through stderr, applied to
+ * Every story, rendered under every theme and under StrictMode, fails on any
+ * console error or warning — the rule `rush test` already enforces through stderr, applied to
  * the stories so a render-phase warning cannot sit in one unnoticed.
  */
 const modules = import.meta.glob<Record<string, unknown>>(
@@ -46,7 +46,11 @@ for (const [path, mod] of Object.entries(modules)) {
           document.body.appendChild(container);
           const root = createRoot(container);
           await act(async () =>
-            root.render(<Story />),
+            root.render(
+              <StrictMode>
+                <Story />
+              </StrictMode>,
+            ),
           );
           expect(container.innerHTML).not.toBe("");
           await act(async () => root.unmount());

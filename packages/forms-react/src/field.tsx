@@ -17,6 +17,7 @@ import {
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
+  bailout,
   boundaryName,
   boundaryState,
   designChrome,
@@ -285,5 +286,5 @@ export function fieldRenderer<T, P extends object = {}>(
     "FieldBoundary",
     source as ComponentType<never>,
   );
-  return FieldBoundary;
+  return bailout(FieldBoundary);
 }

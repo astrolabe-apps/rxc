@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import type { ReactNode } from "react";
 
 /**
@@ -36,8 +36,12 @@ export function FormEditProvider({
   disabled,
   children,
 }: FormEditState & { children: ReactNode }) {
+  // One value per flag pair: a fresh object every render would re-render
+  // every consumer below whenever the provider's parent re-renders, straight
+  // through any `memo` in between.
+  const value = useMemo(() => ({ readOnly, disabled }), [readOnly, disabled]);
   return (
-    <FormEditContext.Provider value={{ readOnly, disabled }}>
+    <FormEditContext.Provider value={value}>
       {children}
     </FormEditContext.Provider>
   );

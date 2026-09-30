@@ -174,9 +174,9 @@ Open for the review:
   assuming no preflight. `contents.hideWith` and `visibility.fade` moved the two behaviours that
   hung on CSS into theme data. With this, all three review questions are closed.
 
-### 2 — `forms-react` + `forms-html`, the JSX path
+### 2 — `forms-react` + `forms-html`, the JSX path ✅
 
-**In progress.** Slices, each with its tests: (1) `forms-react` foundations — props, scope and
+**Done.** Slices, each with its tests: (1) `forms-react` foundations — props, scope and
 presence, the validation tree with verdicts, field validation, the registry and primitive hooks
 **(built, 40 tests)**; (2) the boundaries — field, group, display, action, collection, staged
 edit **(built, 29 tests)**; (3) tabs, wizard, dialog, the controllers and the built-ins **(built,
@@ -196,10 +196,20 @@ cast, and `rushx test` in the dev app asserting one engine copy, writes landing 
 side, all under `setStrictAmbient("throw")`, which a single ambient `.value` read in the v2
 component fails)**.
 
-**Exit criteria met; the test list below is not, yet.** Still unwritten: SSR + hydration; the
-escaped-read guard as a `FormProp` test; memo bailouts at every boundary (only the collection's
-one-row re-render is pinned); StrictMode beyond the validation tree's single attach. Phase 2 closes
-when those land.
+**Exit met, and the test list below written.** SSR is a kitchen-sink form server-rendered with no
+DOM at all, then hydrated under StrictMode with no mismatch, the server's nodes kept and the form
+live after. The escaped-read guard is a `FormProp` suite: a derived contract prop and a widget's
+own prop each re-render only what shows them, and one resolved through a captured `rc` is reported
+and goes stale. The render-count suite pins that a value change re-renders only the fields bound to
+it, inside containers too, and one row only. It also found that an author re-rendering with
+unchanged props re-rendered every boundary below it. The leaf boundaries (field, display, action,
+collection) are now `memo` bailout points; containers take fresh `children` / `items` every render,
+so they re-render, and the boundaries inside them bail in turn. Getting there needed a fix in
+`@rx-controls/react`: `FormEditProvider` handed out a new context value on every render. The
+StrictMode suite covers validation publishing, the `clearHidden` / `defaultValue` cycle,
+touch-on-leave, async pending, the global lock, collection writes and staged edit, and the story
+smoke test now renders every story under StrictMode. Field validation's layout effects fall back
+to `useEffect` on the server, for React 18, which warns there.
 
 Port the framework and the HTML implementation, **with the tests the POC never had**, written as
 each piece lands:

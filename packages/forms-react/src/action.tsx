@@ -9,7 +9,7 @@ import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type ClassValue, type FormProp } from "./props.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope, useInternalScope } from "./scope.js";
-import { boundaryName, resolveImpl } from "./boundaryParts.js";
+import { bailout, boundaryName, resolveImpl } from "./boundaryParts.js";
 
 /**
  * A button's emphasis.
@@ -271,5 +271,5 @@ export function actionRenderer(
     "ActionBoundary",
     source as ComponentType<never>,
   );
-  return ActionBoundary;
+  return bailout(ActionBoundary);
 }
