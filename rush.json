@@ -17,36 +17,36 @@
       "shouldPublish": true
     },
     {
-      // Forms v2 (docs/FORMS-V2-PLAN.md). Unpublished until HVAMS ships a form
-      // on them (the plan's "Publishing").
+      // Forms v2 (docs/FORMS-V2-PLAN.md): published as alphas on the npm
+      // `alpha` dist-tag — never with the stable packages' `--tag latest`.
       "packageName": "@rx-controls/forms-schema",
       "projectFolder": "packages/forms-schema",
-      "shouldPublish": false
+      "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-react",
       "projectFolder": "packages/forms-react",
-      "shouldPublish": false
+      "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-json",
       "projectFolder": "packages/forms-json",
-      "shouldPublish": false
+      "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-html",
       "projectFolder": "packages/forms-html",
-      "shouldPublish": false
+      "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-mui",
       "projectFolder": "packages/forms-mui",
-      "shouldPublish": false
+      "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-antd",
       "projectFolder": "packages/forms-antd",
-      "shouldPublish": false
+      "shouldPublish": true
     },
     {
       "packageName": "@react-typed-forms/core",
