@@ -2,7 +2,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getCompatPatchInfo, setStrictAmbient } from "@react-typed-forms/core";
-import { CompatApp } from "../src/app/v2/compat/CompatFixture";
+import { CompatApp } from "../src/app/(dev)/v2/compat/CompatFixture";
 
 // React 19 warns unless this is set for `act()`.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =

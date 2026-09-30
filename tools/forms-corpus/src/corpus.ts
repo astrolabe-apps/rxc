@@ -6,7 +6,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { ControlDefinition, SchemaField } from "../src/loader/json.js";
+import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 
 export interface FormFile {
   path: string;

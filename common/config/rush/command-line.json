@@ -14,10 +14,10 @@
       "commandKind": "global",
       "name": "lint",
       "summary": "Lint the repo (React hooks rules)",
-      "description": "Runs ESLint across packages/ and apps/ using the `lint` autoinstaller. Enforces react-hooks/rules-of-hooks; see docs/RENDER-BOUNDARY.md.",
+      "description": "Runs ESLint across packages/, apps/ and tools/ using the `lint` autoinstaller. Enforces react-hooks/rules-of-hooks; see docs/RENDER-BOUNDARY.md.",
       "safeForSimultaneousRushProcesses": true,
       "autoinstallerName": "lint",
-      "shellCommand": "eslint packages apps"
+      "shellCommand": "eslint packages apps tools"
     },
     {
       "commandKind": "global",

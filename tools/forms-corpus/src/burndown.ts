@@ -23,8 +23,8 @@
 import { existsSync } from "node:fs";
 import { relative } from "node:path";
 import { createControlContext } from "@rx-controls/core";
-import { translateForm, type LoaderWarning } from "../src/loader/translate.js";
-import { pocHost } from "../src/loader/pocHost.js";
+import { translateForm, type LoaderWarning } from "@rx-controls/forms-json";
+import { standInHost } from "./host/standInHost.js";
 import { countControls, loadForm, walkFiles, type FormFile } from "./corpus.js";
 
 interface FormResult {
@@ -60,9 +60,9 @@ function run(form: FormFile): FormResult {
       data,
       form.fields,
       form.controls,
-      // The POC's host set (pocHost.tsx) — real if small implementations,
+      // The stand-in host set (standInHost.tsx) — real if small implementations,
       // so what they claim is claimed. The action stand-in is the exception.
-      noActions ? pocHost : { ...pocHost, actionHandler: () => () => {} },
+      noActions ? standInHost : { ...standInHost, actionHandler: () => () => {} },
     );
     return {
       path: form.path,

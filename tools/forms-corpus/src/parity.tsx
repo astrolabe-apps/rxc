@@ -3,9 +3,9 @@
  *
  * The burndown (`burndown.ts`) measures shape coverage — did something claim
  * this discriminator, read this property, pass on what was built. It cannot
- * see a translation that reads everything and computes the wrong answer
- * (README finding 62 found 296 of those only because their properties went
- * *unread*). This script can: it runs every corpus form twice over the same
+ * see a translation that reads everything and computes the wrong answer —
+ * the POC found 296 of those only because their properties went *unread*.
+ * This script can: it runs every corpus form twice over the same
  * fixture data — once through legacy's own form-state tree and once through
  * the v2 loader mounted under React — lets both settle, and diffs what each
  * left in the data and
@@ -23,13 +23,19 @@
  * both, a wrongly-shown or wrongly-hidden field with a value becomes a value
  * difference, which is why the "filled" fixture exists. Two divergences are
  * classified rather than counted — v2's write-free display-only boundary
- * (finding 54) and legacy's one shared `jsonata` error key (finding 69) —
+ * and legacy's one shared `jsonata` error key —
  * and the summary names each with its count; `--show` still prints them.
  *
  *   rushx parity [<dir-or-file>...]         summary; default ./corpus
  *   rushx parity --show <form-basename>     every difference in one form
  *   rushx parity --fixture empty|filled     one fixture only (default both)
  *   rushx parity --show <form> --trace <f>   legacy's visibility for controls whose field contains <f>
+ *   rushx parity --json                     the summary as JSON, for `gates`
+ *
+ * Anything the v2 side prints to the console while it renders — a React key
+ * warning, a render-phase update — is counted against its run and fails the
+ * gate, whatever the values say: parity in the data does not excuse a defect
+ * in the rendering.
  */
 import { relative } from "node:path";
 import { existsSync } from "node:fs";
@@ -53,11 +59,18 @@ import {
   defaultSchemaInterface,
   type FormStateNode,
 } from "@react-typed-forms/schemas";
-import { Form, FormProvider } from "../src/framework/index.js";
-import { htmlRenderers } from "../src/impls/html.js";
-import { JsonForm } from "../src/loader/JsonForm.js";
-import { pocHost } from "../src/loader/pocHost.js";
-import type { SchemaField } from "../src/loader/json.js";
+import { Form, FormProvider } from "@rx-controls/forms-react";
+import { htmlRenderers } from "@rx-controls/forms-html";
+import { JsonForm } from "@rx-controls/forms-json";
+import { standInHost } from "./host/standInHost.js";
+import type {
+  DataControlDefinition,
+  SchemaField,
+} from "@rx-controls/forms-schema";
+
+/** A compound's children, whichever `SchemaField` subtype it is. */
+const kids = (f: SchemaField): SchemaField[] =>
+  (f as { children?: SchemaField[] }).children ?? [];
 import { countControls, loadForm, walkFiles, type FormFile } from "./corpus.js";
 
 const rd = untrackedRead;
@@ -113,6 +126,7 @@ const traceAt = args.indexOf("--trace");
 const trace = traceAt >= 0 ? args[traceAt + 1] : undefined;
 const fxAt = args.indexOf("--fixture");
 const onlyFixture = fxAt >= 0 ? args[fxAt + 1] : undefined;
+const asJson = args.includes("--json");
 const skip = new Set([showAt + 1, fxAt + 1, traceAt + 1]);
 let roots = args.filter((a, i) => !a.startsWith("--") && !skip.has(i));
 if (roots.length === 0 && existsSync("corpus")) roots = ["corpus"];
@@ -129,7 +143,7 @@ type Fixture = { name: string; make(fields: SchemaField[]): unknown };
 function filled(fields: SchemaField[], n = 0): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of fields) {
-    // UI state, not data — legacy never reads it from the value (finding 66).
+    // UI state, not data — legacy never reads it from the value.
     if (f.meta) continue;
     // Elements are distinct (`text1`, `text2`): identical elements make a
     // radio built from them collide on option value — a fixture artefact.
@@ -152,7 +166,7 @@ function filled(fields: SchemaField[], n = 0): Record<string, unknown> {
         case "Time":
           return "10:00:00";
         case "Compound":
-          return filled(f.children ?? [], i);
+          return filled(kids(f), i);
         default:
           return "x";
       }
@@ -221,12 +235,12 @@ function walkErrors(
         ].sort();
         if (errsHere.length) out.set(p, errsHere);
         rd.getElements(child as Control<unknown[]>).forEach((el, i) =>
-          walkErrors(el, f.children ?? [], `${p}[${i}]`, out),
+          walkErrors(el, kids(f), `${p}[${i}]`, out),
         );
         continue;
       }
     }
-    walkErrors(child, f.children ?? [], p, out);
+    walkErrors(child, kids(f), p, out);
   }
 }
 
@@ -314,7 +328,24 @@ async function runOracle(form: FormFile, data: unknown): Promise<Snapshot> {
 }
 
 // ── v2: the loader, mounted ───────────────────────────────────────────
+/** What the v2 side printed, per run. */
+let v2Console: string[] = [];
+const quiet = <T,>(during: () => Promise<T>): Promise<T> => {
+  const saved = { error: console.error, warn: console.warn };
+  const capture = (...a: unknown[]) => void v2Console.push(a.map(String).join(" "));
+  console.error = capture;
+  console.warn = capture;
+  return during().finally(() => {
+    console.error = saved.error;
+    console.warn = saved.warn;
+  });
+};
+
 async function runV2(form: FormFile, data: unknown): Promise<Snapshot> {
+  return quiet(() => mountV2(form, data));
+}
+
+async function mountV2(form: FormFile, data: unknown): Promise<Snapshot> {
   const ctx = createControlContext();
   const dataControl = ctx.newControl<unknown>(structuredClone(data));
   const container = win.document.createElement("div");
@@ -327,7 +358,7 @@ async function runV2(form: FormFile, data: unknown): Promise<Snapshot> {
       children: createElement(Form, {
         clearHidden: true,
         children: createElement(JsonForm, {
-          ...pocHost,
+          ...standInHost,
           controls: form.controls,
           schema: form.fields,
           data: dataControl,
@@ -352,11 +383,11 @@ interface Diff {
   /** For `expected`: which known divergence claimed it. */
   why?: string;
 }
-const DISPLAY_ONLY = "display-only, finding 54";
-const SHARED_JSONATA = "shared jsonata key, finding 69";
+const DISPLAY_ONLY = "display-only is write-free";
+const SHARED_JSONATA = "legacy's shared jsonata key";
 
 /**
- * The one divergence v2 chose (README finding 54): legacy's `clearHidden`
+ * The one divergence v2 chose: legacy's `clearHidden`
  * wiped a hidden DisplayOnly control's value; v2's display-only boundary is
  * write-free. A field bound *only* by DisplayOnly definitions that legacy
  * cleared and v2 kept is therefore expected, and reported as such rather
@@ -367,9 +398,10 @@ function displayOnlyFields(form: FormFile): Set<string> {
   const only = new Map<string, boolean>();
   const walk = (cs: FormFile["controls"]) => {
     for (const c of cs) {
-      if (c.type === "Data" && c.field) {
-        const leaf = c.field.split("/").pop()!;
-        const ro = c.renderOptions?.type === "DisplayOnly";
+      const d = c as DataControlDefinition;
+      if (d.type === "Data" && d.field) {
+        const leaf = d.field.split("/").pop()!;
+        const ro = d.renderOptions?.type === "DisplayOnly";
         only.set(leaf, (only.get(leaf) ?? true) && ro);
       }
       walk(c.children ?? []);
@@ -380,7 +412,7 @@ function displayOnlyFields(form: FormFile): Set<string> {
 }
 
 /**
- * The divergence legacy chose for it (README finding 69): every `Jsonata`
+ * The divergence legacy chose for it: every `Jsonata`
  * validator on a control publishes under the one `"jsonata"` error key, so
  * on a control with two the last to answer wins — and an empty answer
  * clears the other's message. v2 keys each validator (`jsonata`,
@@ -395,8 +427,9 @@ function sharedJsonataFields(form: FormFile): Set<string> {
       const n = (
         (c as { validators?: { type: string }[] }).validators ?? []
       ).filter((v) => v.type === "Jsonata").length;
-      if (c.type === "Data" && c.field && n >= 2)
-        out.add(c.field.split("/").pop()!);
+      const d = c as DataControlDefinition;
+      if (d.type === "Data" && d.field && n >= 2)
+        out.add(d.field.split("/").pop()!);
       walk(c.children ?? []);
     }
   };
@@ -462,6 +495,8 @@ interface Result {
   fixture: string;
   diffs: Diff[];
   crashed?: string;
+  /** What v2 printed while it rendered. */
+  console: string[];
 }
 const results: Result[] = [];
 const cwd = process.cwd();
@@ -477,6 +512,7 @@ for (const form of forms) {
   if (show && !base.endsWith(show) && !base.includes(show)) continue;
   for (const fx of fixtures) {
     const data = fx.make(form.fields);
+    v2Console = [];
     try {
       const [legacy, v2] = [
         await runOracle(form, data),
@@ -486,6 +522,7 @@ for (const form of forms) {
         form,
         fixture: fx.name,
         diffs: diff(legacy, v2, form),
+        console: v2Console,
       });
     } catch (e) {
       results.push({
@@ -493,19 +530,51 @@ for (const form of forms) {
         fixture: fx.name,
         diffs: [],
         crashed: e instanceof Error ? (e.stack ?? e.message) : String(e),
+        console: v2Console,
       });
     }
   }
 }
 
 const pad = (s: string | number, n: number) => String(s).padEnd(n);
-if (show) {
+const realDiffs = (r: Result) => r.diffs.filter((d) => d.kind !== "expected");
+if (asJson) {
+  const expected: Record<string, number> = {};
+  for (const r of results)
+    for (const d of r.diffs)
+      if (d.kind === "expected") expected[d.why!] = (expected[d.why!] ?? 0) + 1;
+  console.log(
+    JSON.stringify(
+      {
+        forms: forms.length,
+        runs: results.length,
+        identical: results.filter(
+          (r) => !r.crashed && realDiffs(r).length === 0 && !r.console.length,
+        ).length,
+        differences: results.reduce((n, r) => n + realDiffs(r).length, 0),
+        expected,
+        crashed: results
+          .filter((r) => r.crashed)
+          .map((r) => `${relative(cwd, r.form.path)} · ${r.fixture}`),
+        console: results
+          .filter((r) => r.console.length)
+          .map((r) => ({
+            run: `${relative(cwd, r.form.path)} · ${r.fixture}`,
+            messages: [...new Set(r.console)],
+          })),
+      },
+      null,
+      2,
+    ),
+  );
+} else if (show) {
   for (const r of results) {
     console.log(
       `\n${relative(cwd, r.form.path)} · ${r.fixture} · ${r.crashed ? "CRASHED" : `${r.diffs.length} difference(s)`}`,
     );
     if (r.crashed)
       console.log("  " + r.crashed.split("\n").slice(0, 6).join("\n  "));
+    for (const m of new Set(r.console)) console.log(`  console  ${m.slice(0, 200)}`);
     for (const d of r.diffs)
       console.log(
         `  ${pad(d.kind, 8)} ${pad(d.path, 40)} legacy ${d.legacy}   v2 ${d.v2}` +
@@ -524,14 +593,16 @@ if (show) {
     .map(([why, n]) => `${n} ${why}`)
     .join("; ");
   const clean = results.filter(
-    (r) => !r.crashed && real(r).length === 0,
+    (r) => !r.crashed && real(r).length === 0 && !r.console.length,
   ).length;
   const crashed = results.filter((r) => r.crashed);
+  const noisy = results.filter((r) => r.console.length);
   console.log(
     `${forms.length} forms × ${fixtures.length} fixture(s), ${forms.reduce((n, f) => n + countControls(f.controls), 0)} controls — ` +
       `${clean} of ${results.length} runs identical, ${total} differences` +
       (expectedNote ? ` (+expected: ${expectedNote})` : "") +
-      (crashed.length ? `, ${crashed.length} crashed` : ""),
+      (crashed.length ? `, ${crashed.length} crashed` : "") +
+      (noisy.length ? `, ${noisy.length} printed to the console` : ""),
   );
   const byKind = new Map<string, number>();
   const byLeaf = new Map<string, { n: number; forms: Set<string> }>();

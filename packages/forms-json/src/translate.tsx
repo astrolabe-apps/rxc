@@ -295,7 +295,7 @@ const builtins: Builtin[] = [
   },
   {
     // The one display whose accessible name is load-bearing — and where the
-    // legacy `Tooltip` adornment lands (goals doc, open decision 1).
+    // legacy `Tooltip` adornment lands.
     match: (d) => d.type === "Display" && d.displayData?.type === "Icon",
     render: ({ def, props, icon }) => {
       const ref = def.displayData?.icon as IconReference | undefined;
@@ -455,7 +455,7 @@ const builtins: Builtin[] = [
     // way, so a repeat costs nothing), the collection pattern: rows are
     // translated per element at render too. For the audit, one eager pass
     // over the schema's options — or a representative option when the
-    // schema has none — collects the children's warnings once (finding 67).
+    // schema has none — collects the children's warnings once.
     match: (d, s) =>
       d.type === "Data" &&
       d.renderOptions?.type === "Radio" &&
@@ -550,7 +550,8 @@ const builtins: Builtin[] = [
     render: ({ def, props, children }) => (
       <Tabs
         items={(def.children ?? []).map((c, i) => ({
-          key: c.title ?? String(i),
+          // By position: two tabs may share a title, and a key must not.
+          key: String(i),
           title: c.title ?? `Tab ${i + 1}`,
           children: children[i],
         }))}
@@ -669,7 +670,7 @@ function buildProps(
       continue;
     }
     if (v.type === "Jsonata") {
-      // An async validator (§5): the expression yields the message, against
+      // An async validator: the expression yields the message, against
       // the parent data. Keyed like legacy's `jsonata`, numbered past the first.
       const fn = jsonataValidator(scope, v.expression as string, expr);
       if (fn) validate[jsonataN ? `jsonata${jsonataN}` : "jsonata"] = fn;
@@ -694,7 +695,7 @@ function buildProps(
       });
     }
     if (kind === "Length" && !schema?.collection) {
-      // Read now — the audit runs at translate time (finding 62).
+      // Read now — the audit runs at translate time.
       const { min, max } = v as { min?: number; max?: number };
       validate.length = (value) => {
         const n = typeof value === "string" ? value.length : 0;
@@ -719,7 +720,7 @@ function buildProps(
 
   // `undefined` while the expression is pending — legacy's `visible: null` —
   // which the boundaries treat as shown but not yet decided: no clear, no
-  // default, no validation until the answer lands (finding 66).
+  // default, no validation until the answer lands.
   const hiddenFromExpr: FormProp<boolean | undefined> | undefined = visibleProp
     ? (rc) => {
         const v = getProp(rc, visibleProp);
@@ -751,7 +752,7 @@ function buildProps(
   // The HelpText adornment is the contract's `helpText` prop. Its
   // `placement` is dropped on purpose: where help text sits is the shell's
   // business, and the eight libraries surveyed each fix it somewhere
-  // (§7). On a Group or a Display there is no prop for it to become.
+  //. On a Group or a Display there is no prop for it to become.
   // Unless the host registered its own `HelpText`, which then owns it.
   const help = hostAdornments.has("HelpText")
     ? undefined
@@ -762,7 +763,7 @@ function buildProps(
       : undefined;
 
   // An Icon adornment at the control's start or end is the field's
-  // `startIcon` / `endIcon` (§7); anywhere else it has no slot and is
+  // `startIcon` / `endIcon`; anywhere else it has no slot and is
   // reported. Data only — a display has no icon slots of its own.
   let startIcon: ReactNode | undefined;
   let endIcon: ReactNode | undefined;
@@ -825,7 +826,7 @@ const nestedKeys = ["renderOptions", "groupOptions", "displayData"] as const;
 /**
  * The definition's arrays of *entries* — each an object with a `type`. Their
  * properties were invisible to the audit: the proxy stopped at the array, so
- * a dropped `adornments[0].placement` never showed (README finding 62). An
+ * a dropped `adornments[0].placement` never showed. An
  * entry is recorded as `adornments.HelpText.placement` — by its `type`, since
  * that is how a reader finds it — and everything under it is recorded too
  * (`dynamic.Visible.expr.field`). `children` are definitions of their own
@@ -964,7 +965,7 @@ function unreadDeep(
 }
 
 /**
- * The other blind spot (README finding 62): a definition property that
+ * The other blind spot: a definition property that
  * `buildProps` *reads* — and so counts as seen — into a prop the translator
  * then never passes on. A group's `layoutClass` became `shellClassName`, and
  * every group translator dropped it, silently. So the props handed to a
@@ -1485,7 +1486,7 @@ export function translateForm(
  * (`address: undefined`, not `{ street: undefined, … }`) and defaulted it
  * when shown; a v2 group boundary has no binding and does neither, so the
  * loader does both here, over the compound's control, from inside the
- * group's scope (README findings 65 and 66).
+ * group's scope.
  */
 export function CompoundCycle({
   control,

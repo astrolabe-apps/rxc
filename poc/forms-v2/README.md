@@ -10,27 +10,15 @@ the interfaces bend.
 rush update
 rushx dev          # http://localhost:5183, from this directory
 rushx typecheck
-rushx extract-corpus <name> <src-dir>   # a legacy app's forms + schemas → corpus/<name>/
-rushx burndown [<dir-or-file>...]       # the loader over ./corpus (default); --json, --strict
-rushx burndown --show unread:layoutClass # every warning of one shape, with the control it came from
-rushx burndown --no-actions              # also report every button no host handler claimed (489)
-rushx parity [--show <form>] [--fixture empty|filled] [--trace <field>]   # legacy vs v2, per path
 ```
 
-`corpus/` is gitignored — derived from other repositories. To rebuild it, point
-the extractor at each legacy app's source directory (the one holding
-`schemas.ts` and its pairing file). On the machine this was built on:
-
-```bash
-rushx extract-corpus servicetas   ~/astrolabe/ServiceTas/ServiceTasAPI/NewClientApp/client-common
-rushx extract-corpus forms-app    ~/astrolabe/astrolabe-common/forms-app/src
-rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTemplate/ClientApp/sites/formServer/src
-rushx burndown
-```
-
-Both scripts typecheck the whole POC first, so they need a **built** `@rx-controls/core`
-— `rush build --to @rx-controls/core` after a fresh clone, or the `tsc` pass fails on
-`createDerivedGroup` against a stale `lib/`.
+**The corpus tooling has moved to `tools/forms-corpus`** (phase 3 of
+`docs/FORMS-V2-PLAN.md`): extraction, the burndown and parity now run over the
+real `@rx-controls/forms-*` packages, and `rushx gates` there fails on a
+regression in either. The corpus itself moved with it; the **Legacy form** tab
+reads it from there. So did the ServiceTas page — it is `/v2/servicetas` in the
+dev app, on the theme that is now a `forms-html` test fixture. The numbers and
+findings below are the POC's history, as they were when it ran them.
 
 83 forms, 4,283 controls, 21 clean, **622 warnings**. Re-extracted 2026-09-24: the legacy
 sources move under us, and that run picked up three ServiceTas forms added upstream

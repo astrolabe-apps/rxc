@@ -1,0 +1,39 @@
+{
+  "name": "rxc-forms-corpus",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "The Forms v2 loader's corpus tooling: extract a legacy app's forms, the burndown, and parity against legacy itself \u2014 and `gates`, which fails on a regression in either. The corpus is another repository's data and is gitignored; the gates run locally.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "extract-corpus": "node lib/extract-corpus.js",
+    "burndown": "node lib/burndown.js",
+    "parity": "node lib/parity.js",
+    "gates": "node lib/gates.js"
+  },
+  "dependencies": {
+    "@react-typed-forms/core": "workspace:^",
+    "@react-typed-forms/schemas": "^19.0.0",
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-schema": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/forms-json": "workspace:^",
+    "@rx-controls/forms-html": "workspace:^",
+    "happy-dom": "~15.11.0",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "~22.15.0",
+    "@types/react": "~19.2.0",
+    "@types/react-dom": "~19.2.0",
+    "typescript": "~5.8.0"
+  },
+  "exports": {
+    "./host": {
+      "types": "./lib/host/standInHost.d.ts",
+      "default": "./lib/host/standInHost.js"
+    }
+  }
+}

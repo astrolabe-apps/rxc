@@ -436,6 +436,25 @@ describe("groups", () => {
     expect(button("First tab")).toBeDefined();
     expect(button("Second tab")).toBeDefined();
   });
+
+  it("keys tabs by position, so two with one title do not collide", () => {
+    h.load(
+      [
+        {
+          type: "Group",
+          groupOptions: { type: "Tabs" },
+          children: [
+            { type: "Group", title: "Portal", groupOptions: { type: "Standard" }, children: [] },
+            { type: "Group", title: "Portal", groupOptions: { type: "Standard" }, children: [] },
+          ],
+        },
+      ],
+      [],
+      {},
+    );
+    expect($$("button").filter((b) => b.textContent === "Portal")).toHaveLength(2);
+    expect(h.console).toEqual([]);
+  });
 });
 
 describe("displays", () => {

@@ -19,10 +19,10 @@ interface CorpusFile {
   schema: string;
 }
 
-const files = import.meta.glob<CorpusFile>("../../corpus/servicetas/*.json", {
-  eager: true,
-  import: "default",
-});
+const files = import.meta.glob<CorpusFile>(
+  "../../../../tools/forms-corpus/corpus/servicetas/*.json",
+  { eager: true, import: "default" },
+);
 
 const forms = Object.entries(files)
   .map(([path, file]) => ({
@@ -44,7 +44,7 @@ export function CorpusDemo() {
   if (!current) {
     return (
       <p className="demo-plain">
-        No corpus extracted — run <code>rushx extract-corpus</code> (README).
+        No corpus extracted — run <code>rushx extract-corpus</code> in tools/forms-corpus.
       </p>
     );
   }

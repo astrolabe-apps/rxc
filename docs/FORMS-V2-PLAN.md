@@ -242,17 +242,39 @@ compat `Control`s passed straight to v2 bindings, no ambient-read staleness. An 
 *Exit:* the `PersonForm` equivalent runs from the real packages in the dev app; `rush test` green;
 the compat-app fixture green; every boundary kind has a story, and the story smoke test is in CI.
 
-### 3 — `forms-json` on the canonical types
+### 3 — `forms-json` on the canonical types ✅
 
-**In progress.** The loader is ported (38 tests): typed against `forms-schema` through one
-internal "any definition" view, `translateForm` / `JsonForm` / `defaultTranslators` /
-`CompoundCycle` built, `strict` throwing `LoaderStrictError`, a test per translator plus the
-shared machinery (expressions, validators, dynamic properties, `LayoutStyle`, meta fields,
-adornments, host extensions, the audit), and the fixture form pinned end to end. Its markup is
-gone: rows are a `<Stack>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s
-off-screen region is the registry's `contents` slot. One `<i>` remains — the default
-`IconTranslator`, which the phase 1 surface documents; a host on another platform passes its
-own. Still to do: the corpus tooling, the two CI gates, and the ServiceTas theme fixture.
+**Done.** The loader is ported (39 tests): typed against `forms-schema` through one internal
+"any definition" view, `translateForm` / `JsonForm` / `defaultTranslators` / `CompoundCycle`
+built, `strict` throwing `LoaderStrictError`, a test per translator plus the shared machinery
+(expressions, validators, dynamic properties, `LayoutStyle`, meta fields, adornments, host
+extensions, the audit), and the fixture form pinned end to end. Its markup is gone: rows are a
+`<Stack>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s off-screen region is
+the registry's `contents` slot. One `<i>` remains — the default `IconTranslator`, which the
+phase 1 surface documents; a host on another platform passes its own.
+
+The corpus tooling is `tools/forms-corpus`, over the real packages, with the POC's stand-in host
+(exported as `rxc-forms-corpus/host`). Over the real packages it measures exactly what the POC
+did — burndown 582, parity 144 of 144 — and running it found two defects the POC printed and
+nobody counted: the Tabs translator keyed tabs by title (two "Portal" tabs collided), and the
+html select and radio keyed options by value, which a list built from data can repeat. Parity now
+counts anything v2 prints while it renders as a failure.
+
+**The gates are local, not CI** — a decision taken here, not the plan's original wording. This
+repository is public and the corpus is ServiceTas's real forms, so it cannot be committed, and
+neither a private corpus repository nor ServiceTas's own pipeline was worth the machinery yet.
+`rushx gates` in `tools/forms-corpus` runs both against a committed baseline of counts
+(`gates.json`): the burndown is a ratchet (582; `--update` lowers it), parity is absolute (no
+difference outside the two classified divergences, no crash, nothing on the console). Run it
+before a loader, translator or implementation change lands.
+
+The ServiceTas theme is a `forms-html` test fixture (`test/fixtures/serviceTasTheme.tsx`), an
+overlay on `tailwindHtmlTheme` applied through nested providers, and `/v2/servicetas` in the dev
+app renders the corpus under it for side-by-side checks against `legacy-compare`. That page has a
+root layout of its own (a `(servicetas)` route group), since it needs Bootstrap 3 and Tailwind
+without preflight where the rest of the dev app has preflight.
+
+The original list:
 
 - Replace the POC's hand-written JSON subset (`loader/json.ts`) with `forms-schema`.
 - Port the translators, expressions and data cursor, **with tests per translator** from the
@@ -261,14 +283,15 @@ own. Still to do: the corpus tooling, the two CI gates, and the ServiceTas theme
   collection rows, which a platform-independent package cannot own.
 - Move the corpus tooling to `tools/forms-corpus`.
 
-**ServiceTas gates, from here on, in CI:**
+**ServiceTas gates, from here on** (local — see above):
 
 - `parity` must stay at 0 differences outside the classified divergences;
-- `burndown` must not rise (a ratchet, starting at 622);
+- `burndown` must not rise (a ratchet, now at 582);
 - the ServiceTas `HtmlTheme` moves in as a `forms-html` test fixture, with the `servicetas.html`
   page kept in the dev app for side-by-side checks against `legacy-compare`.
 
-*Exit:* parity 144 of 144, burndown ≤ 622, both failing the build on regression.
+*Exit:* parity 144 of 144, burndown ≤ 622, both failing on regression. Met, at 582, with the
+gates run locally.
 
 ### 4 — MUI and Ant
 

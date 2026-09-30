@@ -1,7 +1,7 @@
-/* ServiceTas's portal look, for the html implementation under
- * `serviceTasTheme`. Ported from `apps/rxc-compare/app/globals.css`, itself a
+/* ServiceTas's portal look, for the html implementation under the ServiceTas
+ * theme fixture. Ported from `apps/rxc-compare/app/globals.css`, itself a
  * Tailwind v4 port of `ServiceTas/…/client-common/globals.css`. Bootstrap 3
- * and the portal `theme.css` load first, from `servicetas.html`.
+ * and the portal `theme.css` load first, from <link> tags in `layout.tsx`.
  *
  * Tailwind preflight is left out, as the legacy config did
  * (`corePlugins: { preflight: false }`). */
@@ -9,11 +9,11 @@
 
 /* The theme's classes, and the ones the form JSON carries itself
  * (`styleClass`, `textClass`, … — e.g. `bg-[#f5f5f5]`, `!text-accent`). */
-@source "./theme.tsx";
-/* The base the theme overlays: tailwindHtmlTheme (README finding 79). */
-@source "../impls/htmlTheme.tsx";
-@source "./main.tsx";
-@source "../../corpus/servicetas/*.json";
+@source "../../../../../packages/forms-html/test/fixtures/serviceTasTheme.tsx";
+/* The base the theme overlays: tailwindHtmlTheme. */
+@source "../../../../../packages/forms-html/src/theme.tsx";
+@source "./v2/servicetas/page.tsx";
+@source "../../../../../tools/forms-corpus/corpus/servicetas/*.json";
 
 /* ServiceTas "portal" site palette + font-size / spacing scale —
  * mirrored from apps/legacy-compare/app/globals.css. See that file for

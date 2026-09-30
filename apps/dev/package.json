@@ -24,7 +24,10 @@
     "react-dom": "~19.2.0",
     "@react-typed-forms/core": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",
-    "@rx-controls/forms-html": "workspace:^"
+    "@rx-controls/forms-html": "workspace:^",
+    "@rx-controls/forms-json": "workspace:^",
+    "@rx-controls/forms-schema": "workspace:^",
+    "rxc-forms-corpus": "workspace:^"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "~4.1.0",

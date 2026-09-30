@@ -39,12 +39,18 @@ importers:
       '@rx-controls/forms-html':
         specifier: workspace:^
         version: link:../../packages/forms-html
+      '@rx-controls/forms-json':
+        specifier: workspace:^
+        version: link:../../packages/forms-json
       '@rx-controls/forms-motion':
         specifier: workspace:^
         version: link:../../packages/forms-motion
       '@rx-controls/forms-react':
         specifier: workspace:^
         version: link:../../packages/forms-react
+      '@rx-controls/forms-schema':
+        specifier: workspace:^
+        version: link:../../packages/forms-schema
       '@rx-controls/react':
         specifier: workspace:^
         version: link:../../packages/react
@@ -60,6 +66,9 @@ importers:
       react-dom:
         specifier: ~19.2.0
         version: 19.2.8(react@19.2.8)
+      rxc-forms-corpus:
+        specifier: workspace:^
+        version: link:../../tools/forms-corpus
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ~4.1.0
@@ -818,6 +827,55 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@22.15.35)(jiti@2.7.0)
+
+  ../../tools/forms-corpus:
+    dependencies:
+      '@react-typed-forms/core':
+        specifier: workspace:^
+        version: link:../../packages/compat-controls
+      '@react-typed-forms/schemas':
+        specifier: ^19.0.0
+        version: 19.0.0(@react-typed-forms/core@..+packages+compat-controls)(react@19.2.8)
+      '@rx-controls/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@rx-controls/forms-html':
+        specifier: workspace:^
+        version: link:../../packages/forms-html
+      '@rx-controls/forms-json':
+        specifier: workspace:^
+        version: link:../../packages/forms-json
+      '@rx-controls/forms-react':
+        specifier: workspace:^
+        version: link:../../packages/forms-react
+      '@rx-controls/forms-schema':
+        specifier: workspace:^
+        version: link:../../packages/forms-schema
+      '@rx-controls/react':
+        specifier: workspace:^
+        version: link:../../packages/react
+      happy-dom:
+        specifier: ~15.11.0
+        version: 15.11.7
+      react:
+        specifier: ~19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.0
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ~22.15.0
+        version: 22.15.35
+      '@types/react':
+        specifier: ~19.2.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ~19.2.0
+        version: 19.2.7(@types/react@19.2.18)
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
 
 packages:
 

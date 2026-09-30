@@ -123,6 +123,11 @@
       "shouldPublish": false
     },
     {
+      "packageName": "rxc-forms-corpus",
+      "projectFolder": "tools/forms-corpus",
+      "shouldPublish": false
+    },
+    {
       "packageName": "rxc-forms-v2-poc",
       "projectFolder": "poc/forms-v2",
       "shouldPublish": false

@@ -3,17 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Throwaway POC for docs/FORMS-V2-INTERFACES.md — one field boundary, several implementations.",
+  "description": "Throwaway POC for docs/FORMS-V2-INTERFACES.md \u2014 one field boundary, several implementations.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "burndown": "tsc -p tsconfig.burndown.json && node .burndown/scripts/burndown.js",
-    "extract-corpus": "tsc -p tsconfig.burndown.json && node .burndown/scripts/extract-corpus.js",
-    "parity": "tsc -p tsconfig.burndown.json && node .burndown/scripts/parity.js"
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",

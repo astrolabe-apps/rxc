@@ -261,6 +261,27 @@ describe("hiding with no CSS at all", () => {
   });
 });
 
+describe("options", () => {
+  it("renders a repeated option value without a key collision", () => {
+    const c = dom.ctx.newControl<OptionValue>("a");
+    const repeated = [
+      { name: "A", value: "a" },
+      { name: "A again", value: "a" },
+    ];
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    mount(
+      <>
+        <SelectField field={c} options={repeated} />
+        <RadioField field={c} options={repeated} />
+      </>,
+    );
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+    expect($$("option")).toHaveLength(3);
+    expect($$("input[type=radio]")).toHaveLength(2);
+  });
+});
+
 describe("Action", () => {
   it("layers the style's classes and shows busy in place of the icon", async () => {
     let resolve!: () => void;

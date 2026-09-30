@@ -320,6 +320,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
     o,
     selected: ctl.stringValue === String(o.value),
   }));
+  const keys = optionKeys(ctl.options);
   const entryClass = (selected: boolean) =>
     mergeClass(mergeClass(t.entryWrapper, entryCls), selected ? onCls : offCls);
   return ctl.rendered(
@@ -343,7 +344,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
       >
         {entries.map(({ o, selected }, i) => (
           <div
-            key={String(o.value)}
+            key={keys[i]}
             className={entryClass(selected)}
             data-selected={selected ? "" : undefined}
           >
@@ -547,6 +548,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useSelectController(p.field, p.options);
+  const keys = optionKeys(ctl.options);
   const t = useHtmlTheme().select;
   return ctl.rendered(
     <Shell
@@ -582,9 +584,9 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
             }}
           >
             <option value="">{t.emptyText}</option>
-            {ctl.options.map((o) => (
+            {ctl.options.map((o, i) => (
               <option
-                key={String(o.value)}
+                key={keys[i]}
                 value={String(o.value)}
                 disabled={o.disabled}
               >
@@ -691,6 +693,22 @@ function HtmlDialog(p: DialogRenderProps) {
       </div>
     </dialog>
   );
+}
+
+/**
+ * A React key per option: its value, which keeps each option's element (and
+ * a radio's per-option content) across a re-filter. A list built from data
+ * can repeat a value, and React would then warn and drop one, so a repeat is
+ * told apart by its position among the repeats.
+ */
+function optionKeys(options: { value: unknown }[]): string[] {
+  const seen = new Map<string, number>();
+  return options.map((o) => {
+    const v = String(o.value);
+    const n = seen.get(v) ?? 0;
+    seen.set(v, n + 1);
+    return n ? `${v}#${n}` : v;
+  });
 }
 
 /** Two own classes on one element; empty slots drop out. */

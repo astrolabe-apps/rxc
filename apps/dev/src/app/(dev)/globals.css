@@ -11,6 +11,6 @@
  * packages whose components carry Tailwind utility classes need to be
  * registered explicitly so their class names are emitted into the
  * generated stylesheet. */
-@source "../../../../packages/forms/src/**/*.{ts,tsx}";
+@source "../../../../../packages/forms/src/**/*.{ts,tsx}";
 /* Forms v2: the Tailwind html theme's classes. */
-@source "../../../../packages/forms-html/src/theme.tsx";
+@source "../../../../../packages/forms-html/src/theme.tsx";

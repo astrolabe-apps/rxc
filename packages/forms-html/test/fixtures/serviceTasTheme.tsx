@@ -1,10 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  deepMergeTheme,
-  tailwindHtmlTheme,
-  type HtmlTheme,
-  type PartialHtmlTheme,
-} from "../impls/htmlTheme.js";
+import type { PartialHtmlTheme } from "../../src/index";
 
 /**
  * ServiceTas's legacy renderer options, restated as an `HtmlTheme`.
@@ -14,13 +9,17 @@ import {
  * `deepMerge(value, fallback)`, so ServiceTas wins and `defaultTailwindTheme`
  * (`@react-typed-forms/schemas-html@6`) fills the rest. Every slot below says
  * which of the two it came from. An overlay on `tailwindHtmlTheme`, which
- * *is* `defaultTailwindTheme` restated (README finding 79): a slot is here
+ * *is* `defaultTailwindTheme` restated: a slot is here
  * only where ServiceTas's classes differ from it, and the ones it leaves —
  * the error, the group bodies, the tab strip, the inline group — come from
  * there with their `rxf-` hooks, which nothing on this page styles.
  *
  * Legacy's classes landed on legacy's elements; where v2's anatomy differs
- * the comment says what was chosen (README finding 72).
+ * the comment says what was chosen.
+ *
+ * Applied the way any host applies a theme: nested over the base, one
+ * `HtmlThemeProvider` each — `tailwindHtmlTheme`, then this, then the form's
+ * `formStyles` overlay.
  */
 
 /** `components/ErrorMessage.tsx`, ported: the warning glyph + underlined text. */
@@ -43,7 +42,7 @@ function ErrorMessage({ children, id }: { children: ReactNode; id: string }) {
   );
 }
 
-const serviceTasOverlay: PartialHtmlTheme = {
+export const serviceTasOverlay: PartialHtmlTheme = {
   shell: {
     // layout.className (defaultTailwindTheme). Legacy has no horizontal
     // layout; this is the nearest shape.
@@ -124,7 +123,7 @@ const serviceTasOverlay: PartialHtmlTheme = {
     // action.buttonClass / textClass (ServiceTas blanks both).
     className: "",
     textClassName: "",
-    styles: {
+    variants: {
       primary: {
         className:
           "w-full lg:w-fit bg-accent min-w-[138px] min-h-[54px] hover:bg-[#096946] disabled:opacity-80 disabled:cursor-not-allowed px-[12px] py-[5px]",
@@ -162,16 +161,12 @@ const serviceTasOverlay: PartialHtmlTheme = {
   },
 };
 
-export const serviceTasTheme: HtmlTheme = deepMergeTheme(
-  tailwindHtmlTheme,
-  serviceTasOverlay,
-);
 
 /**
  * `client-common/formStyles.ts`, restated. Each is an overlay picked per form
  * by `FormDefinitions[form].defaultConfig.style` and merged *over* the base —
  * legacy's `deepMerge(formStyles[style], DefaultRenderOptions)`, overlay first,
- * so it wins. One nested `HtmlThemeProvider` each.
+ * so it wins. One more nested `HtmlThemeProvider`.
  *
  * Legacy derived the group title from `label.className` + `groupLabelClass`
  * at render time; a theme slot is a plain string, so an overlay that moves
