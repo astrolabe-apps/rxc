@@ -244,6 +244,16 @@ the compat-app fixture green; every boundary kind has a story, and the story smo
 
 ### 3 — `forms-json` on the canonical types
 
+**In progress.** The loader is ported (38 tests): typed against `forms-schema` through one
+internal "any definition" view, `translateForm` / `JsonForm` / `defaultTranslators` /
+`CompoundCycle` built, `strict` throwing `LoaderStrictError`, a test per translator plus the
+shared machinery (expressions, validators, dynamic properties, `LayoutStyle`, meta fields,
+adornments, host extensions, the audit), and the fixture form pinned end to end. Its markup is
+gone: rows are a `<Stack>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s
+off-screen region is the registry's `contents` slot. One `<i>` remains — the default
+`IconTranslator`, which the phase 1 surface documents; a host on another platform passes its
+own. Still to do: the corpus tooling, the two CI gates, and the ServiceTas theme fixture.
+
 - Replace the POC's hand-written JSON subset (`loader/json.ts`) with `forms-schema`.
 - Port the translators, expressions and data cursor, **with tests per translator** from the
   fixture form (`loader/demoForm.ts`).

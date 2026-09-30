@@ -8,7 +8,11 @@ import type {
 } from "@rx-controls/forms-schema";
 import type { FieldProps, FormProp } from "@rx-controls/forms-react";
 import type { LoaderOptions } from "./loader.js";
-import { notBuiltComponent } from "./notBuilt.js";
+import {
+  CompoundCycle as CompoundCycleImpl,
+  defaultTranslators as builtinTranslators,
+} from "./translate.js";
+
 
 /**
  * How {@link TranslateArgs.retranslate} rebuilds a definition's children:
@@ -187,7 +191,7 @@ export type IconTranslator = (
  *
  * @group Hosts
  */
-export const defaultTranslators: readonly Translator[] = [];
+export const defaultTranslators: readonly Translator[] = builtinTranslators;
 
 /**
  * The props of {@link CompoundCycle}.
@@ -214,4 +218,4 @@ export interface CompoundCycleProps {
  * @group Hosts
  */
 export const CompoundCycle: (props: CompoundCycleProps) => null =
-  notBuiltComponent<CompoundCycleProps>("CompoundCycle");
+  CompoundCycleImpl;

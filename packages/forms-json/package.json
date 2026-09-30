@@ -23,7 +23,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@rx-controls/core": "workspace:^",
@@ -38,7 +40,12 @@
   "devDependencies": {
     "@types/react": "~19.2.0",
     "react": "~19.2.0",
-    "typescript": "~5.8.0"
+    "typescript": "~5.8.0",
+    "@rx-controls/forms-html": "workspace:^",
+    "@types/react-dom": "~19.2.0",
+    "happy-dom": "~15.11.0",
+    "react-dom": "~19.2.0",
+    "vitest": "~3.1.0"
   },
   "publishConfig": {
     "access": "public"

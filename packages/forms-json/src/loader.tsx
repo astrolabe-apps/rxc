@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { Control, ControlContext } from "@rx-controls/core";
-import type { Rendered } from "@rx-controls/react";
+import { useControlContext, type Rendered } from "@rx-controls/react";
 import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 import type {
   ActionHandler,
@@ -9,7 +9,8 @@ import type {
   IconTranslator,
   Translator,
 } from "./translator.js";
-import { notBuilt, notBuiltComponent } from "./notBuilt.js";
+import { translateForm as translateTree } from "./translate.js";
+
 
 /**
  * What kind of thing the loader could not carry across.
@@ -132,7 +133,10 @@ export function translateForm(
   controls: ControlDefinition[],
   options?: LoaderOptions,
 ): TranslateResult {
-  return notBuilt("translateForm");
+  const result = translateTree(ctx, data, schema, controls, options ?? {});
+  if (options?.strict && result.warnings.length)
+    throw new LoaderStrictError(result.warnings);
+  return result;
 }
 
 /**
@@ -162,5 +166,27 @@ export interface JsonFormProps<T> extends LoaderOptions {
  *
  * @group Loading
  */
-export const JsonForm: <T>(props: JsonFormProps<T>) => Rendered =
-  notBuiltComponent("JsonForm");
+export function JsonForm<T>({
+  controls,
+  schema,
+  data,
+  renderWarnings,
+  ...options
+}: JsonFormProps<T>): Rendered {
+  const ctx = useControlContext();
+  // Memoised because translation allocates: an asynchronous expression
+  // evaluates into a control and subscribes to the data. The warnings ride
+  // the same memo, so they are produced once per translation, not per render.
+  const { tree, warnings } = useMemo(
+    () =>
+      translateForm(ctx, data as Control<unknown>, schema, controls, options),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ctx, controls, schema, data],
+  );
+  return (
+    <>
+      {warnings.length > 0 && renderWarnings?.(warnings)}
+      {tree}
+    </>
+  ) as Rendered;
+}
