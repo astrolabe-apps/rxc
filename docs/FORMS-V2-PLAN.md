@@ -46,7 +46,7 @@ Amends *Proposed package layout* in the goals doc (updated to match).
 | `@rx-controls/forms-mui` | `impls/mui.tsx` | The MUI implementation, and the contract's regression gate. |
 | `@rx-controls/forms-antd` | `impls/antd.tsx` | The Ant Design implementation. The second family-2 library, and the one whose chrome is runtime tokens rather than classes. |
 | `apps/forms-storybook` | `poc/forms-v2/src/App.tsx`, `PersonForm.tsx`, `widgets/` | Private. A story per boundary kind under every implementation — the demos, and a CI smoke test. |
-| `tools/forms-corpus` | `poc/forms-v2/scripts/` | Extract, burndown, parity. Private; run in CI. |
+| `tools/forms-corpus` | `poc/forms-v2/scripts/` | Extract, burndown, parity, and the gates over both. Private; run locally — the corpus is not in the repository (phase 3). |
 
 Three changes from the goals doc's layout:
 
@@ -69,7 +69,7 @@ Three changes from the goals doc's layout:
 `forms-schema`, `forms-react`, `forms-json`, `forms-html`, `forms-mui`, `forms-antd` — from their
 doc comments, and is the API reference. The goals and interfaces docs stay what they are: the
 design and its reasons. The POC's comments are already most of that reference, but they cite README
-findings by number (`finding 57`), and the README is deleted in phase 6. A comment that is ported
+findings by number (`finding 57`), and the README is deleted in phase 5. A comment that is ported
 has to stand on its own or point at a design doc.
 
 `forms-native` and a datagrid add-on come later and slot in beside `forms-html`.
@@ -133,7 +133,7 @@ symbols from the start, so the rule never has to be retrofitted onto a finished 
 generated reference, with every export documented.
 
 **Built and signed off.** `forms-schema` is the move (`forms-core/src/json` → its own
-package, which `forms-core` now depends on and re-exports until phase 6). `forms-react`,
+package, which `forms-core` now depends on and re-exports until phase 5). `forms-react`,
 `forms-json` and `forms-html` are skeletons: every export has its real signature and a body that
 throws "not built yet", so they build, import and document, and `rush docs` passes with
 `notDocumented` on and warnings treated as errors. CI runs it after the tests. `forms-schema` is
@@ -332,9 +332,32 @@ What each library has to be tested for is what the POC found it getting wrong si
 
 *Exit:* html, MUI and Ant all green on the shared suite and the story smoke test.
 
-### 5 — HVAMS in anger
+### 5 — Retire the POC, and publish the alpha
 
-HVAMS's real forms decide the order of work here, not the POC's gap list. Expected, from what it
+Delete `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd`, `-datagrid`; the `FormStateNode` /
+scripted-proxy half of `@rx-controls/forms-core` (its JSON half having become `forms-schema`);
+the dev-app pages built on them; `apps/rxc-compare`; and `poc/forms-v2`. The legacy reference apps
+(`legacy-compare`, `legacy-demos`) stay — they are parity's baseline. Update `CLAUDE.md` and the
+docs that describe the POC (`MIGRATION-FROM-LEGACY.md`, `FORM-SEMANTICS.md`,
+`FORM-FUTURE-API-DESIGN.md`, `RENDERER-HOOK-EXTRACTION.md`) in the same change.
+
+Then publish the six v2 packages — `forms-schema`, `forms-react`, `forms-json`, `forms-html`,
+`forms-mui`, `forms-antd` — as `0.1.0-alpha.0` on the npm `alpha` dist-tag (see *Publishing*),
+with the pending `@rx-controls/react` patch as 1.0.1 on `latest`.
+
+*Exit:* nothing in the repo imports the POC packages, no doc comment cites a POC README finding,
+and the alpha is on npm.
+
+**Swapped with HVAMS** (decided 2026-09-30): the POC goes, and v2 is published as an alpha, before
+anything is attempted with HVAMS — so HVAMS installs v2 from the registry like any consumer rather
+than through packed tarballs, and the repo it is developed against has one forms stack.
+
+
+
+### 6 — HVAMS in anger
+
+HVAMS's real forms decide the order of work here, not the POC's gap list. It consumes the alpha
+from npm (phase 5). Expected, from what it
 uses today:
 
 - **Its own look.** Either an `HtmlTheme` over its Tailwind config, or its own implementation
@@ -351,18 +374,6 @@ it from sliding backwards regardless.
 
 *Exit:* HVAMS ships a form on v2.
 
-### 6 — Retire the POC
-
-Delete `@rx-controls/forms`, `-react-core`, `-motion`, `-dnd`, `-datagrid`; the `FormStateNode` /
-scripted-proxy half of `@rx-controls/forms-core` (its JSON half having become `forms-schema`);
-the dev-app pages built on them; `apps/rxc-compare`; and `poc/forms-v2`. The legacy reference apps
-(`legacy-compare`, `legacy-demos`) stay — they are parity's baseline. Update `CLAUDE.md` and the
-docs that describe the POC (`MIGRATION-FROM-LEGACY.md`, `FORM-SEMANTICS.md`,
-`FORM-FUTURE-API-DESIGN.md`, `RENDERER-HOOK-EXTRACTION.md`) in the same change.
-
-*Exit:* nothing in the repo imports the POC packages, and no doc comment cites a POC README
-finding.
-
 ### Later, not blocked on any of this
 
 - **The designer** (goal 7). Needs definitions exposed as live values; reimplemented against the
@@ -374,9 +385,10 @@ finding.
 
 ## Publishing
 
-The v2 packages stay **unpublished until HVAMS ships a form on them** (phase 5). HVAMS consumes
-them the way the compat trial did — packed tarballs through `pnpm.overrides`, never plain
-dependencies (see `CLAUDE.md`) — so the contract can still move without a semver cost. The
-implementations publish with the contract: `forms-mui` and `forms-antd` go out alongside
-`forms-html`, not after. `apps/forms-storybook` is never published. First
-publish follows the repo's rules: `workspace:^`, `--tag latest` explicitly, versions set by hand.
+The v2 packages publish as an **alpha** at the end of phase 5: `0.1.0-alpha.0`, on the npm
+`alpha` dist-tag rather than `latest`, so a plain `npm install` does not pick them up and a
+consumer opts in with `@alpha`. Later alphas bump the `.N`. The contract can still move between
+alphas; a prerelease carries no semver promise. The implementations publish with the contract:
+`forms-mui` and `forms-antd` go out alongside `forms-html`, not after. `apps/forms-storybook` and
+the `tools/` packages are never published. The repo's rules apply: `workspace:^`, versions set by
+hand, and `--tag` passed explicitly — `alpha` for these, `latest` for the stable packages.
