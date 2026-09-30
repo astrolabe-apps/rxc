@@ -66,6 +66,9 @@ importers:
       react-dom:
         specifier: ~19.2.0
         version: 19.2.8(react@19.2.8)
+      rxc-forms-conformance:
+        specifier: workspace:^
+        version: link:../../tools/forms-conformance
       rxc-forms-corpus:
         specifier: workspace:^
         version: link:../../tools/forms-corpus
@@ -103,24 +106,45 @@ importers:
 
   ../../apps/forms-storybook:
     dependencies:
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.2.18)(react@19.2.8)
+      '@emotion/styled':
+        specifier: ^11.14.0
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8)
+      '@mui/material':
+        specifier: ^9.4.0
+        version: 9.4.0(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@rx-controls/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@rx-controls/forms-antd':
+        specifier: workspace:^
+        version: link:../../packages/forms-antd
       '@rx-controls/forms-html':
         specifier: workspace:^
         version: link:../../packages/forms-html
+      '@rx-controls/forms-mui':
+        specifier: workspace:^
+        version: link:../../packages/forms-mui
       '@rx-controls/forms-react':
         specifier: workspace:^
         version: link:../../packages/forms-react
       '@rx-controls/react':
         specifier: workspace:^
         version: link:../../packages/react
+      antd:
+        specifier: ^6.6.4
+        version: 6.6.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react:
         specifier: ~19.2.0
         version: 19.2.8
       react-dom:
         specifier: ~19.2.0
         version: 19.2.8(react@19.2.8)
+      rxc-forms-conformance:
+        specifier: workspace:^
+        version: link:../../tools/forms-conformance
     devDependencies:
       '@storybook/react':
         specifier: ^10.6.1
@@ -431,6 +455,49 @@ importers:
         specifier: ~3.1.0
         version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)
 
+  ../../packages/forms-antd:
+    dependencies:
+      '@rx-controls/core':
+        specifier: workspace:^
+        version: link:../core
+      '@rx-controls/forms-html':
+        specifier: workspace:^
+        version: link:../forms-html
+      '@rx-controls/forms-react':
+        specifier: workspace:^
+        version: link:../forms-react
+      '@rx-controls/react':
+        specifier: workspace:^
+        version: link:../react
+    devDependencies:
+      '@types/react':
+        specifier: ~19.2.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ~19.2.0
+        version: 19.2.7(@types/react@19.2.18)
+      antd:
+        specifier: ^6.6.4
+        version: 6.6.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      happy-dom:
+        specifier: ~15.11.0
+        version: 15.11.7
+      react:
+        specifier: ~19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.0
+        version: 19.2.8(react@19.2.8)
+      rxc-forms-conformance:
+        specifier: workspace:^
+        version: link:../../tools/forms-conformance
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)
+
   ../../packages/forms-core:
     dependencies:
       '@rx-controls/core':
@@ -659,6 +726,55 @@ importers:
         specifier: ~3.1.0
         version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)
 
+  ../../packages/forms-mui:
+    dependencies:
+      '@rx-controls/core':
+        specifier: workspace:^
+        version: link:../core
+      '@rx-controls/forms-html':
+        specifier: workspace:^
+        version: link:../forms-html
+      '@rx-controls/forms-react':
+        specifier: workspace:^
+        version: link:../forms-react
+      '@rx-controls/react':
+        specifier: workspace:^
+        version: link:../react
+    devDependencies:
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.2.18)(react@19.2.8)
+      '@emotion/styled':
+        specifier: ^11.14.0
+        version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8)
+      '@mui/material':
+        specifier: ^9.4.0
+        version: 9.4.0(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@types/react':
+        specifier: ~19.2.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ~19.2.0
+        version: 19.2.7(@types/react@19.2.18)
+      happy-dom:
+        specifier: ~15.11.0
+        version: 15.11.7
+      react:
+        specifier: ~19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.0
+        version: 19.2.8(react@19.2.8)
+      rxc-forms-conformance:
+        specifier: workspace:^
+        version: link:../../tools/forms-conformance
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)
+
   ../../packages/forms-react:
     dependencies:
       '@rx-controls/core':
@@ -827,6 +943,49 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@22.15.35)(jiti@2.7.0)
+
+  ../../tools/forms-conformance:
+    dependencies:
+      '@rx-controls/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      '@rx-controls/forms-json':
+        specifier: workspace:^
+        version: link:../../packages/forms-json
+      '@rx-controls/forms-react':
+        specifier: workspace:^
+        version: link:../../packages/forms-react
+      '@rx-controls/forms-schema':
+        specifier: workspace:^
+        version: link:../../packages/forms-schema
+      '@rx-controls/react':
+        specifier: workspace:^
+        version: link:../../packages/react
+    devDependencies:
+      '@rx-controls/forms-html':
+        specifier: workspace:^
+        version: link:../../packages/forms-html
+      '@types/react':
+        specifier: ~19.2.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ~19.2.0
+        version: 19.2.7(@types/react@19.2.18)
+      happy-dom:
+        specifier: ~15.11.0
+        version: 15.11.7
+      react:
+        specifier: ~19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ~19.2.0
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)
 
   ../../tools/forms-corpus:
     dependencies:

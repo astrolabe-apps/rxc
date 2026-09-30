@@ -1,0 +1,47 @@
+{
+  "name": "rxc-forms-conformance",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "The Forms v2 conformance suite every implementation runs \u2014 the same assertions under html, MUI and Ant \u2014 and the fixtures written from outside the packages: the third-party widgets and the JSON fixture form.",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./suite": {
+      "types": "./lib/suite.d.ts",
+      "default": "./lib/suite.js"
+    },
+    "./widgets.css": "./widgets.css"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-schema": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/forms-json": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19",
+    "vitest": "~3.1.0"
+  },
+  "devDependencies": {
+    "@rx-controls/forms-html": "workspace:^",
+    "@types/react": "~19.2.0",
+    "@types/react-dom": "~19.2.0",
+    "happy-dom": "~15.11.0",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0",
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0"
+  }
+}

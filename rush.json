@@ -39,6 +39,16 @@
       "shouldPublish": false
     },
     {
+      "packageName": "@rx-controls/forms-mui",
+      "projectFolder": "packages/forms-mui",
+      "shouldPublish": false
+    },
+    {
+      "packageName": "@rx-controls/forms-antd",
+      "projectFolder": "packages/forms-antd",
+      "shouldPublish": false
+    },
+    {
       "packageName": "@rx-controls/forms-core",
       "projectFolder": "packages/forms-core",
       // Not published yet: the trial publish is scoped to the control engine +
@@ -120,6 +130,11 @@
     {
       "packageName": "rxc-forms-storybook",
       "projectFolder": "apps/forms-storybook",
+      "shouldPublish": false
+    },
+    {
+      "packageName": "rxc-forms-conformance",
+      "projectFolder": "tools/forms-conformance",
       "shouldPublish": false
     },
     {

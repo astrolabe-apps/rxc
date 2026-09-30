@@ -32,7 +32,7 @@ import {
   tailwindHtmlTheme,
 } from "@rx-controls/forms-html";
 import { PersonForm, personFieldNames, type Person } from "./PersonForm";
-import "./widgets/widgets.css";
+import "rxc-forms-conformance/widgets.css";
 
 /** An app overriding one button it never wrote, by id. */
 function FancyAdd(p: ActionRenderProps) {

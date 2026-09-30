@@ -1,13 +1,13 @@
 {
-  "name": "@rx-controls/forms-html",
+  "name": "@rx-controls/forms-antd",
   "version": "0.1.0",
-  "description": "The Forms v2 HTML implementation: every registry slot drawn as plain DOM, every class it emits in one HtmlTheme, and nestable theme providers.",
+  "description": "The Forms v2 Ant Design implementation: every registry slot drawn with antd, whose chrome is runtime theme tokens rather than classes.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/astrolabe-apps/rxc.git",
-    "directory": "packages/forms-html"
+    "directory": "packages/forms-antd"
   },
   "type": "module",
   "files": [
@@ -20,10 +20,6 @@
     ".": {
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
-    },
-    "./shared": {
-      "types": "./lib/shared.d.ts",
-      "default": "./lib/shared.js"
     }
   },
   "scripts": {
@@ -34,17 +30,21 @@
   "dependencies": {
     "@rx-controls/core": "workspace:^",
     "@rx-controls/react": "workspace:^",
-    "@rx-controls/forms-react": "workspace:^"
+    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/forms-html": "workspace:^"
   },
   "peerDependencies": {
+    "antd": "^6.6.4",
     "react": "^18 || ^19"
   },
   "devDependencies": {
     "@types/react": "~19.2.0",
     "@types/react-dom": "~19.2.0",
+    "antd": "^6.6.4",
     "happy-dom": "~15.11.0",
     "react": "~19.2.0",
     "react-dom": "~19.2.0",
+    "rxc-forms-conformance": "workspace:^",
     "typescript": "~5.8.0",
     "vitest": "~3.1.0"
   },

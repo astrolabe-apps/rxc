@@ -21,13 +21,17 @@ import {
   tailwindHtmlTheme,
   type HtmlTheme,
 } from "@rx-controls/forms-html";
+import { muiRenderers } from "@rx-controls/forms-mui";
+import { antdRenderers } from "@rx-controls/forms-antd";
 
 /**
- * The implementations a story can be drawn with. Phase 4 adds MUI and Ant
- * here, and every story becomes one per implementation with no story edited.
+ * The implementations a story can be drawn with — every story is one per
+ * implementation, with no story edited. The theme global applies to html only.
  */
 export const implementations: Record<string, FormRenderers> = {
   html: htmlRenderers,
+  mui: muiRenderers,
+  antd: antdRenderers,
 };
 
 /** The html implementation's two shipped themes. */

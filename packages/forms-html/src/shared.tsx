@@ -1,3 +1,11 @@
+/*
+ * The DOM building blocks the html implementation draws with that are not
+ * html-specific: a region, an inline group, the chrome-less collection, the
+ * wrapper a display sits in, and the no-transition visibility slot. Also on
+ * the `@rx-controls/forms-html/shared` subpath, for sibling implementations
+ * (forms-mui, forms-antd) that draw these parts as plain DOM too. Not public
+ * API: no semver promise, and not in the generated reference.
+ */
 import {
   useEffect,
   useRef,
@@ -244,4 +252,20 @@ export function ElementsList(
       </div>
     </Shell>
   );
+}
+
+/**
+ * A React key per option: its value, which keeps each option's element (and
+ * a radio's per-option content) across a re-filter. A list built from data
+ * can repeat a value, and React would then warn and drop one, so a repeat is
+ * told apart by its position among the repeats.
+ */
+export function optionKeys(options: { value: unknown }[]): string[] {
+  const seen = new Map<string, number>();
+  return options.map((o) => {
+    const v = String(o.value);
+    const n = seen.get(v) ?? 0;
+    seen.set(v, n + 1);
+    return n ? `${v}#${n}` : v;
+  });
 }

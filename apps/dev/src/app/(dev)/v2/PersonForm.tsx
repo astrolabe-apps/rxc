@@ -31,10 +31,7 @@ import {
   type Presence,
   type ValidationScope,
 } from "@rx-controls/forms-react";
-import { Stars } from "./widgets/Stars";
-import { PetCards } from "./widgets/PetCards";
-import { Collapsible } from "./widgets/Collapsible";
-import { SelectChild } from "./widgets/SelectChild";
+import { Collapsible, PetCards, SelectChild, Stars } from "rxc-forms-conformance";
 
 export interface Person {
   firstName: string;

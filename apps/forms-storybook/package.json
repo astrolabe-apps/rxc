@@ -11,12 +11,19 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^9.4.0",
     "@rx-controls/core": "workspace:^",
-    "@rx-controls/react": "workspace:^",
-    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/forms-antd": "workspace:^",
     "@rx-controls/forms-html": "workspace:^",
+    "@rx-controls/forms-mui": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "antd": "^6.6.4",
     "react": "~19.2.0",
-    "react-dom": "~19.2.0"
+    "react-dom": "~19.2.0",
+    "rxc-forms-conformance": "workspace:^"
   },
   "devDependencies": {
     "@storybook/react": "^10.6.1",

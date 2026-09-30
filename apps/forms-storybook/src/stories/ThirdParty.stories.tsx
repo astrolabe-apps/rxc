@@ -7,10 +7,7 @@ import {
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
-import { Stars } from "../widgets/Stars";
-import { PetCards } from "../widgets/PetCards";
-import { Collapsible } from "../widgets/Collapsible";
-import { SelectChild } from "../widgets/SelectChild";
+import { Collapsible, PetCards, SelectChild, Stars } from "rxc-forms-conformance";
 import { CheckForm, Values, type ScopeArgs } from "../support";
 
 const meta: Meta<ScopeArgs> = { title: "Third party" };

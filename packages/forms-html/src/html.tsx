@@ -45,6 +45,7 @@ import {
   ElementsList,
   FadeVisibility,
   DisplayShell,
+  optionKeys,
 } from "./shared.js";
 import { useHtmlTheme } from "./theme.js";
 
@@ -675,7 +676,10 @@ function HtmlDialog(p: DialogRenderProps) {
     <dialog
       ref={ref}
       className={mergeClass(t.className, p.className)}
-      onClose={p.onClose}
+      // Not `onClose`: the native `close` event also fires when the effect
+      // above closes the dialog because `open` went false, which would tell
+      // the author the user dismissed a dialog their own code closed. Escape
+      // is `cancel`; the Close button is an action.
       onCancel={(e) => {
         e.preventDefault();
         p.onClose();
@@ -693,22 +697,6 @@ function HtmlDialog(p: DialogRenderProps) {
       </div>
     </dialog>
   );
-}
-
-/**
- * A React key per option: its value, which keeps each option's element (and
- * a radio's per-option content) across a re-filter. A list built from data
- * can repeat a value, and React would then warn and drop one, so a repeat is
- * told apart by its position among the repeats.
- */
-function optionKeys(options: { value: unknown }[]): string[] {
-  const seen = new Map<string, number>();
-  return options.map((o) => {
-    const v = String(o.value);
-    const n = seen.get(v) ?? 0;
-    seen.set(v, n + 1);
-    return n ? `${v}#${n}` : v;
-  });
 }
 
 /** Two own classes on one element; empty slots drop out. */

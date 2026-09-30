@@ -1,7 +1,7 @@
 import type { Preview } from "@storybook/react-vite";
 import { implementations, StoryRoot, themes, type ScopeArgs } from "../src/support";
 import "../src/tailwind.css";
-import "../src/widgets.css";
+import "rxc-forms-conformance/widgets.css";
 
 /**
  * Every story runs inside the decorator: a fresh control context, the chosen

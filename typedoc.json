@@ -6,7 +6,9 @@
     "packages/forms-schema",
     "packages/forms-react",
     "packages/forms-json",
-    "packages/forms-html"
+    "packages/forms-html",
+    "packages/forms-mui",
+    "packages/forms-antd"
   ],
   "packageOptions": {
     "entryPoints": [

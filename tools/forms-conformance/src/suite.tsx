@@ -1,0 +1,356 @@
+import { act, type ReactNode } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { untrackedRead as rc, type Control } from "@rx-controls/core";
+import {
+  ControlContextProvider,
+  createControlContext,
+  type ControlContext,
+} from "@rx-controls/react";
+import {
+  Action,
+  CheckboxField,
+  Dialog,
+  Elements,
+  Form,
+  FormProvider,
+  HtmlDisplay,
+  RadioField,
+  SelectField,
+  Tabs,
+  TextDisplay,
+  TextField,
+  useFormValidation,
+  Wizard,
+  type FormRenderers,
+  type ValidationScope,
+} from "@rx-controls/forms-react";
+import { JsonForm } from "@rx-controls/forms-json";
+import { Stars } from "./widgets/Stars.js";
+import { PetCards } from "./widgets/PetCards.js";
+import { demoControls, demoSchema } from "./fixtures/demoForm.js";
+
+/** An implementation under test. */
+export interface Implementation {
+  /** For the test names. */
+  name: string;
+  /** What it draws with. */
+  renderers: FormRenderers;
+  /** Providers it needs above the form beyond its own `root` — a theme. */
+  wrap?: (node: ReactNode) => ReactNode;
+}
+
+// React 19 warns unless this is set for `act()`.
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
+  true;
+
+const options = [
+  { name: "Ay", value: "a" },
+  { name: "Bee", value: "b" },
+];
+
+/**
+ * The conformance suite: what the contract promises, asserted the same way
+ * under every implementation. It reads the DOM only through what every
+ * implementation must produce — an input by its id, a label's text, a button
+ * by its name, `role="tab"` — and searches `document` rather than the
+ * container, since a library may portal a dialog out of it. Every case also
+ * fails on anything printed to the console: a library's deprecation warning
+ * or a React key warning is a defect even when the behaviour is right.
+ *
+ * Library-specific failure modes — MUI's notch and `inputComponent`, Ant's
+ * token chrome — are tested in the implementation's own package, beside this.
+ */
+export function describeConformance(impl: Implementation): void {
+  describe(`${impl.name}: conformance`, () => {
+    let ctx: ControlContext;
+    let root: Root;
+    let container: HTMLDivElement;
+    let logged: string[];
+    let validation: ValidationScope;
+
+    beforeEach(() => {
+      logged = [];
+      for (const level of ["error", "warn"] as const)
+        vi.spyOn(console, level).mockImplementation((...a: unknown[]) => {
+          logged.push(a.map(String).join(" "));
+        });
+      ctx = createControlContext();
+      container = document.createElement("div");
+      document.body.appendChild(container);
+      root = createRoot(container);
+    });
+    afterEach(() => {
+      act(() => root.unmount());
+      container.remove();
+      vi.restoreAllMocks();
+      expect(logged).toEqual([]);
+    });
+
+    function Owner({ children }: { children: ReactNode }) {
+      validation = useFormValidation();
+      return <Form validation={validation}>{children}</Form>;
+    }
+    const mount = (ui: ReactNode) => {
+      const tree = (
+        <FormProvider renderers={impl.renderers}>
+          <Owner>{ui}</Owner>
+        </FormProvider>
+      );
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {impl.wrap ? impl.wrap(tree) : tree}
+          </ControlContextProvider>,
+        ),
+      );
+    };
+    const byId = <E extends HTMLElement>(id: string) =>
+      document.getElementById(id) as E | null;
+    const text = () => document.body.textContent ?? "";
+    const buttonNamed = (name: string) =>
+      [...document.querySelectorAll("button")].find(
+        (b) => b.textContent?.trim() === name || b.getAttribute("aria-label") === name,
+      ) as HTMLButtonElement | undefined;
+    const set = <T,>(c: Control<T>, v: T) =>
+      act(() => ctx.update((wc) => wc.setValue(c, v)));
+    const click = (el: Element) => act(() => (el as HTMLElement).click());
+    const type = (el: HTMLInputElement | HTMLTextAreaElement, value: string) => {
+      const proto =
+        el instanceof HTMLTextAreaElement
+          ? HTMLTextAreaElement.prototype
+          : HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, "value")!.set!;
+      act(() => {
+        setter.call(el, value);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    };
+    const blur = (el: HTMLElement) =>
+      act(() => {
+        el.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+        el.dispatchEvent(new FocusEvent("blur"));
+      });
+    const flush = (ms = 0) =>
+      act(async () => {
+        await new Promise((r) => setTimeout(r, ms));
+      });
+
+    it("draws a text field that takes typing and keeps its input across keystrokes", () => {
+      const name = ctx.newControl("");
+      mount(<TextField field={name} id="name" label="Name" helpText="Your given name" />);
+      expect(text()).toContain("Name");
+      expect(text()).toContain("Your given name");
+      const input = byId<HTMLInputElement>("name")!;
+      type(input, "A");
+      type(input, "Ad");
+      type(input, "Ada");
+      expect(rc.getValue(name)).toBe("Ada");
+      // The same element all the way: a control slot that remounts on every
+      // keystroke loses focus and caret.
+      expect(byId("name")).toBe(input);
+      expect(input.value).toBe("Ada");
+    });
+
+    it("shows a required field's message once it is touched", () => {
+      const name = ctx.newControl("");
+      mount(<TextField field={name} id="name" label="Name" required />);
+      expect(text()).not.toContain("Please enter a value");
+      blur(byId("name")!);
+      expect(text()).toContain("Please enter a value");
+    });
+
+    it("locks a field in a disabled form", () => {
+      const name = ctx.newControl("x");
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {(impl.wrap ?? ((n: ReactNode) => n))(
+              <FormProvider renderers={impl.renderers}>
+                <Form disabled>
+                  <TextField field={name} id="name" label="Name" />
+                </Form>
+              </FormProvider>,
+            )}
+          </ControlContextProvider>,
+        ),
+      );
+      expect(byId<HTMLInputElement>("name")!.disabled).toBe(true);
+    });
+
+    it("toggles a checkbox", () => {
+      const ok = ctx.newControl(false);
+      mount(<CheckboxField field={ok} id="ok" label="Agree" />);
+      expect(text()).toContain("Agree");
+      click(document.querySelector("input[type=checkbox]")!);
+      expect(rc.getValue(ok)).toBe(true);
+    });
+
+    it("selects a radio option, and draws each option's content", () => {
+      const v = ctx.newControl<string | undefined>(undefined);
+      mount(
+        <RadioField field={v} id="r" label="Pick" options={options}>
+          {(o) => <TextDisplay text={`about ${o.name}`} />}
+        </RadioField>,
+      );
+      expect(text()).toContain("about Bee");
+      const radios = [...document.querySelectorAll<HTMLInputElement>("input[type=radio]")];
+      expect(radios).toHaveLength(2);
+      click(radios[1]);
+      expect(rc.getValue(v)).toBe("b");
+    });
+
+    it("shows the chosen option of a select", () => {
+      const v = ctx.newControl<string | undefined>(undefined);
+      mount(<SelectField field={v} id="s" label="Pick" options={options} />);
+      set(v, "b");
+      expect(text()).toContain("Bee");
+    });
+
+    it("unmounts a hidden field's widget", () => {
+      mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
+      expect(byId("gone")).toBeNull();
+    });
+
+    it("keeps every tab mounted and validating, and the same node across a switch", () => {
+      const a = ctx.newControl("x");
+      const b = ctx.newControl("");
+      mount(
+        <Tabs
+          items={[
+            { key: "one", title: "First", children: <TextField field={a} id="a" /> },
+            { key: "two", title: "Second", children: <TextField field={b} id="b" required /> },
+          ]}
+        />,
+      );
+      const inputB = byId("b");
+      expect(inputB).not.toBeNull();
+      expect(validation.isValid(rc)).toBe(false);
+      const second = [...document.querySelectorAll('[role="tab"]')].find((t) =>
+        t.textContent?.includes("Second"),
+      )!;
+      click(second);
+      expect(byId("b")).toBe(inputB);
+      expect(rc.getValue(b)).toBe("");
+    });
+
+    it("keeps a closed dialog's content mounted and validating", async () => {
+      const open = ctx.newControl(false);
+      const inside = ctx.newControl("");
+      const dismissed = vi.fn();
+      mount(
+        <Dialog open={open} onClose={dismissed} title="Details">
+          <TextField field={inside} id="inside" required />
+        </Dialog>,
+      );
+      expect(byId("inside")).not.toBeNull();
+      expect(validation.isValid(rc)).toBe(false);
+      set(open, true);
+      const node = byId("inside");
+      set(open, false);
+      await flush();
+      expect(byId("inside")).toBe(node);
+      // Closed by the author's own code: not a dismissal.
+      expect(dismissed).not.toHaveBeenCalled();
+    });
+
+    it("refuses the wizard's Next on an invalid page, and advances on a valid one", async () => {
+      const page = ctx.newControl<number | undefined>(0);
+      const name = ctx.newControl("");
+      mount(
+        <Wizard
+          page={page}
+          items={[
+            { key: "p1", title: "One", children: <TextField field={name} id="w" required /> },
+            { key: "p2", title: "Two", children: <TextDisplay text="page two" /> },
+          ]}
+        />,
+      );
+      click(buttonNamed("Next")!);
+      await flush();
+      expect(rc.getValue(page)).toBe(0);
+      set(name, "ok");
+      click(buttonNamed("Next")!);
+      await flush();
+      expect(rc.getValue(page)).toBe(1);
+    });
+
+    it("runs an action, and locks it while an async handler is busy", async () => {
+      let finish!: () => void;
+      const clicked = vi.fn(() => new Promise<void>((r) => (finish = r)));
+      mount(<Action actionId="save" text="Save" variant="primary" onClick={clicked} />);
+      click(buttonNamed("Save")!);
+      expect(clicked).toHaveBeenCalledOnce();
+      expect(buttonNamed("Save")?.disabled ?? true).toBe(true);
+      await act(async () => finish());
+      await flush();
+      expect(buttonNamed("Save")!.disabled).toBe(false);
+    });
+
+    it("draws a collection's rows, and one element's edit re-renders into its row", () => {
+      const pets = ctx.newControl([{ name: "Rex" }, { name: "Tiddles" }]);
+      mount(
+        <Elements field={pets}>
+          {(p, i) => <TextField field={p.fields.name} id={`pet${i}`} />}
+        </Elements>,
+      );
+      expect(byId<HTMLInputElement>("pet1")!.value).toBe("Tiddles");
+      type(byId<HTMLInputElement>("pet0")!, "Max");
+      expect(rc.getValue(pets)[0].name).toBe("Max");
+    });
+
+    it("draws text and html displays", () => {
+      mount(
+        <>
+          <TextDisplay text="plain words" />
+          <HtmlDisplay html="<b>bold words</b>" />
+        </>,
+      );
+      expect(text()).toContain("plain words");
+      expect(document.querySelector("b")?.textContent).toBe("bold words");
+    });
+
+    it("hosts a third-party field in its own shell", () => {
+      const rating = ctx.newControl<number | undefined>(undefined);
+      mount(<Stars field={rating} label="Rate us" maxStars={3} />);
+      expect(text()).toContain("Rate us");
+      click(buttonNamed("2 of 3")!);
+      expect(rc.getValue(rating)).toBe(2);
+    });
+
+    it("hosts a third-party collection, its buttons drawn by the implementation", () => {
+      const pets = ctx.newControl([{ name: "Rex" }]);
+      mount(
+        <PetCards field={pets} label="Pets" maxLength={3}>
+          {(p, i) => <TextField field={p.fields.name} id={`card${i}`} />}
+        </PetCards>,
+      );
+      click(buttonNamed("Add card")!);
+      expect(rc.getValue(pets)).toHaveLength(2);
+      click(buttonNamed("Remove")!);
+      expect(rc.getValue(pets)).toHaveLength(1);
+    });
+
+    it("renders the JSON fixture form", async () => {
+      const data = ctx.newControl<Record<string, unknown>>({
+        firstName: "Ada",
+        pets: [{ name: "Rex" }],
+        address: { street: "", city: "" },
+        status: "active",
+        hasPets: true,
+      });
+      mount(
+        <JsonForm
+          controls={demoControls}
+          schema={demoSchema}
+          data={data}
+          actionHandler={() => () => {}}
+          displays={{ greeting: () => <TextDisplay text="host greeting" /> }}
+        />,
+      );
+      await flush();
+      expect(text()).toContain("Pet 1 of 1");
+      expect(text()).toContain("host greeting");
+    });
+  });
+}

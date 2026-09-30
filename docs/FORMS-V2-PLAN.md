@@ -293,7 +293,27 @@ The original list:
 *Exit:* parity 144 of 144, burndown ≤ 622, both failing on regression. Met, at 582, with the
 gates run locally.
 
-### 4 — MUI and Ant
+### 4 — MUI and Ant ✅
+
+**Done.** `@rx-controls/forms-mui` and `@rx-controls/forms-antd` are ported and unpublished, and
+draw the generic DOM parts through `forms-html`'s `./shared` subpath rather than copying them. The
+shared suite is `tools/forms-conformance` (`describeConformance(impl)` on its `./suite` subpath,
+16 cases, each also failing on any console output), and it owns the fixtures written from outside
+the packages: `Stars`, `PetCards`, `Collapsible`, `SelectChild`, and the JSON fixture form. The
+storybook and the dev app import them from there instead of keeping copies. html runs the suite
+from the conformance package (under both themes), since `forms-html` depending on it would be a
+cycle through `forms-json`; MUI and Ant run it from their own packages, beside the library tests
+below — each checked by reintroducing the POC's mistake and watching it fail (an inline
+`inputComponent` fails four tests; `iconPosition` fails on Ant's own deprecation warning). The
+smoke test renders all 34 stories under html (both themes), MUI and Ant, 136 cases.
+
+The port found four defects, all fixed with tests: the html dialog forwarded the native `close`
+event to `onClose`, so a dialog the author closed reported a user dismissal; the POC's MUI and Ant
+wizards hid inactive pages only through `demo.css`, so with no stylesheet every page showed; MUI
+keyed options by value like html had; and Ant's full-width frame overflowed its container
+without Ant's optional `reset.css`. Ant's `reset.css` is the app's to load — a library cannot
+import css — and the fixtures and the suite are separate entry points so an app bundling the
+widgets never pulls in vitest.
 
 Port `forms-mui` and `forms-antd`, plus `Stars` and `PetCards` as third-party fixtures. The same
 fixture form and the same suite run under all three implementations, so a contract change that

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createControlContext } from "@rx-controls/react";
 import { translateForm } from "../src/index";
-import { demoControls, demoSchema } from "./fixtures/demoForm";
+import { demoControls, demoSchema } from "../../../tools/forms-conformance/src/fixtures/demoForm";
 import { flush, setupLoader } from "./harness";
 
 /**
- * The fixture form end to end, with no host: every gap it reports is one the
+ * The fixture form end to end, with no host. It lives with the conformance
+ * suite (`tools/forms-conformance`), which renders it under every
+ * implementation; imported by path, since that package depends on this one. every gap it reports is one the
  * form contains on purpose — a host's render types, group kinds, adornments
  * and custom displays, action ids nobody claims, a `LayoutStyle` that is not
  * a toggle, a Textfield extension — so the list is pinned exactly. A gap that
