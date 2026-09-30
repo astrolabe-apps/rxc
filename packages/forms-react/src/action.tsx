@@ -181,6 +181,8 @@ export const StandardActionIds = {
   next: "next",
   /** Go back a wizard page. */
   back: "back",
+  /** Dismiss a dialog. */
+  close: "close",
 } as const;
 
 /**

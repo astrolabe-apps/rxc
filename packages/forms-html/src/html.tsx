@@ -653,7 +653,7 @@ function HtmlWizard(p: WizardRenderProps) {
  * closed the UA hides it, mounted, which is what `silent` needs.
  */
 function HtmlDialog(p: DialogRenderProps) {
-  const { dialog: t, action } = useHtmlTheme();
+  const t = useHtmlTheme().dialog;
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -682,20 +682,12 @@ function HtmlDialog(p: DialogRenderProps) {
       {p.title && <strong className={t.title}>{p.title}</strong>}
       {p.content}
       <div className={t.actions} style={{ marginTop: 12 }}>
-        <button
-          type="button"
-          className={join(action.className, action.styles.secondary.className)}
+        <Action
+          actionId={StandardActionIds.close}
+          text="Close"
+          style="secondary"
           onClick={p.onClose}
-        >
-          <span
-            className={join(
-              action.textClassName,
-              action.styles.secondary.textClassName,
-            )}
-          >
-            Close
-          </span>
-        </button>
+        />
       </div>
     </dialog>
   );

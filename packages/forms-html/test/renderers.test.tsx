@@ -3,6 +3,7 @@ import { act, type ReactNode } from "react";
 import { untrackedRead, type Control } from "@rx-controls/core";
 import {
   Action,
+  ActionOverrideProvider,
   CheckboxField,
   Contents,
   Dialog,
@@ -17,6 +18,8 @@ import {
   TextDisplay,
   TextField,
   Wizard,
+  StandardActionIds,
+  type ActionRenderProps,
   type OptionValue,
 } from "@rx-controls/forms-react";
 import {
@@ -235,6 +238,26 @@ describe("hiding with no CSS at all", () => {
     const dialog = $<HTMLDialogElement>("dialog")!;
     expect(dialog.open).toBe(false);
     expect(dialog.querySelector("[data-inside]")).not.toBeNull();
+  });
+
+  it("draws Close as an action a host can restyle by id", () => {
+    const onClose = vi.fn();
+    const FancyClose = (p: ActionRenderProps) => (
+      <button data-fancy onClick={p.onClick}>
+        {p.text}
+      </button>
+    );
+    mount(
+      <ActionOverrideProvider value={{ [StandardActionIds.close]: FancyClose }}>
+        <Dialog open title="Details" onClose={onClose}>
+          <p />
+        </Dialog>
+      </ActionOverrideProvider>,
+    );
+    const close = $<HTMLButtonElement>("dialog [data-fancy]")!;
+    expect(close.textContent).toBe("Close");
+    act(() => close.click());
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });
 
