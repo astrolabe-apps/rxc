@@ -336,11 +336,18 @@ So element-level did not hold even for goal 4 alone.
 
 Two consequences: **NativeWind stops being a prerequisite** (decision 6 — it is `forms-native`'s
 styling choice, and the two packages share a contract, not source), and **platform-specific
-degradation is normal rather than exceptional**. `Grid` is the worked example: the RN renderer
-chunks children into rows of N and gives each cell `flex-1` or a per-column class
-(`schemas-rn/src/components/GridRenderer.tsx`), which renders correctly but loses cross-row
-column alignment unless widths are fixed, and loses column spanning. That is a different
-renderer, not a broken one.
+degradation is normal rather than exceptional**: an implementation draws the built-in as well as
+its platform allows, and a native one that renders a concept more plainly than the web is a
+different renderer, not a broken one.
+
+Legacy's `Grid` is **not** an example of it, though it is easy to read as one. `schemas-rn`'s
+`GridRenderer` chunks the visible children into rows of N and gives each cell `flex-1` or a
+per-column class, losing cross-row column alignment unless widths are fixed — but `schemas-html`'s
+`GridRenderer` is the same code, so the web loses it identically. Legacy's grid behaves the same on
+both platforms. Divergence would only arrive in v2, if `forms-html` drew a grid as a CSS grid
+(aligned columns, hidden children skipped by layout) while `forms-native` chunked rows; and
+chunking needs to know which children are hidden, which a v2 group cannot see through opaque
+`children` ([`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) §1).
 
 **The schema describes the data; the form describes what it demands of that data.** So
 `required` and every other validator is declared at the **usage** and never defaulted from the

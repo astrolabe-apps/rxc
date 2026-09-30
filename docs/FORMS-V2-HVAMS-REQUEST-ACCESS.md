@@ -70,10 +70,66 @@ missing is meaning: there is no error tone and no `role="alert"`, and the 409 me
 link is a raw `<a>` inside `text`, because there is no link display. A `tone` (or a dedicated
 message display) would cover the first two.
 
+**No column layout — and, under it, containers cannot see which children are hidden.** The
+original laid the four personal fields out two to a row. v2 has nothing that does that: a group's
+`layout` is `StackLayout` (flex only), §9 of the interfaces doc lists a `grid` slot in
+`FormRenderers` that no package implements, and `forms-json` translates Standard, Group, Contents,
+Inline, Flex, Tabs and Dialog groups but not legacy's `Grid`. Legacy's `GridRenderer` chunks the
+*visible* children into rows of `columns` (default 2), with per-column `cellClass` and a
+`rowClass`; hidden children are filtered before chunking, so a hidden field never leaves a hole
+(`legacy/RENDERER-CATALOG.md`).
+
+Legacy's grid is the **same on both platforms**: `schemas-html` and `schemas-rn` ship an identical
+`GridRenderer` — filter to visible children, chunk into rows, wrap each cell in a `Div` with its
+`cellClass` or `flex-1`. Neither is a CSS grid, so both lose cross-row alignment equally.
+`FORMS-V2-GOALS.md` (the "platform-specific degradation" paragraph) presents the RN renderer's
+chunking as RN degrading relative to the web; the web renderer does exactly the same. That
+paragraph now says so — `Grid` is not evidence of platform divergence.
+
+The filtering is the part v2 cannot do as written, on either platform. A group receives
+`children: ReactNode`, which is opaque, and presence is resolved inside each child's boundary, so
+the group has no way to ask "which of my children are hidden" — which is what chunking into rows
+needs. Two ways out:
+
+- **CSS grid on the web.** A group body with `display: grid; grid-template-columns: repeat(n, 1fr)`
+  skips hidden children by itself: a hidden field renders nothing through its `visibility` slot and
+  a hidden region carries the `hidden` attribute, so neither takes a cell. It also keeps columns
+  aligned across rows, which legacy did not. But it is a web-only mechanism: React Native has no CSS
+  grid, and an RN implementation wrapping each opaque child in a `1/n`-width `View` leaves a hole
+  for every hidden field — a divergence legacy did not have.
+- **Tell the group what is visible.** Boundaries already publish upward — a field attaches its
+  verdict to the nearest validation scope — so a group could collect its children's presence the
+  same way. The catch is mapping a report back to a position in opaque `children`: a boundary knows
+  its own presence, not which child slot of its parent it sits in. So this probably means a grid
+  that takes structured `items` (as Tabs and Wizard do) or wraps each child in a cell boundary of
+  its own, whose presence it can read.
+
+For this form a `columns` option on `StackLayout` (or a `Grid` group over the planned `grid` slot)
+drawn as a CSS grid would do on the web. Parity with legacy on both platforms needs the second.
+
+The same question comes up in two containers v2 has already built, and there it is not cosmetic:
+
+- **Tabs.** Legacy's `TabsRenderer` filters hidden children out of the strip. v2's `TabItem` is
+  `{ key, title, children }` — no `hidden` — so a tab whose content is hidden stays in the strip
+  with an empty panel. `forms-json`'s Tabs translator maps each child definition to an item
+  without looking at its visibility (`packages/forms-json/src/translate.tsx`), so a JSON form with
+  a `Visible` expression on a tab should render an empty tab where legacy removed it. Found by
+  reading the translator; not run against the corpus.
+- **Wizard.** Legacy's wizard state has a visible-only `page` and `totalPages` beside the raw
+  index (`legacy/ACTIONS-AND-WIZARD.md`), so hidden pages are skipped by Next / Back and left out of
+  the step count. v2's `WizardPage` has no `hidden` either, so a conditional page cannot be
+  skipped.
+
+For those two the structured-`items` rule the contract already follows is the answer — "a
+container that needs per-child metadata takes it structured, not as children" — and visibility is
+per-child metadata: a `hidden?: FormProp<boolean | undefined>` on `TabItem` and `WizardPage`,
+narrowing that panel's presence to `hidden` (so `clearHidden` still applies to it) and removing it
+from the strip or the step sequence. The same mechanism — per-child `hidden` on a structured item,
+or a cell boundary per child — is what a grid needs for parity, so all three are one design
+question, not three.
+
 **Smaller ones:**
 
-- **Grid layout.** Names were a two-column grid; the contract has only `StackLayout` (flex). The
-  registry mentions `grid` but nothing authoring-side reaches it.
 - **Section titles are not headings.** `Contents title` draws a `<div>` in `forms-html` (and in Ant,
   which shares `Contents`); a form with sections has no heading structure.
 - **A display with a state.** The counter turned red past the limit. That needs a class, which the
@@ -194,6 +250,8 @@ bug above.
    regression on every Ant field.
 3. `maxLength` on `TextField` (§1).
 4. Reconcile an options widget's value against its options (§1).
-5. A multi-select slot, or at least its controller (§2).
-6. Decide whether `<Form>` owns submission (§3), a message display with a tone (§1), and the value
+5. `hidden` on `TabItem` and `WizardPage`, and a column layout (§1) — the first is a legacy parity
+   gap in `forms-json`, not just a JSX one.
+6. A multi-select slot, or at least its controller (§2).
+7. Decide whether `<Form>` owns submission (§3), a message display with a tone (§1), and the value
    `clearHidden` writes (§1).
