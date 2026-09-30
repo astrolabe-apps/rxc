@@ -9,7 +9,7 @@ Re-exports all of `@rx-controls/core`, so this is the only import you need.
 npm install @rx-controls/react
 ```
 
-Peer dependency: React 18 or 19.
+Peer dependency: React 19.
 
 ## What's different
 
@@ -213,7 +213,7 @@ see
 and
 [CONTROL-SEMANTICS.md](https://github.com/astrolabe-apps/rxc/blob/main/docs/CONTROL-SEMANTICS.md).
 
-ESM only. React 18.0+ (the floor is `useId`); verified against 18.3.1 and 19.
+ESM only. React 19.
 
 ## Coming from `@react-typed-forms/core`?
 

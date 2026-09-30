@@ -1,0 +1,17 @@
+# Change Log - @rx-controls/react
+
+This log was last generated on Wed, 30 Sep 2026 04:47:57 GMT and should not be manually modified.
+
+## 1.1.0
+Wed, 30 Sep 2026 04:47:57 GMT
+
+### Minor changes
+
+- Add setWrongRcSeverity, which raises the captured-rc diagnostic from a warning to a throw so the stack reaches the offending read. Default is unchanged ('warn').
+
+### Patches
+
+- FormEditProvider now hands out one context value per readOnly/disabled pair instead of a new object on every render, so useFormEdit() consumers below it no longer re-render (straight through React.memo) whenever the provider's parent re-renders.
+- Peer dependency is now `react: ^19`. React 18 was never used by any consumer; 1.0.0, which declared `^18 || ^19`, is deprecated in favour of this release.
+- A control write that reaches a component which has rendered but not yet committed — a layout-effect cleanup in React's deletion pass, or any write after a render that never committed — is now held until that component's own commit effect, instead of calling its state setter at once. React reported the latter as "Can't perform a React state update on a component that hasn't mounted yet" on every field of a form whose renderer set was swapped.
+

@@ -159,12 +159,17 @@ Gated by `shouldPublish` in `rush.json`:
 
 | Package | Version | dist-tag |
 |---|---|---|
-| `@rx-controls/core` | 1.0.0 | `latest` |
-| `@rx-controls/react` | 1.0.1 | `latest` |
-| `@react-typed-forms/core` (the compat package) | 5.0.0 | `latest` |
+| `@rx-controls/core` | 1.1.0 | `latest` |
+| `@rx-controls/react` | 1.1.0 | `latest` |
+| `@react-typed-forms/core` (the compat package) | 5.1.0 | `latest` |
 | `@rx-controls/forms-schema`, `-react`, `-json`, `-html`, `-mui`, `-antd` | 0.1.0-alpha.0 | `alpha` |
 
-The apps and `tools/` packages are never published. **The stable packages publish to
+The apps and `tools/` packages are never published. **React 19 only, without a major:** react
+1.1.0 and compat 5.1.0 narrowed their peer range from `^18 || ^19` to `^19` in a minor, because
+no consumer ever ran them on 18; the earlier releases that declared 18 (`@rx-controls/react@1.0.0`,
+`@react-typed-forms/core@5.0.0`) are `npm deprecate`d in favour of them rather than kept alive.
+Stable releases go through change files (`rush change`, then `rush version --bump`); the alphas
+are versioned by hand. **The stable packages publish to
 `latest`; the Forms v2 packages to `alpha`**, so a plain `npm install` never picks up a
 prerelease and a consumer opts in with `@alpha`. Later alphas bump the `.N`.
 
@@ -288,22 +293,12 @@ construction. Anything else dev-only stays behind `IS_DEV`.
 
 ## React version support
 
-Two peer ranges. The stable packages — `@rx-controls/core`, `@rx-controls/react` and the compat
-package — take `react: ^18 || ^19`, verified below. The Forms v2 packages take `react: ^19`: that
-is what they are tested on, and they use at least one React-19-only behaviour (the `inert`
-attribute, which React 18 warns on); widening the range means running their suites on 18 first.
-Context providers are written `<X.Provider value>` everywhere, not React 19's `<X value>`, so that
-is not what stands in the way. The repo develops on `~19.2.0` everywhere
+**React 19 only.** Every package's peer range is `react: ^19` (decided 2026-09-30: every client
+that uses these is on 19), and the repo develops on `~19.2.0` everywhere
 (`ensureConsistentVersions` — one line, so a symlinked workspace package never resolves a second
-React copy under Node, which the corpus tools' parity run needs). Nothing in the stable packages
-uses a React-19-only API (`useId` sets their real floor at 18.0).
-
-Verified against React 18.3.1 / `@types/react` 18.3.31: the `@rx-controls/react` suite (12 tests) passes
-unchanged, and the `Rendered` brand still typechecks — including its negative cases, which matters
-because `ReactNode`'s union differs between the two `@types/react` majors. To re-check after touching
-`@rx-controls/react`, copy `packages/react/{src,test}` into a scratch project pinned to React 18,
-symlink `@rx-controls/core`, and run `tsc --noEmit` + `vitest`. (The tests' `import { act } from
-"react"` needs 18.3+; the shipped source does not.)
+React copy under Node, which the corpus tools' parity run needs). React-19-only APIs and
+behaviour are fair game — `<X value>` providers, `use`, the `inert` attribute. Context providers
+happen to be written `<X.Provider value>`; nothing depends on that.
 
 ## Linting
 

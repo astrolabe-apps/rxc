@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/react",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "React bindings for @rx-controls/core — explicit reactive reads through a ReadContext, no compiler plugin, no globals.",
   "keywords": [
     "react",
@@ -47,7 +47,7 @@
     "@rx-controls/core": "workspace:^"
   },
   "peerDependencies": {
-    "react": "^18 || ^19"
+    "react": "^19"
   },
   "devDependencies": {
     "@types/react": "~19.2.0",

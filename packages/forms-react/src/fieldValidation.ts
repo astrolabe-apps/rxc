@@ -19,8 +19,8 @@ import type { ValidationScopeImpl } from "./validationScope.js";
 /**
  * `useLayoutEffect` on the client, `useEffect` on the server. Validation
  * publishes in the commit phase, before paint, so a sibling that rendered
- * first still sees the error on screen; on the server nothing commits, and
- * React 18 warns about a layout effect there (React 19 does not).
+ * first still sees the error on screen; on the server nothing commits, so a
+ * passive effect is all it needs there.
  */
 const useCommitEffect =
   typeof document !== "undefined" ? useLayoutEffect : useEffect;

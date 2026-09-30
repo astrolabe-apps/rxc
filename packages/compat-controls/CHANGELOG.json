@@ -1,0 +1,30 @@
+{
+  "name": "@react-typed-forms/core",
+  "entries": [
+    {
+      "version": "5.1.0",
+      "tag": "@react-typed-forms/core_v5.1.0",
+      "date": "Wed, 30 Sep 2026 04:47:57 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Add opt-in ambient diagnostics and load-time duplicate-install detection. New on the main entry point: setStrictAmbient/getStrictAmbient and getCompatPatchInfo. New '/internal' subpath export carrying setAmbientTrace, a debugging aid held outside the semver promise. No default behaviour changes: strict mode and the trace are off by default, and the duplicate report only fires on an install that is already broken."
+          }
+        ],
+        "patch": [
+          {
+            "comment": "Peer dependency is now `react: ^19`. React 18 was never used by any consumer; 5.0.0, which declared `^18 || ^19`, is deprecated in favour of this release."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@rx-controls/core\" to `^1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@rx-controls/react\" to `^1.1.0`"
+          }
+        ]
+      }
+    }
+  ]
+}
