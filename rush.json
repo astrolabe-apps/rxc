@@ -9,11 +9,13 @@
     {
       "packageName": "@rx-controls/core",
       "projectFolder": "packages/core",
+      "versionPolicyName": "stable",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/react",
       "projectFolder": "packages/react",
+      "versionPolicyName": "stable",
       "shouldPublish": true
     },
     {
@@ -21,36 +23,43 @@
       // `alpha` dist-tag — never with the stable packages' `--tag latest`.
       "packageName": "@rx-controls/forms-schema",
       "projectFolder": "packages/forms-schema",
+      "versionPolicyName": "forms-v2-alpha",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-react",
       "projectFolder": "packages/forms-react",
+      "versionPolicyName": "forms-v2-alpha",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-json",
       "projectFolder": "packages/forms-json",
+      "versionPolicyName": "forms-v2-alpha",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-html",
       "projectFolder": "packages/forms-html",
+      "versionPolicyName": "forms-v2-alpha",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-mui",
       "projectFolder": "packages/forms-mui",
+      "versionPolicyName": "forms-v2-alpha",
       "shouldPublish": true
     },
     {
       "packageName": "@rx-controls/forms-antd",
       "projectFolder": "packages/forms-antd",
+      "versionPolicyName": "forms-v2-alpha",
       "shouldPublish": true
     },
     {
       "packageName": "@react-typed-forms/core",
       "projectFolder": "packages/compat-controls",
+      "versionPolicyName": "stable",
       "shouldPublish": true
     },
     {

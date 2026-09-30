@@ -168,8 +168,19 @@ The apps and `tools/` packages are never published. **React 19 only, without a m
 1.1.0 and compat 5.1.0 narrowed their peer range from `^18 || ^19` to `^19` in a minor, because
 no consumer ever ran them on 18; the earlier releases that declared 18 (`@rx-controls/react@1.0.0`,
 `@react-typed-forms/core@5.0.0`) are `npm deprecate`d in favour of them rather than kept alive.
-Stable releases go through change files (`rush change`, then `rush version --bump`); the alphas
-are versioned by hand. **The stable packages publish to
+**Publishing is two Rush commands, one per version policy** (`common/config/rush/version-policies.json`):
+
+- `rush publish-latest` — policy `stable` (`core`, `react`, compat) → the `latest` dist-tag.
+  Versioned from change files: `rush change`, then `rush version --bump`.
+- `rush publish-alpha` — policy `forms-v2-alpha` (the six v2 packages) → the `alpha` dist-tag.
+  A lock-step policy: `rush version --bump --version-policy forms-v2-alpha` moves all six to the
+  next prerelease together. Exempt from change files while the contract is an alpha.
+- `rush publish-check` — dry-runs both and prints what each would publish.
+
+Each publishes only versions newer than the registry's, so running one never republishes the
+other's packages, and neither can put an alpha on `latest`. Both pass `--set-access-level public`
+(Rush otherwise passes `restricted` for a scoped package, which would make a new one private) and
+preserve `XDG_CONFIG_HOME` so npm's browser authentication works. Build first (`rush build`). **The stable packages publish to
 `latest`; the Forms v2 packages to `alpha`**, so a plain `npm install` never picks up a
 prerelease and a consumer opts in with `@alpha`. Later alphas bump the `.N`.
 
@@ -183,10 +194,9 @@ one copy; the app's other controls use the other). `workspace:^` publishes
 
 `rush publish --include-all` is all-or-nothing — `--version-policy` only
 narrows within it, and `--prerelease-name` is silently ignored when it is
-passed — so `shouldPublish` is the only gate, versions are set by hand, and
-`--tag` is mandatory: npm publishes to `latest` unless told otherwise, prerelease
-or not. The stable packages and the alphas therefore go out in **separate
-publishes**, each with its own `--tag`. `scripts/pack-compat.mjs` also reads the
+passed — and `--tag` is mandatory: npm publishes to `latest` unless told
+otherwise, prerelease or not. So each publish is narrowed to one version policy
+with `--version-policy`, and carries that policy's tag — the two commands above. `scripts/pack-compat.mjs` also reads the
 flags, to derive its build/pack scope.
 
 ### No deprecations — break cleanly in a major

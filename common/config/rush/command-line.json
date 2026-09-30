@@ -31,17 +31,25 @@
     {
       "commandKind": "global",
       "name": "publish-check",
-      "summary": "Publish all packages to npm",
-      "description": "Runs rush publish --include-all with XDG_CONFIG_HOME preserved so browser authentication works correctly",
-      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all",
+      "summary": "Dry-run both publishes",
+      "description": "Shows what `rush publish-latest` and `rush publish-alpha` would publish, without publishing: the stable packages (version policy `stable`) and the Forms v2 alphas (`forms-v2-alpha`). Only versions newer than the registry's are published.",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy stable --tag latest && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --tag alpha",
       "safeForSimultaneousRushProcesses": true
     },
     {
       "commandKind": "global",
       "name": "publish-latest",
-      "summary": "Publish all packages to npm",
-      "description": "Runs rush publish --include-all --publish --tag latest -b main with XDG_CONFIG_HOME preserved so browser authentication works correctly",
-      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --publish --tag latest -b main",
+      "summary": "Publish the stable packages to npm `latest`",
+      "description": "Publishes @rx-controls/core, @rx-controls/react and the compat package (version policy `stable`) to the `latest` dist-tag, each only if its version is newer than the registry's. Never publishes the Forms v2 alphas. XDG_CONFIG_HOME is preserved so browser authentication works. Build first (`rush build`).",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy stable --publish --tag latest --set-access-level public -b main",
+      "safeForSimultaneousRushProcesses": true
+    },
+    {
+      "commandKind": "global",
+      "name": "publish-alpha",
+      "summary": "Publish the Forms v2 packages to npm `alpha`",
+      "description": "Publishes the six Forms v2 packages (version policy `forms-v2-alpha`) to the `alpha` dist-tag, each only if its version is newer than the registry's. Never touches `latest`. Access is set public, which a scoped package's first publish needs. XDG_CONFIG_HOME is preserved so browser authentication works. Build first (`rush build`).",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --publish --tag alpha --set-access-level public -b main",
       "safeForSimultaneousRushProcesses": true
     }
   ],
