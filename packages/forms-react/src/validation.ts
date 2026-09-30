@@ -68,6 +68,14 @@ export interface ValidationScope {
    * every keystroke; anything that has to *decide* uses {@link ValidationScope.check}.
    */
   isValid(rc: ReadContext): boolean;
+  /**
+   * A touched field inside is showing an error — what a marker on a tab, a
+   * step or a section header reports, so the marker and the errors on screen
+   * always agree. A container touches what it held when the user leaves it
+   * (another tab, another page, a dialog closing), the way a field is touched
+   * on blur; nothing is showing on a form nobody has touched.
+   */
+  showingErrors(rc: ReadContext): boolean;
   /** An asynchronous validator inside has not answered yet. */
   pending(rc: ReadContext): boolean;
   /** Resolves once nothing inside is pending. At once, if nothing is. */

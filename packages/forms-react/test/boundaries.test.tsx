@@ -262,7 +262,7 @@ describe("the group boundary", () => {
     expect($("input")).toBeNull();
   });
 
-  it("with { scope: true }, reports its content's validity and joins the tree", () => {
+  it("with { scope: true }, reports errors its content is showing and joins the tree", () => {
     const c = dom.ctx.newControl("");
     let root!: ValidationScope;
     function Owner() {
@@ -280,6 +280,10 @@ describe("the group boundary", () => {
         <Owner />
       </FormProvider>,
     );
+    // Invalid, but nothing is showing until the field is touched.
+    expect(root.find(untrackedRead, "s")!.isValid(untrackedRead)).toBe(false);
+    expect($("[data-group]")!.hasAttribute("data-invalid")).toBe(false);
+    act(() => dom.ctx.update((wc) => wc.setTouched(c, true)));
     expect($("[data-group]")!.hasAttribute("data-invalid")).toBe(true);
     expect(root.find(untrackedRead, "s")!.kind).toBe("section");
     set(c, "filled");

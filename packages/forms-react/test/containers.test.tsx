@@ -29,7 +29,7 @@ let root: ValidationScope;
 function Owner({
   children,
   ...form
-}: { children: ReactNode; clearHidden?: boolean; designMode?: boolean }) {
+}: { children: ReactNode } & FormOpts) {
   root = useFormValidation();
   return (
     <Form validation={root} {...form}>
@@ -37,7 +37,8 @@ function Owner({
     </Form>
   );
 }
-function mount(ui: ReactNode, form: { clearHidden?: boolean; designMode?: boolean } = {}) {
+type FormOpts = { clearHidden?: boolean; designMode?: boolean; readOnly?: boolean };
+function mount(ui: ReactNode, form: FormOpts = {}) {
   dom.mount(
     <FormProvider renderers={testRenderers}>
       <Owner {...form}>{ui}</Owner>
@@ -50,6 +51,9 @@ const click = (sel: string) => act(() => $<HTMLButtonElement>(sel)!.click());
 const set = <T,>(c: Control<T>, v: T) =>
   act(() => dom.ctx.update((wc) => wc.setValue(c, v)));
 const rc = untrackedRead;
+const touch = <T,>(c: Control<T>) =>
+  act(() => dom.ctx.update((wc) => wc.setTouched(c, true)));
+const marked = (sel: string) => $(sel)!.hasAttribute("data-invalid");
 
 describe("Tabs", () => {
   function Strip({ a, b }: { a: Control<string>; b: Control<string> }) {
@@ -79,14 +83,43 @@ describe("Tabs", () => {
     expect(rc.getValue(b)).toBe("y");
   });
 
-  it("marks a tab invalid by its own rules while it is off screen", () => {
-    const a = dom.ctx.newControl("x");
+  it("marks nothing on a form nobody has touched, though an inactive tab validates", () => {
     const b = dom.ctx.newControl("");
-    mount(<Strip a={a} b={b} />);
-    expect($('[data-tab="one"]')!.hasAttribute("data-invalid")).toBe(false);
-    expect($('[data-tab="two"]')!.hasAttribute("data-invalid")).toBe(true);
-    set(b, "filled");
-    expect($('[data-tab="two"]')!.hasAttribute("data-invalid")).toBe(false);
+    mount(<Strip a={dom.ctx.newControl("")} b={b} />);
+    expect(marked('[data-tab="one"]')).toBe(false);
+    expect(marked('[data-tab="two"]')).toBe(false);
+    expect(root.find(rc, "main")!.child(rc, "two")!.isValid(rc)).toBe(false);
+  });
+
+  it("touches the tab the user leaves, so it is marked and its errors show on return", () => {
+    const a = dom.ctx.newControl("");
+    mount(<Strip a={a} b={dom.ctx.newControl("x")} />);
+    click('[data-tab="two"]');
+    expect(rc.isTouched(a)).toBe(true);
+    expect(marked('[data-tab="one"]')).toBe(true);
+    // And up the tree: the strip and the form are showing it too.
+    expect(root.find(rc, "main")!.showingErrors(rc)).toBe(true);
+    expect(root.showingErrors(rc)).toBe(true);
+    click('[data-tab="one"]');
+    expect($("[data-error]")!.textContent).toBe("Please enter a value");
+    set(a, "filled");
+    expect(marked('[data-tab="one"]')).toBe(false);
+  });
+
+  it("marks the current tab once a field in it is touched and showing an error", () => {
+    const a = dom.ctx.newControl("");
+    mount(<Strip a={a} b={dom.ctx.newControl("")} />);
+    touch(a);
+    expect(marked('[data-tab="one"]')).toBe(true);
+    expect(marked('[data-tab="two"]')).toBe(false);
+  });
+
+  it("does not touch on leave while the form is read-only", () => {
+    const a = dom.ctx.newControl("");
+    mount(<Strip a={a} b={dom.ctx.newControl("")} />, { readOnly: true });
+    click('[data-tab="two"]');
+    expect(rc.isTouched(a)).toBe(false);
+    expect(marked('[data-tab="one"]')).toBe(false);
   });
 
   it("joins the validation tree, its tabs keyed by item key", () => {
@@ -183,7 +216,7 @@ describe("Wizard", () => {
     expect(rc.getValue(page)).toBe(0);
   });
 
-  it("marks a page not reached yet invalid — it is silent, so it validates", () => {
+  it("validates a page not reached yet, but marks it only once it has been left", async () => {
     const name = dom.ctx.newControl("");
     function Reversed() {
       return (
@@ -196,7 +229,24 @@ describe("Wizard", () => {
       );
     }
     mount(<Reversed />);
-    expect($('[data-page="later"]')!.hasAttribute("data-invalid")).toBe(true);
+    // Silent, so it validates — Next from it would refuse — but untouched.
+    expect(marked('[data-page="later"]')).toBe(false);
+    click("[data-next]");
+    await flush();
+    expect(marked('[data-page="later"]')).toBe(false);
+    click("[data-back]");
+    expect(rc.isTouched(name)).toBe(true);
+    expect(marked('[data-page="later"]')).toBe(true);
+  });
+
+  it("touches the page it leaves when the bound index moves, not just on a click", () => {
+    const name = dom.ctx.newControl("");
+    const page = dom.ctx.newControl<number | undefined>(0);
+    mount(<Signup name={name} page={page} />);
+    expect(marked('[data-page="who"]')).toBe(false);
+    set(page, 1);
+    expect(rc.isTouched(name)).toBe(true);
+    expect(marked('[data-page="who"]')).toBe(true);
   });
 });
 
@@ -216,12 +266,23 @@ describe("Dialog", () => {
     expect($<HTMLElement>("[data-dialog]")!.hidden).toBe(true);
     expect($("#inside")).not.toBeNull();
     expect(root.find(rc, "details")!.isValid(rc)).toBe(false);
-    expect($("[data-dialog]")!.hasAttribute("data-invalid")).toBe(true);
     set(c, "typed");
     set(open, true);
     expect($<HTMLElement>("[data-dialog]")!.hidden).toBe(false);
     set(open, false);
     expect(rc.getValue(c)).toBe("typed");
+  });
+
+  it("touches its content when it closes, however it closes", () => {
+    const open = dom.ctx.newControl(false);
+    const c = dom.ctx.newControl("");
+    mount(<Details open={open} c={c} />);
+    expect(marked("[data-dialog]")).toBe(false);
+    set(open, true);
+    expect(rc.isTouched(c)).toBe(false);
+    set(open, false);
+    expect(rc.isTouched(c)).toBe(true);
+    expect(marked("[data-dialog]")).toBe(true);
   });
 
   it("draws inline in design mode", () => {

@@ -75,9 +75,14 @@ export function createValidationScope(
   // `pending(rc)` and `children(rc)` are ordinary tracked reads.
   const pendingCount = ctx.newControl(0);
   const childList = ctx.newControl<ValidationScopeImpl[]>([]);
-  // What `touchAll` touches: members' data controls, and child scopes'
-  // aggregates, which forward to those scopes.
-  const touchTargets = new Map<string, Control<unknown>>();
+  // Each member's verdict and what touching it touches: a field's data
+  // control, or a child scope's aggregate, which forwards to that scope.
+  // Bumped on every change so `showingErrors(rc)` follows membership.
+  const members = new Map<
+    string,
+    { judge: Control<unknown>; touch: Control<unknown> }
+  >();
+  const membership = ctx.newControl(0);
   let memberKeys = 0;
   let attachedUp: (() => void) | undefined;
 
@@ -98,17 +103,32 @@ export function createValidationScope(
     },
     register(judge, touch) {
       const mkey = "m" + memberKeys++;
-      touchTargets.set(mkey, touch);
-      ctx.update((wc) => attachFields(wc, group, { [mkey]: judge }));
+      members.set(mkey, { judge, touch });
+      ctx.update((wc) => {
+        attachFields(wc, group, { [mkey]: judge });
+        wc.updateValue(membership, (n) => n + 1);
+      });
       // The scope joins its parent once, as a single member: its own
       // aggregate already covers everything below it.
       attachedUp ??= parent?.register(group, group);
       return () => {
-        touchTargets.delete(mkey);
-        ctx.update((wc) => detachFields(wc, group, [mkey]));
+        members.delete(mkey);
+        ctx.update((wc) => {
+          detachFields(wc, group, [mkey]);
+          wc.updateValue(membership, (n) => n + 1);
+        });
       };
     },
     isValid: (rc) => rc.isValid(group),
+    showingErrors: (rc) => {
+      rc.getValue(membership);
+      for (const { judge, touch } of members.values()) {
+        const child = scopeOfGroup.get(touch);
+        if (child ? child.showingErrors(rc) : !rc.isValid(judge) && rc.isTouched(touch))
+          return true;
+      }
+      return false;
+    },
     pending: (rc) => rc.getValue(pendingCount) > 0,
     settled: () =>
       new Promise<void>((resolve) => {
@@ -122,10 +142,10 @@ export function createValidationScope(
       }),
     touchAll: () =>
       ctx.update((wc) => {
-        for (const t of touchTargets.values()) {
-          const child = scopeOfGroup.get(t);
+        for (const { touch } of members.values()) {
+          const child = scopeOfGroup.get(touch);
           if (child) child.touchAll();
-          else wc.setTouched(t, true);
+          else wc.setTouched(touch, true);
         }
       }),
     check: async () => {

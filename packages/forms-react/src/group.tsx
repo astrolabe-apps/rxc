@@ -100,9 +100,10 @@ export interface GroupRenderProps {
    */
   hidden?: boolean;
   /**
-   * A rule inside the region has a published error — rules written elsewhere
-   * over the same data do not count. Present only when the boundary was built
-   * with `{ scope: true }`.
+   * A touched field inside the region is showing an error — rules written
+   * elsewhere over the same data do not count. See
+   * {@link ValidationScope.showingErrors}. Present only when the boundary was
+   * built with `{ scope: true }`.
    */
   invalid?: boolean;
   /**
@@ -132,8 +133,8 @@ export type GroupImplSource<P extends object> =
 export interface GroupBoundaryOptions {
   /**
    * Make a validation scope for the region — a node in the tree
-   * {@link useValidation} walks — and hand its validity to the implementation
-   * as `invalid`, for a header that shows a marker. Only a boundary that is
+   * {@link useValidation} walks — and hand whether it is showing errors to
+   * the implementation as `invalid`, for a header that shows a marker. Only a boundary that is
    * asked pays for it.
    */
   scope?: boolean;
@@ -181,7 +182,7 @@ export function groupRenderer<P extends object = {}>(
       labelClassName: getProp(rc, props.labelClassName),
       labelTextClassName: getProp(rc, props.labelTextClassName),
       hidden: presence !== "rendered",
-      invalid: validation ? !validation.isValid(rc) : undefined,
+      invalid: validation ? validation.showingErrors(rc) : undefined,
       layout: getProp(rc, props.layout),
       children: props.children,
     };

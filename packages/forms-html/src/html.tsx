@@ -608,7 +608,7 @@ function HtmlWizard(p: WizardRenderProps) {
             key={i.key}
             className={t.step}
             data-active={n === p.index ? "" : undefined}
-            data-invalid={i.invalid && i.visited ? "" : undefined}
+            data-invalid={i.invalid ? "" : undefined}
           >
             <button type="button" onClick={() => p.goTo(n)}>
               {n + 1}. {i.title}

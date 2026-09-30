@@ -1,5 +1,11 @@
-import { useEffect, useMemo, type ComponentType, type ReactNode } from "react";
-import type { Control } from "@rx-controls/core";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  type ComponentType,
+  type ReactNode,
+} from "react";
+import type { Control, ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type ClassValue, type FormProp } from "./props.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
@@ -42,6 +48,32 @@ function usePanels(
     // `scopes` is keyed the same way; its identity follows `keys`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, signature, scopes]);
+}
+
+/**
+ * Leaving a panel touches it, the way leaving a field touches that: when
+ * `current` moves on from a value, `leave` runs with the one it left. From an
+ * effect, so a page index moved by the data rather than a click counts too,
+ * and the first render — nothing left yet — does nothing. Not while `locked`:
+ * a read-only or disabled region has nothing for the user to fix, and design
+ * mode shows everything at once.
+ */
+function useTouchOnLeave<K>(
+  current: K,
+  leave: (left: K) => void,
+  locked: boolean,
+) {
+  const last = useRef(current);
+  useEffect(() => {
+    const left = last.current;
+    last.current = current;
+    if (left !== current && !locked) leave(left);
+  }, [current, leave, locked]);
+}
+
+/** Locked for {@link useTouchOnLeave}: read-only, disabled or design mode. */
+function lockedHere(scope: ScopeState, rc: ReadContext): boolean {
+  return scope.designMode || scope.disabled(rc) || scope.readOnly(rc);
 }
 
 function panel(
@@ -112,7 +144,11 @@ export interface TabsRenderItem {
   content: ReactNode;
   /** The active panel — or every panel, in design mode. */
   active: boolean;
-  /** A rule in this panel has a published error. */
+  /**
+   * A touched field in this panel is showing an error — see
+   * {@link ValidationScope.showingErrors}. Leaving a tab touches it, so a tab
+   * left unfinished is marked while its errors are off screen.
+   */
   invalid: boolean;
 }
 
@@ -182,6 +218,12 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
     );
 
     // If the active tab disappears, fall back to the first.
+    useTouchOnLeave(
+      activeKey,
+      (left) => scopes.get(left)?.touchAll(),
+      lockedHere(scope, rc),
+    );
+
     const known = keys.includes(activeKey);
     useEffect(() => {
       if (!known && items[0]) update((wc) => wc.setValue(active, items[0].key));
@@ -193,7 +235,7 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
         key: item.key,
         title: item.title,
         active: stacked || item.key === activeKey,
-        invalid: !scopes.get(item.key)!.isValid(rc),
+        invalid: scopes.get(item.key)!.showingErrors(rc),
         content: panel(panels.get(item.key)!, scopes.get(item.key)!, item.children),
       })),
       activeKey,
@@ -268,7 +310,11 @@ export interface WizardRenderItem {
   content: ReactNode;
   /** The current page — or every page, in design mode. */
   active: boolean;
-  /** A rule on this page has a published error. */
+  /**
+   * A touched field on this page is showing an error — see
+   * {@link ValidationScope.showingErrors}. Leaving a page touches it, and so
+   * does a refused Next.
+   */
   invalid: boolean;
   /** The user has been to this page. */
   visited: boolean;
@@ -356,6 +402,15 @@ export function wizardRenderer(
         wc.setValue(indexControl, Math.min(Math.max(i, 0), items.length - 1)),
       );
 
+    useTouchOnLeave(
+      index,
+      (left) => {
+        const k = keys[left];
+        if (k !== undefined) scopes.get(k)?.touchAll();
+      },
+      lockedHere(scope, rc),
+    );
+
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const renderProps: WizardRenderProps = {
       items: items.map((item, i) => ({
@@ -363,7 +418,7 @@ export function wizardRenderer(
         title: item.title,
         active: stacked || i === index,
         visited: i <= index,
-        invalid: !scopes.get(item.key)!.isValid(rc),
+        invalid: scopes.get(item.key)!.showingErrors(rc),
         content: panel(panels.get(item.key)!, scopes.get(item.key)!, item.children),
       })),
       index,
@@ -438,7 +493,11 @@ export interface DialogRenderProps {
   title?: ReactNode;
   /** The content, already scoped. Always rendered. */
   content: ReactNode;
-  /** A rule inside has a published error. */
+  /**
+   * A touched field inside is showing an error — see
+   * {@link ValidationScope.showingErrors}. Closing the dialog touches its
+   * content, so a trigger drawn beside it can show what was left unfinished.
+   */
   invalid: boolean;
   /** Call when the user dismisses it. */
   onClose(): void;
@@ -480,12 +539,21 @@ export function dialogRenderer(
       () => narrowScope(scope, { presence: () => presence }),
       [scope, presence],
     );
+    // However it closes — dismissed, or the author's own control — closing
+    // is leaving it.
+    useTouchOnLeave(
+      open,
+      (wasOpen) => {
+        if (wasOpen) validation.touchAll();
+      },
+      lockedHere(scope, rc),
+    );
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const renderProps: DialogRenderProps = {
       open,
       inline,
       title: getProp(rc, props.title),
-      invalid: !validation.isValid(rc),
+      invalid: validation.showingErrors(rc),
       onClose: () => props.onClose?.(),
       hidden: scope.presence(rc) !== "rendered",
       className: getProp(rc, props.className),

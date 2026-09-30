@@ -6,6 +6,7 @@ import {
   mergeClass,
   useFormScope,
   useRenderers,
+  useValidation,
   type FormProp,
   type GroupRenderProps,
   combineClass,
@@ -19,11 +20,12 @@ export interface CollapsibleExtra {
 }
 
 /**
- * A third-party **group** renderer — the last boundary kind not yet written
- * from outside the package. Imports no UI library. A disclosure section: a
- * header the user toggles, an invalid badge on it while the content is off
- * screen (the boundary was built with `{ scope: true }`), and a live summary
- * of what is inside.
+ * A third-party **group** renderer. Imports no UI library. A disclosure
+ * section: a header the user toggles, an invalid badge on it while a field
+ * inside is showing an error (the boundary was built with `{ scope: true }`),
+ * and a live summary of what is inside. Collapsing is leaving the content, so
+ * it touches it — the rule the built-in tabs, wizard and dialog keep — and a
+ * section collapsed unfinished shows the badge.
  *
  * Two rules it has to keep that nothing enforces:
  *
@@ -46,7 +48,11 @@ export interface CollapsibleExtra {
 function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
   const { rc, rendered } = useReactive();
   const Body = useRenderers().contents;
-  const { designMode } = useFormScope();
+  const scope = useFormScope();
+  const { designMode } = scope;
+  // The section's own scope: the boundary provides it to its implementation.
+  const validation = useValidation();
+  const locked = scope.disabled(rc) || scope.readOnly(rc);
   const [open, setOpen] = useState(p.defaultOpen ?? true);
   const shown = open || designMode;
   const summary = getProp(rc, p.summary);
@@ -62,7 +68,9 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
         className="demo-collapsible-head"
         aria-expanded={shown}
         onClick={() => {
-          if (!designMode) setOpen((o) => !o);
+          if (designMode) return;
+          if (open && !locked) validation.touchAll();
+          setOpen(!open);
         }}
       >
         <span className="demo-collapsible-chevron" aria-hidden>

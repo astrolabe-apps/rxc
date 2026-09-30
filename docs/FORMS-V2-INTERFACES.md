@@ -743,6 +743,7 @@ interface ValidationScope {
   child(rc, key): ValidationScope | undefined;
   find(rc, key): ValidationScope | undefined;   // first descendant, depth-first
   isValid(rc): boolean;                  // optimistic while pending
+  showingErrors(rc): boolean;            // a touched field inside shows an error — what markers report
   pending(rc): boolean;
   settled(): Promise<void>;
   touchAll(): void;
@@ -828,14 +829,28 @@ an optional `page?: Control<number>` — bound, the index lives in the data and 
 payload; omitted, it is component state. A container that only offers the second is unusable for
 half its cases, and one that only offers the first pollutes the schema for the other half.
 
+**A marker reports what is showing, not what is invalid (decided, built).** A tab's dot, a
+wizard step, a section's or a dialog trigger's badge all read `showingErrors(rc)`: a touched
+field inside has an error. Reading `isValid` instead — the first build — marked an untouched
+first page red on load, and made a marker disagree with the page under it (one field touched
+and fine, another untouched and empty: the step red, nothing red on the page). So a container
+is **touched when the user leaves it**, the way a field is on blur: switching tab, moving page
+(by click, Back, Next, or the bound index moving) and a dialog closing — however it closes —
+`touchAll()` what was left. That is core's own `setTouched` cascade applied at the container,
+and it keeps the two in step: a marked tab shows its errors when you return to it. Not while
+the region is read-only, disabled, or in design mode, where there is nothing to fix. Legacy had
+no marker at all — `DefaultWizardRenderer` styled steps active / completed only, and computed a
+`valid` it never drew — so this is v2's, not a parity item. The third-party `Collapsible`
+follows the same rule for collapsing, with `useValidation()` from inside its implementation.
+
 **Gating is what a validation scope is actually for.** The wizard's Next is the page's
 `check()`: it refuses while the page's scope reports invalid, and a refusal `touchAll()`s that
 page so the errors it already had become visible. It first awaits the page's `settled()`, so an
 async validator that has not answered cannot let it through — and because `next()` returns that promise, the `<Action>`
 drawing it shows busy for the wait with no wizard code involved. That needs two methods beyond
 `isValid` (`touchAll`, `settled`), and it only works because an unreached
-page is `silent` — validating without rendering, so the step marker can show a page invalid
-before the user has ever seen it. Everything else the wizard needed already existed: presence,
+page is `silent` — validating without rendering, so Next from a page refuses on what a later
+field there requires even before the user has seen it (the marker waits for a touch, above). Everything else the wizard needed already existed: presence,
 the scope, actions, structured `items`. The two buttons it draws use the documented ids `next`
 and `back`, so a host restyles them the same way as any other.
 
