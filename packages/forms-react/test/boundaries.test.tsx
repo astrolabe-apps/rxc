@@ -571,6 +571,23 @@ describe("transitions", () => {
 });
 
 describe("the display boundary", () => {
+  it("resolves tone and announce, a derived tone following the data", () => {
+    const n = dom.ctx.newControl(3);
+    mount(
+      <>
+        <Show text="count" tone={(rc) => (rc.getValue(n) > 5 ? "error" : undefined)} />
+        <Show text="saved" tone="success" announce />
+      </>,
+    );
+    const [count, saved] = $$("[data-text]");
+    expect(count.hasAttribute("data-tone")).toBe(false);
+    expect(saved.getAttribute("data-tone")).toBe("success");
+    expect(saved.hasAttribute("data-announce")).toBe(true);
+    expect(count.hasAttribute("data-announce")).toBe(false);
+    set(n, 9);
+    expect(count.getAttribute("data-tone")).toBe("error");
+  });
+
   it("renders content, its accessible name, and leaves when hidden", () => {
     const hide = dom.ctx.newControl(false);
     mount(<Show text="Hello" accessibleName="greeting" hidden={hide} />);

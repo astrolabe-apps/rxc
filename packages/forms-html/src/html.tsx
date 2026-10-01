@@ -474,6 +474,8 @@ function HtmlText(p: TextDisplayRenderProps) {
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
       classes={displayShell}
     >
       <Tag
@@ -499,6 +501,8 @@ function HtmlIcon(p: IconDisplayRenderProps) {
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={true}
+      tone={p.tone}
+      announce={p.announce}
       classes={displayShell}
     >
       <span
@@ -524,6 +528,8 @@ function HtmlHtml(p: HtmlDisplayRenderProps) {
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
       classes={displayShell}
     >
       <div

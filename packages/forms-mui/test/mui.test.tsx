@@ -6,7 +6,14 @@ import {
   createControlContext,
   type ControlContext,
 } from "@rx-controls/react";
-import { Action, Dialog, Form, FormProvider, TextField } from "@rx-controls/forms-react";
+import {
+  Action,
+  Dialog,
+  Form,
+  FormProvider,
+  TextDisplay,
+  TextField,
+} from "@rx-controls/forms-react";
 import { muiRenderers } from "../src/index";
 
 // React 19 warns unless this is set for `act()`.
@@ -86,6 +93,11 @@ describe("MUI", () => {
     expect(
       [...document.querySelectorAll("button")].some((b) => b.textContent === "Close"),
     ).toBe(true);
+  });
+
+  it("colours a toned display from the palette", () => {
+    mount(<TextDisplay text="Bad" tone="error" />);
+    expect(document.querySelector<HTMLElement>('[data-tone="error"]')!.style.color).not.toBe("");
   });
 
   it("maps variants onto MUI's button variants", () => {

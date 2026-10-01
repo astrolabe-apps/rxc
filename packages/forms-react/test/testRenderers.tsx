@@ -108,6 +108,8 @@ function Text(p: TextDisplayRenderProps): Rendered {
   return rendered(
     <span
       data-text
+      data-tone={p.tone}
+      data-announce={p.announce ? "" : undefined}
       aria-label={p.accessibleName}
       data-inline={p.inline ? "" : undefined}
     >

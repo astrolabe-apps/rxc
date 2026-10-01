@@ -543,6 +543,24 @@ export function describeConformance(impl: Implementation): void {
       expect(rc.getValue(pets)[0].name).toBe("Max");
     });
 
+    it("announces a display as an alert or a status, and only when asked", () => {
+      mount(
+        <>
+          <TextDisplay text="Submission refused" tone="error" announce />
+          <TextDisplay text="Saved" tone="success" announce />
+          <TextDisplay text="301 / 300 characters" tone="error" />
+        </>,
+      );
+      const roleOf = (t: string) =>
+        [...container.querySelectorAll('[role="alert"], [role="status"]')]
+          .filter((e) => e.textContent?.includes(t))
+          .map((e) => e.getAttribute("role"));
+      expect(roleOf("Submission refused")).toEqual(["alert"]);
+      expect(roleOf("Saved")).toEqual(["status"]);
+      // A toned value the user is typing into is not read out on every key.
+      expect(roleOf("301 / 300")).toEqual([]);
+    });
+
     it("draws text and html displays", () => {
       mount(
         <>

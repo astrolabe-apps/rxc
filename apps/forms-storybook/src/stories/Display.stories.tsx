@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   DisplayOnlyField,
   HtmlDisplay,
   IconDisplay,
   TextDisplay,
+  TextField,
 } from "@rx-controls/forms-react";
 import type { ScopeArgs } from "../support";
 
@@ -75,3 +77,31 @@ function DisplayOnly(): Rendered {
 
 /** A field that never writes: option names, arrays, empty and design-mode text, a format. */
 export const DisplayOnlyValues: Story = { render: () => <DisplayOnly /> };
+
+function Tones(): Rendered {
+  const { rendered } = useReactive();
+  const data = useControl({ reason: "" });
+  const max = 20;
+  const length = (rc: ReadContext) => rc.getValue(data.fields.reason).length;
+  return rendered(
+    <div className="flex flex-col gap-2">
+      <TextDisplay text="Submission refused — please try again." tone="error" announce />
+      <TextDisplay text="Your session expires in 5 minutes." tone="warning" />
+      <TextDisplay text="Drafts are kept for 30 days." tone="info" />
+      <TextDisplay text="Saved." tone="success" announce />
+      <TextField field={data.fields.reason} label="Reason" />
+      {/* A derived tone, and no `announce`: a counter must not be read out per key. */}
+      <TextDisplay
+        text={(rc) => `${length(rc)} / ${max} characters`}
+        tone={(rc) => (length(rc) > max ? "error" : undefined)}
+      />
+    </div>,
+  );
+}
+
+/**
+ * `tone` colours a display by what it means; `announce` makes it a live
+ * region (`role="alert"` for an error, `"status"` otherwise). The counter
+ * turns red past its limit with no announcement.
+ */
+export const DisplayTones: Story = { render: () => <Tones /> };

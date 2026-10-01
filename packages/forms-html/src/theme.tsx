@@ -5,7 +5,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { ActionVariant } from "@rx-controls/forms-react";
+import type { ActionVariant, Tone } from "@rx-controls/forms-react";
 
 /**
  * Every class the HTML implementation emits, one slot per element.
@@ -169,6 +169,11 @@ export interface HtmlTheme {
     display: string;
     /** Around a button. */
     action: string;
+    /**
+     * Added around a display with a `tone` — its colour, inherited by the
+     * text inside.
+     */
+    tones: Record<Tone, string>;
   };
   /** The text display. */
   text: {
@@ -322,7 +327,16 @@ export const defaultHtmlTheme: HtmlTheme = {
   inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
   visibility: { fade: "rxf-fade" },
   elements: { className: "rxf-elements" },
-  displayShell: { display: "rxf-display", action: "rxf-action" },
+  displayShell: {
+    display: "rxf-display",
+    action: "rxf-action",
+    tones: {
+      error: "rxf-tone-error",
+      warning: "rxf-tone-warning",
+      info: "rxf-tone-info",
+      success: "rxf-tone-success",
+    },
+  },
   text: { className: "rxf-text", inline: "rxf-text" },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
@@ -448,6 +462,12 @@ export const tailwindHtmlTheme: HtmlTheme = {
   displayShell: {
     display: "rxf-display block [.rxf-inline_&]:inline",
     action: "rxf-action inline-block [.rxf-inline_&]:inline",
+    tones: {
+      error: "rxf-tone-error text-red-700",
+      warning: "rxf-tone-warning text-amber-700",
+      info: "rxf-tone-info text-sky-700",
+      success: "rxf-tone-success text-green-700",
+    },
   },
   text: { className: "rxf-text m-0", inline: "rxf-text" },
   html: { className: "rxf-html" },

@@ -22,6 +22,7 @@ import {
   type FormElementProps,
   type GroupRenderProps,
   type FlexLayout,
+  type Tone,
   type VisibilityProps,
 } from "@rx-controls/forms-react";
 import { defaultHtmlTheme, useHtmlTheme, type HtmlTheme } from "./theme.js";
@@ -258,18 +259,37 @@ export function DisplayShell({
   shellClassName,
   inline,
   kind = "display",
+  tone,
+  announce,
+  style,
   children,
   classes = defaultHtmlTheme.displayShell,
 }: {
   shellClassName?: ClassValue;
   inline?: boolean;
   kind?: "display" | "action";
+  /** The display's tone: the theme's class for it, and `data-tone`. */
+  tone?: Tone;
+  /** A live region: `role="alert"` for an error, `role="status"` otherwise. */
+  announce?: boolean;
+  /** For an implementation whose colours are runtime tokens, not classes. */
+  style?: CSSProperties;
   children: ReactNode;
   classes?: HtmlTheme["displayShell"];
 }) {
   const Tag = inline ? "span" : "div";
   return (
-    <Tag className={mergeClass(classes[kind], shellClassName)}>{children}</Tag>
+    <Tag
+      className={mergeClass(
+        tone ? `${classes[kind]} ${classes.tones[tone]}` : classes[kind],
+        shellClassName,
+      )}
+      data-tone={tone}
+      role={announce ? (tone === "error" ? "alert" : "status") : undefined}
+      style={style}
+    >
+      {children}
+    </Tag>
   );
 }
 

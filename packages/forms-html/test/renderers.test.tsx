@@ -389,6 +389,16 @@ describe("a layout body and TextDisplay", () => {
   });
 });
 
+describe("display tones", () => {
+  it("adds the theme's tone class to the display's wrapper, and data-tone", () => {
+    mount(<TextDisplay text="Bad" tone="error" />, { theme: tailwindHtmlTheme });
+    const shell = $<HTMLElement>("[data-tone]")!;
+    expect(shell.getAttribute("data-tone")).toBe("error");
+    expect(shell.className).toContain("rxf-tone-error");
+    expect(shell.className).toContain("text-red-700");
+  });
+});
+
 describe("form submission", () => {
   function mountSubmitting(ui: ReactNode, onSubmit: () => void) {
     dom.mount(

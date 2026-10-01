@@ -14,6 +14,7 @@ import {
   FormProvider,
   SelectField,
   Tabs,
+  TextDisplay,
   TextField,
   Wizard,
 } from "@rx-controls/forms-react";
@@ -106,6 +107,14 @@ describe("Ant", () => {
     act(() => ctx.update((wc) => wc.setValue(open, false)));
     // destroyOnHidden={false}: still the same node after closing.
     expect(document.getElementById("inside")).toBe(inside);
+  });
+
+  it("colours a toned display from theme tokens, through Typography's own colour", () => {
+    mount(<TextDisplay text="Bad" tone="error" />);
+    const shell = document.querySelector<HTMLElement>('[data-tone="error"]')!;
+    expect(shell.style.color).not.toBe("");
+    // Ant's Typography sets a colour of its own; it must inherit the tone.
+    expect(shell.querySelector<HTMLElement>(".ant-typography")!.style.color).toBe("inherit");
   });
 
   it("passes no prop Ant 6 has deprecated", () => {

@@ -13,6 +13,15 @@ import {
 } from "./boundaryParts.js";
 
 /**
+ * What a display means, beyond its words: a failure, a caution, a note, a
+ * success. Colour and meaning only — a message box is a layout decision, and
+ * a counter turning red past its limit wants the colour with no box.
+ *
+ * @group Authoring
+ */
+export type Tone = "error" | "warning" | "info" | "success";
+
+/**
  * What an author writes on a display: static content with **no binding**. It
  * keeps presence, the class slots and design mode, and has none of what needs
  * a field — validators, `clearHidden`, the locks.
@@ -34,6 +43,20 @@ export interface DisplayProps {
   textClassName?: FormProp<ClassValue>;
   /** The wrapper it sits in. */
   shellClassName?: FormProp<ClassValue>;
+  /**
+   * What the display means — drawn in the implementation's colour for it.
+   * Derived like any prop: `(rc) => length(rc) > max ? "error" : undefined`.
+   */
+  tone?: FormProp<Tone | undefined>;
+  /**
+   * Announce the content to assistive technology when it appears or changes:
+   * a live region — `role="alert"` for an `error` tone, `role="status"` for
+   * anything else. For a message the user must not miss (a refused submit),
+   * not for a value that changes as the user types (a character counter),
+   * which would be read out on every keystroke. Separate from `tone` for
+   * exactly that reason.
+   */
+  announce?: FormProp<boolean>;
   /** Content, for a display that takes it. */
   children?: ReactNode;
 }
@@ -54,6 +77,14 @@ export interface DisplayRenderProps {
   textClassName?: ClassValue;
   /** The wrapper it sits in. */
   shellClassName?: ClassValue;
+  /** What it means: draw it in the implementation's colour for this tone. */
+  tone?: Tone;
+  /**
+   * Make it a live region: `role="alert"` when the tone is `error`, else
+   * `role="status"`, on an element that stays mounted — a live region
+   * announces changes to content it already holds.
+   */
+  announce: boolean;
   /** Content, for a display that takes it. */
   children?: ReactNode;
 }
@@ -145,6 +176,8 @@ export function displayRenderer<P extends object = {}>(
       className: getProp(rc, props.className),
       textClassName: getProp(rc, props.textClassName),
       shellClassName: getProp(rc, props.shellClassName),
+      tone: getProp(rc, props.tone),
+      announce: getProp(rc, props.announce) ?? false,
       children: props.children,
     };
     return rendered(
@@ -169,5 +202,7 @@ const displayContractKeys: ReadonlySet<string> = new Set([
   "className",
   "textClassName",
   "shellClassName",
+  "tone",
+  "announce",
   "children",
 ]);

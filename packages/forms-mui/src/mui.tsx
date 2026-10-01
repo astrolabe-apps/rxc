@@ -2,10 +2,12 @@ import {
   createContext,
   useContext,
   useState,
+  type CSSProperties,
   type FocusEvent,
   type ReactNode,
 } from "react";
 import Checkbox from "@mui/material/Checkbox";
+import { useTheme } from "@mui/material/styles";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormHelperText from "@mui/material/FormHelperText";
@@ -54,6 +56,7 @@ import {
   type HtmlDisplayRenderProps,
   type IconDisplayRenderProps,
   type TextDisplayRenderProps,
+  type Tone,
   type CheckboxRenderProps,
   type SelectRenderProps,
   type RadioRenderProps,
@@ -429,10 +432,23 @@ function MuiAction(p: ActionRenderProps) {
   );
 }
 
+/** A tone's colour from the MUI palette, inherited by the text inside. */
+function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
+  const theme = useTheme();
+  return tone ? { color: theme.palette[tone].main } : undefined;
+}
+
 function MuiText(p: TextDisplayRenderProps) {
+  const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
+      style={toneStyle}
+    >
       <Typography
         variant="body2"
         component={p.inline ? "span" : "p"}
@@ -448,6 +464,7 @@ function MuiText(p: TextDisplayRenderProps) {
 
 /** MUI makes the name visible through its own Tooltip — its call, not the contract's. */
 function MuiIcon(p: IconDisplayRenderProps) {
+  const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const glyph = (
     <Typography
@@ -464,7 +481,13 @@ function MuiIcon(p: IconDisplayRenderProps) {
     </Typography>
   );
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={true}
+      tone={p.tone}
+      announce={p.announce}
+      style={toneStyle}
+    >
       {p.accessibleName ? (
         <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
       ) : (
@@ -475,9 +498,16 @@ function MuiIcon(p: IconDisplayRenderProps) {
 }
 
 function MuiHtml(p: HtmlDisplayRenderProps) {
+  const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
+      style={toneStyle}
+    >
       <Typography
         variant="body2"
         component="div"

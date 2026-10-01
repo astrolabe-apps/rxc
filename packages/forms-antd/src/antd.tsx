@@ -1,4 +1,10 @@
-import { useId, useState, type FocusEvent, type ReactNode } from "react";
+import {
+  useId,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type ReactNode,
+} from "react";
 import {
   Button,
   Checkbox,
@@ -35,6 +41,7 @@ import {
   type HtmlDisplayRenderProps,
   type IconDisplayRenderProps,
   type TextDisplayRenderProps,
+  type Tone,
   type CheckboxRenderProps,
   type SelectRenderProps,
   type RadioRenderProps,
@@ -408,11 +415,35 @@ function AntAction(p: ActionRenderProps) {
   );
 }
 
+/** A tone's colour from Ant's theme tokens, inherited by the text inside. */
+function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
+  const { token } = theme.useToken();
+  if (!tone) return undefined;
+  const color = {
+    error: token.colorError,
+    warning: token.colorWarning,
+    info: token.colorInfo,
+    success: token.colorSuccess,
+  }[tone];
+  return { color };
+}
+
 function AntText(p: TextDisplayRenderProps) {
+  const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
-      <Typography.Text className={mergeClass(undefined, p.className)}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
+      style={toneStyle}
+    >
+      <Typography.Text
+        className={mergeClass(undefined, p.className)}
+        // Ant's Typography sets its own colour; inherit the shell's tone.
+        style={p.tone ? { color: "inherit" } : undefined}
+      >
         <span className={mergeClass(undefined, p.textClassName)}>
           {getProp(rc, p.text) ?? p.children}
         </span>
@@ -422,6 +453,7 @@ function AntText(p: TextDisplayRenderProps) {
 }
 
 function AntIcon(p: IconDisplayRenderProps) {
+  const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const glyph = (
     <span
@@ -437,7 +469,13 @@ function AntIcon(p: IconDisplayRenderProps) {
     </span>
   );
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={true}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={true}
+      tone={p.tone}
+      announce={p.announce}
+      style={toneStyle}
+    >
       {p.accessibleName ? (
         <AntTooltip title={p.accessibleName}>{glyph}</AntTooltip>
       ) : (
@@ -448,14 +486,22 @@ function AntIcon(p: IconDisplayRenderProps) {
 }
 
 function AntHtml(p: HtmlDisplayRenderProps) {
+  const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   return rendered(
-    <DisplayShell shellClassName={p.shellClassName} inline={p.inline}>
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
+      style={toneStyle}
+    >
       <Typography
         className={mergeClass(
           undefined,
           combineClass(p.className, p.textClassName),
         )}
+        style={p.tone ? { color: "inherit" } : undefined}
         dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
       />
     </DisplayShell>,

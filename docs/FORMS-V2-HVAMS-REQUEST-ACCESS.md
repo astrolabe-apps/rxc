@@ -159,6 +159,13 @@ proposed — off the strip or out of the step sequence, the panel mounted and `h
 current tab or page handing over — and `forms-json` carries a Tabs child's `Visible` onto its
 tab. The conformance suite holds all three implementations to it.
 
+**Resolved (after the trial), the message:** displays take a `tone` (`error` / `warning` /
+`info` / `success` — colour and meaning, from the implementation's palette) and, separately,
+`announce`, which makes the display a live region (`role="alert"` for an error, `"status"`
+otherwise). Separate because the trial wanted both a message the user must not miss and a counter
+that turns red as they type, and a counter that announced itself would be read out on every key.
+The support link stays JSX or `HtmlDisplay` content for now.
+
 **Smaller ones:**
 
 - **Section titles are not headings.** `Contents title` draws a `<div>` in `forms-html` (and in Ant,
@@ -170,7 +177,8 @@ tab. The conformance suite holds all three implementations to it.
   `role="heading"` with `aria-level` rather than switching to `h2`–`h6`, so no theme's look
   changes.
 - **A display with a state.** The counter turned red past the limit. That needs a class, which the
-  "contract only" rule forbids; a tone would cover it too.
+  "contract only" rule forbids; a tone would cover it too. **Resolved:** `tone={(rc) => over(rc) ?
+  "error" : undefined}`, with no `announce`.
 
 **Migration cost, not a contract gap:** `AccessDetailsSection` is also rendered by a second,
 unconverted form (`ModifyAccessForm`). A converted section needs a `FormProvider` and a `<Form>`
