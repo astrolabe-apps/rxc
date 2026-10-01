@@ -1,6 +1,13 @@
 # Change Log - @rx-controls/core
 
-This log was last generated on Thu, 01 Oct 2026 07:00:26 GMT and should not be manually modified.
+This log was last generated on Thu, 01 Oct 2026 07:08:33 GMT and should not be manually modified.
+
+## 1.1.2
+Thu, 01 Oct 2026 07:08:33 GMT
+
+### Patches
+
+- Republish with the compiled Map and Set comparison in lib/. 1.1.1 shipped the fix in src/ only.
 
 ## 1.1.1
 Thu, 01 Oct 2026 07:00:26 GMT
