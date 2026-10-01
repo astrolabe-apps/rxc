@@ -53,6 +53,7 @@ import {
   Inline,
   ElementsList,
   DefaultVisibility,
+  FormElement,
   DisplayShell,
   optionKeys,
 } from "@rx-controls/forms-html/shared";
@@ -388,7 +389,11 @@ function AntAction(p: ActionRenderProps) {
         loading={p.busy}
         icon={p.icon}
         iconPlacement={p.iconPlacement === "after" ? "end" : "start"}
-        onClick={p.onClick}
+        htmlType={p.submit ? "submit" : "button"}
+        onClick={(e) => {
+          if (p.submit) e.preventDefault();
+          p.onClick();
+        }}
         aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
       >
         {p.iconPlacement === "replace"
@@ -660,6 +665,7 @@ export const antdRenderers: FormRenderers = {
   tabs: AntTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,
+  form: FormElement,
   fieldShell: AntFieldShell,
   inputFrame: AntInputFrame,
   root: ({ children }) => <ConfigProvider>{children}</ConfigProvider>,

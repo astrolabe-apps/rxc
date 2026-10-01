@@ -89,6 +89,28 @@ export interface FormRenderers {
     /** Everything under the {@link FormProvider}. */
     children: ReactNode;
   }>;
+  /**
+   * The element a {@link Form} with an `onSubmit` wraps its content in, if the
+   * platform has one — html's `<form>`, which is what lets Enter in a field
+   * submit. Absent, a form submits only through its `submit` actions.
+   */
+  form?: ComponentType<FormElementProps>;
+}
+
+/**
+ * What the `form` slot receives.
+ *
+ * @group Implementations
+ */
+export interface FormElementProps {
+  /**
+   * Submit the form: its `check()`, then its `onSubmit`. Call it from the
+   * element's own submit event — a single-field form submitting on Enter, a
+   * `requestSubmit()` — and always stop the platform's native submission.
+   */
+  onSubmit(): void;
+  /** The form's content. Add no layout around it. */
+  children: ReactNode;
 }
 
 /**
@@ -134,6 +156,11 @@ export function FormProvider({
 }
 
 const RenderersContext = createContext<FormRenderers | null>(null);
+
+/** The active implementation, or `null` — for `Form`, which needs none. */
+export function useRenderersIfAny(): FormRenderers | null {
+  return useContext(RenderersContext);
+}
 
 /**
  * The active implementation. Throws when there is no {@link FormProvider}

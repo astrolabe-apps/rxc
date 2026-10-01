@@ -473,6 +473,52 @@ export function describeConformance(impl: Implementation): void {
       expect(rc.getValue(page)).toBe(1);
     });
 
+    it("submits a form through its submit action, and through the form element's own submit", async () => {
+      const name = ctx.newControl("");
+      const submitted: unknown[] = [];
+      function Submitting() {
+        validation = useFormValidation();
+        return (
+          <Form validation={validation} onSubmit={() => void submitted.push(rc.getValue(name))}>
+            <TextField field={name} id="sub" label="Name" required requiredMessage="Needed" />
+            <Action actionId="save" text="Save" submit variant="primary" />
+          </Form>
+        );
+      }
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {(impl.wrap ?? ((t: ReactNode) => t))(
+              <FormProvider renderers={impl.renderers}>
+                <Submitting />
+              </FormProvider>,
+            )}
+          </ControlContextProvider>,
+        ),
+      );
+      const input = byId<HTMLInputElement>("sub")!;
+      const form = input.closest("form");
+      const save = buttonNamed("Save")!;
+      // A real form element around the fields, and Save its submit button —
+      // what Enter in a field presses.
+      expect(form).not.toBeNull();
+      expect(save.type).toBe("submit");
+      expect(save.form).toBe(form);
+      click(save);
+      await flush();
+      expect(submitted).toEqual([]);
+      expect(text()).toContain("Needed");
+      set(name, "Ada");
+      click(save);
+      await flush();
+      expect(submitted).toEqual(["Ada"]);
+      act(() => {
+        form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+      await flush();
+      expect(submitted).toEqual(["Ada", "Ada"]);
+    });
+
     it("runs an action, and locks it while an async handler is busy", async () => {
       let finish!: () => void;
       const clicked = vi.fn(() => new Promise<void>((r) => (finish = r)));

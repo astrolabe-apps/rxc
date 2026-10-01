@@ -19,6 +19,7 @@ import {
   useFieldShell,
   type ClassValue,
   type CollectionRenderProps,
+  type FormElementProps,
   type GroupRenderProps,
   type FlexLayout,
   type VisibilityProps,
@@ -32,6 +33,33 @@ import { defaultHtmlTheme, useHtmlTheme, type HtmlTheme } from "./theme.js";
  */
 export function DefaultVisibility({ visible, children }: VisibilityProps) {
   return visible ? <>{children}</> : null;
+}
+
+/**
+ * The `form` slot: a `<form>`, so Enter in a field presses the form's
+ * default button (an `<Action submit>`, drawn `type="submit"`, whose click
+ * runs the submission and stops the native one). It adds no layout —
+ * `display: contents` — and never submits natively. A submit event with no
+ * submitter — a single-field form's Enter, a `requestSubmit()` — runs the
+ * form's submission; one with a submitter is a stray `<button>` with no
+ * `type` (which defaults to submit) and is only stopped. `noValidate`, so the
+ * browser's own constraint bubbles never pre-empt the form's validation.
+ *
+ * @group Rendering
+ */
+export function FormElement({ onSubmit, children }: FormElementProps) {
+  return (
+    <form
+      noValidate
+      style={{ display: "contents" }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!(e.nativeEvent as SubmitEvent).submitter) onSubmit();
+      }}
+    >
+      {children}
+    </form>
+  );
 }
 
 /**

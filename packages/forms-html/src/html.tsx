@@ -46,6 +46,7 @@ import {
   Inline,
   ElementsList,
   FadeVisibility,
+  FormElement,
   DisplayShell,
   optionKeys,
 } from "./shared.js";
@@ -435,11 +436,16 @@ function HtmlAction(p: ActionRenderProps) {
       classes={displayShell}
     >
       <button
-        type="button"
+        // The default button is a submit, so Enter presses it; the click
+        // runs the form's submission and the native one never happens.
+        type={p.submit ? "submit" : "button"}
         className={mergeClass(join(t.className, variant.className), p.className)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
-        onClick={p.onClick}
+        onClick={(e) => {
+          if (p.submit) e.preventDefault();
+          p.onClick();
+        }}
       >
         {p.iconPlacement !== "after" && busy}
         {p.iconPlacement !== "replace" &&
@@ -674,6 +680,13 @@ function HtmlDialog(p: DialogRenderProps) {
         e.preventDefault();
         p.onClose();
       }}
+      // The dialog is inside the form's <form> (it never moves, so it is
+      // never portalled out): Enter in a field here must not press the
+      // form's default button behind the modal.
+      onKeyDown={(e) => {
+        const el = e.target as HTMLElement;
+        if (e.key === "Enter" && el.tagName === "INPUT") e.preventDefault();
+      }}
     >
       {p.title && <strong className={t.title}>{p.title}</strong>}
       {p.content}
@@ -735,6 +748,7 @@ export const htmlRenderers: FormRenderers = {
   tabs: HtmlTabs,
   elements: HtmlElements,
   visibility: FadeVisibility,
+  form: FormElement,
   fieldShell: HtmlFieldShell,
   inputFrame: HtmlInputFrame,
 };

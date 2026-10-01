@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { untrackedRead } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   Action,
   ActionOverrideProvider,
+  Form,
   StandardActionIds,
+  TextDisplay,
   TextField,
   type ActionRenderProps,
   type ActionVariant,
@@ -120,3 +123,34 @@ export const OverrideById: Story = {
     </ActionOverrideProvider>
   ),
 };
+
+function Submitting(): Rendered {
+  const { rendered, update } = useReactive();
+  const data = useControl({ first: "", last: "", sent: "" });
+  const f = data.fields;
+  return rendered(
+    <Form
+      onSubmit={async () => {
+        await new Promise((r) => setTimeout(r, 600));
+        const r = untrackedRead;
+        update((wc) => wc.setValue(f.sent, `Sent ${r.getValue(f.first)} ${r.getValue(f.last)}`));
+      }}
+    >
+      <div className="flex flex-col gap-2">
+        <TextField field={f.first} label="First name" required />
+        <TextField field={f.last} label="Last name" required />
+        <div className="flex flex-row gap-2">
+          <Action actionId="save" text="Save" variant="primary" submit />
+        </div>
+        <TextDisplay text={f.sent} />
+      </div>
+    </Form>
+  );
+}
+
+/**
+ * `<Form onSubmit>` with an `<Action submit>`: Enter in either field submits,
+ * only once `check()` passes — refused, every field shows its error — and
+ * Save is busy until the handler settles.
+ */
+export const Submit: Story = { render: () => <Submitting /> };

@@ -57,6 +57,14 @@ export interface ActionProps {
    * settles, and holds the lock `disableType` names.
    */
   onClick?: () => void | Promise<void>;
+  /**
+   * Submit the enclosing form instead: its `check()`, then its `onSubmit`
+   * (see {@link FormProps.onSubmit}), busy until that settles. It is also the
+   * form's default button — what Enter in a field presses, where the
+   * implementation draws a form element. `onClick` is not called. Outside any
+   * form with an `onSubmit`, the button falls back to `onClick`.
+   */
+  submit?: boolean;
   /** Hide the button. */
   hidden?: FormProp<boolean | undefined>;
   /** Lock the button. */
@@ -94,6 +102,12 @@ export interface ActionRenderProps {
   iconPlacement?: IconPlacement;
   /** Call on click. */
   onClick: () => void;
+  /**
+   * The form's default button: draw it as the platform's submit control
+   * (html `type="submit"`, so Enter in a field presses it), still calling
+   * `onClick` and stopping the native submission.
+   */
+  submit: boolean;
   /** Draw disabled. */
   disabled: boolean;
   /** An asynchronous handler is running. */
@@ -216,8 +230,9 @@ export function actionRenderer(
     const renderers = useRenderers();
     const overrides = useActionOverrides();
     const scope = useBoundScope(props);
-    // The form's lock lives on the framework's own scope facet.
-    const lock = useInternalScope().globalLock;
+    // The form's lock and submission live on the framework's own facets.
+    const { globalLock: lock, submit: formSubmit } = useInternalScope();
+    const submits = !!props.submit && formSubmit !== undefined;
     const busy = useControl(false);
 
     // `silent` keeps the button, like every boundary; its container hides it.
@@ -226,7 +241,7 @@ export function actionRenderer(
     const disableType = props.disableType ?? "self";
     const onClick = () => {
       if (scope.designMode || disabled) return;
-      const result = props.onClick?.();
+      const result = submits ? formSubmit!() : props.onClick?.();
       if (!(result instanceof Promise)) return;
       // `self` holds this button; `global` also holds the form's lock, which
       // the form reads as `disabled` for every boundary in it.
@@ -258,6 +273,7 @@ export function actionRenderer(
           textClassName={getProp(rc, props.textClassName)}
           shellClassName={getProp(rc, props.shellClassName)}
           onClick={onClick}
+          submit={submits}
           disabled={disabled}
           busy={rc.getValue(busy)}
           variant={getProp(rc, props.variant) ?? "secondary"}

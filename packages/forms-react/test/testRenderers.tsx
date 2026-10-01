@@ -94,6 +94,7 @@ function Action(p: ActionRenderProps) {
       data-action={p.actionId}
       data-busy={p.busy ? "" : undefined}
       data-variant={p.variant}
+      data-submit={p.submit ? "" : undefined}
       disabled={p.disabled}
       onClick={p.onClick}
     >
@@ -207,6 +208,17 @@ export const testRenderers: FormRenderers = {
   fieldShell: ({ children }) => <>{children}</>,
   inputFrame: Nothing,
   visibility: Visibility,
+  form: ({ onSubmit, children }) => (
+    <form
+      data-form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      {children}
+    </form>
+  ),
 };
 
 /** Renders how many times it rendered, into `renders`. */

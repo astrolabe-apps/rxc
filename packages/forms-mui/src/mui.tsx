@@ -72,6 +72,7 @@ import {
   Inline,
   ElementsList,
   DefaultVisibility,
+  FormElement,
   DisplayShell,
   optionKeys,
 } from "@rx-controls/forms-html/shared";
@@ -409,7 +410,11 @@ function MuiAction(p: ActionRenderProps) {
           (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
         }
         endIcon={p.iconPlacement === "after" ? p.icon : undefined}
-        onClick={p.onClick}
+        type={p.submit ? "submit" : "button"}
+        onClick={(e) => {
+          if (p.submit) e.preventDefault();
+          p.onClick();
+        }}
         aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
       >
         {p.iconPlacement === "replace"
@@ -692,6 +697,7 @@ export const muiRenderers: FormRenderers = {
   tabs: MuiTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,
+  form: FormElement,
   fieldShell: MuiFieldShell,
   inputFrame: MuiInputFrame,
   root: ({ children }) => (

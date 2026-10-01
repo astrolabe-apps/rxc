@@ -41,6 +41,14 @@ export * from "./action.js";
 export * from "./containers.js";
 export * from "./primitives.js";
 export * from "./widgets.js";
-export * from "./registry.js";
+// Named, not `*`: registry.tsx also holds `Form`'s optional lookup.
+export {
+  FormProvider,
+  useRenderers,
+  type FormElementProps,
+  type FormProviderProps,
+  type FormRenderers,
+  type RegistrySlot,
+} from "./registry.js";
 export * from "./builtins.js";
 export * from "./controllers.js";

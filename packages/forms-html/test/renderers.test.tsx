@@ -389,6 +389,45 @@ describe("a layout body and TextDisplay", () => {
   });
 });
 
+describe("form submission", () => {
+  function mountSubmitting(ui: ReactNode, onSubmit: () => void) {
+    dom.mount(
+      <FormProvider renderers={htmlRenderers}>
+        <Form onSubmit={onSubmit}>{ui}</Form>
+      </FormProvider>,
+    );
+  }
+
+  it("ignores a stray button's native submit, and submits on one with no submitter", async () => {
+    let submitted = 0;
+    mountSubmitting(
+      // A third-party button with no type defaults to submit.
+      <button id="stray">Stray</button>,
+      () => void submitted++,
+    );
+    act(() => $<HTMLButtonElement>("#stray")!.click());
+    await flush();
+    expect(submitted).toBe(0);
+    act(() => {
+      $("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    await flush();
+    expect(submitted).toBe(1);
+  });
+
+  it("keeps Enter in a dialog's field from pressing the form's default button", () => {
+    mountSubmitting(
+      <Dialog open={false} title="More">
+        <TextField field={dom.ctx.newControl("")} id="in-dialog" />
+      </Dialog>,
+      () => {},
+    );
+    const e = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    act(() => void $("#in-dialog")!.dispatchEvent(e));
+    expect(e.defaultPrevented).toBe(true);
+  });
+});
+
 describe("FadeVisibility", () => {
   it("holds the leaving content for the exit, marked data-leaving, then unmounts it", () => {
     vi.useFakeTimers();

@@ -1,7 +1,15 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import { useControl, useFormEdit } from "@rx-controls/react";
 import { getProp, type FormProp } from "./props.js";
+import { useRenderersIfAny } from "./registry.js";
 import type { ValidationScope } from "./validation.js";
 import {
   useChildValidationScope,
@@ -156,6 +164,15 @@ export interface FormProps extends ScopeNarrowing {
    * read it. Absent, the form makes its own.
    */
   validation?: ValidationScope;
+  /**
+   * Submit the form. Run by an `<Action submit>` — and, where the
+   * implementation draws a form element, by Enter in a field — only after
+   * the form's `check()` passes: the validators settle, and on a refusal
+   * every field is touched so its errors show. A promise shows the submit
+   * action busy until it settles. A `<Form>` without one submits through
+   * the enclosing form's.
+   */
+  onSubmit?: () => void | Promise<void>;
 }
 
 /**
@@ -172,9 +189,12 @@ export function Form({
   children,
   validationKey,
   validation: given,
+  onSubmit,
   ...narrowing
 }: FormProps): ReactNode {
-  const parent = useFormScope();
+  const parent = useInternalScope();
+  const renderers = useRenderersIfAny();
+  const inElement = useContext(InFormElement);
   const globalLock = useControl(0);
   // The root of the validation tree: the owner's, when it made one with
   // useFormValidation(); otherwise the form's own.
@@ -185,6 +205,15 @@ export function Form({
     !given,
   );
   const validation = (given as ValidationScopeImpl | undefined) ?? own!;
+  // The latest handler, behind a stable `submit`: the actions holding it are
+  // memoised, and must not re-render for a fresh inline handler.
+  const handler = useRef(onSubmit);
+  handler.current = onSubmit;
+  const hasSubmit = onSubmit !== undefined;
+  const submit = useCallback(async () => {
+    if (!(await validation.check())) return;
+    await handler.current?.();
+  }, [validation]);
   const {
     presence,
     disabled,
@@ -209,8 +238,14 @@ export function Form({
       disabled: (rc) =>
         (getProp(rc, disabled) ?? false) || rc.getValue(globalLock) > 0,
     });
-    return { ...s, globalLock };
+    return {
+      ...s,
+      globalLock,
+      submit: hasSubmit ? submit : parent.submit,
+    };
   }, [
+    hasSubmit,
+    submit,
     parent,
     globalLock,
     presence,
@@ -222,14 +257,27 @@ export function Form({
     transitions,
     headingLevel,
   ]);
-  return (
+  const body = (
     <ScopeContext.Provider value={scope}>
       <ValidationScopeProvider value={validation}>
         {children}
       </ValidationScopeProvider>
     </ScopeContext.Provider>
   );
+  // The platform's form element, for Enter — only around a form that
+  // submits, and only the outermost: an html `<form>` cannot nest.
+  const Element = hasSubmit && !inElement ? renderers?.form : undefined;
+  return Element ? (
+    <InFormElement.Provider value={true}>
+      <Element onSubmit={() => void submit()}>{body}</Element>
+    </InFormElement.Provider>
+  ) : (
+    body
+  );
 }
+
+/** Inside a rendered form element: a nested `<Form>` must not draw another. */
+const InFormElement = createContext(false);
 
 /**
  * The scope as the framework holds it: the public facets plus the form's
@@ -237,6 +285,8 @@ export function Form({
  */
 export interface InternalScope extends ScopeState {
   globalLock?: Control<number>;
+  /** The nearest submitting form's submission: its `check()`, then `onSubmit`. */
+  submit?: () => Promise<void>;
 }
 
 const rootScope: InternalScope = {
@@ -330,6 +380,7 @@ export function narrowScope(
     transitions: n.transitions ?? parent.transitions,
     headingLevel: Math.min(Math.max(n.headingLevel ?? parent.headingLevel, 1), 6),
     globalLock: (parent as InternalScope).globalLock,
+    submit: (parent as InternalScope).submit,
   };
   return scope;
 }

@@ -581,6 +581,73 @@ describe("the display boundary", () => {
   });
 });
 
+describe("form submission", () => {
+  it("submits through a submit action only once check() passes, busy until it settles", async () => {
+    const name = dom.ctx.newControl("");
+    const submitted: string[] = [];
+    let finish!: () => void;
+    mount(
+      <>
+        <Text field={name} id="n" required />
+        <Button actionId="save" submit onClick={() => submitted.push("onClick")} />
+      </>,
+      {
+        onSubmit: () => {
+          submitted.push(untrackedRead.getValue(name));
+          return new Promise<void>((r) => (finish = r));
+        },
+      },
+    );
+    const save = () => $<HTMLButtonElement>('[data-action="save"]')!;
+    expect(save().hasAttribute("data-submit")).toBe(true);
+    // Refused: nothing submitted, and the field touched so its error shows.
+    act(() => save().click());
+    await flush();
+    expect(submitted).toEqual([]);
+    expect($("[data-error]")).not.toBeNull();
+    set(name, "Ada");
+    act(() => save().click());
+    await flush();
+    expect(submitted).toEqual(["Ada"]);
+    expect(save().hasAttribute("data-busy")).toBe(true);
+    await act(async () => finish());
+    expect(save().hasAttribute("data-busy")).toBe(false);
+  });
+
+  it("draws the form element only around a submitting form, and only the outermost", async () => {
+    const submitted: string[] = [];
+    mount(
+      <Form onSubmit={() => void submitted.push("inner")}>
+        <Form>
+          <Button actionId="go" submit />
+        </Form>
+      </Form>,
+      { onSubmit: () => void submitted.push("outer") },
+    );
+    expect($$("[data-form]")).toHaveLength(1);
+    // A <Form> without onSubmit submits through the enclosing one.
+    act(() => $<HTMLButtonElement>('[data-action="go"]')!.click());
+    await flush();
+    expect(submitted).toEqual(["inner"]);
+    // The element's own submit event — Enter in a lone field — submits too.
+    act(() => {
+      $("[data-form]")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+    await flush();
+    expect(submitted).toEqual(["inner", "outer"]);
+    mount(<Button actionId="plain" />);
+    expect($$("[data-form]")).toHaveLength(0);
+  });
+
+  it("falls back to onClick outside any submitting form", () => {
+    let clicked = 0;
+    mount(<Button actionId="x" submit onClick={() => void clicked++} />);
+    expect($('[data-action="x"]')!.hasAttribute("data-submit")).toBe(false);
+    act(() => $<HTMLButtonElement>('[data-action="x"]')!.click());
+    expect(clicked).toBe(1);
+  });
+});
+
 describe("the action boundary", () => {
   it("runs its handler, shows busy and holds itself while a promise runs", async () => {
     let resolve!: () => void;

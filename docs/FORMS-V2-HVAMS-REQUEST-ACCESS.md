@@ -255,6 +255,10 @@ repro above as a test.
 `onSubmit` that is the root's `check()` plus the handler) is a question the first real form raises
 immediately.
 
+**Resolved (after the trial):** `<Form onSubmit>` owns submission — its `check()`, then the
+handler — run by an `<Action submit>`, which is also the default button an implementation's
+`<form>` element makes Enter press. See `FORMS-V2-INTERFACES.md` §10.
+
 ## 4. The implementation swap
 
 The unchanged form mounted under `antdRenderers` behaved identically: required errors on a refused

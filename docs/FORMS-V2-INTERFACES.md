@@ -1422,6 +1422,18 @@ so locking a whole form is `<Form readOnly>` rather than a separate provider —
 It exists because `clearHidden` is per-form, not per-app — an edit form and a search form over
 the same schema disagree about it — so it needs a per-form home.
 
+**Submission is the form's (decided after the HVAMS trial).** `<Form onSubmit>` is the form's
+`check()` then the handler; an `<Action submit>` runs it, reusing the action's busy and lock
+handling since a submission is a promise. A `<Form>` without `onSubmit` submits through the
+enclosing one. Enter is the platform's business, through an optional `form` registry slot: html,
+MUI and Ant draw a `<form>` (`display: contents`, `noValidate`, never submitting natively) and the
+submit action as its `type="submit"` default button, so the browser's implicit submission presses
+it. Only the outermost submitting form draws the element, since an html `<form>` cannot nest. A
+submit event with a submitter is a stray `<button>` with no `type` — which defaults to submit — and
+is only stopped; html's inline `<dialog>`, the one dialog left inside the `<form>`, keeps Enter in
+its fields from pressing the form's button behind the modal. A platform with no form element
+submits through the action alone.
+
 `<FormProvider renderers={…}>` still sits at the app root and is about implementation, not
 about any one form. Root validity needs no scope — the root data control already aggregates.
 
