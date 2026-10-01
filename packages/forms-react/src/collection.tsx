@@ -27,6 +27,7 @@ import {
   useDefaultValue,
   useFieldValidation,
   useMirror,
+  bareValidatorKey,
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
@@ -171,12 +172,12 @@ export function collectionRenderer<T, P extends object = {}>(
     const validators = useMemo(() => {
       const base: Record<string, Validator<T[]>> =
         typeof validate === "function"
-          ? { default: validate }
+          ? { [bareValidatorKey(id)]: validate }
           : { ...(validate ?? {}) };
       if (minLength !== undefined || maxLength !== undefined)
         base.length = lengthValidator<T>({ minLength, maxLength });
       return base;
-    }, [validate, minLength, maxLength]);
+    }, [validate, minLength, maxLength, id]);
 
     const cfg = useMirror({
       active: presence !== "hidden" && !hiddenPending(rc, props.hidden),

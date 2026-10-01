@@ -89,7 +89,9 @@ export interface FieldProps<T> {
   requiredMessage?: FormProp<string>;
   /**
    * Validators for this field's value. A record keys each one, so each
-   * publishes and clears independently; a bare function is keyed `default`.
+   * publishes and clears independently; a bare function is keyed per
+   * boundary (`default@<id>`), so it never claims the plain `default` key a
+   * host's server errors usually arrive under.
    */
   validate?: Validator<T> | Record<string, Validator<T>>;
   /** Help shown with the field. */

@@ -114,6 +114,59 @@ describe("the field boundary", () => {
     ]);
   });
 
+  it("keeps showing a server error under `default` when it has a bare validator", () => {
+    // HVAMS's repro: server 400s land under "default"; a bare `validate`
+    // used to be keyed `default` too, claim the server's message as its own
+    // rule's, and so neither show it nor count it.
+    const c = dom.ctx.newControl("a@b");
+    let validation!: ValidationScope;
+    function Owner() {
+      validation = useFormValidation();
+      return (
+        <Form validation={validation}>
+          <Text field={c} id="email" validate={() => null} />
+        </Form>
+      );
+    }
+    dom.mount(
+      <FormProvider renderers={testRenderers}>
+        <Owner />
+      </FormProvider>,
+    );
+    act(() =>
+      dom.ctx.update((wc) => {
+        wc.setError(c, "default", "Email already registered");
+        wc.setTouched(c, true);
+      }),
+    );
+    expect($("[data-error]")!.textContent).toBe("Email already registered");
+    expect(validation.isValid(untrackedRead)).toBe(false);
+    // Editing clears it (core's setValue), and the bare validator republishes.
+    set(c, "c@d");
+    expect($("[data-error]")).toBeNull();
+    expect(validation.isValid(untrackedRead)).toBe(true);
+  });
+
+  it("keys a bare validator per boundary: two on one control clear only their own", () => {
+    const c = dom.ctx.newControl("x");
+    const failOne = dom.ctx.newControl(true);
+    mount(
+      <>
+        <Text
+          field={c}
+          id="one"
+          validate={(v) => (untrackedRead.getValue(failOne) && v ? "one says no" : null)}
+        />
+        <Text field={c} id="two" validate={() => "two says no"} />
+      </>,
+    );
+    const errors = () => untrackedRead.getErrors(c);
+    expect(errors()).toEqual({ "default@one": "one says no", "default@two": "two says no" });
+    act(() => dom.ctx.update((wc) => wc.setValue(failOne, false)));
+    set(c, "y");
+    expect(errors()).toEqual({ "default@two": "two says no" });
+  });
+
   it("unmounts its widget when hidden, and keeps it mounted when silent", () => {
     const c = dom.ctx.newControl("x");
     const hide = dom.ctx.newControl(false);

@@ -65,6 +65,16 @@ export function requiredKey(owner: string): string {
 }
 
 /**
+ * The key a bare-function `validate` is published under: per boundary, like
+ * `required`. Never a plain `"default"` — the key hosts conventionally put a
+ * server's rejection under, which a boundary claiming it would swallow — and
+ * never shared by two boundaries on one control.
+ */
+export function bareValidatorKey(owner: string): string {
+  return `default@${owner}`;
+}
+
+/**
  * Run a boundary's validators. In the boundary, so no implementation can see
  * one and therefore none can drop one — and it runs while presence is
  * `silent` and nothing is on screen.
@@ -72,7 +82,8 @@ export function requiredKey(owner: string): string {
  * One key per validator, so each clears independently. Errors live on the
  * control and validators on the boundary, and one control is often bound by
  * two boundaries, so the framework's own `required` key carries the
- * boundary's id: a boundary clears only what it set. Author keys stay as
+ * boundary's id: a boundary clears only what it set — and so does a bare
+ * validator's, which has no key of its own to keep. Author keys stay as
  * written.
  *
  * Each result is published twice: onto the data control, so the field's data
@@ -100,7 +111,9 @@ export function useFieldValidation<T>(
 ): void {
   const ctx = useControlContext();
   const entries: Record<string, Validator<T>> =
-    typeof validate === "function" ? { default: validate } : (validate ?? {});
+    typeof validate === "function"
+      ? { [bareValidatorKey(owner)]: validate }
+      : (validate ?? {});
 
   const ref = useRef(entries);
   ref.current = entries;
