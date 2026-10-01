@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/core",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Reactive control tree for form and application state — explicit reads and writes, no globals, zero dependencies.",
   "keywords": [
     "controls",
