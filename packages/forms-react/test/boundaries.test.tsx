@@ -14,6 +14,7 @@ import {
   useFormScope,
   getExternalEdit,
   groupRenderer,
+  TextField,
   useFormValidation,
   type ActionRenderProps,
   type FieldRenderProps,
@@ -165,6 +166,26 @@ describe("the field boundary", () => {
     act(() => dom.ctx.update((wc) => wc.setValue(failOne, false)));
     set(c, "y");
     expect(errors()).toEqual({ "default@two": "two says no" });
+  });
+
+  it("registers a widget's implied rule beside the author's: TextField's maxLength", () => {
+    const c = dom.ctx.newControl("abcdef");
+    const max = dom.ctx.newControl(3);
+    mount(
+      <TextField
+        field={c}
+        id="t"
+        maxLength={(rc) => rc.getValue(max)}
+        validate={(v) => (v === "no" ? "Not that" : null)}
+      />,
+    );
+    expect(untrackedRead.getErrors(c)).toEqual({ maxLength: "At most 3 characters" });
+    // The limit is a FormProp: the rule re-runs when it moves.
+    act(() => dom.ctx.update((wc) => wc.setValue(max, 10)));
+    expect(untrackedRead.getErrors(c)).toEqual({});
+    // The author's bare validator still runs, under its own key.
+    set(c, "no");
+    expect(untrackedRead.getErrors(c)).toEqual({ "default@t": "Not that" });
   });
 
   it("unmounts its widget when hidden, and keeps it mounted when silent", () => {

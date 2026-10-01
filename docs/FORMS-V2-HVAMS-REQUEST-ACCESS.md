@@ -41,6 +41,11 @@ test `TextFieldExtra` already applies to `inputMode` and `autoComplete`. Suggest
 `maxLength` contract prop that the boundary also registers as a rule, the way `CollectionProps`
 does for arrays, so the cap and the message cannot disagree.
 
+**Resolved (after the trial):** `TextFieldExtra.maxLength` caps the control on every
+implementation and is registered by the boundary as a `maxLength` rule, through a new
+`FieldBoundaryOptions.rules` — the general form of "a widget prop that implies a rule", which a
+third-party widget can use too.
+
 **A select keeps a value that is not among its options.** When the state changes, the agency
 still holds the previous state's agency; `useSelectController`
 (`packages/forms-react/src/controllers.ts:168`) resolves the options but never reconciles the

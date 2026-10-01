@@ -14,6 +14,7 @@ import {
   useDefaultValue,
   useFieldValidation,
   useMirror,
+  bareValidatorKey,
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
@@ -180,13 +181,21 @@ export type FieldImplSource<T, P extends object> =
  *
  * @group Extensions
  */
-export interface FieldBoundaryOptions {
+export interface FieldBoundaryOptions<T = unknown, P = {}> {
   /**
    * `false` for a widget that only shows its value. The boundary then never
    * writes the data it binds — no `clearHidden`, no `defaultValue` — whatever
    * the form says. A property of the boundary, so no caller can forget it.
    */
   writes?: boolean;
+  /**
+   * Rules a widget's own props imply, registered by the boundary beside the
+   * author's `validate` — so a constraint the widget enforces as it is used
+   * (a `maxLength` cap) and the message that reports a value breaking it come
+   * from one prop and cannot disagree. Keyed like a `validate` record; a key
+   * here wins over the same key in `validate`.
+   */
+  rules?: (props: P) => Record<string, Validator<T>> | undefined;
 }
 
 /**
@@ -205,7 +214,7 @@ export interface FieldBoundaryOptions {
  */
 export function fieldRenderer<T, P extends object = {}>(
   source: FieldImplSource<T, P>,
-  options?: FieldBoundaryOptions,
+  options?: FieldBoundaryOptions<T, P>,
 ): (props: FieldProps<T> & P) => Rendered {
   const writes = options?.writes !== false;
   function FieldBoundary(props: FieldProps<T> & P): Rendered {
@@ -232,7 +241,15 @@ export function fieldRenderer<T, P extends object = {}>(
     });
     const vscope = useValidationScope();
     const verdict = useControl<unknown>(undefined);
-    useFieldValidation(control, validate, cfg, vscope, id, verdict);
+    const implied = options?.rules?.(props);
+    useFieldValidation(
+      control,
+      implied ? withRules(validate, implied, id) : validate,
+      cfg,
+      vscope,
+      id,
+      verdict,
+    );
     useEffect(
       () => vscope?.register(verdict, control),
       [vscope, verdict, control],
@@ -290,4 +307,17 @@ export function fieldRenderer<T, P extends object = {}>(
     source as ComponentType<never>,
   );
   return bailout(FieldBoundary);
+}
+
+/** The author's `validate` with a widget's implied rules merged over it. */
+function withRules<T>(
+  validate: Validator<T> | Record<string, Validator<T>> | undefined,
+  rules: Record<string, Validator<T>>,
+  owner: string,
+): Record<string, Validator<T>> {
+  const own =
+    typeof validate === "function"
+      ? { [bareValidatorKey(owner)]: validate }
+      : (validate ?? {});
+  return { ...own, ...rules };
 }

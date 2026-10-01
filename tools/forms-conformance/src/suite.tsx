@@ -253,6 +253,15 @@ export function describeConformance(impl: Implementation): void {
       }
     });
 
+    it("caps a text field at maxLength, and reports a longer value as an error", () => {
+      const c = ctx.newControl("too long already");
+      mount(<TextField field={c} id="capped" label="Capped" maxLength={5} />);
+      expect(byId<HTMLInputElement>("capped")!.maxLength).toBe(5);
+      act(() => ctx.update((wc) => wc.setTouched(c, true)));
+      expect(text()).toContain("At most 5 characters");
+      expect(validation.isValid(rc)).toBe(false);
+    });
+
     it("unmounts a hidden field's widget", () => {
       mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
       expect(byId("gone")).toBeNull();

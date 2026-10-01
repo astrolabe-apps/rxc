@@ -28,6 +28,14 @@ export interface TextFieldExtra {
    * through untranslated on either platform.
    */
   autoComplete?: FormProp<string>;
+  /**
+   * The most characters the value may hold. The control stops the user typing
+   * past it — HTML's `maxlength`, React Native's `TextInput.maxLength` — and
+   * the boundary registers the same limit as a rule, keyed `maxLength`, so a
+   * value that arrives longer (from the data, or pasted where the platform
+   * does not cap) is reported rather than silently accepted.
+   */
+  maxLength?: FormProp<number>;
 }
 
 /**

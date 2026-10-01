@@ -24,6 +24,7 @@ import { dialogRenderer, tabsRenderer, wizardRenderer } from "./containers.js";
 import { displayRenderer } from "./display.js";
 import { fieldRenderer } from "./field.js";
 import { groupRenderer } from "./group.js";
+import { getProp } from "./props.js";
 
 /*
  * The built-ins. Each is a boundary over a registry slot, so
@@ -39,7 +40,22 @@ import { groupRenderer } from "./group.js";
  */
 export const TextField: <T extends string | undefined | null>(
   props: FieldProps<T> & TextFieldExtra,
-) => Rendered = fieldRenderer<string | undefined | null, TextFieldExtra>({ key: "textfield" }) as never;
+) => Rendered = fieldRenderer<string | undefined | null, TextFieldExtra>(
+  { key: "textfield" },
+  {
+    rules: (p) =>
+      p.maxLength === undefined
+        ? undefined
+        : {
+            maxLength: (v, rc) => {
+              const max = getProp(rc, p.maxLength);
+              return max !== undefined && v != null && v.length > max
+                ? `At most ${max} characters`
+                : null;
+            },
+          },
+  },
+) as never;
 
 /**
  * A checkbox. It labels itself.

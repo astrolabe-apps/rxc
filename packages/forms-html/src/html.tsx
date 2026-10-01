@@ -183,6 +183,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const multiline = !!getProp(ctl.rc, p.multiline);
   const inputMode = getProp(ctl.rc, p.inputMode);
   const autoComplete = getProp(ctl.rc, p.autoComplete);
+  const maxLength = getProp(ctl.rc, p.maxLength);
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -216,6 +217,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
             placeholder,
             inputMode,
             autoComplete,
+            maxLength,
             onChange: (e: { target: { value: string } }) =>
               ctl.setValue(e.target.value),
             onBlur: (e: FocusEvent<HTMLElement>) => {
