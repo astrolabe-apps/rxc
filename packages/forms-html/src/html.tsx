@@ -9,6 +9,7 @@ import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
   fieldErrorId,
+  fieldLabelId,
   fieldHelpId,
   getProp,
   mergeClass,
@@ -83,7 +84,7 @@ function HtmlFieldShell(p: FieldShellProps) {
     >
       {hasLabel && after ? (
         // The label wraps the control, which is how html does a trailing one.
-        <label className={t.labelAfter}>
+        <label className={t.labelAfter} id={fieldLabelId(p.id)}>
           {p.children}
           {labelText}
         </label>
@@ -92,6 +93,7 @@ function HtmlFieldShell(p: FieldShellProps) {
           {hasLabel && (
             <Label
               className={labelClass}
+              id={fieldLabelId(p.id)}
               {...(legend ? {} : { htmlFor: p.id })}
             >
               {p.label}
@@ -343,6 +345,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
     >
       <div
         role="radiogroup"
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         className={mergeClass(t.className, p.className)}
         aria-describedby={describedBy(p)}
       >

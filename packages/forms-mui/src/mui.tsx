@@ -36,6 +36,7 @@ import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
   fieldErrorId,
+  fieldLabelId,
   fieldHelpId,
   getProp,
   mergeClass,
@@ -102,6 +103,7 @@ function MuiFieldShell(p: FieldShellProps) {
           // MUI's trailing label is a component that wraps both.
           <FormControlLabel
             htmlFor={p.id}
+            id={fieldLabelId(p.id)}
             label={
               <>
                 {p.label}
@@ -117,6 +119,7 @@ function MuiFieldShell(p: FieldShellProps) {
               (framed && !legend ? (
                 <InputLabel
                   htmlFor={p.id}
+                  id={fieldLabelId(p.id)}
                   className={mergeClass(
                     undefined,
                     combineClass(p.labelClassName, p.labelTextClassName),
@@ -127,6 +130,7 @@ function MuiFieldShell(p: FieldShellProps) {
               ) : (
                 <FormLabel
                   component={legend ? "legend" : "label"}
+                  id={fieldLabelId(p.id)}
                   htmlFor={legend ? undefined : p.id}
                   className={mergeClass(
                     undefined,
@@ -504,6 +508,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       <Select
         id={p.id}
         label={p.label}
+        labelId={p.label != null ? fieldLabelId(p.id) : undefined}
         SelectDisplayProps={{ "aria-describedby": describedBy(p) }}
         value={ctl.stringValue}
         displayEmpty
@@ -561,6 +566,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
     >
       <RadioGroup
         name={p.id}
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}

@@ -192,6 +192,12 @@ Ant's shell — asterisk, error colour, spacing — with no change.
   inner `role="group"` carries `aria-describedby` but cannot point `aria-labelledby` at a legend it
   was never told the id of. So no single element has both the name and the description.
 
+**Resolved (after the trial), the label id:** the shell renders the label under
+`fieldLabelId(id)` (the contract now requires it, beside the error / help ids), so a widget's
+`role="group"` can carry `aria-labelledby` and `aria-describedby` together — `Stars` now does.
+The conformance check that reads names through the accessibility tree found the built-in radio
+group unnamed under html, MUI and Ant; all three name it now.
+
 **Wanted built in:** a `CheckListField` (or multi-select) registry slot over `FieldOption[]`, so
 Ant and MUI draw their own checkbox group; failing that, a `useMultiSelectController` alongside the
 others.

@@ -1,5 +1,7 @@
 import type { Rendered } from "@rx-controls/react";
 import {
+  describedBy,
+  fieldLabelId,
   fieldRenderer,
   type FieldProps,
   useFieldShell,
@@ -16,7 +18,8 @@ export interface StarsExtra {
 /**
  * A third-party widget. It imports no UI library, draws its own surface, and
  * still gets the active implementation's label / required marker / help /
- * error chrome through `useFieldShell`.
+ * error chrome through `useFieldShell` — and the shell's ids, so its group
+ * of buttons carries the field's name and description like a built-in.
  */
 function StarsImpl(
   p: FieldRenderProps<number | undefined | null> & StarsExtra,
@@ -40,7 +43,13 @@ function StarsImpl(
       labelClassName={p.labelClassName}
       labelTextClassName={p.labelTextClassName}
     >
-      <div className="stars" onBlur={ctl.onBlur}>
+      <div
+        className="stars"
+        role="group"
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
+        aria-describedby={describedBy(p)}
+        onBlur={ctl.onBlur}
+      >
         {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
           <button
             key={n}

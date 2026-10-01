@@ -13,20 +13,24 @@ import { useRenderers } from "./registry.js";
  * wired for accessibility. Resolved from the active implementation, so a
  * third-party widget looks native under every one of them.
  *
- * **The shell owns the description's ids.** A control points its
+ * **The shell owns the ids around the control.** A control points its
  * `aria-describedby` at {@link describedBy}, so a shell must render the
  * `error`, when there is one, in an element with id {@link fieldErrorId}, and
- * otherwise the `helpText` in one with id {@link fieldHelpId}. A library whose
- * own form item renders the message under ids of its own wraps the message in
- * an element carrying these. The conformance suite checks it through the
- * accessibility tree.
+ * otherwise the `helpText` in one with id {@link fieldHelpId}. And it renders
+ * the label — a `label`, a `legend`, a trailing label — with id
+ * {@link fieldLabelId}, so a widget whose control is not a labelable element
+ * (a `role="radiogroup"`, a custom listbox) can name it with
+ * `aria-labelledby`. A library whose own form item renders these under ids of
+ * its own wraps them in elements carrying the contract's. The conformance
+ * suite checks every widget's name and description through the accessibility
+ * tree.
  *
  * @group Implementations
  */
 export interface FieldShellProps {
   /** The control's id — what the label points at. */
   id: string;
-  /** The label. */
+  /** The label, under id {@link fieldLabelId}. */
   label?: ReactNode;
   /** Draw the label as a `label` element, or a `legend` over a group of controls. */
   labelAs?: "label" | "legend";
@@ -183,6 +187,16 @@ export function useFieldShell(): ComponentType<FieldShellProps> {
  */
 export function useInputFrame(): ComponentType<InputFrameProps> {
   return useRenderers().inputFrame;
+}
+
+/**
+ * The id the {@link FieldShellProps | shell} renders a field's label under —
+ * for `aria-labelledby` on a control a `label` element cannot name.
+ *
+ * @group Implementations
+ */
+export function fieldLabelId(id: string): string {
+  return `${id}-label`;
 }
 
 /**

@@ -18,6 +18,7 @@ import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
   fieldErrorId,
+  fieldLabelId,
   fieldHelpId,
   getProp,
   mergeClass,
@@ -67,7 +68,12 @@ function AntFieldShell(p: FieldShellProps) {
   return (
     <Form.Item
       layout={p.orientation === "horizontal" ? "horizontal" : "vertical"}
-      label={p.labelPosition === "after" ? undefined : p.label}
+      // The contract's label id on a span inside Ant's own <label>.
+      label={
+        p.labelPosition === "after" || p.label == null ? undefined : (
+          <span id={fieldLabelId(p.id)}>{p.label}</span>
+        )
+      }
       htmlFor={p.labelAs === "legend" ? undefined : p.id}
       required={p.required}
       validateStatus={p.error ? "error" : undefined}
@@ -91,6 +97,7 @@ function AntFieldShell(p: FieldShellProps) {
           {p.children}
           <label
             htmlFor={p.id}
+            id={fieldLabelId(p.id)}
             style={{
               cursor: p.disabled ? "not-allowed" : "pointer",
               // Ant greys its own label from a class on the wrapper, which a
@@ -520,6 +527,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
     >
       <Radio.Group
         name={p.id}
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}

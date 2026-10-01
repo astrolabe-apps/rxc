@@ -221,35 +221,49 @@ export function describeConformance(impl: Implementation): void {
       expect(text()).toContain("Bee");
     });
 
-    it("describes every control by its help, then by its error, through the accessibility tree", () => {
+    it("names and describes every control through the accessibility tree", () => {
       const opts = [
         { name: "Ay", value: "a" },
         { name: "Bee", value: "b" },
       ];
       const cases: [string, (c: Control<any>) => ReactNode][] = [
-        ["text", (c) => <TextField field={c} label="T" required requiredMessage="Needed" helpText="Help" />],
-        ["select", (c) => <SelectField field={c} label="S" options={opts} required requiredMessage="Needed" helpText="Help" />],
-        ["radio", (c) => <RadioField field={c} label="R" options={opts} required requiredMessage="Needed" helpText="Help" />],
-        ["checkbox", (c) => <CheckboxField field={c} label="C" required requiredMessage="Needed" helpText="Help" />],
+        ["text", (c) => <TextField field={c} label="Text name" required requiredMessage="Needed" helpText="Help" />],
+        ["select", (c) => <SelectField field={c} label="Select name" options={opts} required requiredMessage="Needed" helpText="Help" />],
+        ["radio", (c) => <RadioField field={c} label="Radio name" options={opts} required requiredMessage="Needed" helpText="Help" />],
+        ["checkbox", (c) => <CheckboxField field={c} label="Check name" required requiredMessage="Needed" helpText="Help" />],
       ];
-      // What assistive technology reads: the text of the elements the
-      // control's aria-describedby names — which must exist.
-      const description = () => {
-        const described = [...container.querySelectorAll("[aria-describedby]")];
-        return described.map((el) =>
-          el
-            .getAttribute("aria-describedby")!
-            .split(/\s+/)
-            .map((id) => document.getElementById(id)?.textContent?.trim() ?? `(no #${id})`)
-            .join(" "),
-        );
-      };
+      const texts = (ids: string) =>
+        ids
+          .split(/\s+/)
+          .map((id) => document.getElementById(id)?.textContent?.trim() ?? `(no #${id})`)
+          .join(" ");
+      // What assistive technology reads off the control that is described:
+      // its name — aria-labelledby, else a label for it or around it — and
+      // the text of the elements its aria-describedby names, which must exist.
+      const read = () =>
+        [...container.querySelectorAll("[aria-describedby]")].map((el) => {
+          const by = el.getAttribute("aria-labelledby");
+          const forIt = el.id
+            ? container.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+            : null;
+          const name = by
+            ? texts(by)
+            : (el.getAttribute("aria-label") ??
+              (forIt ?? el.closest("label"))?.textContent?.trim() ??
+              "(no name)");
+          return { name, description: texts(el.getAttribute("aria-describedby")!) };
+        });
       for (const [kind, ui] of cases) {
         const c = ctx.newControl<unknown>(undefined);
         mount(ui(c));
-        expect([kind, description()]).toEqual([kind, ["Help"]]);
+        const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace("Checkbox", "Check");
+        const named = (description: string) => [
+          kind,
+          [{ name: expect.stringContaining(label), description }],
+        ];
+        expect([kind, read()]).toEqual(named("Help"));
         act(() => ctx.update((wc) => wc.setTouched(c, true)));
-        expect([kind, description()]).toEqual([kind, ["Needed"]]);
+        expect([kind, read()]).toEqual(named("Needed"));
       }
     });
 
