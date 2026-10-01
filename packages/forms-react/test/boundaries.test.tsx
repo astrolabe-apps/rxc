@@ -205,10 +205,11 @@ describe("the field boundary", () => {
     expect($("input")).toBe(input);
   });
 
-  it("outlines itself in design mode, and wraps with display: contents otherwise", () => {
+  it("outlines itself in design mode, and adds no element otherwise", () => {
     const c = dom.ctx.newControl("x");
     mount(<Text field={c} />);
-    expect($(".rxf-boundary")!.getAttribute("style")).toContain("contents");
+    expect($(".rxf-boundary")).toBeNull();
+    expect($("[data-field]")!.parentElement).toBe(dom.container);
     mount(<Text field={c} />, { designMode: true });
     expect($(".rxf-boundary")!.hasAttribute("data-design")).toBe(true);
   });

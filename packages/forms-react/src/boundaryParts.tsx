@@ -52,20 +52,20 @@ export function republish(
 }
 
 /**
- * Design mode's outline, also always rendered: `display: contents` costs no
- * layout when off, where a conditional wrapper would remount everything under
- * it whenever design mode toggled. The style is inline, so a host with no CSS
- * for `rxf-boundary` does not get a block around every boundary.
+ * Design mode's outline, rendered only in design mode. Outside it the boundary
+ * adds no element: a wrapper, even a `display: contents` one, still sits
+ * between a body and its children, and the utilities that style children
+ * through their parent (`space-y-*`, `divide-y`) land on it and do nothing,
+ * since it has no box. The price is a remount when design mode toggles, which
+ * a form does not do while it is being used.
  */
 export function designChrome(node: ReactNode, on: boolean): ReactNode {
-  return (
-    <div
-      className="rxf-boundary"
-      data-design={on ? "" : undefined}
-      style={on ? undefined : { display: "contents" }}
-    >
+  return on ? (
+    <div className="rxf-boundary" data-design="">
       {node}
     </div>
+  ) : (
+    node
   );
 }
 

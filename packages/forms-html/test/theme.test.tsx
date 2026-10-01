@@ -135,6 +135,6 @@ describe("the themes", () => {
 
   it("hide a region by attribute in the default, and by class in the Tailwind theme", () => {
     expect(defaultHtmlTheme.contents.hideWith).toBe("attribute");
-    expect(tailwindHtmlTheme.contents.hideWith).toBe("class");
+    expect(tailwindHtmlTheme.contents.hideWith).toBe("collapse");
   });
 });

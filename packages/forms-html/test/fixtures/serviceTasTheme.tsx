@@ -100,10 +100,11 @@ export const serviceTasOverlay: PartialHtmlTheme = {
   contents: {
     // layout.className — a group's title and body sat in the same layout.
     wrapper: "flex flex-col",
-    // Legacy had no exit animation; the region just goes — a class, so the
-    // Tailwind theme's `hideWith: "class"` stands.
+    // Legacy had no exit animation; the region just goes — a class, and no
+    // collapse, so the wrapper's children are the title and body, as legacy's
+    // layout's were (a `layoutClass` gap spaces them).
+    hideWith: "class",
     hidden: "hidden",
-    inner: "",
     // label.className + label.groupLabelClass: legacy's group label is the
     // control label's class with the group one added. And it was a <label>,
     // which Bootstrap 3 makes bold; v2's title is a <div>, so the theme says

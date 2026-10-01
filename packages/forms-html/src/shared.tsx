@@ -71,10 +71,10 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
  * what is inside — and the hidden state covers plain JSX children, which no
  * boundary is responsible for.
  *
- * It collapses rather than switching to `display: none`, which is what makes a
- * region-level exit animation possible: the CSS animates `grid-template-rows`
- * 1fr → 0fr and opacity, `inert` takes it out of tab order and the a11y tree,
- * and the boundaries inside keep drawing their own last frames meanwhile.
+ * How it hides is the theme's `hideWith`: the attribute (no CSS needed), a
+ * class, or an animated collapse — grid-template-rows 1fr → 0fr and opacity,
+ * during which the boundaries inside keep drawing their own last frames.
+ * `inert` takes it out of tab order and the a11y tree in every mode.
  */
 export function Contents({
   title,
@@ -90,50 +90,61 @@ export function Contents({
   classes = defaultHtmlTheme.contents,
 }: GroupRenderProps & { classes?: HtmlTheme["contents"] }) {
   // With transitions off the region goes at once, whatever the theme
-  // animates: the attribute, and none of the theme's `[data-hidden]` collapse.
-  const byClass = transitions && classes.hideWith === "class";
-  // One element each for wrapper, title and body: a theme and the author's
-  // class slots can each style every part.
+  // animates: the attribute, and no collapse.
+  const mode = transitions ? classes.hideWith : "attribute";
+  const head = title !== undefined && title !== null && (
+    <div
+      className={mergeClass(
+        classes.title,
+        combineClass(labelClassName, labelTextClassName),
+      )}
+    >
+      {title}
+    </div>
+  );
+  // One body element either way, so a layout arriving later changes
+  // attributes and not the tree.
+  const body = (
+    <div
+      className={mergeClass(layout ? classes.flexBody : classes.body, className)}
+      style={layout ? flexStyle(layout, classes.flexGap) : undefined}
+    >
+      {children}
+    </div>
+  );
+  // Wrapper, title and body, each its own element so a theme and the
+  // author's class slots can style every part — and nothing else, so the
+  // wrapper's children are the title and body, as legacy's layout's were.
+  // A collapse is the one exception: it needs a single child to animate.
   return (
     <div
       className={mergeClass(
-        hidden && byClass && classes.hidden
-          ? `${classes.wrapper} ${classes.hidden}`
-          : classes.wrapper,
+        mode === "collapse"
+          ? `${classes.wrapper} ${classes.collapse}`
+          : hidden && mode === "class"
+            ? `${classes.wrapper} ${classes.hidden}`
+            : classes.wrapper,
         shellClassName,
       )}
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
-      // The one hide that needs no CSS; a theme that animates opts out. The
-      // style too, because a theme's own `display` on the wrapper (the
-      // collapse is a grid) beats the attribute when there is no preflight.
-      hidden={(hidden && !byClass) || undefined}
-      style={hidden && !byClass ? { display: "none" } : undefined}
+      // The one hide that needs no CSS. The style too, because a `display`
+      // from the wrapper's classes beats the attribute without preflight.
+      hidden={(hidden && mode === "attribute") || undefined}
+      style={hidden && mode === "attribute" ? { display: "none" } : undefined}
     >
-      <div className={classes.inner}>
-        {title !== undefined && title !== null && (
-          <div
-            className={mergeClass(
-              classes.title,
-              combineClass(labelClassName, labelTextClassName),
-            )}
-          >
-            {title}
-          </div>
-        )}
-        {/* One body element either way, so a layout arriving later changes
-            attributes and not the tree. */}
-        <div
-          className={mergeClass(
-            layout ? classes.flexBody : classes.body,
-            className,
-          )}
-          style={layout ? flexStyle(layout, classes.flexGap) : undefined}
-        >
-          {children}
+      {mode === "collapse" ? (
+        <div className={classes.inner}>
+          {head}
+          {body}
         </div>
-      </div>
+      ) : (
+        <>
+          {head}
+          {body}
+        </>
+      )}
     </div>
   );
 }

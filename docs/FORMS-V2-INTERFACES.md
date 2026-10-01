@@ -665,13 +665,21 @@ exists: one mechanism, two audiences. Because what is published is the *merged a
 rather than a delta, this needs no change to `@rx-controls/react` — its provider replacing
 rather than merging stops mattering.
 
-**Every wrapper a boundary adds is unconditional (built).** The provider above, and the
-design-mode chrome, are rendered whether or not they have anything to do — the chrome sits at
-`display: contents` when off. A wrapper added only when needed is a **remount**: the element at
-that position changes the instant a lock or design mode toggles, React discards the
-implementation, and the input loses focus, selection and animation state mid-edit. The rule:
-**in a form library, a wrapper whose presence depends on state must not be conditional.** The
-hidden group in §8 is the same rule.
+**Every wrapper a boundary adds is unconditional (built) — unless it lands in the DOM.** The
+provider above is rendered whether or not it has anything to do. A wrapper added only when
+needed is a **remount**: the element at that position changes the instant a lock toggles, React
+discards the implementation, and the input loses focus, selection and animation state mid-edit.
+The rule: **in a form library, a wrapper whose presence depends on state that changes while the
+form is used must not be conditional.** The hidden group in §8 is the same rule.
+
+The design-mode chrome is the deliberate exception, because it is an *element*: it used to sit at
+`display: contents` when off, but a `display: contents` box is still a child of the body, and the
+utilities that style children through their parent (`space-y-*`, `divide-y`, in the ServiceTas
+corpus) land on it and do nothing. It now renders only in design mode, and design mode does not
+toggle under a form someone is filling in. The same goes for the other elements an
+implementation might add between a body and its children — the fade wrapper (gone under
+`transitions={false}`) and a collapsing region's inner element (only under `hideWith:
+"collapse"`): the elements a class layout sees should be the boundaries' own.
 
 **The produced component has to stay generic in the value type (built).** A boundary is built
 for one concrete `T`, but a schema legitimately yields `string`, `string | undefined` or
@@ -1158,8 +1166,9 @@ palette where it leaned on host CSS. It is written for **Tailwind 3.4 and 4 alik
 are on 3.4), and assumes **no preflight** (ServiceTas runs without it), so each slot resets what
 preflight would. A host theme that replaces a slot owns it outright, hook included. Behaviour
 hangs on neither theme: everything works with no CSS at all, which is why the two places it did
-not became theme *data* rather than classes — `contents.hideWith: "attribute" | "class"` (the
-`hidden` attribute by default; a class, so the exit can animate, for a theme that says so) and a
+not became theme *data* rather than classes — `contents.hideWith: "attribute" | "class" | "collapse"` (the
+`hidden` attribute by default; a class, which may fade the wrapper; or the animated collapse, the
+one mode with an extra element) and a
 `visibility.fade` slot for `FadeVisibility`'s wrapper. ServiceTas's theme is an overlay on
 `tailwindHtmlTheme`, identical in markup to the complete theme it replaced (README finding 79).
 One caveat belongs to hosts: Tailwind 4's utilities live in cascade layers, so unlayered global

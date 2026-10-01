@@ -117,17 +117,28 @@ export interface HtmlTheme {
     wrapper: string;
     /**
      * How a hidden region leaves the screen. It stays mounted either way —
-     * each child clears its own value — and is always `inert`.
+     * each child clears its own value — and is always `inert`, marked
+     * `data-hidden`.
      *
-     * - `"attribute"`: the `hidden` attribute. Works with no CSS at all.
-     * - `"class"`: `hidden` (below) plus whatever the theme
-     *   keys on `[data-hidden]` — the only way to animate the exit, since the
-     *   attribute removes the region at once.
+     * - `"attribute"`: the `hidden` attribute and `display: none`. Works with
+     *   no CSS at all, and wins over a `display` the wrapper's classes set.
+     * - `"class"`: `hidden` (below), whose CSS must hide it — a fade on the
+     *   wrapper itself, keyed on `[data-hidden]`, say.
+     * - `"collapse"`: an animated collapse. The wrapper adds `collapse`
+     *   and holds one extra element, `inner`, around title and body — the
+     *   only mode that renders one, since a grid-rows collapse needs a single
+     *   child. Anything styling the wrapper's children (a `layoutClass` gap
+     *   between title and body) sees `inner` instead.
+     *
+     * Under a scope with transitions off every mode hides as `"attribute"`
+     * does, and `"collapse"` renders no `inner`.
      */
-    hideWith: "attribute" | "class";
+    hideWith: "attribute" | "class" | "collapse";
     /** Added while hidden, under `hideWith: "class"`. It must hide. */
     hidden: string;
-    /** The element inside the wrapper, for a collapse animation. */
+    /** Added to the wrapper under `hideWith: "collapse"`: the animation. */
+    collapse: string;
+    /** The element inside the wrapper under `hideWith: "collapse"`. */
     inner: string;
     /** The title. */
     title: string;
@@ -309,6 +320,7 @@ export const defaultHtmlTheme: HtmlTheme = {
     wrapper: "rxf-contents",
     hideWith: "attribute",
     hidden: "",
+    collapse: "",
     inner: "rxf-contents-inner",
     title: "rxf-group-title",
     body: "rxf-contents-body",
@@ -421,11 +433,12 @@ export const tailwindHtmlTheme: HtmlTheme = {
   },
   stack: { className: "rxf-stack", defaultGap: "0.5rem" },
   contents: {
+    wrapper: "rxf-contents",
     // The collapse: grid rows 1fr → 0fr and a fade, keyed on data-hidden.
-    wrapper:
-      "rxf-contents grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 data-[hidden]:pointer-events-none",
-    hideWith: "class",
+    hideWith: "collapse",
     hidden: "",
+    collapse:
+      "grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 data-[hidden]:pointer-events-none",
     inner: "rxf-contents-inner min-h-0 overflow-hidden",
     // group.groupLabelClass
     title: "rxf-group-title font-bold",

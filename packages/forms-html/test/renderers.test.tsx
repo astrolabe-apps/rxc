@@ -197,28 +197,61 @@ describe("hiding with no CSS at all", () => {
 
   it("leaves hiding to the theme's class under hideWith: class", () => {
     const hide = dom.ctx.newControl(true);
-    mount(<Contents hidden={hide}>{null}</Contents>, { theme: tailwindHtmlTheme });
+    mount(<Contents hidden={hide}>{null}</Contents>, {
+      theme: { contents: { hideWith: "class", hidden: "gone" } },
+    });
+    const el = $<HTMLElement>(".rxf-contents")!;
+    expect(el.hidden).toBe(false);
+    expect(el.classList.contains("gone")).toBe(true);
+    expect(el.hasAttribute("inert")).toBe(true);
+  });
+
+  it("collapses through one inner element under hideWith: collapse", () => {
+    const hide = dom.ctx.newControl(true);
+    mount(
+      <Contents hidden={hide} title="T" className="body">
+        {null}
+      </Contents>,
+      { theme: tailwindHtmlTheme },
+    );
     const el = $<HTMLElement>(".rxf-contents")!;
     expect(el.hidden).toBe(false);
     expect(el.hasAttribute("data-hidden")).toBe(true);
-    expect(el.hasAttribute("inert")).toBe(true);
+    expect(el.className).toContain("grid-rows-[1fr]");
+    expect(el.children).toHaveLength(1);
+    expect(el.firstElementChild!.className).toContain("rxf-contents-inner");
+  });
+
+  it("puts the title and body straight under the wrapper otherwise", () => {
+    mount(
+      <Contents title="T" className="body" shellClassName="flex flex-col gap-4">
+        {null}
+      </Contents>,
+    );
+    const el = $<HTMLElement>(".rxf-contents")!;
+    expect([...el.children].map((c) => c.className)).toEqual([
+      "rxf-group-title",
+      "rxf-contents-body body",
+    ]);
   });
 
   it("hides at once under transitions={false}, whatever the theme animates", () => {
     const hide = dom.ctx.newControl(true);
     mount(
       <Contents transitions={false}>
-        <Contents hidden={hide} className="inner">
+        <Contents hidden={hide} className="body" title="T">
           {null}
         </Contents>
       </Contents>,
       { theme: tailwindHtmlTheme },
     );
-    const el = $<HTMLElement>(".inner")!.closest<HTMLElement>("[data-hidden]")!;
+    const el = $<HTMLElement>(".body")!.parentElement!;
+    expect(el.hasAttribute("data-hidden")).toBe(true);
     expect(el.hidden).toBe(true);
-    // The theme's wrapper is a grid, which beats the attribute without
-    // preflight: the inline style is what actually hides it.
     expect(el.style.display).toBe("none");
+    // No collapse: neither its classes nor its inner element.
+    expect(el.className).not.toContain("grid-rows");
+    expect(el.children).toHaveLength(2);
   });
 
   it("hides inactive tabs and unreached wizard pages with the attribute", () => {
