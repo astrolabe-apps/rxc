@@ -64,7 +64,11 @@ function Contents(p: GroupRenderProps) {
       className={cls(p.className)}
       hidden={p.hidden || undefined}
     >
-      {p.title !== undefined && <b data-title>{p.title}</b>}
+      {p.title !== undefined && (
+        <b data-title data-level={p.headingLevel}>
+          {p.title}
+        </b>
+      )}
       {p.children}
     </div>
   );

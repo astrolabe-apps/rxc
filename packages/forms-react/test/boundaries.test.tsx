@@ -365,6 +365,37 @@ describe("the group boundary", () => {
     expect($("[data-group]")!.hasAttribute("data-invalid")).toBe(false);
   });
 
+  it("heads each titled group one level below the one it sits in", () => {
+    const levels = () =>
+      $$("[data-title]").map((t) => [t.textContent, t.getAttribute("data-level")]);
+    mount(
+      <Group title="A">
+        <Group>
+          <Group title="B">
+            <Group title="C">
+              <Group title="D">
+                <Group title="E">
+                  <Group title="F">{null}</Group>
+                </Group>
+              </Group>
+            </Group>
+          </Group>
+        </Group>
+      </Group>,
+    );
+    // An untitled group is no level; the outline stops at 6.
+    expect(levels()).toEqual([
+      ["A", "2"],
+      ["B", "3"],
+      ["C", "4"],
+      ["D", "5"],
+      ["E", "6"],
+      ["F", "6"],
+    ]);
+    mount(<Group title="Under an h2">{null}</Group>, { headingLevel: 3 });
+    expect(levels()).toEqual([["Under an h2", "3"]]);
+  });
+
   it("passes layout and extra props, and marks inline children", () => {
     const c = dom.ctx.newControl("x");
     mount(

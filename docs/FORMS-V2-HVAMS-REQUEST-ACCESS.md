@@ -152,6 +152,12 @@ tab. The conformance suite holds all three implementations to it.
 
 - **Section titles are not headings.** `Contents title` draws a `<div>` in `forms-html` (and in Ant,
   which shares `Contents`); a form with sections has no heading structure.
+  **Resolved (after the trial):** a group's title is a heading whose level comes from the
+  outline — `ScopeState.headingLevel`, 2 at the root (`<Form headingLevel>` moves it), one deeper
+  inside each titled group, capped at 6 — handed to the implementation as
+  `GroupRenderProps.headingLevel`. html's `Contents` (shared by MUI and Ant) marks the title
+  `role="heading"` with `aria-level` rather than switching to `h2`–`h6`, so no theme's look
+  changes.
 - **A display with a state.** The counter turned red past the limit. That needs a class, which the
   "contract only" rule forbids; a tone would cover it too.
 

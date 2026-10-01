@@ -94,6 +94,12 @@ export interface GroupProps {
 export interface GroupRenderProps {
   /** The heading, if any. */
   title?: ReactNode;
+  /**
+   * The title's heading level, 1–6, from where the group sits in the form —
+   * see {@link ScopeState.headingLevel}. Draw the title as a heading of this
+   * level (html: `role="heading"` and `aria-level`, or an `h1`–`h6`).
+   */
+  headingLevel: number;
   /** The body. */
   className?: ClassValue;
   /** The wrapper around title and body. */
@@ -173,15 +179,20 @@ export function groupRenderer<P extends object = {}>(
     // `inline` is the container's kind, not a prop, so it is a boundary
     // option — and reaches the children as a scope facet.
     const { transitions } = props;
+    const title = getProp(rc, props.title);
+    // A titled group is a level in the outline: what is inside it heads one
+    // deeper. Inline prose has no outline.
+    const titled = title !== undefined && title !== null && !options?.inline;
     const scope = useMemo(
       () =>
-        options?.inline || transitions !== undefined
+        options?.inline || transitions !== undefined || titled
           ? narrowScope(bound, {
               inline: options?.inline || undefined,
               transitions,
+              headingLevel: titled ? bound.headingLevel + 1 : undefined,
             })
           : bound,
-      [bound, transitions],
+      [bound, transitions, titled],
     );
     const presence = scope.presence(rc);
     // Opt-in: only a group that is asked "is my content invalid" makes a
@@ -197,7 +208,8 @@ export function groupRenderer<P extends object = {}>(
     // element it already renders. Rendering the children bare when hidden
     // would remount them, and leave any plain JSX among them on screen.
     const renderProps: GroupRenderProps = {
-      title: getProp(rc, props.title),
+      title,
+      headingLevel: bound.headingLevel,
       className: getProp(rc, props.className),
       shellClassName: getProp(rc, props.shellClassName),
       labelClassName: getProp(rc, props.labelClassName),

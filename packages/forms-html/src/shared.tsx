@@ -86,14 +86,19 @@ export function Contents({
   invalid,
   layout,
   transitions,
+  headingLevel,
   children,
   classes = defaultHtmlTheme.contents,
 }: GroupRenderProps & { classes?: HtmlTheme["contents"] }) {
   // With transitions off the region goes at once, whatever the theme
   // animates: the attribute, and no collapse.
   const mode = transitions ? classes.hideWith : "attribute";
+  // A heading by role, not an h-element: the level comes from the outline
+  // and an h2's user-agent margins and size would restyle every theme.
   const head = title !== undefined && title !== null && (
     <div
+      role="heading"
+      aria-level={headingLevel}
       className={mergeClass(
         classes.title,
         combineClass(labelClassName, labelTextClassName),

@@ -98,6 +98,13 @@ export interface ScopeState {
    * disappear, which also leaves no transition wrapper around them.
    */
   transitions: boolean;
+  /**
+   * The heading level a titled group here draws its title at. A titled group
+   * puts what is inside one level deeper, so a form's section structure is
+   * heading structure with no author choosing a number. 2 at the root —
+   * under the page's own `h1` — and never deeper than 6.
+   */
+  headingLevel: number;
 }
 
 /**
@@ -121,6 +128,12 @@ export interface ScopeNarrowing {
   inline?: boolean;
   /** Turn the region's transitions off, or back on. See {@link ScopeState.transitions}. */
   transitions?: boolean;
+  /**
+   * The heading level for titles here — on `<Form>`, where the form sits in
+   * the page's outline: `3` for a form under an `h2`. See
+   * {@link ScopeState.headingLevel}.
+   */
+  headingLevel?: number;
 }
 
 /**
@@ -180,6 +193,7 @@ export function Form({
     designMode,
     inline,
     transitions,
+    headingLevel,
   } = narrowing;
   const scope = useMemo((): InternalScope => {
     const s = narrowScope(parent, {
@@ -189,6 +203,7 @@ export function Form({
       designMode,
       inline,
       transitions,
+      headingLevel,
       // The global lock is the form's: a running `disableType: "global"`
       // action holds it, and every boundary reads it as `disabled`.
       disabled: (rc) =>
@@ -205,6 +220,7 @@ export function Form({
     designMode,
     inline,
     transitions,
+    headingLevel,
   ]);
   return (
     <ScopeContext.Provider value={scope}>
@@ -231,6 +247,7 @@ const rootScope: InternalScope = {
   designMode: false,
   inline: false,
   transitions: true,
+  headingLevel: 2,
 };
 
 const ScopeContext = createContext<InternalScope>(rootScope);
@@ -311,6 +328,7 @@ export function narrowScope(
     designMode: n.designMode ?? parent.designMode,
     inline: n.inline ?? parent.inline,
     transitions: n.transitions ?? parent.transitions,
+    headingLevel: Math.min(Math.max(n.headingLevel ?? parent.headingLevel, 1), 6),
     globalLock: (parent as InternalScope).globalLock,
   };
   return scope;

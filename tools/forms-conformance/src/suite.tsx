@@ -276,6 +276,26 @@ export function describeConformance(impl: Implementation): void {
       expect(validation.isValid(rc)).toBe(false);
     });
 
+    it("draws group titles as headings, one level deeper per titled group", () => {
+      mount(
+        <Contents title="Outer section">
+          <Contents title="Inner section">
+            <TextDisplay text="x" />
+          </Contents>
+        </Contents>,
+      );
+      const headings = [...container.querySelectorAll('[role="heading"], h1, h2, h3, h4, h5, h6')].map(
+        (h) => [
+          h.textContent?.trim(),
+          h.getAttribute("aria-level") ?? h.tagName.slice(1),
+        ],
+      );
+      expect(headings).toEqual([
+        ["Outer section", "2"],
+        ["Inner section", "3"],
+      ]);
+    });
+
     it("unmounts a hidden field's widget", () => {
       mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
       expect(byId("gone")).toBeNull();
