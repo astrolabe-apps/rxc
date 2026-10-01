@@ -2,6 +2,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   type ComponentType,
   type ReactNode,
 } from "react";
@@ -28,6 +29,8 @@ import {
   useFieldValidation,
   useMirror,
   bareValidatorKey,
+  useClearHidden,
+  type ClearedTo,
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
@@ -194,11 +197,16 @@ export function collectionRenderer<T, P extends object = {}>(
 
     // clearHidden reaches the array itself, not only its elements' fields.
     const clear = presence === "hidden" && scope.clearHidden && !dontClearHidden;
-    useEffect(() => {
-      if (clear)
-        ctx.update((wc) => wc.setValue(control, undefined as unknown as T[]));
-    }, [clear, control, ctx]);
-    useDefaultValue(control, props.defaultValue, scope, true, props.hidden);
+    const cleared: ClearedTo = useRef(undefined);
+    useClearHidden(control, clear, props.clearTo, cleared);
+    useDefaultValue(
+      control,
+      props.defaultValue,
+      scope,
+      true,
+      props.hidden,
+      cleared,
+    );
 
     const state = boundaryState(rc, control as Control<unknown>, scope);
     const own = [...new Set(Object.values(rc.getErrors(verdict)).filter(Boolean))];

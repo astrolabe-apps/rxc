@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import type { Control, ControlContext, ReadContext } from "@rx-controls/core";
 import {
   deepEquals,
@@ -246,9 +246,40 @@ function errorClaims(
 }
 
 /**
+ * What a boundary last cleared its own binding to — so the default cycle can
+ * refill a value the boundary itself emptied, and leave alone one the user
+ * did. `undefined` once the value has moved off it.
+ */
+export type ClearedTo = RefObject<{ value: unknown } | undefined>;
+
+/**
+ * Clear a boundary's binding when it is hidden under `clearHidden`: write
+ * `clearTo` (default `undefined`) and mark it in `cleared`. `clearTo` is read
+ * through a ref, so an inline array or object does not re-run the effect.
+ */
+export function useClearHidden<T>(
+  control: Control<T>,
+  clear: boolean,
+  clearTo: T | undefined,
+  cleared: ClearedTo,
+): void {
+  const ctx = useControlContext();
+  const to = useRef(clearTo);
+  to.current = clearTo;
+  useEffect(() => {
+    if (!clear) return;
+    cleared.current = { value: to.current };
+    ctx.update((wc) => wc.setValue(control, to.current as T));
+  }, [clear, control, ctx, cleared]);
+}
+
+/**
  * The default-value cycle, as a core `effect` so it costs the component no
  * re-render: while the scope is not `hidden`, `hidden` is not pending and the
- * value is `undefined`, write the default. Re-runs when presence, value or
+ * value is empty, write the default. Empty is `undefined` — or, when the
+ * boundary cleared it to a `clearTo` (`cleared`), that value while it is
+ * still there: an emptied field refills on reveal, while a `""` the user
+ * typed does not. Re-runs when presence, value or
  * the default move — so after `clearHidden` empties a hidden field, showing it
  * again defaults it again. `null` is a value and is left alone. `enabled` is
  * the boundary's `writes` flag: a boundary that only shows its value never
@@ -260,6 +291,7 @@ export function useDefaultValue<T>(
   scope: ScopeState,
   enabled: boolean,
   hidden?: FormProp<boolean | undefined>,
+  cleared?: ClearedTo,
 ): void {
   const ctx = useControlContext();
   useEffect(() => {
@@ -267,13 +299,23 @@ export function useDefaultValue<T>(
     const h = effect(ctx, (rc) => {
       if (scope.presence(rc) === "hidden") return;
       if (hiddenPending(rc, hidden)) return;
-      if (rc.getValue(control) !== undefined) return;
+      const v = rc.getValue(control);
+      if (v !== undefined) {
+        const mark = cleared?.current;
+        if (!mark || !ctx.equals(v, mark.value)) {
+          if (cleared) cleared.current = undefined;
+          return;
+        }
+      }
       const d = getProp(rc, defaultValue);
       if (d === undefined || d === null) return;
+      // Refilled: the boundary's clear is spent, so the same empty value
+      // written later is the user's.
+      if (cleared) cleared.current = undefined;
       ctx.update((wc) => wc.setValue(control, d));
     });
     return () => h.cleanup();
-  }, [ctx, control, defaultValue, scope, enabled, hidden]);
+  }, [ctx, control, defaultValue, scope, enabled, hidden, cleared]);
 }
 
 /** An asynchronous `hidden` that has not answered yet. */
@@ -309,10 +351,14 @@ export function useRestrictToAllowed<T>(
   scope: ScopeState,
   enabled: boolean,
   hidden?: FormProp<boolean | undefined>,
+  clearTo?: T,
+  cleared?: ClearedTo,
 ): void {
   const ctx = useControlContext();
   const latest = useRef(allowed);
   latest.current = allowed;
+  const to = useRef(clearTo);
+  to.current = clearTo;
   useEffect(() => {
     if (!enabled || scope.designMode) return;
     // The last decided list; a pending one in between keeps it.
@@ -328,10 +374,13 @@ export function useRestrictToAllowed<T>(
         return;
       const v = rc.getValue(control);
       if (v === undefined || v === null) return;
-      // Moved away: listed before, not now.
-      if (prev(v) && !ok(v))
-        ctx.update((wc) => wc.setValue(control, undefined as T));
+      // Moved away: listed before, not now. Cleared to `clearTo`, and marked
+      // so the default cycle refills it.
+      if (prev(v) && !ok(v)) {
+        if (cleared) cleared.current = { value: to.current };
+        ctx.update((wc) => wc.setValue(control, to.current as T));
+      }
     });
     return () => h.cleanup();
-  }, [ctx, control, scope, enabled, hidden]);
+  }, [ctx, control, scope, enabled, hidden, cleared]);
 }

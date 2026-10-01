@@ -80,6 +80,11 @@ write is a lie the types cannot see. A server contract that wants `null` has no 
 Suggested: let `<Form>` (or a field) name the cleared value, or at least document that
 `clearHidden` fields must admit `undefined`.
 
+**Resolved (after the trial):** a field takes `clearTo`, the value it writes when it clears
+itself (`clearHidden`, or a select whose options moved away) — `clearTo={null}` for HVAMS's
+description. Default `undefined`, legacy's, so the JSON path is unchanged. `defaultValue` refills a
+field the boundary cleared to it, but not the same value typed by the user.
+
 **No form-level message.** The submit error became `<TextDisplay text={submitError} hidden={…}>` —
 the `Control` arm of `FormProp` binding the display straight to a control is exactly right. What is
 missing is meaning: there is no error tone and no `role="alert"`, and the 409 message's support

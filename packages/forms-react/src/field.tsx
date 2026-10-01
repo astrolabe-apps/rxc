@@ -1,4 +1,10 @@
-import { useEffect, useId, type ComponentType, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import {
   useControl,
@@ -16,6 +22,8 @@ import {
   useMirror,
   bareValidatorKey,
   useRestrictToAllowed,
+  useClearHidden,
+  type ClearedTo,
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
@@ -75,6 +83,15 @@ export interface FieldProps<T> {
   readOnly?: FormProp<boolean>;
   /** Keep this field's value when it is hidden, whatever the form's `clearHidden` says. */
   dontClearHidden?: boolean;
+  /**
+   * What the field writes when it clears itself — hidden under `clearHidden`,
+   * or a select whose options moved away from its value. Default `undefined`,
+   * which is legacy's and what a JSON form gets; a server that wants `null`
+   * or `""` for an empty answer says so here, and the value type no longer
+   * has to admit `undefined` for clearing's sake. `defaultValue` refills a
+   * field cleared this way, but not the same value typed by the user.
+   */
+  clearTo?: T;
   /**
    * Written into the field while it is shown, not pending, and its value is
    * `undefined` (`null` counts as a value). With `clearHidden` the two form a
@@ -268,10 +285,16 @@ export function fieldRenderer<T, P extends object = {}>(
     // clear: each clears its own binding when it becomes hidden.
     const clear =
       writes && presence === "hidden" && scope.clearHidden && !dontClearHidden;
-    useEffect(() => {
-      if (clear) ctx.update((wc) => wc.setValue(control, undefined as T));
-    }, [clear, control, ctx]);
-    useDefaultValue(control, props.defaultValue, scope, writes, props.hidden);
+    const cleared: ClearedTo = useRef(undefined);
+    useClearHidden(control, clear, props.clearTo, cleared);
+    useDefaultValue(
+      control,
+      props.defaultValue,
+      scope,
+      writes,
+      props.hidden,
+      cleared,
+    );
     const allowed = options?.allowed;
     useRestrictToAllowed(
       control,
@@ -279,6 +302,8 @@ export function fieldRenderer<T, P extends object = {}>(
       scope,
       writes && !!allowed,
       props.hidden,
+      props.clearTo,
+      cleared,
     );
 
     const state = boundaryState(rc, control as Control<unknown>, scope);

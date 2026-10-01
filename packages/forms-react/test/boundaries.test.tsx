@@ -239,6 +239,56 @@ describe("the field boundary", () => {
     expect(untrackedRead.getValue(c)).toBe("dflt");
   });
 
+  it("clears to clearTo, and the default refills only what the boundary cleared", () => {
+    const c = dom.ctx.newControl<string | null>("typed");
+    const hide = dom.ctx.newControl(false);
+    mount(
+      <Text field={c} clearTo={null} defaultValue="dflt" hidden={(rc) => rc.getValue(hide)} />,
+      { clearHidden: true },
+    );
+    set(hide, true);
+    expect(untrackedRead.getValue(c)).toBeNull();
+    // Shown again: the boundary's own null is empty, so the default refills.
+    set(hide, false);
+    expect(untrackedRead.getValue(c)).toBe("dflt");
+    // The same null written by the user is a value, and stays.
+    set(c, null);
+    expect(untrackedRead.getValue(c)).toBeNull();
+  });
+
+  it("clears a stale select to clearTo, and a default refills it", () => {
+    const list = dom.ctx.newControl([{ name: "A", value: "a" }]);
+    const v = dom.ctx.newControl<string | null>("a");
+    mount(<SelectField field={v} options={list} clearTo={null} />);
+    set(list, [{ name: "B", value: "b" }]);
+    expect(untrackedRead.getValue(v)).toBeNull();
+    const w = dom.ctx.newControl<string | null>("a");
+    const list2 = dom.ctx.newControl([{ name: "A", value: "a" }]);
+    mount(
+      <SelectField
+        field={w}
+        options={list2}
+        clearTo={null}
+        defaultValue={(rc) => rc.getValue(list2)[0]?.value}
+      />,
+    );
+    set(list2, [{ name: "B", value: "b" }]);
+    expect(untrackedRead.getValue(w)).toBe("b");
+  });
+
+  it("clears a collection to clearTo", () => {
+    const arr = dom.ctx.newControl<string[]>(["x"]);
+    const hide = dom.ctx.newControl(false);
+    mount(
+      <List field={arr as Control<unknown[]>} clearTo={[]} hidden={(rc) => rc.getValue(hide)}>
+        {() => null}
+      </List>,
+      { clearHidden: true },
+    );
+    set(hide, true);
+    expect(untrackedRead.getValue(arr)).toEqual([]);
+  });
+
   it("keeps its value with dontClearHidden, or without the form's clearHidden", () => {
     const a = dom.ctx.newControl("a");
     const b = dom.ctx.newControl("b");
