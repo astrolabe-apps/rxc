@@ -9,6 +9,7 @@ function WizardDemo(): Rendered {
     last: "",
     status: undefined as string | undefined,
     email: "",
+    reason: "",
     page: 0 as number | undefined,
   });
   const f = data.fields;
@@ -50,6 +51,13 @@ function WizardDemo(): Rendered {
             ),
           },
           {
+            key: "reason",
+            title: "Reason",
+            // Only for an inactive status: otherwise Next and Back skip it.
+            hidden: (rc) => rc.getValue(f.status) !== "inactive",
+            children: <TextField field={f.reason} label="Why inactive?" required />,
+          },
+          {
             key: "detail",
             title: "Detail",
             children: <TextField field={f.email} label="Email" required />,
@@ -69,6 +77,7 @@ export default meta;
 
 /**
  * Next checks the page — waiting for async rules — and touches it on refusal.
- * The page index is bound to the data, so it survives a remount.
+ * The page index is bound to the data, so it survives a remount. The Reason
+ * page is hidden unless the status is Inactive, and skipped while hidden.
  */
 export const Wizard_: StoryObj<ScopeArgs> = { name: "Wizard" };

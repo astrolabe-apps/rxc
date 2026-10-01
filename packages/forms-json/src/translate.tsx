@@ -549,12 +549,14 @@ const builtins: Builtin[] = [
   {
     match: (d) => d.type === "Group" && d.groupOptions?.type === "Tabs",
     renderTypes: ["Tabs"],
-    render: ({ def, props, children }) => (
+    render: ({ def, props, children, childProps }) => (
       <Tabs
         items={(def.children ?? []).map((c, i) => ({
           // By position: two tabs may share a title, and a key must not.
           key: String(i),
           title: c.title ?? `Tab ${i + 1}`,
+          // Legacy's TabsRenderer drops a hidden child from the strip.
+          hidden: childProps[i]?.hidden,
           children: children[i],
         }))}
         hidden={props.hidden}
@@ -1221,6 +1223,8 @@ export function translate(
   key: string,
   opts: LoaderOptions,
   collect: Collect = noCollect,
+  /** Filled with the props built for `rawDef` — what a parent's `childProps` reads. */
+  out?: { props?: FieldProps<any> },
 ): ReactNode {
   const translators = opts.translators ?? defaultTranslators;
   const hostAdornments = new Set(Object.keys(opts.adornments ?? {}));
@@ -1365,6 +1369,7 @@ export function translate(
       e.took = true;
     }
   }
+  if (out) out.props = props;
   const wrapHosted = (node: ReactNode): ReactNode => {
     for (const e of hosted) {
       const next = e.h.wrap?.(e.a, node, def);
@@ -1385,9 +1390,13 @@ export function translate(
     return node;
   };
 
-  const children = (t?.ownsChildren ? [] : (def.children ?? [])).map((c, i) =>
-    translate(ctx, childScope, c, `${key}.${i}`, opts, collect),
+  const childOut = (t?.ownsChildren ? [] : (def.children ?? [])).map(
+    () => ({}) as { props?: FieldProps<any> },
   );
+  const children = (t?.ownsChildren ? [] : (def.children ?? [])).map((c, i) =>
+    translate(ctx, childScope, c, `${key}.${i}`, opts, collect, childOut[i]),
+  );
+  const childProps = childOut.map((o) => o.props);
 
   const element =
     schema?.collection && ref
@@ -1435,6 +1444,7 @@ export function translate(
       schema,
       props: recordingProps(props, propReads),
       children,
+      childProps,
       element,
       onClick,
       retranslate,

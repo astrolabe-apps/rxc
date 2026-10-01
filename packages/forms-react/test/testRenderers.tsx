@@ -124,7 +124,7 @@ function Visibility(p: { visible: boolean; children: React.ReactNode }) {
 function Tabs(p: TabsRenderProps) {
   return (
     <div data-tabs hidden={p.hidden || undefined}>
-      {p.items.map((i) => (
+      {p.items.filter((i) => !i.hidden).map((i) => (
         <button
           key={"t" + i.key}
           type="button"
@@ -152,6 +152,7 @@ function Wizard(p: WizardRenderProps) {
         <section
           key={i.key}
           data-page={i.key}
+          data-step-hidden={i.hidden ? "" : undefined}
           data-invalid={i.invalid ? "" : undefined}
           hidden={!i.active || undefined}
         >

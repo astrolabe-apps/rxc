@@ -109,6 +109,19 @@ export function describeConformance(impl: Implementation): void {
     const byId = <E extends HTMLElement>(id: string) =>
       document.getElementById(id) as E | null;
     const text = () => document.body.textContent ?? "";
+    /**
+     * In the document and drawn: neither it nor an ancestor hidden,
+     * `display: none` or `visibility: hidden` (which also takes it out of the
+     * accessibility tree).
+     */
+    const onScreen = (el: Element | null | undefined) => {
+      if (!el) return false;
+      if (getComputedStyle(el).visibility === "hidden") return false;
+      for (let e: Element | null = el; e; e = e.parentElement)
+        if ((e as HTMLElement).hidden || getComputedStyle(e).display === "none")
+          return false;
+      return true;
+    };
     const buttonNamed = (name: string) =>
       [...document.querySelectorAll("button")].find(
         (b) => b.textContent?.trim() === name || b.getAttribute("aria-label") === name,
@@ -229,11 +242,7 @@ export function describeConformance(impl: Implementation): void {
       expect(byId("leaves")).toBeNull();
       // The region keeps its plain content mounted, and hides it now.
       expect(byId("kept")).toBe(kept);
-      let el: HTMLElement | null = kept;
-      let shown = true;
-      for (; el; el = el.parentElement)
-        if (el.hidden || getComputedStyle(el).display === "none") shown = false;
-      expect(shown).toBe(false);
+      expect(onScreen(kept)).toBe(false);
     });
 
     it("draws each boundary as one element under a body, its shellClassName on it", () => {
@@ -286,6 +295,66 @@ export function describeConformance(impl: Implementation): void {
       click(second);
       expect(byId("b")).toBe(inputB);
       expect(rc.getValue(b)).toBe("");
+    });
+
+    it("takes a hidden tab off the strip, its panel kept mounted and no longer validating", () => {
+      const hide = ctx.newControl(false);
+      mount(
+        <Tabs
+          items={[
+            { key: "one", title: "First", children: <TextField field={ctx.newControl("x")} id="a" /> },
+            {
+              key: "two",
+              title: "Second",
+              hidden: (rc) => rc.getValue(hide),
+              children: (
+                <>
+                  <TextField field={ctx.newControl("")} id="b" required />
+                  <p id="plain-two">Plain</p>
+                </>
+              ),
+            },
+          ]}
+        />,
+      );
+      const tab = () =>
+        [...document.querySelectorAll('[role="tab"]')].find((t) =>
+          t.textContent?.includes("Second"),
+        ) as HTMLElement | undefined;
+      const plain = byId("plain-two");
+      expect(onScreen(tab())).toBe(true);
+      expect(validation.isValid(rc)).toBe(false);
+      set(hide, true);
+      expect(onScreen(tab())).toBe(false);
+      expect(byId("plain-two")).toBe(plain);
+      expect(validation.isValid(rc)).toBe(true);
+      set(hide, false);
+      expect(onScreen(tab())).toBe(true);
+      expect(byId("plain-two")).toBe(plain);
+    });
+
+    it("skips a hidden wizard page with Next and Back", async () => {
+      const page = ctx.newControl<number | undefined>(0);
+      mount(
+        <Wizard
+          page={page}
+          items={[
+            { key: "p1", title: "One", children: <TextDisplay text="page one" /> },
+            {
+              key: "p2",
+              title: "Two",
+              hidden: true,
+              children: <TextField field={ctx.newControl("")} id="skipped" required />,
+            },
+            { key: "p3", title: "Three", children: <TextDisplay text="page three" /> },
+          ]}
+        />,
+      );
+      click(buttonNamed("Next")!);
+      await flush();
+      expect(rc.getValue(page)).toBe(2);
+      click(buttonNamed("Back")!);
+      expect(rc.getValue(page)).toBe(0);
     });
 
     it("keeps a closed dialog's content mounted and validating", async () => {

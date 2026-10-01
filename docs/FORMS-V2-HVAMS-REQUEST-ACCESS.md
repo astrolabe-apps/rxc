@@ -138,6 +138,11 @@ from the strip or the step sequence. The same mechanism — per-child `hidden` o
 or a cell boundary per child — is what a grid needs for parity, so all three are one design
 question, not three.
 
+**Resolved for Tabs and Wizard (after the trial):** `hidden` is on `TabItem` and `WizardPage`, as
+proposed — off the strip or out of the step sequence, the panel mounted and `hidden`, a hidden
+current tab or page handing over — and `forms-json` carries a Tabs child's `Visible` onto its
+tab. The conformance suite holds all three implementations to it.
+
 **Smaller ones:**
 
 - **Section titles are not headings.** `Contents title` draws a `<div>` in `forms-html` (and in Ant,

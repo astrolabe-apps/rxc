@@ -72,6 +72,13 @@ export interface TranslateArgs {
   props: FieldProps<any>;
   /** The definition's children, already translated. */
   children: ReactNode[];
+  /**
+   * The props built for each child, in the order of `children` — for a
+   * container that takes structured items and needs a child's metadata on the
+   * item, as Tabs puts a child's `hidden` on its tab. `undefined` for a child
+   * that was not translated through the loader.
+   */
+  childProps: (FieldProps<any> | undefined)[];
   /** For a collection: the children, rendered against one element. */
   element?: (item: Control<any>, index: number) => ReactNode;
   /** For an action: the click the host's `actionHandler` resolved, if any. */

@@ -140,6 +140,82 @@ describe("Tabs", () => {
   });
 });
 
+describe("Tabs: a hidden item", () => {
+  function Strip({
+    a,
+    b,
+    hideB,
+  }: {
+    a: Control<string>;
+    b: Control<string>;
+    hideB: Control<boolean>;
+  }) {
+    return (
+      <Tabs
+        validationKey="main"
+        items={[
+          { key: "one", title: "One", children: <TextField field={a} id="a" /> },
+          {
+            key: "two",
+            title: "Two",
+            hidden: (rc) => rc.getValue(hideB),
+            children: (
+              <>
+                <TextField field={b} id="b" required />
+                <p data-plain />
+              </>
+            ),
+          },
+        ]}
+      />
+    );
+  }
+
+  it("leaves the strip, keeps its panel mounted, and stops validating", () => {
+    const b = dom.ctx.newControl("");
+    const hideB = dom.ctx.newControl(false);
+    mount(<Strip a={dom.ctx.newControl("x")} b={b} hideB={hideB} />);
+    const plain = $("[data-plain]");
+    expect($('[data-tab="two"]')).not.toBeNull();
+    expect(root.isValid(rc)).toBe(false);
+    set(hideB, true);
+    expect($('[data-tab="two"]')).toBeNull();
+    expect($("[data-plain]")).toBe(plain);
+    expect($<HTMLElement>('[data-panel="two"]')!.hidden).toBe(true);
+    // Its field is hidden, not silent: its required rule no longer counts.
+    expect($("#b")).toBeNull();
+    expect(root.isValid(rc)).toBe(true);
+    set(hideB, false);
+    expect($('[data-tab="two"]')).not.toBeNull();
+    expect($("[data-plain]")).toBe(plain);
+  });
+
+  it("is cleared under clearHidden", () => {
+    const b = dom.ctx.newControl("typed");
+    const hideB = dom.ctx.newControl(false);
+    mount(<Strip a={dom.ctx.newControl("x")} b={b} hideB={hideB} />, {
+      clearHidden: true,
+    });
+    set(hideB, true);
+    expect(rc.getValue(b)).toBeUndefined();
+  });
+
+  it("hands the active tab to the first shown one when it hides", () => {
+    const hideB = dom.ctx.newControl(false);
+    mount(
+      <Strip a={dom.ctx.newControl("x")} b={dom.ctx.newControl("y")} hideB={hideB} />,
+    );
+    click('[data-tab="two"]');
+    expect($('[data-tab="two"]')!.hasAttribute("data-active")).toBe(true);
+    set(hideB, true);
+    expect($('[data-tab="one"]')!.hasAttribute("data-active")).toBe(true);
+    expect($<HTMLElement>('[data-panel="one"]')!.hidden).toBe(false);
+    // It stays handed over: showing the tab again does not jump back.
+    set(hideB, false);
+    expect($('[data-tab="one"]')!.hasAttribute("data-active")).toBe(true);
+  });
+});
+
 describe("Wizard", () => {
   function Signup({
     name,
@@ -247,6 +323,78 @@ describe("Wizard", () => {
     set(page, 1);
     expect(rc.isTouched(name)).toBe(true);
     expect(marked('[data-page="who"]')).toBe(true);
+  });
+});
+
+describe("Wizard: a hidden page", () => {
+  function Steps({
+    hideMiddle,
+    page,
+    field,
+  }: {
+    hideMiddle: Control<boolean>;
+    page?: Control<number | undefined>;
+    field?: Control<string>;
+  }) {
+    return (
+      <Wizard
+        page={page}
+        items={[
+          { key: "a", title: "A", children: <p /> },
+          {
+            key: "b",
+            title: "B",
+            hidden: (rc) => rc.getValue(hideMiddle),
+            children: field ? <TextField field={field} id="mid" required /> : <p />,
+          },
+          { key: "c", title: "C", children: <p /> },
+        ]}
+      />
+    );
+  }
+  const index = () => $("[data-wizard]")!.getAttribute("data-index");
+
+  it("is skipped by Next and Back, and does not block Next from before it", async () => {
+    const hide = dom.ctx.newControl(true);
+    mount(<Steps hideMiddle={hide} field={dom.ctx.newControl("")} />);
+    expect($('[data-page="b"]')!.hasAttribute("data-step-hidden")).toBe(true);
+    click("[data-next]");
+    await flush();
+    expect(index()).toBe("2");
+    expect($<HTMLButtonElement>("[data-next]")!.disabled).toBe(true);
+    click("[data-back]");
+    expect(index()).toBe("0");
+  });
+
+  it("moves the wizard on when the current page hides, writing the bound index", async () => {
+    const hide = dom.ctx.newControl(false);
+    const page = dom.ctx.newControl<number | undefined>(1);
+    mount(<Steps hideMiddle={hide} page={page} />);
+    expect(index()).toBe("1");
+    set(hide, true);
+    expect(index()).toBe("2");
+    expect(rc.getValue(page)).toBe(2);
+  });
+
+  it("falls back to the previous page when no later one is shown", () => {
+    const hide = dom.ctx.newControl(false);
+    const page = dom.ctx.newControl<number | undefined>(1);
+    function Last() {
+      return (
+        <Wizard
+          page={page}
+          items={[
+            { key: "a", title: "A", children: <p /> },
+            { key: "b", title: "B", hidden: (rc) => rc.getValue(hide), children: <p /> },
+          ]}
+        />
+      );
+    }
+    mount(<Last />);
+    expect(index()).toBe("1");
+    set(hide, true);
+    expect(index()).toBe("0");
+    expect($<HTMLButtonElement>("[data-next]")!.disabled).toBe(true);
   });
 });
 

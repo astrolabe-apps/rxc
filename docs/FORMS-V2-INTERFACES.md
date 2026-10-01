@@ -487,7 +487,15 @@ interface RadioExtra extends SelectExtra {
 // expressions build Yes/No radios over Bool fields with no schema options at all (README finding 59).
 
 /** A container needing per-child metadata takes it structured, not as children. */
-interface TabsProps  { items: { key: string; title: ReactNode; children: ReactNode }[]; … }
+interface TabsProps  { items: { key: string; title: ReactNode; hidden?: FormProp<boolean | undefined>;
+                                children: ReactNode }[]; … }
+// Visibility is per-child metadata, so it lives on the item (built). A hidden tab leaves the strip
+// and a hidden wizard page the step sequence — Next and Back skip it — while its panel stays
+// mounted in the same parent with its presence narrowed to `hidden`: not validating, and cleared
+// under `clearHidden`, exactly as under a hidden group. A hidden current tab or page hands over
+// in the same render (the first shown tab; the next shown page, else the previous), so an
+// implementation never sees a hidden item active. The loader puts a Tabs child's `Visible` on its
+// tab through `TranslateArgs.childProps`, which is legacy's `TabsRenderer` filtering.
 interface ActionProps {
   actionId: string;
   text?: FormProp<ReactNode>;

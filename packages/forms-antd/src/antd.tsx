@@ -1,4 +1,4 @@
-import { useState, type FocusEvent, type ReactNode } from "react";
+import { useId, useState, type FocusEvent, type ReactNode } from "react";
 import {
   Button,
   Checkbox,
@@ -313,8 +313,23 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
 
 function AntTabs(p: TabsRenderProps) {
   const { token } = theme.useToken();
+  const id = useId();
+  // Ant's items carry label and panel together, so a hidden tab stays in the
+  // list — dropping it would unmount its panel — and its button is collapsed
+  // by a style scoped to this strip; the panel is inactive, so Ant hides that.
+  // Collapsed in place rather than `display: none`: Ant measures every tab
+  // to decide what overflows, and a removed one lands it in the "more" menu.
+  const hiddenTabs = p.items
+    .filter((i) => i.hidden)
+    .map((i) => `[data-rxf-tabs="${id}"] .ant-tabs-tab[data-node-key=${JSON.stringify(i.key)}]`);
   return (
-    <div style={p.hidden ? { display: "none" } : undefined}>
+    <div
+      data-rxf-tabs={id}
+      style={p.hidden ? { display: "none" } : undefined}
+    >
+      {hiddenTabs.length > 0 && (
+        <style>{`${hiddenTabs.join(",")}{width:0;padding:0;margin:0;border:0;overflow:hidden;visibility:hidden}`}</style>
+      )}
       <AntTabList
         activeKey={p.activeKey}
         onChange={p.setActive}
@@ -512,13 +527,15 @@ function AntRadio(p: RadioRenderProps): Rendered {
 }
 
 function AntWizard(p: WizardRenderProps) {
+  const shown = p.items.map((i, n) => ({ i, n })).filter(({ i }) => !i.hidden);
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
+      {/* Steps over the shown pages; Ant reports a step by its position. */}
       <Steps
-        current={p.index}
+        current={shown.findIndex((s) => s.n === p.index)}
         style={{ marginBottom: 16 }}
-        onChange={p.goTo}
-        items={p.items.map((i) => ({
+        onChange={(step) => p.goTo(shown[step]!.n)}
+        items={shown.map(({ i }) => ({
           title: i.title,
           status: i.invalid ? "error" : undefined,
         }))}

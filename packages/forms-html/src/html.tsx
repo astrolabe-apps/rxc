@@ -381,7 +381,7 @@ function HtmlTabs(p: TabsRenderProps) {
       hidden={p.hidden || undefined}
     >
       <div className={t.list} role="tablist">
-        {p.items.map((i) => (
+        {p.items.filter((i) => !i.hidden).map((i) => (
           <button
             key={i.key}
             type="button"
@@ -585,18 +585,22 @@ function HtmlWizard(p: WizardRenderProps) {
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
       <ol className={t.steps}>
-        {p.items.map((i, n) => (
-          <li
-            key={i.key}
-            className={t.step}
-            data-active={n === p.index ? "" : undefined}
-            data-invalid={i.invalid ? "" : undefined}
-          >
-            <button type="button" onClick={() => p.goTo(n)}>
-              {n + 1}. {i.title}
-            </button>
-          </li>
-        ))}
+        {/* Steps over the shown pages only, numbered among themselves. */}
+        {p.items
+          .map((i, n) => ({ i, n }))
+          .filter(({ i }) => !i.hidden)
+          .map(({ i, n }, step) => (
+            <li
+              key={i.key}
+              className={t.step}
+              data-active={n === p.index ? "" : undefined}
+              data-invalid={i.invalid ? "" : undefined}
+            >
+              <button type="button" onClick={() => p.goTo(n)}>
+                {step + 1}. {i.title}
+              </button>
+            </li>
+          ))}
       </ol>
       {/* Every page rendered: an unreached one is `silent`, not absent. */}
       {p.items.map((i) => (

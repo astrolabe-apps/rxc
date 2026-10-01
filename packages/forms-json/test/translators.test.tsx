@@ -437,6 +437,36 @@ describe("groups", () => {
     expect(button("Second tab")).toBeDefined();
   });
 
+  it("takes a tab whose child is not Visible off the strip, as legacy did", () => {
+    const { data } = h.load(
+      [
+        {
+          type: "Group",
+          groupOptions: { type: "Tabs" },
+          children: [
+            { type: "Group", title: "Always", groupOptions: { type: "Standard" }, children: [] },
+            {
+              type: "Group",
+              title: "Sometimes",
+              groupOptions: { type: "Standard" },
+              dynamic: [
+                { type: "Visible", expr: { type: "FieldValue", field: "show", value: true } },
+              ],
+              children: [],
+            },
+          ],
+        },
+      ],
+      [{ field: "show", type: "Bool" }],
+      { show: false as boolean },
+    );
+    expect(button("Always")).toBeDefined();
+    expect(button("Sometimes")).toBeUndefined();
+    act(() => h.ctx.update((wc) => wc.setValue(data.fields.show, true)));
+    expect(button("Sometimes")).toBeDefined();
+    expect(h.console).toEqual([]);
+  });
+
   it("keys tabs by position, so two with one title do not collide", () => {
     h.load(
       [

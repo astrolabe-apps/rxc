@@ -355,12 +355,17 @@ function MuiTabs(p: TabsRenderProps) {
         onChange={(_, v) => p.setActive(v as string)}
         sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}
       >
+        {/* A hidden tab stays a child, styled away: changing the children
+            makes MUI re-measure the strip. */}
         {p.items.map((i) => (
           <MuiTab
             key={i.key}
             value={i.key}
             label={i.title}
-            sx={i.invalid ? { color: "error.main" } : undefined}
+            sx={{
+              ...(i.invalid ? { color: "error.main" } : {}),
+              ...(i.hidden ? { display: "none" } : {}),
+            }}
           />
         ))}
       </MuiTabList>
@@ -572,10 +577,15 @@ function MuiRadio(p: RadioRenderProps): Rendered {
 }
 
 function MuiWizard(p: WizardRenderProps) {
+  const shown = p.items.filter((i) => !i.hidden);
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
-      <Stepper activeStep={p.index} sx={{ mb: 2 }}>
-        {p.items.map((i) => (
+      {/* The stepper counts the shown pages only. */}
+      <Stepper
+        activeStep={shown.findIndex((i) => i.key === p.items[p.index]?.key)}
+        sx={{ mb: 2 }}
+      >
+        {shown.map((i) => (
           <Step key={i.key}>
             <StepLabel error={i.invalid}>{i.title}</StepLabel>
           </Step>
