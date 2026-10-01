@@ -95,7 +95,7 @@ export function Offscreen({
     [parent, presence],
   );
   return rendered(
-    <Region hidden={isOff}>
+    <Region hidden={isOff} transitions={parent.transitions}>
       <FormScopeProvider scope={scope}>{children}</FormScopeProvider>
     </Region>,
   );

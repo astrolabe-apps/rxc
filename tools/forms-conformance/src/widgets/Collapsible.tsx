@@ -93,7 +93,7 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
           </span>
         )}
       </button>
-      <Body hidden={!shown} className={p.className}>
+      <Body hidden={!shown} transitions={p.transitions} className={p.className}>
         {p.children}
       </Body>
     </section>,

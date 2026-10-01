@@ -85,15 +85,19 @@ export function Contents({
   hidden,
   invalid,
   layout,
+  transitions,
   children,
   classes = defaultHtmlTheme.contents,
 }: GroupRenderProps & { classes?: HtmlTheme["contents"] }) {
+  // With transitions off the region goes at once, whatever the theme
+  // animates: the attribute, and none of the theme's `[data-hidden]` collapse.
+  const byClass = transitions && classes.hideWith === "class";
   // One element each for wrapper, title and body: a theme and the author's
   // class slots can each style every part.
   return (
     <div
       className={mergeClass(
-        hidden && classes.hideWith === "class" && classes.hidden
+        hidden && byClass && classes.hidden
           ? `${classes.wrapper} ${classes.hidden}`
           : classes.wrapper,
         shellClassName,
@@ -101,8 +105,11 @@ export function Contents({
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
-      // The one hide that needs no CSS; a theme that animates opts out.
-      hidden={(hidden && classes.hideWith === "attribute") || undefined}
+      // The one hide that needs no CSS; a theme that animates opts out. The
+      // style too, because a theme's own `display` on the wrapper (the
+      // collapse is a grid) beats the attribute when there is no preflight.
+      hidden={(hidden && !byClass) || undefined}
+      style={hidden && !byClass ? { display: "none" } : undefined}
     >
       <div className={classes.inner}>
         {title !== undefined && title !== null && (

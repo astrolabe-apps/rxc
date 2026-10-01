@@ -308,6 +308,80 @@ describe("the group boundary", () => {
   });
 });
 
+describe("transitions", () => {
+  // A visibility slot that marks what it wraps, and a group that reports
+  // the `transitions` it was handed.
+  const fading: typeof testRenderers = {
+    ...testRenderers,
+    visibility: ({ visible, children }) =>
+      visible ? <div data-fade>{children}</div> : null,
+    contents: (p) => (
+      <div data-group data-transitions={String(p.transitions)} hidden={p.hidden || undefined}>
+        {p.children}
+      </div>
+    ),
+  };
+  const mountFading = (ui: ReactNode, formProps: object = {}) =>
+    dom.mount(
+      <FormProvider renderers={fading}>
+        <Form {...formProps}>{ui}</Form>
+      </FormProvider>,
+    );
+
+  it("are on by default: every boundary renders through the visibility slot", () => {
+    const c = dom.ctx.newControl("x");
+    mountFading(
+      <Group>
+        <Text field={c} />
+        <Show text="hi" />
+      </Group>,
+    );
+    expect($$("[data-fade]")).toHaveLength(2);
+    expect($("[data-group]")!.getAttribute("data-transitions")).toBe("true");
+  });
+
+  it("off under a group, its children skip the slot and leave at once", () => {
+    const c = dom.ctx.newControl("x");
+    const hide = dom.ctx.newControl(false);
+    const arr = dom.ctx.newControl(["a"]);
+    mountFading(
+      <Group transitions={false}>
+        <Text field={c} hidden={(rc) => rc.getValue(hide)} />
+        <Show text="hi" />
+        <List field={arr as Control<unknown[]>}>{() => null}</List>
+      </Group>,
+    );
+    expect($$("[data-fade]")).toHaveLength(0);
+    expect($("[data-field]")).not.toBeNull();
+    set(hide, true);
+    expect($("[data-field]")).toBeNull();
+    set(hide, false);
+    expect($("[data-field]")).not.toBeNull();
+  });
+
+  it("the group itself hides as its parent scope says; nesting turns them back on", () => {
+    const c = dom.ctx.newControl("x");
+    mountFading(
+      <Group transitions={false}>
+        <Group transitions>
+          <Text field={c} />
+        </Group>
+      </Group>,
+    );
+    const [outer, inner] = $$("[data-group]");
+    expect(outer.getAttribute("data-transitions")).toBe("true");
+    expect(inner.getAttribute("data-transitions")).toBe("false");
+    expect($$("[data-fade]")).toHaveLength(1);
+  });
+
+  it("can be turned off for a whole form", () => {
+    const c = dom.ctx.newControl("x");
+    mountFading(<Text field={c} />, { transitions: false });
+    expect($$("[data-fade]")).toHaveLength(0);
+    expect($("[data-field]")).not.toBeNull();
+  });
+});
+
 describe("the display boundary", () => {
   it("renders content, its accessible name, and leaves when hidden", () => {
     const hide = dom.ctx.newControl(false);

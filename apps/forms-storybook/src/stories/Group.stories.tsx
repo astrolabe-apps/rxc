@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   CheckboxField,
@@ -87,3 +88,38 @@ function Flex(): Rendered {
 
 /** `layout` makes the body itself the flex box — no Stack inside it. */
 export const FlexLayout: Story = { render: () => <Flex /> };
+
+function ClassGrid(): Rendered {
+  const { rendered } = useReactive();
+  const data = useControl({
+    showModel: true,
+    make: "Toyota",
+    model: "Corolla",
+    colour: "Blue",
+  });
+  const f = data.fields;
+  const noModel = (rc: ReadContext) => !rc.getValue(f.showModel);
+  return rendered(
+    <Stack direction="column" gap={8}>
+      <CheckboxField field={f.showModel} label="Show the model" />
+      <Contents
+        transitions={false}
+        className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr_auto_1fr]"
+      >
+        <TextDisplay text="Make" />
+        <DisplayOnlyField field={f.make} />
+        <TextDisplay text="Model" hidden={noModel} />
+        <DisplayOnlyField field={f.model} hidden={noModel} />
+        <TextDisplay text="Colour" />
+        <DisplayOnlyField field={f.colour} />
+      </Contents>
+    </Stack>,
+  );
+}
+
+/**
+ * A grid is classes on the group's body. With transitions off, each child is
+ * one element and a hidden pair takes no cells, so the pairs after it move up
+ * rather than leaving a hole — what legacy's `Grid` did by filtering.
+ */
+export const ClassNameGrid: Story = { render: () => <ClassGrid /> };

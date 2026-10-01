@@ -38,6 +38,7 @@ import {
   fieldContractKeys,
   republish,
   resolveImpl,
+  visibilityFor,
 } from "./boundaryParts.js";
 
 /**
@@ -251,7 +252,7 @@ export function collectionRenderer<T, P extends object = {}>(
       empty,
     };
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
-    const Visibility = renderers.visibility;
+    const Visibility = visibilityFor(renderers, scope);
     const body = republish(
       <FormScopeProvider scope={scope}>
         <Impl {...renderProps} {...extraProps(props, collectionContractKeys)} />

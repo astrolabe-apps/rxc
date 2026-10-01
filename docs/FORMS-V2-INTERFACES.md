@@ -1359,6 +1359,22 @@ transition, without anyone having to name it as a state. A non-animating `visibi
 default — drops its children at once and the region collapses over an empty box, which is the
 right answer there: nothing was animating to begin with.
 
+**Turning transitions off for a region.** The slot is the app's choice, but whether a given
+region *wants* exits is the author's: a grid of label/value pairs should close up the moment a
+pair hides, not hold it for a fade. `transitions={false}` on a group (or on `<Form>`) is a scope
+facet, inherited like `inline`: boundaries below it skip the `visibility` slot and mount or
+unmount at once, and a group below it is handed `transitions: false` and must hide on the spot
+(html's `Contents` uses the `hidden` attribute plus `display: none`, overriding a theme's
+collapse). It is a facet rather than a nested `FormProvider` with a different slot because that
+would make the form name an implementation, and remount the implementation's `root` mid-page.
+
+It is also what makes **layout by classes** work. A grid or flex body is the author's
+`className` on the group; with transitions off, each child is one element (no transition
+wrapper) and a hidden child produces no box, so CSS grid's auto-placement is exactly legacy
+`GridRenderer`'s filter-then-chunk — a hidden pair takes no cells, and responsive column counts
+are ordinary breakpoint classes. The group's own hide follows the scope *it* sits in, so a
+region can fade out while its children appear and disappear at once.
+
 `options` is declared once and pays twice — it is what makes a custom render option
 *scriptable*, and the designer edits it off the same declaration. An extension shipping its own
 editor panel would be additional work, not a substitute.

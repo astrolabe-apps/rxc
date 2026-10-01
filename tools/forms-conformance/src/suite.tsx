@@ -10,6 +10,7 @@ import {
 import {
   Action,
   CheckboxField,
+  Contents,
   Dialog,
   Elements,
   Form,
@@ -210,6 +211,29 @@ export function describeConformance(impl: Implementation): void {
     it("unmounts a hidden field's widget", () => {
       mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
       expect(byId("gone")).toBeNull();
+    });
+
+    it("with transitions off, takes a field and a region off screen at once", () => {
+      const hide = ctx.newControl(false);
+      mount(
+        <Contents transitions={false}>
+          <TextField field={ctx.newControl("")} id="leaves" label="Leaves" hidden={hide} />
+          <Contents hidden={hide}>
+            <p id="kept">Plain content</p>
+          </Contents>
+        </Contents>,
+      );
+      const kept = byId("kept");
+      set(hide, true);
+      // No timer has run: nothing is held for an exit transition.
+      expect(byId("leaves")).toBeNull();
+      // The region keeps its plain content mounted, and hides it now.
+      expect(byId("kept")).toBe(kept);
+      let el: HTMLElement | null = kept;
+      let shown = true;
+      for (; el; el = el.parentElement)
+        if (el.hidden || getComputedStyle(el).display === "none") shown = false;
+      expect(shown).toBe(false);
     });
 
     it("keeps every tab mounted and validating, and the same node across a switch", () => {

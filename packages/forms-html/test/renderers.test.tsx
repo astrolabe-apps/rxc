@@ -204,6 +204,23 @@ describe("hiding with no CSS at all", () => {
     expect(el.hasAttribute("inert")).toBe(true);
   });
 
+  it("hides at once under transitions={false}, whatever the theme animates", () => {
+    const hide = dom.ctx.newControl(true);
+    mount(
+      <Contents transitions={false}>
+        <Contents hidden={hide} className="inner">
+          {null}
+        </Contents>
+      </Contents>,
+      { theme: tailwindHtmlTheme },
+    );
+    const el = $<HTMLElement>(".inner")!.closest<HTMLElement>("[data-hidden]")!;
+    expect(el.hidden).toBe(true);
+    // The theme's wrapper is a grid, which beats the attribute without
+    // preflight: the inline style is what actually hides it.
+    expect(el.style.display).toBe("none");
+  });
+
   it("hides inactive tabs and unreached wizard pages with the attribute", () => {
     mount(
       <>
@@ -354,6 +371,20 @@ describe("FadeVisibility", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("is skipped under transitions={false}: no wrapper, and gone at once", () => {
+    const hide = dom.ctx.newControl(false);
+    mount(
+      <Contents transitions={false}>
+        <TextField field={dom.ctx.newControl("")} hidden={hide} />
+      </Contents>,
+      { fade: true },
+    );
+    expect($(".rxf-fade")).toBeNull();
+    expect($("input")).not.toBeNull();
+    set(hide, true);
+    expect($("input")).toBeNull();
   });
 
   it("uses the theme's fade slot", () => {

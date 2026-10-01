@@ -3,6 +3,7 @@ import { FormEditProvider } from "@rx-controls/react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import type { FormRenderers, RegistrySlot } from "./registry.js";
 import type { ScopeState } from "./scope.js";
+import type { VisibilityProps } from "./primitives.js";
 
 /**
  * What a boundary reads about its control: the two locks and `touched`, and
@@ -66,6 +67,23 @@ export function designChrome(node: ReactNode, on: boolean): ReactNode {
       {node}
     </div>
   );
+}
+
+/**
+ * The `visibility` a boundary renders through: the implementation's slot, or —
+ * with the scope's transitions off — one that mounts and unmounts at once and
+ * adds no element. The choice is the scope's, fixed for a region, so the
+ * component at this position does not change under a mounted widget.
+ */
+export function visibilityFor(
+  renderers: FormRenderers,
+  scope: ScopeState,
+): ComponentType<VisibilityProps> {
+  return scope.transitions ? renderers.visibility : Immediate;
+}
+
+function Immediate({ visible, children }: VisibilityProps): ReactNode {
+  return visible ? children : null;
 }
 
 /** A component of the boundary's own, or the active implementation's slot. */

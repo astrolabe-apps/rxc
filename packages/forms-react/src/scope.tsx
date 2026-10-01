@@ -91,6 +91,13 @@ export interface ScopeState {
    * draws a bare inline element with no shell.
    */
   inline: boolean;
+  /**
+   * Boundaries here leave and arrive through the implementation's
+   * `visibility` slot — its exit transition — rather than at once. On by
+   * default; `false` under a group whose children should simply appear and
+   * disappear, which also leaves no transition wrapper around them.
+   */
+  transitions: boolean;
 }
 
 /**
@@ -112,6 +119,8 @@ export interface ScopeNarrowing {
   designMode?: boolean;
   /** Mark this region's children as inline prose. */
   inline?: boolean;
+  /** Turn the region's transitions off, or back on. See {@link ScopeState.transitions}. */
+  transitions?: boolean;
 }
 
 /**
@@ -163,8 +172,15 @@ export function Form({
     !given,
   );
   const validation = (given as ValidationScopeImpl | undefined) ?? own!;
-  const { presence, disabled, readOnly, clearHidden, designMode, inline } =
-    narrowing;
+  const {
+    presence,
+    disabled,
+    readOnly,
+    clearHidden,
+    designMode,
+    inline,
+    transitions,
+  } = narrowing;
   const scope = useMemo((): InternalScope => {
     const s = narrowScope(parent, {
       presence,
@@ -172,6 +188,7 @@ export function Form({
       clearHidden,
       designMode,
       inline,
+      transitions,
       // The global lock is the form's: a running `disableType: "global"`
       // action holds it, and every boundary reads it as `disabled`.
       disabled: (rc) =>
@@ -187,6 +204,7 @@ export function Form({
     clearHidden,
     designMode,
     inline,
+    transitions,
   ]);
   return (
     <ScopeContext.Provider value={scope}>
@@ -212,6 +230,7 @@ const rootScope: InternalScope = {
   clearHidden: false,
   designMode: false,
   inline: false,
+  transitions: true,
 };
 
 const ScopeContext = createContext<InternalScope>(rootScope);
@@ -291,6 +310,7 @@ export function narrowScope(
     clearHidden: n.clearHidden ?? parent.clearHidden,
     designMode: n.designMode ?? parent.designMode,
     inline: n.inline ?? parent.inline,
+    transitions: n.transitions ?? parent.transitions,
     globalLock: (parent as InternalScope).globalLock,
   };
   return scope;

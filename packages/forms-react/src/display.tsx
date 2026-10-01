@@ -9,6 +9,7 @@ import {
   designChrome,
   extraProps,
   resolveImpl,
+  visibilityFor,
 } from "./boundaryParts.js";
 
 /**
@@ -137,7 +138,7 @@ export function displayRenderer<P extends object = {}>(
     const scope = useBoundScope(props);
     const presence = scope.presence(rc);
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
-    const Visibility = renderers.visibility;
+    const Visibility = visibilityFor(renderers, scope);
     const renderProps: DisplayRenderProps = {
       accessibleName: getProp(rc, props.accessibleName),
       inline: scope.inline,

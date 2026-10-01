@@ -69,6 +69,14 @@ export interface GroupProps {
    */
   layout?: FormProp<StackLayout | undefined>;
   /**
+   * Whether boundaries inside leave and arrive through the implementation's
+   * transitions. `false` makes them appear and disappear at once, with no
+   * transition wrapper around each — what a grid or flex body of fields
+   * usually wants. The group's own hiding follows the scope it sits in;
+   * absent inherits.
+   */
+  transitions?: boolean;
+  /**
    * The group's name in the validation tree. Meaningful only on a group that
    * makes a scope — one built `{ scope: true }`, such as {@link Section}.
    */
@@ -111,6 +119,11 @@ export interface GroupRenderProps {
    * ignore it.
    */
   layout?: StackLayout;
+  /**
+   * Whether the region's own hiding may transition. `false` must hide at
+   * once — the `hidden` attribute rather than an animated collapse.
+   */
+  transitions: boolean;
   /** The content. */
   children: ReactNode;
 }
@@ -158,9 +171,16 @@ export function groupRenderer<P extends object = {}>(
     const bound = useBoundScope(props);
     // `inline` is the container's kind, not a prop, so it is a boundary
     // option — and reaches the children as a scope facet.
+    const { transitions } = props;
     const scope = useMemo(
-      () => (options?.inline ? narrowScope(bound, { inline: true }) : bound),
-      [bound],
+      () =>
+        options?.inline || transitions !== undefined
+          ? narrowScope(bound, {
+              inline: options?.inline || undefined,
+              transitions,
+            })
+          : bound,
+      [bound, transitions],
     );
     const presence = scope.presence(rc);
     // Opt-in: only a group that is asked "is my content invalid" makes a
@@ -184,6 +204,9 @@ export function groupRenderer<P extends object = {}>(
       hidden: presence !== "rendered",
       invalid: validation ? validation.showingErrors(rc) : undefined,
       layout: getProp(rc, props.layout),
+      // The region itself hides as the scope around it says; `transitions`
+      // on the group is for what is inside.
+      transitions: bound.transitions,
       children: props.children,
     };
     const body = (
@@ -220,6 +243,7 @@ const groupContractKeys: ReadonlySet<string> = new Set([
   "labelClassName",
   "labelTextClassName",
   "layout",
+  "transitions",
   "validationKey",
   "children",
 ]);
