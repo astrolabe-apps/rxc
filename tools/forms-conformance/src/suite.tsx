@@ -236,6 +236,36 @@ export function describeConformance(impl: Implementation): void {
       expect(shown).toBe(false);
     });
 
+    it("draws each boundary as one element under a body, its shellClassName on it", () => {
+      const arr = ctx.newControl(["a"]);
+      const boundaries: [string, ReactNode][] = [
+        ["field", <TextField field={ctx.newControl("")} label="F" shellClassName="cell" />],
+        ["display", <TextDisplay text="T" shellClassName="cell" />],
+        ["group", <Contents shellClassName="cell">x</Contents>],
+        [
+          "collection",
+          <Elements field={arr} shellClassName="cell">
+            {() => <TextDisplay text="row" />}
+          </Elements>,
+        ],
+      ];
+      // A class layout on the body sees exactly these elements: what a
+      // grid places, and where a child's `col-span-*` has to land.
+      for (const [kind, ui] of boundaries) {
+        mount(
+          <Contents transitions={false} className="layout-body">
+            {ui}
+          </Contents>,
+        );
+        const kids = [...document.querySelector(".layout-body")!.children];
+        expect([kind, kids.length, kids[0]?.classList.contains("cell")]).toEqual([
+          kind,
+          1,
+          true,
+        ]);
+      }
+    });
+
     it("keeps every tab mounted and validating, and the same node across a switch", () => {
       const a = ctx.newControl("x");
       const b = ctx.newControl("");

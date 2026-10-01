@@ -107,6 +107,16 @@ needs. Two ways out:
 For this form a `columns` option on `StackLayout` (or a `Grid` group over the planned `grid` slot)
 drawn as a CSS grid would do on the web. Parity with legacy on both platforms needs the second.
 
+**Resolved for the grid (after the trial):** no grid boundary and no `columns` option. Layout is
+classes on the group's body — which is how the ServiceTas corpus already lays forms out, its
+responsive layouts being Tailwind classes on Standard groups rather than `Grid` groups — and
+`<Contents transitions={false}>` makes each child exactly one element with no transition
+wrapper, so a hidden child produces no box and CSS grid's auto-placement *is* legacy's
+filter-then-chunk. Per-breakpoint columns are breakpoint classes. The conformance suite now
+holds every implementation to one element per boundary, with `shellClassName` on it. See
+`FORMS-V2-INTERFACES.md` §7, "Layout is classes". The Tabs and Wizard cases below are not
+layout and stay open.
+
 The same question comes up in two containers v2 has already built, and there it is not cosmetic:
 
 - **Tabs.** Legacy's `TabsRenderer` filters hidden children out of the strip. v2's `TabItem` is
