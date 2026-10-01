@@ -1090,6 +1090,12 @@ here the widget *is* the control — and Ant's and Mantine's draw their own surf
    and the honest price of family 2.
 2. **`id` / `describedBy` on the frame** — `ControlSlotProps` already carried both, which
    only works if the frame is told them. MUI's `OutlinedInput` takes `id` and passes it down itself.
+   The ids `describedBy` names are **the shell's to render** (`fieldErrorId` / `fieldHelpId`,
+   decided after the HVAMS trial): `forms-antd`'s `Form.Item` rendered its message under ids of
+   its own, so every Ant control's `aria-describedby` named an element that did not exist — the
+   error visible and silent to assistive technology. The convention was only in `describedBy`'s
+   body, so no implementation could know to honour it; it is now on `FieldShellProps`, and the
+   conformance suite reads every widget's description through the accessibility tree.
 3. **`disabled` on the shell** — MUI's `FormControl` greys its own label and helper text from
    it, and nothing else tells it.
 4. **`surface`** — MUI has two label components, `InputLabel` (floats over a framed input) and

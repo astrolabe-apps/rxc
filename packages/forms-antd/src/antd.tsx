@@ -17,6 +17,8 @@ import {
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
+  fieldErrorId,
+  fieldHelpId,
   getProp,
   mergeClass,
   useFieldShell,
@@ -69,7 +71,15 @@ function AntFieldShell(p: FieldShellProps) {
       htmlFor={p.labelAs === "legend" ? undefined : p.id}
       required={p.required}
       validateStatus={p.error ? "error" : undefined}
-      help={p.error ?? p.helpText}
+      // Form.Item renders `help` under ids of its own; the contract's ids
+      // (what every control's aria-describedby names) go on a span inside.
+      help={
+        p.error ? (
+          <span id={fieldErrorId(p.id)}>{p.error}</span>
+        ) : p.helpText ? (
+          <span id={fieldHelpId(p.id)}>{p.helpText}</span>
+        ) : undefined
+      }
       className={mergeClass(undefined, p.className)}
       style={{ marginBottom: 12 }}
     >
@@ -302,6 +312,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
     >
       <Checkbox
         id={p.id}
+        aria-describedby={describedBy(p)}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         onChange={(e) => ctl.setChecked(e.target.checked)}
@@ -456,6 +467,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
     >
       <Select
         id={p.id}
+        aria-describedby={describedBy(p)}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         status={p.error ? "error" : undefined}
         disabled={ctl.state.disabled || ctl.state.readOnly}
@@ -506,6 +518,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
     >
       <Radio.Group
         name={p.id}
+        aria-describedby={describedBy(p)}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={ctl.onBlur}

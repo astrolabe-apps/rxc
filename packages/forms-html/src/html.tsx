@@ -8,6 +8,8 @@ import {
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
+  fieldErrorId,
+  fieldHelpId,
   getProp,
   mergeClass,
   useFieldShell,
@@ -100,15 +102,15 @@ function HtmlFieldShell(p: FieldShellProps) {
         </>
       )}
       {p.helpText && !p.error && (
-        <p className={t.help} id={`${p.id}-help`}>
+        <p className={t.help} id={fieldHelpId(p.id)}>
           {p.helpText}
         </p>
       )}
       {p.error &&
         (t.renderError ? (
-          t.renderError(p.error, `${p.id}-error`)
+          t.renderError(p.error, fieldErrorId(p.id))
         ) : (
-          <p className={t.error} id={`${p.id}-error`}>
+          <p className={t.error} id={fieldErrorId(p.id)}>
             {p.error}
           </p>
         ))}

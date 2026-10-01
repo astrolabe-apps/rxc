@@ -217,6 +217,11 @@ Phone's still showed. Keyed validators (`validate={{ maxLength }}`) are unaffect
 key a bare validator per boundary, as `required` already is (`default@<boundary id>`), which also
 fixes two boundaries on one control sharing a bare validator's key.
 
+**Resolved (after the trial):** a bare validator is keyed per boundary, `default@<id>`
+(`bareValidatorKey`), as `required` is — so it never claims the plain `default` a host's server
+errors arrive under, and two boundaries on one control no longer share its key. Pinned by the
+repro above as a test.
+
 **No native submission.** `forms-html`'s action is `type="button"` and `<Form>` renders no
 `<form>`, so Enter in a field submits nothing. Whether `<Form>` should own a submit action (an
 `onSubmit` that is the root's `check()` plus the handler) is a question the first real form raises
@@ -238,6 +243,13 @@ the error is visible and invisible to assistive technology. The e2e spec's
 implementation cannot know it has to honour it. Suggested: make the ids the shell's — either
 `FieldShellProps` takes `errorId` / `helpId` and every shell must render them, or the shell reports
 them back — and add the check to the conformance suite.
+
+**Resolved (after the trial):** the ids are the shell's — `fieldErrorId` / `fieldHelpId`, which
+`FieldShellProps` now requires a shell to render and `describedBy` names — and Ant's shell wraps
+its message in an element carrying them. The same audit found MUI's and Ant's select, radio and
+checkbox carried no `aria-describedby` at all; they do now. The conformance suite reads each
+widget's description through the accessibility tree, help first and then the error, under every
+implementation.
 
 **Ant's select is a combobox, not a `<select>`.** Playwright's `selectOption` fails. That is test
 portability, not a gap: e2e tests written against one implementation's native controls do not carry

@@ -35,6 +35,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   describedBy,
+  fieldErrorId,
+  fieldHelpId,
   getProp,
   mergeClass,
   useFieldShell,
@@ -138,7 +140,7 @@ function MuiFieldShell(p: FieldShellProps) {
           </>
         )}
         {(p.error || p.helpText) && (
-          <FormHelperText id={p.error ? `${p.id}-error` : `${p.id}-help`}>
+          <FormHelperText id={p.error ? fieldErrorId(p.id) : fieldHelpId(p.id)}>
             {p.error ?? p.helpText}
           </FormHelperText>
         )}
@@ -338,6 +340,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
     >
       <Checkbox
         id={p.id}
+        slotProps={{ input: { "aria-describedby": describedBy(p) } }}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         onChange={(e) => ctl.setChecked(e.target.checked)}
@@ -499,6 +502,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       <Select
         id={p.id}
         label={p.label}
+        SelectDisplayProps={{ "aria-describedby": describedBy(p) }}
         value={ctl.stringValue}
         displayEmpty
         disabled={ctl.state.disabled || ctl.state.readOnly}
@@ -555,6 +559,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
     >
       <RadioGroup
         name={p.id}
+        aria-describedby={describedBy(p)}
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}
         onBlur={ctl.onBlur}

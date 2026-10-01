@@ -221,6 +221,38 @@ export function describeConformance(impl: Implementation): void {
       expect(text()).toContain("Bee");
     });
 
+    it("describes every control by its help, then by its error, through the accessibility tree", () => {
+      const opts = [
+        { name: "Ay", value: "a" },
+        { name: "Bee", value: "b" },
+      ];
+      const cases: [string, (c: Control<any>) => ReactNode][] = [
+        ["text", (c) => <TextField field={c} label="T" required requiredMessage="Needed" helpText="Help" />],
+        ["select", (c) => <SelectField field={c} label="S" options={opts} required requiredMessage="Needed" helpText="Help" />],
+        ["radio", (c) => <RadioField field={c} label="R" options={opts} required requiredMessage="Needed" helpText="Help" />],
+        ["checkbox", (c) => <CheckboxField field={c} label="C" required requiredMessage="Needed" helpText="Help" />],
+      ];
+      // What assistive technology reads: the text of the elements the
+      // control's aria-describedby names — which must exist.
+      const description = () => {
+        const described = [...container.querySelectorAll("[aria-describedby]")];
+        return described.map((el) =>
+          el
+            .getAttribute("aria-describedby")!
+            .split(/\s+/)
+            .map((id) => document.getElementById(id)?.textContent?.trim() ?? `(no #${id})`)
+            .join(" "),
+        );
+      };
+      for (const [kind, ui] of cases) {
+        const c = ctx.newControl<unknown>(undefined);
+        mount(ui(c));
+        expect([kind, description()]).toEqual([kind, ["Help"]]);
+        act(() => ctx.update((wc) => wc.setTouched(c, true)));
+        expect([kind, description()]).toEqual([kind, ["Needed"]]);
+      }
+    });
+
     it("unmounts a hidden field's widget", () => {
       mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
       expect(byId("gone")).toBeNull();

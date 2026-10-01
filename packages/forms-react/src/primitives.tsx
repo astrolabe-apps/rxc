@@ -13,6 +13,14 @@ import { useRenderers } from "./registry.js";
  * wired for accessibility. Resolved from the active implementation, so a
  * third-party widget looks native under every one of them.
  *
+ * **The shell owns the description's ids.** A control points its
+ * `aria-describedby` at {@link describedBy}, so a shell must render the
+ * `error`, when there is one, in an element with id {@link fieldErrorId}, and
+ * otherwise the `helpText` in one with id {@link fieldHelpId}. A library whose
+ * own form item renders the message under ids of its own wraps the message in
+ * an element carrying these. The conformance suite checks it through the
+ * accessibility tree.
+ *
  * @group Implementations
  */
 export interface FieldShellProps {
@@ -40,9 +48,9 @@ export interface FieldShellProps {
   required?: boolean;
   /** The field is disabled; some libraries grey the label and help from this. */
   disabled?: boolean;
-  /** Help text. */
+  /** Help text, under id {@link fieldHelpId} when no error is showing. */
   helpText?: ReactNode;
-  /** The error to show. */
+  /** The error to show, under id {@link fieldErrorId}. */
   error?: ReactNode;
   /** The control. */
   children: ReactNode;
@@ -178,9 +186,28 @@ export function useInputFrame(): ComponentType<InputFrameProps> {
 }
 
 /**
+ * The id the {@link FieldShellProps | shell} renders a field's error under.
+ *
+ * @group Implementations
+ */
+export function fieldErrorId(id: string): string {
+  return `${id}-error`;
+}
+
+/**
+ * The id the {@link FieldShellProps | shell} renders a field's help under.
+ *
+ * @group Implementations
+ */
+export function fieldHelpId(id: string): string {
+  return `${id}-help`;
+}
+
+/**
  * The id a control's `aria-describedby` should name: the shell's error when
- * there is one, else its help, else nothing. For an implementation wiring a
- * control to a shell by hand.
+ * there is one, else its help, else nothing — the element the shell is bound
+ * to render. For an implementation, or a widget written outside one, wiring
+ * a control to its shell.
  *
  * @group Implementations
  */
@@ -190,8 +217,8 @@ export function describedBy(field: {
   helpText?: ReactNode;
 }): string | undefined {
   return field.error
-    ? `${field.id}-error`
+    ? fieldErrorId(field.id)
     : field.helpText
-      ? `${field.id}-help`
+      ? fieldHelpId(field.id)
       : undefined;
 }
