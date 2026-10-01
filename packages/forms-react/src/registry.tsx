@@ -20,7 +20,6 @@ import type { GroupRenderProps } from "./group.js";
 import type {
   FieldShellProps,
   InputFrameProps,
-  StackProps,
   VisibilityProps,
 } from "./primitives.js";
 import type {
@@ -81,8 +80,6 @@ export interface FormRenderers {
   inputFrame: ComponentType<InputFrameProps>;
   /** Mount lifetime of what a boundary renders — where exit transitions live. */
   visibility: ComponentType<VisibilityProps>;
-  /** The layout box. */
-  stack: ComponentType<StackProps>;
   /**
    * The implementation's own root, if it needs one — a library's theme or
    * config provider. {@link FormProvider} mounts it, so an app need not know

@@ -21,7 +21,6 @@ import {
   RadioField,
   Section,
   SelectField,
-  Stack,
   Tabs,
   TextDisplay,
   TextField,
@@ -50,7 +49,7 @@ function Kitchen(): Rendered {
   const f = data.fields;
   return rendered(
     <Form>
-      <Stack gap={8}>
+      <div className="flex flex-col gap-2">
         {/* No `id`: the boundary's useId has to agree across server and client. */}
         <TextField field={f.name} label="Name" required helpText="Help" />
         <TextField field={f.notes} label="Notes" multiline />
@@ -94,7 +93,7 @@ function Kitchen(): Rendered {
         <Dialog open={open} title="Details">
           <TextField field={f.name} label="Name in dialog" />
         </Dialog>
-      </Stack>
+      </div>
     </Form>,
   );
 }

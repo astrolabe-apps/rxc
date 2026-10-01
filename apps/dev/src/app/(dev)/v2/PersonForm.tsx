@@ -25,7 +25,6 @@ import {
   narrowScope,
   TextField,
   useFormScope,
-  useStack,
   useFormValidation,
   useValidation,
   type Presence,
@@ -278,7 +277,6 @@ export function PersonForm({
   const { rc, rendered, update } = useReactive();
   const ctx = useControlContext();
   const f = data.fields;
-  const Stack = useStack();
   // Buttons outside the list: mutation is not the collection renderer's job.
   const pets = arrayActions(rc, ctx, f.pets, petBounds);
   // The dialog's open state is a control, so `open` binds to it directly —
@@ -308,8 +306,8 @@ export function PersonForm({
               key: "details",
               title: "Details",
               children: (
-                <Stack gap={4}>
-                  <Stack direction="row" gap={16}>
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-row gap-4">
                     <TextField
                       field={f.firstName}
                       label="First name"
@@ -317,7 +315,7 @@ export function PersonForm({
                       placeholder="Ada"
                     />
                     <TextField field={f.lastName} label="Last name" />
-                  </Stack>
+                  </div>
 
                   <Panel presence={emailPresence}>
                     <TextField
@@ -424,7 +422,7 @@ export function PersonForm({
                   {/* The Mast form's shape, hand-written: a glyph pair switched by
             data, each carrying the meaning the glyph does not. Hover for the
             implementation's answer to "is the name also visible". */}
-                  <Stack direction="row" gap={8} align="center">
+                  <div className="flex flex-row gap-2 items-center">
                     <IconDisplay
                       icon={<i className="fa-regular fa-person" aria-hidden />}
                       accessibleName="The operator is a person."
@@ -444,11 +442,11 @@ export function PersonForm({
                           : "Person — set status to Inactive for the business."
                       }
                     />
-                  </Stack>
+                  </div>
                   {/* The portal container. Its content is `silent` while closed:
             the required field inside validates (see the state table) and the
             trigger reports it. Design mode renders it inline instead. */}
-                  <Stack direction="row" gap={12} align="center">
+                  <div className="flex flex-row gap-3 items-center">
                     <Action
                       actionId="openDetails"
                       text="More details…"
@@ -462,13 +460,13 @@ export function PersonForm({
                           : "Last name missing — required, inside the dialog."
                       }
                     />
-                  </Stack>
+                  </div>
                   <Dialog
                     open={detailsOpen}
                     onClose={() => setDetailsOpen(false)}
                     title="More details"
                   >
-                    <Stack gap={4}>
+                    <div className="flex flex-col gap-1">
                       <TextField
                         field={f.lastName}
                         label="Last name"
@@ -483,7 +481,7 @@ export function PersonForm({
                           { name: "High", value: 3 },
                         ]}
                       />
-                    </Stack>
+                    </div>
                   </Dialog>
                   <Stars
                     field={f.rating}
@@ -493,14 +491,14 @@ export function PersonForm({
                     requiredMessage="Please rate us"
                     helpText="A third-party widget."
                   />
-                </Stack>
+                </div>
               ),
             },
             {
               key: "pets",
               title: "Pets",
               children: (
-                <Stack gap={4}>
+                <div className="flex flex-col gap-1">
                   {/* What replaced <Each>: a boundary, so the array itself gets a
             Length validator, clearHidden, and the cascade. The region around
             it can be locked on its own, and `<Section>` is the same renderer
@@ -574,14 +572,14 @@ export function PersonForm({
                     Plain JSX inside the Pets tab — no boundary suppresses this,
                     so the panel itself has to hide it.
                   </p>
-                </Stack>
+                </div>
               ),
             },
             {
               key: "cards",
               title: "Cards",
               children: (
-                <Stack gap={4}>
+                <div className="flex flex-col gap-1">
                   <p className="text-sm text-zinc-600">
                     The same pets array through a third-party collection
                     renderer — no UI library imported, per-row chrome composed
@@ -624,14 +622,14 @@ export function PersonForm({
                     </PetCards>
                   </Collapsible>
                   <DraftHost field={f.pets} />
-                </Stack>
+                </div>
               ),
             },
             {
               key: "wizard",
               title: "Wizard",
               children: (
-                <Stack gap={4}>
+                <div className="flex flex-col gap-1">
                   <WhoStatus />
                   <Wizard
                     validationKey="signup"
@@ -641,7 +639,7 @@ export function PersonForm({
                         key: "who",
                         title: "Who",
                         children: (
-                          <Stack gap={4}>
+                          <div className="flex flex-col gap-1">
                             <TextField
                               field={f.lastName}
                               label="Last name"
@@ -662,26 +660,26 @@ export function PersonForm({
                               options={statusOptions}
                               required
                             />
-                          </Stack>
+                          </div>
                         ),
                       },
                       {
                         key: "detail",
                         title: "Detail",
                         children: (
-                          <Stack gap={4}>
+                          <div className="flex flex-col gap-1">
                             <TextField field={f.email} label="Email" />
                             <TextField
                               field={f.notes}
                               label="Notes"
                               multiline
                             />
-                          </Stack>
+                          </div>
                         ),
                       },
                     ]}
                   />
-                </Stack>
+                </div>
               ),
             },
           ]}

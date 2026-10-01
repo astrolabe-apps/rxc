@@ -10,7 +10,6 @@ import {
   arrayActions,
   Elements,
   Section,
-  Stack,
   StandardActionIds,
   TextField,
 } from "@rx-controls/forms-react";
@@ -42,7 +41,7 @@ function Pets(a: CollectionArgs): Rendered {
           empty={<p>No pets yet.</p>}
         >
           {(pet, i, row) => (
-            <Stack direction="row" gap={8} align="end">
+            <div className="flex flex-row gap-2 items-end">
               <TextField field={pet.fields.name} label={`Pet ${i + 1}`} required />
               <Action
                 actionId={StandardActionIds.remove}
@@ -50,7 +49,7 @@ function Pets(a: CollectionArgs): Rendered {
                 disabled={!row.canRemove}
                 onClick={() => row.remove(i)}
               />
-            </Stack>
+            </div>
           )}
         </Elements>
         <Action

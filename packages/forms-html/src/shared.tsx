@@ -20,7 +20,7 @@ import {
   type ClassValue,
   type CollectionRenderProps,
   type GroupRenderProps,
-  type StackLayout,
+  type FlexLayout,
   type VisibilityProps,
 } from "@rx-controls/forms-react";
 import { defaultHtmlTheme, useHtmlTheme, type HtmlTheme } from "./theme.js";
@@ -166,7 +166,7 @@ const alignCss = {
 
 /** A flex body's inline style: display, gap, and a direction only when given. */
 export function flexStyle(
-  l: StackLayout,
+  l: FlexLayout,
   defaultGap: string | number,
 ): CSSProperties {
   return {

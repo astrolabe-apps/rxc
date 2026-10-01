@@ -439,14 +439,14 @@ can express it.
 ```ts
 interface GroupProps  { hidden?; disabled?; readOnly?; title?; children: ReactNode;
                         className?; shellClassName?; labelClassName?; labelTextClassName?;
-                        layout?: FormProp<StackLayout | undefined> }
+                        layout?: FormProp<FlexLayout | undefined> }
 // The same slots a field has, for the same anatomy — body, wrapper, title container, title text.
 // Legacy styled groups against all of them (224 / 127 / 39 uses); built, README finding 63.
 // `title` is a heading the implementation draws when given (built); a JSON group's `title`
 // arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
 
-/** A flex body: the §7 `Stack`'s props, resolved, without children or class. */
-interface StackLayout { direction?; gap?; justify?; align?; wrap? }
+/** A flex body drawn without CSS (§7, "Layout is classes"). */
+interface FlexLayout { direction?; gap?; justify?; align?; wrap? }
 // `layout` makes the group's *body* the flex box (decided, built — README finding 74). Absent,
 // the body is the implementation's standard one. Legacy's Standard and Flex groups differ in
 // exactly this, and in nothing else: one body element, whose class is `standardClassName` or
@@ -455,7 +455,7 @@ interface StackLayout { direction?; gap?; justify?; align?; wrap? }
 // in the corpus carry `justify-between` / `items-end` meant for the flex box — gave a theme no
 // way to style the two bodies apart, and forced `flexDirection: row` over a responsive
 // `flex-col lg:flex-row`. So the group kind is not an enum on `GroupRenderProps` but the layout
-// the kind stood for, in the §7 vocabulary; `GroupRenderProps.layout` hands it over resolved,
+// the kind stood for; `GroupRenderProps.layout` hands it over resolved,
 // and an implementation with one body shape may ignore it. Legacy's `Contents` kind (no body
 // at all) has zero corpus uses and is not carried.
 
@@ -1174,35 +1174,23 @@ one mode with an extra element) and a
 One caveat belongs to hosts: Tailwind 4's utilities live in cascade layers, so unlayered global
 CSS — a UI library's reset — beats them, and a v4 host puts such a reset in a layer.
 
-```ts
-interface StackProps {
-  direction?: FormProp<"column" | "row">;        // Row is sugar
-  gap?: FormProp<string | number>;
-  justify?: FormProp<Justify>;
-  align?: FormProp<Align>;
-  wrap?: FormProp<boolean>;
-  className?: FormProp<ClassValue>;
-  children: ReactNode;
-}
-```
+**Layout is classes (decided).** There is no layout primitive and no layout group kind. A
+grid, a flex row, a responsive `flex-col lg:flex-row` — all of it is `className` on a group's
+body (and `shellClassName` for how a group sits in its parent's layout), which is also how the
+corpus already does it: its responsive layouts are Tailwind classes on Standard groups, not
+`Flex` or `Grid` groups, and its `native:` / `web:` variants carry the same classes to React
+Native through NativeWind. Per-breakpoint columns are therefore ordinary breakpoint classes,
+which no typed prop could express without re-inventing them.
 
-Its neutral props are **exactly what `FlexRenderOptions` carries in JSON** — bounded by the
-format rather than by taste, so it cannot drift into a UI kit and the translator always has
-somewhere to put what it reads.
+What makes that work is that **a body's children are the boundaries' own elements**: no design
+chrome outside design mode, no fade wrapper under `transitions={false}`, no inner element unless
+the theme collapses (§9). Then CSS grid's auto-placement is legacy `GridRenderer`'s
+filter-then-chunk: a hidden child produces no box and takes no cell.
 
-**From JSON:** `Icon` adornments at `AdornmentPlacement.ControlStart` / `ControlEnd` become
-`start` / `end` on the frame — the placement enum survives translation as a slot choice and
-nothing else. `LabelStart` / `LabelEnd` are the shell's business. Legacy put all four in one
-flat fragment beside the input (`layoutKeyForPlacement` → `controlStart`/`controlEnd` in
-`DefaultLayout`), so a JSON form that read as "icon next to the field" will now read as "icon
-inside the field": intended, and the one visible difference this section causes.
-
-`Stack` is also exported as a component over the `stack` slot, for code that cannot call the
-hook — the loader's translators, which build elements rather than render them (README finding 64).
-
-A group's own body takes the same props as its `layout` (§5), and that is the right tool when
-the flex box *is* the group's body: a `Stack` inside a group is a second element, and the
-group's `className` does not reach it.
+The one thing classes cannot do is reach where no stylesheet is scanned. `layout` on a group
+(§5) is a typed flex body drawn without CSS, for exactly that — the JSON loader's `Flex` groups
+and its collection rows, and a platform without CSS. A `Stack` primitive used to sit beside it;
+it was `<Contents layout>` without the scope and is gone.
 
 ## 8. Collections
 
@@ -1307,7 +1295,7 @@ per-element boundaries rather than a second mechanism.
 interface FormRenderers {
   textfield: ComponentType<…>; number: …; date: …; select: …; checkbox: …; radio: …;
   displayOnly: ComponentType<DisplayOnlyRenderProps>;
-  contents: …; elements: …; stack: …; grid: …;
+  contents: …; elements: …;
   tabs: …; accordion: …; dialog: …; wizard: …;
   action: …; text: …; html: …; icon: …;
   fieldShell: ComponentType<FieldShellProps>;
@@ -1399,14 +1387,14 @@ function PersonForm({ data, view }: { data: Control<Person>; view: boolean }) {
   const f = data.fields;
   return (
     <Form clearHidden readOnly={view}>
-      <Stack>
+      <div className="flex flex-col gap-4">
         <TextField field={f.firstName} label="First name" />
         <Contents hidden={(rc) => !rc.getValue(f.hasPets)}>
           <Elements field={f.pets} minLength={1}>
             {(pet) => <TextField field={pet.fields.name} required />}
           </Elements>
         </Contents>
-      </Stack>
+      </div>
     </Form>
   );
 }

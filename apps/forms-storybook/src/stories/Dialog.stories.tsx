@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
-import { Action, Dialog, Stack, TextField } from "@rx-controls/forms-react";
+import { Action, Dialog, TextField } from "@rx-controls/forms-react";
 import { CheckForm, Values, type ScopeArgs } from "../support";
 
 interface DialogArgs extends ScopeArgs {
@@ -14,14 +14,14 @@ function DialogDemo(a: DialogArgs): Rendered {
   const setOpen = (v: boolean) => update((wc) => wc.setValue(open, v));
   return rendered(
     <>
-      <Stack direction="row" gap={12} align="center">
+      <div className="flex flex-row gap-3 items-center">
         <Action
           actionId="openDetails"
           text="More details…"
           onClick={() => setOpen(true)}
         />
         <span>Last name is required, inside the dialog.</span>
-      </Stack>
+      </div>
       <Dialog open={open} onClose={() => setOpen(false)} title="More details">
         <TextField
           field={data.fields.last}

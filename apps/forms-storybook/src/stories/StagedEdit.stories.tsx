@@ -11,7 +11,6 @@ import {
   Dialog,
   Elements,
   Section,
-  Stack,
   StandardActionIds,
   TextDisplay,
   TextField,
@@ -37,9 +36,9 @@ function DraftHost({ field }: { field: Control<Pet[]> }): Rendered {
       title={session ? `Editing pet ${session.index + 1}` : undefined}
     >
       {session && (
-        <Stack gap={8}>
+        <div className="flex flex-col gap-2">
           <TextField field={session.draft.fields.name} label="Name (draft)" required />
-          <Stack direction="row" gap={8}>
+          <div className="flex flex-row gap-2">
             <Action
               actionId={StandardActionIds.apply}
               text="Apply"
@@ -52,8 +51,8 @@ function DraftHost({ field }: { field: Control<Pet[]> }): Rendered {
               variant="link"
               onClick={() => edit.cancel()}
             />
-          </Stack>
-        </Stack>
+          </div>
+        </div>
       )}
     </Dialog>,
   );
@@ -71,7 +70,7 @@ function Staged(a: StagedArgs): Rendered {
       <Section readOnly={a.lockRegion}>
         <Elements field={pets} label="Pets">
           {(pet, i, row) => (
-            <Stack direction="row" gap={8} align="center">
+            <div className="flex flex-row gap-2 items-center">
               <TextDisplay text={(rc) => rc.getValue(pet.fields.name)} />
               <Action
                 actionId={StandardActionIds.edit}
@@ -79,7 +78,7 @@ function Staged(a: StagedArgs): Rendered {
                 disabled={!row.canEdit}
                 onClick={() => row.edit(i)}
               />
-            </Stack>
+            </div>
           )}
         </Elements>
       </Section>

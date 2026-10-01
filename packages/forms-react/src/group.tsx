@@ -16,11 +16,14 @@ import {
 } from "./boundaryParts.js";
 
 /**
- * A flex body, resolved: {@link StackProps} without its children or class.
+ * A group body drawn as a flex box with no CSS — an inline style, or the
+ * platform's own flex layout. Classes on `className` are the usual way to lay
+ * out a body; this is for where a class cannot reach: the JSON loader, whose
+ * output no host stylesheet scans, and a platform without CSS.
  *
  * @group Authoring
  */
-export interface StackLayout {
+export interface FlexLayout {
   /** Main axis. Absent is the platform's default, a row. */
   direction?: "column" | "row";
   /** Space between children. Absent is the implementation's default gap. */
@@ -62,12 +65,10 @@ export interface GroupProps {
   /** The title's text. */
   labelTextClassName?: FormProp<ClassValue>;
   /**
-   * Make the body itself a flex box. Absent, the body is the implementation's
-   * standard group body. Use this rather than a {@link Stack} inside the group
-   * when the flex box *is* the body: `className` lands on the body, and a
-   * `Stack` would be a second element it does not reach.
+   * Make the body a flex box without CSS — see {@link FlexLayout}. Absent, the
+   * body is the implementation's standard group body, laid out by `className`.
    */
-  layout?: FormProp<StackLayout | undefined>;
+  layout?: FormProp<FlexLayout | undefined>;
   /**
    * Whether boundaries inside leave and arrive through the implementation's
    * transitions. `false` makes them appear and disappear at once, with no
@@ -118,7 +119,7 @@ export interface GroupRenderProps {
    * Draw the body as this flex box. An implementation with one body shape may
    * ignore it.
    */
-  layout?: StackLayout;
+  layout?: FlexLayout;
   /**
    * Whether the region's own hiding may transition. `false` must hide at
    * once — the `hidden` attribute rather than an animated collapse.

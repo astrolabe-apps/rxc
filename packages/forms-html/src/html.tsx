@@ -30,7 +30,6 @@ import {
   type FormRenderers,
   type FrameState,
   type InputFrameProps,
-  type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
@@ -370,26 +369,6 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
         ))}
       </div>
     </Shell>,
-  );
-}
-
-function HtmlStack(p: StackProps) {
-  const { rc, rendered } = useReactive();
-  const t = useHtmlTheme().stack;
-  return rendered(
-    <div
-      className={mergeClass(t.className, getProp(rc, p.className))}
-      style={{
-        display: "flex",
-        flexDirection: getProp(rc, p.direction) ?? "column",
-        gap: getProp(rc, p.gap) ?? t.defaultGap,
-        justifyContent: getProp(rc, p.justify),
-        alignItems: getProp(rc, p.align),
-        flexWrap: getProp(rc, p.wrap) ? "wrap" : undefined,
-      }}
-    >
-      {p.children}
-    </div>,
   );
 }
 
@@ -747,5 +726,4 @@ export const htmlRenderers: FormRenderers = {
   visibility: FadeVisibility,
   fieldShell: HtmlFieldShell,
   inputFrame: HtmlInputFrame,
-  stack: HtmlStack,
 };

@@ -142,31 +142,6 @@ export interface InputFrameProps {
 }
 
 /**
- * A layout box — the one neutral layout primitive. Its props are exactly what
- * the JSON format's flex options carry, so it cannot drift into a UI kit.
- *
- * @group Authoring
- */
-export interface StackProps {
-  /** Main axis. Default `column`. */
-  direction?: FormProp<"column" | "row">;
-  /** Space between children. */
-  gap?: FormProp<string | number>;
-  /** Distribution along the main axis. */
-  justify?: FormProp<
-    "start" | "center" | "end" | "space-between" | "space-around"
-  >;
-  /** Alignment across it. */
-  align?: FormProp<"start" | "center" | "end" | "stretch" | "baseline">;
-  /** Let children wrap. */
-  wrap?: FormProp<boolean>;
-  /** The box. */
-  className?: FormProp<ClassValue>;
-  /** The children. */
-  children: ReactNode;
-}
-
-/**
  * The implementation's `visibility` slot: it owns the mount lifetime of what a
  * boundary renders, so an exit transition can keep the content mounted while
  * it leaves.
@@ -200,25 +175,6 @@ export function useFieldShell(): ComponentType<FieldShellProps> {
  */
 export function useInputFrame(): ComponentType<InputFrameProps> {
   return useRenderers().inputFrame;
-}
-
-/**
- * The active implementation's layout box.
- *
- * @group Implementations
- */
-export function useStack(): ComponentType<StackProps> {
-  return useRenderers().stack;
-}
-
-/**
- * A layout box from the active implementation.
- *
- * @group Authoring
- */
-export function Stack(props: StackProps): ReactNode {
-  const S = useStack();
-  return <S {...props} />;
 }
 
 /**

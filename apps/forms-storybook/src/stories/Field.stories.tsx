@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
-import { Contents, CheckboxField, Stack, TextField } from "@rx-controls/forms-react";
+import { Contents, CheckboxField, TextField } from "@rx-controls/forms-react";
 import { CheckForm, Values, type ScopeArgs } from "../support";
 
 interface FieldArgs extends ScopeArgs {
@@ -128,7 +128,7 @@ function DefaultCycle(): Rendered {
   const data = useControl({ hasVet: true, vet: undefined as string | undefined });
   const f = data.fields;
   return rendered(
-    <Stack gap={8}>
+    <div className="flex flex-col gap-2">
       <CheckboxField field={f.hasVet} label="Has a vet" />
       <Contents hidden={(rc) => !rc.getValue(f.hasVet)}>
         <TextField
@@ -140,7 +140,7 @@ function DefaultCycle(): Rendered {
         />
       </Contents>
       <Values control={data} />
-    </Stack>,
+    </div>,
   );
 }
 

@@ -3,7 +3,6 @@ import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   CheckboxField,
   SelectField,
-  Stack,
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
@@ -41,7 +40,7 @@ function Cards(): Rendered {
   const data = useControl({ show: true, pets: [{ name: "Rex" }] });
   const f = data.fields;
   return rendered(
-    <Stack gap={8}>
+    <div className="flex flex-col gap-2">
       <CheckboxField field={f.show} label="Show the group" />
       <Collapsible
         title="Pets as cards"
@@ -67,7 +66,7 @@ function Cards(): Rendered {
       </Collapsible>
       <CheckForm />
       <Values control={data} />
-    </Stack>,
+    </div>,
   );
 }
 
@@ -83,7 +82,7 @@ function Branches(): Rendered {
   const data = useControl({ kind: "person" as string | undefined, email: "" });
   const f = data.fields;
   return rendered(
-    <Stack gap={8}>
+    <div className="flex flex-col gap-2">
       <SelectField
         field={f.kind}
         label="Operator"
@@ -107,7 +106,7 @@ function Branches(): Rendered {
       />
       <CheckForm />
       <Values control={data} />
-    </Stack>,
+    </div>,
   );
 }
 

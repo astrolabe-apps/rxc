@@ -3,7 +3,6 @@ import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   Action,
   ActionOverrideProvider,
-  Stack,
   StandardActionIds,
   TextField,
   type ActionRenderProps,
@@ -56,11 +55,11 @@ export const Button: Story = {};
 
 export const Styles: Story = {
   render: () => (
-    <Stack direction="row" gap={8}>
+    <div className="flex flex-row gap-2">
       <Action actionId="a" text="Primary" variant="primary" />
       <Action actionId="b" text="Secondary" variant="secondary" />
       <Action actionId="c" text="Link" variant="link" />
-    </Stack>
+    </div>
   ),
 };
 
@@ -74,9 +73,9 @@ function Busy(): Rendered {
   const { rendered } = useReactive();
   const name = useControl("");
   return rendered(
-    <Stack gap={8}>
+    <div className="flex flex-col gap-2">
       <TextField field={name} label="Locked while Save all runs" />
-      <Stack direction="row" gap={8}>
+      <div className="flex flex-row gap-2">
         <Action
           actionId="save"
           text="Save (self)"
@@ -89,8 +88,8 @@ function Busy(): Rendered {
           disableType="global"
           onClick={() => wait(1500)}
         />
-      </Stack>
-    </Stack>,
+      </div>
+    </div>,
   );
 }
 
@@ -114,10 +113,10 @@ function Fancy(p: ActionRenderProps) {
 export const OverrideById: Story = {
   render: () => (
     <ActionOverrideProvider value={{ [StandardActionIds.add]: Fancy }}>
-      <Stack direction="row" gap={8}>
+      <div className="flex flex-row gap-2">
         <Action actionId={StandardActionIds.add} text="Add" variant="primary" />
         <Action actionId="other" text="Not overridden" />
-      </Stack>
+      </div>
     </ActionOverrideProvider>
   ),
 };

@@ -13,7 +13,6 @@ import {
   InlineGroup,
   RadioField,
   SelectField,
-  Stack,
   Tabs,
   TextDisplay,
   TextField,
@@ -362,14 +361,14 @@ describe("Action", () => {
   });
 });
 
-describe("Stack and TextDisplay", () => {
-  it("draws a flex box with its props as inline style", () => {
+describe("a layout body and TextDisplay", () => {
+  it("draws a group's layout as an inline-style flex body", () => {
     mount(
-      <Stack direction="row" gap={8} justify="space-between">
+      <Contents layout={{ direction: "row", gap: 8, justify: "space-between" }} className="b">
         <i />
-      </Stack>,
+      </Contents>,
     );
-    const s = $<HTMLElement>(".rxf-stack")!;
+    const s = $<HTMLElement>(".b")!;
     expect(s.style.display).toBe("flex");
     expect(s.style.flexDirection).toBe("row");
     expect(s.style.gap).toBe("8px");

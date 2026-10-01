@@ -95,8 +95,6 @@ export const serviceTasOverlay: PartialHtmlTheme = {
   // Legacy put displayOnlyClass on the layout, not the value; the value
   // carries only the definition's textClass.
   displayOnly: { className: "", inline: "" },
-  // group.flexClassName (defaultTailwindTheme) + group.defaultFlexGap (ServiceTas).
-  stack: { className: "gap-2", defaultGap: "1em" },
   contents: {
     // layout.className — a group's title and body sat in the same layout.
     wrapper: "flex flex-col",

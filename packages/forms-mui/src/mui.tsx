@@ -58,7 +58,6 @@ import {
   type FormRenderers,
   type FrameState,
   type InputFrameProps,
-  type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
@@ -345,24 +344,6 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
         onBlur={ctl.onBlur}
       />
     </Shell>,
-  );
-}
-
-function MuiStack(p: StackProps) {
-  const { rc, rendered } = useReactive();
-  return rendered(
-    <Stack
-      direction={getProp(rc, p.direction) === "row" ? "row" : "column"}
-      sx={{
-        gap: `${getProp(rc, p.gap) ?? 16}px`,
-        justifyContent: getProp(rc, p.justify),
-        alignItems: getProp(rc, p.align),
-        flexWrap: getProp(rc, p.wrap) ? "wrap" : undefined,
-      }}
-      className={mergeClass(undefined, getProp(rc, p.className))}
-    >
-      {p.children}
-    </Stack>,
   );
 }
 
@@ -690,7 +671,6 @@ export const muiRenderers: FormRenderers = {
   visibility: DefaultVisibility,
   fieldShell: MuiFieldShell,
   inputFrame: MuiInputFrame,
-  stack: MuiStack,
   root: ({ children }) => (
     <>
       <CssBaseline />

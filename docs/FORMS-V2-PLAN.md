@@ -109,9 +109,11 @@ one.
   `flexClassName` with `styleClass` merged onto it. The POC nested a `Stack` inside a standard
   body instead. That put `styleClass` on the wrong element (21 corpus Flex groups carry one meant
   for the flex box), let the `formStyles` overlays reach Flex bodies, and overrode responsive
-  direction classes. `GroupProps.layout` (the `Stack` props, resolved) makes the body itself the
+  direction classes. `GroupProps.layout` (a typed `FlexLayout`) makes the body itself the
   flex box, and the html theme gains `contents.flexBody` / `flexGap`. The markup now matches
-  `legacy-compare`. Legacy's `Contents` kind has zero corpus uses and is not carried.
+  `legacy-compare`. Legacy's `Contents` kind has zero corpus uses and is not carried. Later
+  narrowed further: layout is classes for authors, and `layout` stays only as the no-CSS path the
+  loader needs; the `Stack` primitive is gone (`FORMS-V2-INTERFACES.md` §7).
 - **`pending` on `GroupRenderProps` — decided, deliberately absent.** Nothing asks for it, and
   adding an optional render prop later breaks no implementation.
 
@@ -249,7 +251,7 @@ the compat-app fixture green; every boundary kind has a story, and the story smo
 built, `strict` throwing `LoaderStrictError`, a test per translator plus the shared machinery
 (expressions, validators, dynamic properties, `LayoutStyle`, meta fields, adornments, host
 extensions, the audit), and the fixture form pinned end to end. Its markup is gone: rows are a
-`<Stack>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s off-screen region is
+`<Contents layout>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s off-screen region is
 the registry's `contents` slot. One `<i>` remains — the default `IconTranslator`, which the
 phase 1 surface documents; a host on another platform passes its own.
 

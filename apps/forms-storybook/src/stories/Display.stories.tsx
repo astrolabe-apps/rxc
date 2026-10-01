@@ -4,7 +4,6 @@ import {
   DisplayOnlyField,
   HtmlDisplay,
   IconDisplay,
-  Stack,
   TextDisplay,
 } from "@rx-controls/forms-react";
 import type { ScopeArgs } from "../support";
@@ -31,13 +30,13 @@ export const Html: Story = {
 /** An icon carries the meaning its glyph does not, as an accessible name. */
 export const Icon: Story = {
   render: () => (
-    <Stack direction="row" gap={8} align="center">
+    <div className="flex flex-row gap-2 items-center">
       <IconDisplay
         icon={<span aria-hidden>★</span>}
         accessibleName="A starred item."
       />
       <TextDisplay text="Starred" />
-    </Stack>
+    </div>
   ),
 };
 
@@ -56,7 +55,7 @@ function DisplayOnly(): Rendered {
     { name: "Charlie", value: "c" },
   ];
   return rendered(
-    <Stack gap={8}>
+    <div className="flex flex-col gap-2">
       <DisplayOnlyField field={f.status} label="Status" options={names} />
       <DisplayOnlyField field={f.tags} label="Tags" options={names} />
       <DisplayOnlyField
@@ -70,7 +69,7 @@ function DisplayOnly(): Rendered {
         label="Joined"
         format={(v) => new Date(String(v)).toDateString()}
       />
-    </Stack>,
+    </div>,
   );
 }
 

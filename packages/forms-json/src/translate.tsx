@@ -27,12 +27,11 @@ import {
   InlineGroup,
   RadioField,
   SelectField,
-  Stack,
   Tabs,
   TextDisplay,
   TextField,
   type ClassValue,
-  type StackLayout,
+  type FlexLayout,
   type FieldOption,
   type FieldProps,
   type FormProp,
@@ -135,12 +134,15 @@ const defaultUnsupported = (def: ControlDefinition) => {
   return <TextDisplay text={`Unsupported: ${def.type}${ro ? ` / ${ro}` : ""}`} />;
 };
 
+/** A collection row: the element, then its remove button. */
+const rowLayout: FlexLayout = { direction: "row", gap: 8, align: "end" };
+
 /**
  * Legacy's Flex options onto a group layout. `direction` unset is CSS's
  * default, a row — legacy set `flexDirection` only when given. `gap` unset
  * is the theme's.
  */
-function flexLayout(go: Record<string, unknown>): StackLayout {
+function flexLayout(go: Record<string, unknown>): FlexLayout {
   return {
     direction: (go.direction as "row" | "column" | undefined) ?? undefined,
     gap: (go.gap as string | undefined) || undefined,
@@ -417,7 +419,7 @@ const builtins: Builtin[] = [
             empty={<TextDisplay text="Nothing yet." />}
           >
             {(item, index, actions) => (
-              <Stack direction="row" gap={8} align="end">
+              <Contents layout={rowLayout}>
                 {element!(item, index)}
                 {!noRemove && (
                   <Action
@@ -428,7 +430,7 @@ const builtins: Builtin[] = [
                     onClick={() => actions.remove(index)}
                   />
                 )}
-              </Stack>
+              </Contents>
             )}
           </Elements>
           {!noAdd && (

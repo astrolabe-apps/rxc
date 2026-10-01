@@ -39,7 +39,6 @@ import {
   type FormRenderers,
   type FrameState,
   type InputFrameProps,
-  type StackProps,
   type TabsRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
@@ -309,22 +308,6 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
         onBlur={ctl.onBlur}
       />
     </Shell>,
-  );
-}
-
-function AntStack(p: StackProps) {
-  const { rc, rendered } = useReactive();
-  return rendered(
-    <Flex
-      vertical={(getProp(rc, p.direction) ?? "column") === "column"}
-      gap={getProp(rc, p.gap) ?? 16}
-      justify={getProp(rc, p.justify)}
-      align={getProp(rc, p.align)}
-      wrap={getProp(rc, p.wrap)}
-      className={mergeClass(undefined, getProp(rc, p.className))}
-    >
-      {p.children}
-    </Flex>,
   );
 }
 
@@ -639,6 +622,5 @@ export const antdRenderers: FormRenderers = {
   visibility: DefaultVisibility,
   fieldShell: AntFieldShell,
   inputFrame: AntInputFrame,
-  stack: AntStack,
   root: ({ children }) => <ConfigProvider>{children}</ConfigProvider>,
 };

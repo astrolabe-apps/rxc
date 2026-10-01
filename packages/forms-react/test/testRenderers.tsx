@@ -202,7 +202,6 @@ export const testRenderers: FormRenderers = {
   fieldShell: ({ children }) => <>{children}</>,
   inputFrame: Nothing,
   visibility: Visibility,
-  stack: ({ children }) => <div data-stack>{children}</div>,
 };
 
 /** Renders how many times it rendered, into `renders`. */

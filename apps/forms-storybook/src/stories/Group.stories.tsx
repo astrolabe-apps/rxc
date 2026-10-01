@@ -7,7 +7,6 @@ import {
   DisplayOnlyField,
   InlineGroup,
   Section,
-  Stack,
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
@@ -24,14 +23,14 @@ function Hideable(): Rendered {
   const data = useControl({ show: true, city: "Hobart" });
   const f = data.fields;
   return rendered(
-    <Stack gap={8}>
+    <div className="flex flex-col gap-2">
       <CheckboxField field={f.show} label="Show the address" />
       <Contents hidden={(rc) => !rc.getValue(f.show)} title="Address">
         <TextField field={f.city} label="City" required />
         <p>Plain JSX inside the group hides with it.</p>
       </Contents>
       <Values control={data} />
-    </Stack>,
+    </div>,
   );
 }
 
@@ -86,7 +85,7 @@ function Flex(): Rendered {
   );
 }
 
-/** `layout` makes the body itself the flex box — no Stack inside it. */
+/** `layout` makes the body itself a flex box with no CSS — the path the JSON loader takes; JSX authors usually reach for classes. */
 export const FlexLayout: Story = { render: () => <Flex /> };
 
 function ClassGrid(): Rendered {
@@ -100,7 +99,7 @@ function ClassGrid(): Rendered {
   const f = data.fields;
   const noModel = (rc: ReadContext) => !rc.getValue(f.showModel);
   return rendered(
-    <Stack direction="column" gap={8}>
+    <div className="flex flex-col gap-2">
       <CheckboxField field={f.showModel} label="Show the model" />
       <Contents
         transitions={false}
@@ -113,7 +112,7 @@ function ClassGrid(): Rendered {
         <TextDisplay text="Colour" />
         <DisplayOnlyField field={f.colour} />
       </Contents>
-    </Stack>,
+    </div>,
   );
 }
 

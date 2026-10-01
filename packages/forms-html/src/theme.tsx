@@ -104,13 +104,6 @@ export interface HtmlTheme {
     /** Inside an inline group. */
     inline: string;
   };
-  /** The layout box. */
-  stack: {
-    /** The box. */
-    className: string;
-    /** The gap when a stack sets none. */
-    defaultGap: number | string;
-  };
   /** The standard group. */
   contents: {
     /** The wrapper around title and body. */
@@ -315,7 +308,6 @@ export const defaultHtmlTheme: HtmlTheme = {
     label: "",
   },
   displayOnly: { className: "rxf-readonly", inline: "rxf-readonly-inline" },
-  stack: { className: "rxf-stack", defaultGap: 16 },
   contents: {
     wrapper: "rxf-contents",
     hideWith: "attribute",
@@ -431,7 +423,6 @@ export const tailwindHtmlTheme: HtmlTheme = {
     className: "rxf-readonly min-h-[1.5em] py-1.5",
     inline: "rxf-readonly-inline font-semibold",
   },
-  stack: { className: "rxf-stack", defaultGap: "0.5rem" },
   contents: {
     wrapper: "rxf-contents",
     // The collapse: grid rows 1fr → 0fr and a fade, keyed on data-hidden.
