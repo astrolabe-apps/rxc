@@ -55,12 +55,23 @@ leads to. Suggested: a boundary option on the options widgets (`restrictToOption
 the default under `clearHidden`-style form policy) that clears a value no option names, once the
 options are decided.
 
+**Resolved (after the trial):** a select or radio clears its value when its options **move away
+from it** — listed in the previous resolved list, not in this one — by default, through
+`FieldBoundaryOptions.allowed`; `restrictToOptions={false}` opts out. Deliberately not "whenever
+the value is not listed": the first cut did that, and the corpus parity run showed it racing
+`clearHidden` and the host effects that fill ServiceTas option lists outside the JSON — a value
+judged against a list that was about to change, and cleared for good. A value that arrives outside
+the list is the data's and is kept, as legacy keeps it, so the JSON path stays at exact parity.
+
 **No "reset when X changes".** The original wrote the new state's first agency on every state
 change. v2 gets there by composition: the effect above clears the stale agency, and
 `defaultValue={(rc) => stateAgencies(rc)[0]}` refills the now-`undefined` field. Neat, but not the
 same rule — an agency whose name exists in both states is *kept* rather than reset. No agency name
 repeats today, so it is latent. If the stale-value option above existed, this pairing would be the
-idiomatic answer and worth documenting as such.
+idiomatic answer and worth documenting as such. **It now is:** the clear on a move, then
+`defaultValue={(rc) => stateAgencies(rc)[0]}` refilling — no effect — documented on
+`restrictToOptions`. An agency name repeated across states is kept rather than reset, which is
+the right answer for a choice that is still on offer.
 
 **`clearHidden` writes `undefined`, whatever the field's type** (`field.tsx:243`). The original
 cleared the description to `""`; the DTO types it `string | null`. It type-checks only because a

@@ -86,8 +86,27 @@ export type OptionValue = string | number | boolean | undefined | null;
  * @group Authoring
  */
 export interface SelectExtra {
-  /** The choices. A derivation re-filters them as the data moves. */
+  /**
+   * The choices. A derivation re-filters them as the data moves — and the
+   * value follows: when the list moves away from the value, it is cleared
+   * (see `restrictToOptions`). `undefined` from a resolved prop is a list
+   * still pending, which judges nothing.
+   */
   options?: FormProp<FieldOption[]>;
+  /**
+   * Clear the value when the options **move away from it** — it was among
+   * the previous list and is not among this one: the state changed, and the
+   * old state's agency is no longer offered. On by default; `false` keeps it.
+   *
+   * Only a move clears. A value that is not among the options when they first
+   * resolve — loaded before a host's effect fills the list, written by a
+   * host, a choice the form used to offer — is the data's, and kept. Values
+   * compare as strings, the way the control round-trips them, so `1` and
+   * `"1"` are the same choice. Never while the field is hidden, locked or
+   * read-only, and never in design mode. Pair it with `defaultValue` for
+   * "reset to the first choice when the list changes".
+   */
+  restrictToOptions?: boolean;
 }
 
 /**

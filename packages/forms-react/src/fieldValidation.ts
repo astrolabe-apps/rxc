@@ -283,3 +283,55 @@ export function hiddenPending(
 ): boolean {
   return hidden !== undefined && getProp(rc, hidden) === undefined;
 }
+
+/**
+ * Clear a value when the widget's own list **moves away from it** — the
+ * value was among the last decided list and is not among this one (the state
+ * changed; the old state's agency is not an option now). Not "whenever the
+ * value is not listed": a value that arrives outside the list — loaded
+ * before a host's effect fills the options, written by a host, a choice an
+ * older version of the form offered — is the data's and is kept, as legacy
+ * keeps it. Only a move the boundary saw does anything, so it never races
+ * the host code or `clearHidden` that reshape a list during mount.
+ *
+ * As a core `effect`, like the default cycle, so it costs no re-render, and
+ * with the same gates: never while `hidden` (that is `clearHidden`'s), while
+ * `hidden` is pending, while locked (a read-only or disabled form shows data,
+ * it does not repair it), in design mode, or for a boundary that does not
+ * write. The last decided list is tracked through the gates, so a move made
+ * while gated is a move all the same. `null` and `undefined` are no choice.
+ * `allowed` is read through a ref so a fresh closure each render does not
+ * re-create the effect.
+ */
+export function useRestrictToAllowed<T>(
+  control: Control<T>,
+  allowed: (rc: ReadContext) => ((value: T) => boolean) | undefined,
+  scope: ScopeState,
+  enabled: boolean,
+  hidden?: FormProp<boolean | undefined>,
+): void {
+  const ctx = useControlContext();
+  const latest = useRef(allowed);
+  latest.current = allowed;
+  useEffect(() => {
+    if (!enabled || scope.designMode) return;
+    // The last decided list; a pending one in between keeps it.
+    let last: ((value: T) => boolean) | undefined;
+    const h = effect(ctx, (rc) => {
+      const ok = latest.current(rc);
+      const prev = last;
+      if (ok !== undefined) last = ok;
+      if (ok === undefined || prev === undefined) return;
+      if (scope.presence(rc) === "hidden") return;
+      if (hiddenPending(rc, hidden)) return;
+      if (scope.disabled(rc) || scope.readOnly(rc) || rc.isDisabled(control))
+        return;
+      const v = rc.getValue(control);
+      if (v === undefined || v === null) return;
+      // Moved away: listed before, not now.
+      if (prev(v) && !ok(v))
+        ctx.update((wc) => wc.setValue(control, undefined as T));
+    });
+    return () => h.cleanup();
+  }, [ctx, control, scope, enabled, hidden]);
+}

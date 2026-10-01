@@ -14,6 +14,7 @@ import {
   useFormScope,
   getExternalEdit,
   groupRenderer,
+  SelectField,
   TextField,
   useFormValidation,
   type ActionRenderProps,
@@ -306,6 +307,87 @@ describe("the field boundary", () => {
       </FormProvider>,
     );
     expect(root.isValid(untrackedRead)).toBe(false);
+  });
+});
+
+describe("an options field's value follows its options", () => {
+  const byState: Record<string, { name: string; value: string }[]> = {
+    tas: [
+      { name: "Hobart", value: "hobart" },
+      { name: "Launceston", value: "launceston" },
+    ],
+    vic: [{ name: "Melbourne", value: "melbourne" }],
+  };
+  const rc = untrackedRead;
+
+  it("clears a value the derived list no longer names, and a default refills it", () => {
+    const state = dom.ctx.newControl("tas");
+    const agency = dom.ctx.newControl<string | undefined>("launceston");
+    mount(
+      <SelectField
+        field={agency}
+        options={(r) => byState[r.getValue(state)]}
+        defaultValue={(r) => byState[r.getValue(state)]?.[0]?.value}
+      />,
+    );
+    expect(rc.getValue(agency)).toBe("launceston");
+    set(state, "vic");
+    // Cleared as stale, then the default cycle fills the new first choice.
+    expect(rc.getValue(agency)).toBe("melbourne");
+  });
+
+  it("keeps a value the first list does not name — the data's, not a move", () => {
+    const list = dom.ctx.newControl<{ name: string; value: string }[] | undefined>(undefined);
+    const a = dom.ctx.newControl<string | undefined>("old");
+    mount(<SelectField field={a} options={(r) => r.getValue(list)} />);
+    // Pending, then decided without it (a host's effect filled the list late).
+    set(list, [{ name: "New", value: "new" }]);
+    expect(rc.getValue(a)).toBe("old");
+    // A host writing a value outside the list is kept too.
+    set(a, "elsewhere");
+    set(list, [{ name: "Newer", value: "newer" }]);
+    expect(rc.getValue(a)).toBe("elsewhere");
+  });
+
+  it("clears only when the list moves away from the value, and not with restrictToOptions={false}", () => {
+    const list = dom.ctx.newControl([
+      { name: "X", value: "x" },
+      { name: "Y", value: "y" },
+    ]);
+    const a = dom.ctx.newControl<string | undefined>("x");
+    const b = dom.ctx.newControl<string | undefined>("x");
+    mount(
+      <>
+        <SelectField field={a} options={list} />
+        <SelectField field={b} options={list} restrictToOptions={false} />
+      </>,
+    );
+    set(list, [{ name: "X", value: "x" }]);
+    expect(rc.getValue(a)).toBe("x");
+    set(list, [{ name: "Y", value: "y" }]);
+    expect(rc.getValue(a)).toBeUndefined();
+    expect(rc.getValue(b)).toBe("x");
+  });
+
+  it("compares as strings, and leaves a locked or hidden field alone", () => {
+    const options = dom.ctx.newControl([
+      { name: "One", value: "1" },
+      { name: "Gone", value: "gone" },
+    ]);
+    const num = dom.ctx.newControl<number | undefined>(1);
+    const locked = dom.ctx.newControl<string | undefined>("gone");
+    const hidden = dom.ctx.newControl<string | undefined>("gone");
+    mount(
+      <>
+        <SelectField field={num} options={options} />
+        <SelectField field={locked} options={options} readOnly />
+        <SelectField field={hidden} options={options} hidden />
+      </>,
+    );
+    set(options, [{ name: "One", value: "1" }]);
+    expect(rc.getValue(num)).toBe(1);
+    expect(rc.getValue(locked)).toBe("gone");
+    expect(rc.getValue(hidden)).toBe("gone");
   });
 });
 

@@ -15,6 +15,7 @@ import {
   useFieldValidation,
   useMirror,
   bareValidatorKey,
+  useRestrictToAllowed,
 } from "./fieldValidation.js";
 import { useValidationScope } from "./validationScope.js";
 import {
@@ -196,6 +197,14 @@ export interface FieldBoundaryOptions<T = unknown, P = {}> {
    * here wins over the same key in `validate`.
    */
   rules?: (props: P) => Record<string, Validator<T>> | undefined;
+  /**
+   * The values a widget's own props allow — a select's options — so the
+   * boundary clears the value when the list moves away from it: listed
+   * before, not now. Read through `rc`, so a derived list is followed as the
+   * data moves. Return `undefined` for "nothing to judge yet": no list, or
+   * one pending.
+   */
+  allowed?: (props: P, rc: ReadContext) => ((value: T) => boolean) | undefined;
 }
 
 /**
@@ -263,6 +272,14 @@ export function fieldRenderer<T, P extends object = {}>(
       if (clear) ctx.update((wc) => wc.setValue(control, undefined as T));
     }, [clear, control, ctx]);
     useDefaultValue(control, props.defaultValue, scope, writes, props.hidden);
+    const allowed = options?.allowed;
+    useRestrictToAllowed(
+      control,
+      (r) => allowed?.(props, r),
+      scope,
+      writes && !!allowed,
+      props.hidden,
+    );
 
     const state = boundaryState(rc, control as Control<unknown>, scope);
     // The field shows its verdict — its own rules and the errors no rule

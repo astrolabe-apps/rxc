@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { ReadContext } from "@rx-controls/core";
 import type { Rendered } from "@rx-controls/react";
 import type { ActionProps } from "./action.js";
 import type { CollectionProps } from "./collection.js";
@@ -73,7 +74,10 @@ export const CheckboxField: <T extends boolean | undefined | null>(
  */
 export const SelectField: <T extends OptionValue>(
   props: FieldProps<T> & SelectExtra,
-) => Rendered = fieldRenderer<OptionValue, SelectExtra>({ key: "select" }) as never;
+) => Rendered = fieldRenderer<OptionValue, SelectExtra>(
+  { key: "select" },
+  { allowed: optionsAllow },
+) as never;
 
 /**
  * A choice from a list, as radio buttons, with optional content per option.
@@ -82,7 +86,25 @@ export const SelectField: <T extends OptionValue>(
  */
 export const RadioField: <T extends OptionValue>(
   props: FieldProps<T> & RadioExtra,
-) => Rendered = fieldRenderer<OptionValue, RadioExtra>({ key: "radio" }) as never;
+) => Rendered = fieldRenderer<OptionValue, RadioExtra>(
+  { key: "radio" },
+  { allowed: optionsAllow },
+) as never;
+
+/**
+ * A select's or radio's allowed values: its options, once decided, compared
+ * as strings — the control's own round-trip.
+ */
+function optionsAllow(
+  p: SelectExtra,
+  rc: ReadContext,
+): ((v: OptionValue) => boolean) | undefined {
+  if (p.restrictToOptions === false || p.options === undefined) return;
+  const list = getProp(rc, p.options);
+  if (list === undefined) return;
+  const names = new Set(list.map((o) => String(o.value)));
+  return (v) => names.has(String(v));
+}
 
 /**
  * A bound value shown as text and never edited.
