@@ -152,6 +152,15 @@ stable region.
 under `hidden` (hide its content, not the element), or have `TextDisplay` draw nothing visible
 when its text is empty. The second is what an author expects of an error message.
 
+**Fixed (after the trial), both ways:** an `announce`d display is never unmounted. Under
+`hidden` the boundary hands the implementation `regionOnly`, and it draws only the live-region
+element: empty, out of the layout (not a grid item), and the same node once the content
+arrives. An announced text or html display with empty content draws the same way. So
+`<TextDisplay hidden={(rc) => !rc.getValue(submitError)} text={submitError} tone="error" announce />`
+is now correct, and so is the trial's always-shown spelling, which no longer draws an empty
+box. It skips the `visibility` slot, so there is no exit transition. Conformance and the
+`DisplayAnnouncedError` story cover it.
+
 ### 1.4 "Reset to the first choice" holds only when the old value leaves the list (contract semantics)
 
 `restrictToOptions` + `defaultValue` (`widgets.ts:97-109`) clears the agency only when the

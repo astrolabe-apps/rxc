@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
+  Action,
   DisplayOnlyField,
   HtmlDisplay,
   IconDisplay,
@@ -105,3 +106,43 @@ function Tones(): Rendered {
  * turns red past its limit with no announcement.
  */
 export const DisplayTones: Story = { render: () => <Tones /> };
+
+function AnnouncedError(): Rendered {
+  const { rendered, update } = useReactive();
+  const error = useControl<string | undefined>(undefined);
+  return rendered(
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        <TextDisplay text="Cell one" />
+        <TextDisplay
+          hidden={(rc) => !rc.getValue(error)}
+          text={error}
+          tone="error"
+          announce
+        />
+        <TextDisplay text="Cell two" />
+      </div>
+      <div className="flex flex-row gap-2">
+        <Action
+          actionId="fail"
+          text="Fail"
+          onClick={() =>
+            update((wc) => wc.setValue(error, "Submission refused — please try again."))
+          }
+        />
+        <Action
+          actionId="clear"
+          text="Clear"
+          onClick={() => update((wc) => wc.setValue(error, undefined))}
+        />
+      </div>
+    </div>,
+  );
+}
+
+/**
+ * `announce` with `hidden`: while hidden the live region stays in the page,
+ * empty and out of the layout (the grid has no gap where it sits), so the
+ * message arriving in it is announced.
+ */
+export const DisplayAnnouncedError: Story = { render: () => <AnnouncedError /> };

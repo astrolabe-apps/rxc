@@ -55,6 +55,13 @@ export interface DisplayProps {
    * not for a value that changes as the user types (a character counter),
    * which would be read out on every keystroke. Separate from `tone` for
    * exactly that reason.
+   *
+   * Composes with `hidden`: an announced display is never unmounted, and
+   * while hidden it keeps an empty live region in the page, so showing it
+   * is a change to content the region already holds — which is what screen
+   * readers announce reliably. `hidden={(rc) => !rc.getValue(error)}` is
+   * therefore the spelling for a message that appears on a failure. It
+   * skips the `visibility` slot: no exit transition.
    */
   announce?: FormProp<boolean>;
   /** Content, for a display that takes it. */
@@ -85,6 +92,14 @@ export interface DisplayRenderProps {
    * announces changes to content it already holds.
    */
   announce: boolean;
+  /**
+   * Only with `announce`: the display is hidden, but its live region stays.
+   * Draw the live-region element and nothing else — no content, no box, out
+   * of the layout — and keep it the same element when this turns `false`, so
+   * the content arriving in it is announced. An announced display with no
+   * content to show (an empty text) should draw the same way.
+   */
+  regionOnly?: boolean;
   /** Content, for a display that takes it. */
   children?: ReactNode;
 }
@@ -170,6 +185,8 @@ export function displayRenderer<P extends object = {}>(
     const presence = scope.presence(rc);
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const Visibility = visibilityFor(renderers, scope);
+    // An announced display stays mounted under `hidden` (see `announce`).
+    const announce = getProp(rc, props.announce) ?? false;
     const renderProps: DisplayRenderProps = {
       accessibleName: getProp(rc, props.accessibleName),
       inline: scope.inline,
@@ -177,14 +194,20 @@ export function displayRenderer<P extends object = {}>(
       textClassName: getProp(rc, props.textClassName),
       shellClassName: getProp(rc, props.shellClassName),
       tone: getProp(rc, props.tone),
-      announce: getProp(rc, props.announce) ?? false,
+      announce,
+      regionOnly: announce && presence === "hidden" ? true : undefined,
       children: props.children,
     };
+    const impl = (
+      <Impl {...renderProps} {...extraProps(props, displayContractKeys)} />
+    );
     return rendered(
       designChrome(
-        <Visibility visible={presence !== "hidden"}>
-          <Impl {...renderProps} {...extraProps(props, displayContractKeys)} />
-        </Visibility>,
+        announce ? (
+          impl
+        ) : (
+          <Visibility visible={presence !== "hidden"}>{impl}</Visibility>
+        ),
         scope.designMode,
       ),
     );

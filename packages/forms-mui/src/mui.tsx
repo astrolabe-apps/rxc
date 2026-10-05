@@ -80,6 +80,7 @@ import {
   DefaultVisibility,
   FormElement,
   DisplayShell,
+  noContent,
   onFocusLeave,
   optionKeys,
 } from "@rx-controls/forms-html/shared";
@@ -452,12 +453,14 @@ function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
 function MuiText(p: TextDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const content = getProp(rc, p.text) ?? p.children;
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly || noContent(content)}
       style={toneStyle}
     >
       <Typography
@@ -466,7 +469,7 @@ function MuiText(p: TextDisplayRenderProps) {
         className={mergeClass(undefined, p.className)}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
-          {getProp(rc, p.text) ?? p.children}
+          {content}
         </span>
       </Typography>
     </DisplayShell>,
@@ -497,6 +500,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
       inline={true}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly}
       style={toneStyle}
     >
       {p.accessibleName ? (
@@ -511,12 +515,14 @@ function MuiIcon(p: IconDisplayRenderProps) {
 function MuiHtml(p: HtmlDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const html = getProp(rc, p.html);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly || noContent(html)}
       style={toneStyle}
     >
       <Typography
@@ -526,7 +532,7 @@ function MuiHtml(p: HtmlDisplayRenderProps) {
           undefined,
           combineClass(p.className, p.textClassName),
         )}
-        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+        dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
   );

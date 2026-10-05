@@ -50,6 +50,7 @@ import {
   FadeVisibility,
   FormElement,
   DisplayShell,
+  noContent,
   onFocusLeave,
   optionKeys,
 } from "./shared.js";
@@ -531,6 +532,7 @@ function HtmlText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const { displayShell, text: t } = useHtmlTheme();
   const Tag = p.inline ? "span" : "p";
+  const content = getProp(rc, p.text) ?? p.children;
   // Three slots, three elements: wrapper, element, text.
   return rendered(
     <DisplayShell
@@ -538,13 +540,14 @@ function HtmlText(p: TextDisplayRenderProps) {
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly || noContent(content)}
       classes={displayShell}
     >
       <Tag
         className={mergeClass(p.inline ? t.inline : t.className, p.className)}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
-          {getProp(rc, p.text) ?? p.children}
+          {content}
         </span>
       </Tag>
     </DisplayShell>,
@@ -565,6 +568,7 @@ function HtmlIcon(p: IconDisplayRenderProps) {
       inline={true}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly}
       classes={displayShell}
     >
       <span
@@ -585,6 +589,7 @@ function HtmlIcon(p: IconDisplayRenderProps) {
 function HtmlHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const { displayShell, html: t } = useHtmlTheme();
+  const html = getProp(rc, p.html);
   // The html *is* the text, so both slots land on the one element.
   return rendered(
     <DisplayShell
@@ -592,6 +597,7 @@ function HtmlHtml(p: HtmlDisplayRenderProps) {
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly || noContent(html)}
       classes={displayShell}
     >
       <div
@@ -599,7 +605,7 @@ function HtmlHtml(p: HtmlDisplayRenderProps) {
           t.className,
           combineClass(p.className, p.textClassName),
         )}
-        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+        dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
   );

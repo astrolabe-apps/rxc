@@ -665,6 +665,41 @@ export function describeConformance(impl: Implementation): void {
       expect(roleOf("301 / 300")).toEqual([]);
     });
 
+    it("keeps an announced display's live region mounted while it is hidden or empty", () => {
+      const error = ctx.newControl<string | undefined>(undefined);
+      const note = ctx.newControl("");
+      mount(
+        <>
+          <TextDisplay
+            hidden={(r) => !r.getValue(error)}
+            text={error}
+            tone="error"
+            announce
+          />
+          <TextDisplay text={note} announce />
+        </>,
+      );
+      const alert = document.querySelector('[role="alert"]')!;
+      const status = document.querySelector('[role="status"]')!;
+      // Present but empty: nothing drawn, nothing to read.
+      expect(alert).not.toBeNull();
+      expect(alert.textContent).toBe("");
+      expect(alert.childNodes).toHaveLength(0);
+      expect(status.textContent).toBe("");
+      expect(status.childNodes).toHaveLength(0);
+      // Shown: the content arrives in the region already in the page.
+      set(error, "Submission refused");
+      set(note, "Saved");
+      expect(document.querySelector('[role="alert"]')).toBe(alert);
+      expect(alert.textContent).toContain("Submission refused");
+      expect(document.querySelector('[role="status"]')).toBe(status);
+      expect(status.textContent).toContain("Saved");
+      // And hidden again, the same region, emptied.
+      set(error, undefined);
+      expect(document.querySelector('[role="alert"]')).toBe(alert);
+      expect(alert.textContent).toBe("");
+    });
+
     it("draws text and html displays", () => {
       mount(
         <>

@@ -252,6 +252,24 @@ export function Inline({
 }
 
 /**
+ * An empty live region takes no space and draws nothing, but stays in the
+ * accessibility tree — out of flow, so it is no item of a grid or flex body.
+ */
+const regionOnlyStyle: CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  clipPath: "inset(50%)",
+  whiteSpace: "nowrap",
+};
+
+/** A display's content shows nothing: `null`, `undefined`, `false` or `""`. */
+export function noContent(content: ReactNode): boolean {
+  return content == null || content === false || content === "";
+}
+
+/**
  * The wrapper a display or an action sits in — what the JSON's `layoutClass`
  * styles. Always rendered, so a class arriving later changes an attribute and
  * not the tree; a span in prose, a div otherwise.
@@ -262,6 +280,7 @@ export function DisplayShell({
   kind = "display",
   tone,
   announce,
+  regionOnly,
   style,
   children,
   classes = defaultHtmlTheme.displayShell,
@@ -273,12 +292,20 @@ export function DisplayShell({
   tone?: Tone;
   /** A live region: `role="alert"` for an error, `role="status"` otherwise. */
   announce?: boolean;
+  /**
+   * With `announce`: draw only the empty live region, out of the layout — the
+   * display's `regionOnly`, or a display with nothing to show. The same
+   * element either way, so content arriving in it is announced.
+   */
+  regionOnly?: boolean;
   /** For an implementation whose colours are runtime tokens, not classes. */
   style?: CSSProperties;
   children: ReactNode;
   classes?: HtmlTheme["displayShell"];
 }) {
   const Tag = inline ? "span" : "div";
+  const role = announce ? (tone === "error" ? "alert" : "status") : undefined;
+  if (announce && regionOnly) return <Tag role={role} style={regionOnlyStyle} />;
   return (
     <Tag
       className={mergeClass(
@@ -286,7 +313,7 @@ export function DisplayShell({
         shellClassName,
       )}
       data-tone={tone}
-      role={announce ? (tone === "error" ? "alert" : "status") : undefined}
+      role={role}
       style={style}
     >
       {children}

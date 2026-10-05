@@ -64,6 +64,7 @@ import {
   DefaultVisibility,
   FormElement,
   DisplayShell,
+  noContent,
   onFocusLeave,
   optionKeys,
 } from "@rx-controls/forms-html/shared";
@@ -507,12 +508,14 @@ function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
 function AntText(p: TextDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const content = getProp(rc, p.text) ?? p.children;
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly || noContent(content)}
       style={toneStyle}
     >
       <Typography.Text
@@ -521,7 +524,7 @@ function AntText(p: TextDisplayRenderProps) {
         style={p.tone ? { color: "inherit" } : undefined}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
-          {getProp(rc, p.text) ?? p.children}
+          {content}
         </span>
       </Typography.Text>
     </DisplayShell>,
@@ -550,6 +553,7 @@ function AntIcon(p: IconDisplayRenderProps) {
       inline={true}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly}
       style={toneStyle}
     >
       {p.accessibleName ? (
@@ -564,12 +568,14 @@ function AntIcon(p: IconDisplayRenderProps) {
 function AntHtml(p: HtmlDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const html = getProp(rc, p.html);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
+      regionOnly={p.regionOnly || noContent(html)}
       style={toneStyle}
     >
       <Typography
@@ -578,7 +584,7 @@ function AntHtml(p: HtmlDisplayRenderProps) {
           combineClass(p.className, p.textClassName),
         )}
         style={p.tone ? { color: "inherit" } : undefined}
-        dangerouslySetInnerHTML={{ __html: getProp(rc, p.html) ?? "" }}
+        dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
   );
