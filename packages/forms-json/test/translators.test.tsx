@@ -223,6 +223,32 @@ describe("RadioField", () => {
   });
 });
 
+describe("CheckListField", () => {
+  it("is legacy's CheckList over a collection with options, ticking values into the array", () => {
+    const { data, warnings } = h.load(
+      [{ type: "Data", field: "days", renderOptions: { type: "CheckList" } }],
+      [
+        {
+          field: "days",
+          type: "Int",
+          collection: true,
+          options: [
+            { name: "Mon", value: 1 },
+            { name: "Tue", value: 2 },
+          ],
+        },
+      ],
+      { days: [] as number[] },
+    );
+    const boxes = $$("input[type=checkbox]") as HTMLInputElement[];
+    expect(boxes).toHaveLength(2);
+    act(() => boxes[1]!.click());
+    // The option's own value, a number — not the string the DOM carries.
+    expect(rc.getValue(data).days).toEqual([2]);
+    expect(warnings).toEqual([]);
+  });
+});
+
 describe("CheckboxField", () => {
   it("is the widget for a Bool", () => {
     const { data } = h.load(

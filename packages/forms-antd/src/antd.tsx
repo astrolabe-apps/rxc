@@ -36,6 +36,7 @@ import {
   StandardActionIds,
   useCheckbox,
   useSelectController,
+  useMultiSelectController,
   useTextInput,
   type ActionRenderProps,
   type HtmlDisplayRenderProps,
@@ -45,6 +46,7 @@ import {
   type CheckboxRenderProps,
   type SelectRenderProps,
   type RadioRenderProps,
+  type CheckListRenderProps,
   type FieldShellProps,
   type FormRenderers,
   type FrameState,
@@ -335,6 +337,54 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
         onChange={(e) => ctl.setChecked(e.target.checked)}
         onBlur={ctl.onBlur}
       />
+    </Shell>,
+  );
+}
+
+/**
+ * Ant's own checkboxes in a labelled group. Not `Checkbox.Group`: it keys its
+ * value by option value, which would lose a numeric choice's type, and takes
+ * no ids for the shell's name and description.
+ */
+function AntCheckList(p: CheckListRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useMultiSelectController(p.field, p.options);
+  const keys = optionKeys(ctl.options);
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <div
+        role="group"
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
+        aria-describedby={describedBy(p)}
+        onBlur={ctl.onBlur}
+        className={mergeClass(undefined, p.className)}
+      >
+        <Flex vertical gap={8}>
+          {ctl.options.map((o, i) => (
+            <Checkbox
+              key={keys[i]}
+              checked={ctl.isSelected(o)}
+              disabled={locked || o.disabled}
+              onChange={(e) => ctl.setSelected(o, e.target.checked)}
+            >
+              {o.name}
+            </Checkbox>
+          ))}
+        </Flex>
+      </div>
     </Shell>,
   );
 }
@@ -700,6 +750,7 @@ export const antdRenderers: FormRenderers = {
   displayOnly: AntDisplayOnly,
   select: AntSelect,
   radio: AntRadio,
+  checkList: AntCheckList,
   text: AntText,
   html: AntHtml,
   icon: AntIcon,

@@ -232,6 +232,17 @@ group unnamed under html, MUI and Ant; all three name it now.
 Ant and MUI draw their own checkbox group; failing that, a `useMultiSelectController` alongside the
 others.
 
+**Resolved (after the trial):** `CheckListField` is built in — a required `checkList` registry
+slot, so html draws native checkboxes, MUI a `FormGroup` and Ant its own `Checkbox`es, each group
+carrying the shell's label and description ids — over the same `options` a select takes, binding
+an array of `CheckListValue` (`string | number`: no `boolean`, so no cast). `useMultiSelectController`
+is the controller for a widget written outside, beside the others. Generic over the whole value
+type, like `TextField`, so a validator written for `Reason[] | undefined` type-checks. Toggling
+appends or removes by string comparison, and a value the options do not list stays in the array.
+The loader translates legacy's `CheckList` (unused in the corpus, but in the format). Not done:
+a check list does not clear values its options move away from — dropping stale items from an
+array is a different rule from clearing a select, and nothing has asked for it.
+
 ## 3. Validation and submit
 
 **The contract covered the real form.** `required` on every mandatory field, the length limits as

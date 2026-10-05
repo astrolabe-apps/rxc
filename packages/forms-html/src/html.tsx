@@ -21,6 +21,7 @@ import {
   StandardActionIds,
   useCheckbox,
   useSelectController,
+  useMultiSelectController,
   useTextInput,
   type ActionRenderProps,
   type HtmlDisplayRenderProps,
@@ -29,6 +30,7 @@ import {
   type CheckboxRenderProps,
   type SelectRenderProps,
   type RadioRenderProps,
+  type CheckListRenderProps,
   type FieldShellProps,
   type FormRenderers,
   type FrameState,
@@ -374,6 +376,56 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
             </label>
             {p.children?.(o, selected)}
           </div>
+        ))}
+      </div>
+    </Shell>,
+  );
+}
+
+/**
+ * A labelled group of native checkboxes: the shell's legend names the group
+ * and its description describes it, so the one `role="group"` carries both.
+ */
+function HtmlCheckList(p: CheckListRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useMultiSelectController(p.field, p.options);
+  const t = useHtmlTheme().checkList;
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  const keys = optionKeys(ctl.options);
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <div
+        role="group"
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
+        aria-describedby={describedBy(p)}
+        className={mergeClass(t.className, p.className)}
+        onBlur={ctl.onBlur}
+      >
+        {ctl.options.map((o, i) => (
+          <label key={keys[i]} className={t.entry || undefined}>
+            <input
+              id={`${p.id}_${i}`}
+              type="checkbox"
+              className={t.input || undefined}
+              value={String(o.value)}
+              checked={ctl.isSelected(o)}
+              disabled={locked || o.disabled}
+              onChange={(e) => ctl.setSelected(o, e.target.checked)}
+            />
+            <span className={mergeClass(t.label, p.textClassName)}>{o.name}</span>
+          </label>
         ))}
       </div>
     </Shell>,
@@ -755,6 +807,7 @@ export const htmlRenderers: FormRenderers = {
   elements: HtmlElements,
   visibility: FadeVisibility,
   form: FormElement,
+  checkList: HtmlCheckList,
   fieldShell: HtmlFieldShell,
   inputFrame: HtmlInputFrame,
 };

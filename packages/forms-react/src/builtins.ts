@@ -13,6 +13,8 @@ import type {
 import type { FieldProps } from "./field.js";
 import type { GroupProps } from "./group.js";
 import type {
+  CheckListExtra,
+  CheckListValue,
   DisplayOnlyExtra,
   OptionValue,
   RadioExtra,
@@ -105,6 +107,18 @@ function optionsAllow(
   const names = new Set(list.map((o) => String(o.value)));
   return (v) => names.has(String(v));
 }
+
+/**
+ * A set of choices, as checkboxes: each option ticked is in the value. Binds
+ * an array; `required` refuses an empty one.
+ *
+ * @group Authoring
+ */
+export const CheckListField: <T extends CheckListValue[] | undefined | null>(
+  props: FieldProps<T> & CheckListExtra,
+) => Rendered = fieldRenderer<CheckListValue[] | undefined | null, CheckListExtra>(
+  { key: "checkList" },
+) as never;
 
 /**
  * A bound value shown as text and never edited.

@@ -97,6 +97,17 @@ export interface HtmlTheme {
     /** The option's text. */
     label: string;
   };
+  /** A set of choices. */
+  checkList: {
+    /** The group. */
+    className: string;
+    /** The `<label>` around one checkbox and its text. */
+    entry: string;
+    /** The `<input type="checkbox">`. */
+    input: string;
+    /** The option's text. */
+    label: string;
+  };
   /** The read-only value. */
   displayOnly: {
     /** As a block. */
@@ -312,6 +323,12 @@ export const defaultHtmlTheme: HtmlTheme = {
     input: "",
     label: "",
   },
+  checkList: {
+    className: "rxf-checklist",
+    entry: "rxf-checklist-option",
+    input: "",
+    label: "",
+  },
   displayOnly: { className: "rxf-readonly", inline: "rxf-readonly-inline" },
   contents: {
     wrapper: "rxf-contents",
@@ -430,6 +447,12 @@ export const tailwindHtmlTheme: HtmlTheme = {
     className: "rxf-radio flex items-center gap-4",
     entryWrapper: "rxf-radio-entry",
     entry: "rxf-radio-option flex items-center gap-1 cursor-pointer",
+    input: "h-4 w-4",
+    label: "",
+  },
+  checkList: {
+    className: "rxf-checklist flex flex-col gap-1.5",
+    entry: "rxf-checklist-option flex items-center gap-1 cursor-pointer",
     input: "h-4 w-4",
     label: "",
   },

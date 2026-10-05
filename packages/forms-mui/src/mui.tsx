@@ -23,6 +23,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
+import FormGroup from "@mui/material/FormGroup";
 import Stack from "@mui/material/Stack";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
@@ -50,6 +51,7 @@ import {
   StandardActionIds,
   useCheckbox,
   useSelectController,
+  useMultiSelectController,
   useTextInput,
   type ControlSlotProps,
   type ActionRenderProps,
@@ -60,6 +62,7 @@ import {
   type CheckboxRenderProps,
   type SelectRenderProps,
   type RadioRenderProps,
+  type CheckListRenderProps,
   type FieldShellProps,
   type FormRenderers,
   type FrameState,
@@ -624,6 +627,50 @@ function MuiRadio(p: RadioRenderProps): Rendered {
   );
 }
 
+function MuiCheckList(p: CheckListRenderProps): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useMultiSelectController(p.field, p.options);
+  const keys = optionKeys(ctl.options);
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      className={p.shellClassName}
+      labelClassName={p.labelClassName}
+      labelTextClassName={p.labelTextClassName}
+    >
+      <FormGroup
+        role="group"
+        aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
+        aria-describedby={describedBy(p)}
+        onBlur={ctl.onBlur}
+        className={mergeClass(undefined, p.className)}
+      >
+        {ctl.options.map((o, i) => (
+          <FormControlLabel
+            key={keys[i]}
+            control={
+              <Checkbox
+                checked={ctl.isSelected(o)}
+                onChange={(e) => ctl.setSelected(o, e.target.checked)}
+              />
+            }
+            label={o.name}
+            disabled={locked || o.disabled}
+          />
+        ))}
+      </FormGroup>
+    </Shell>,
+  );
+}
+
 function MuiWizard(p: WizardRenderProps) {
   const shown = p.items.filter((i) => !i.hidden);
   return (
@@ -716,6 +763,7 @@ export const muiRenderers: FormRenderers = {
   displayOnly: MuiDisplayOnly,
   select: MuiSelect,
   radio: MuiRadio,
+  checkList: MuiCheckList,
   text: MuiText,
   html: MuiHtml,
   icon: MuiIcon,

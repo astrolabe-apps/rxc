@@ -8,7 +8,12 @@ import {
   useFieldState,
   type FieldState,
 } from "./scope.js";
-import type { DisplayOnlyExtra, FieldOption, OptionValue } from "./widgets.js";
+import type {
+  CheckListValue,
+  DisplayOnlyExtra,
+  FieldOption,
+  OptionValue,
+} from "./widgets.js";
 
 /*
  * Controllers: the platform-agnostic half of a widget. An implementation calls
@@ -187,6 +192,61 @@ export function useSelectController(
     setFromString: (s) =>
       setValue(
         s === "" ? undefined : (list.find((o) => String(o.value) === s)?.value ?? s),
+      ),
+    onBlur: () => update((wc) => wc.setTouched(field, true, true)),
+  };
+}
+
+/**
+ * A set of choices' state and handlers.
+ *
+ * @group Implementations
+ */
+export interface MultiSelectController extends FieldController {
+  /** The choices, resolved. */
+  options: FieldOption[];
+  /** The option is in the value — compared as strings, like a select. */
+  isSelected(option: FieldOption): boolean;
+  /**
+   * Add the option's value, or remove it. Adding appends; removing leaves
+   * every other value — a value the options do not list included — alone.
+   * An empty set is written as `[]`.
+   */
+  setSelected(option: FieldOption, selected: boolean): void;
+  /** Mark the field touched. */
+  onBlur(): void;
+}
+
+/**
+ * The controller for a set of choices — a check list, a multi-select. For a
+ * widget written outside an implementation as much as for the built-in.
+ *
+ * @group Implementations
+ */
+export function useMultiSelectController(
+  field: Control<CheckListValue[] | undefined | null>,
+  options?: FormProp<FieldOption[]>,
+): MultiSelectController {
+  const { rc, rendered, update } = useReactive();
+  const list = getProp(rc, options) ?? [];
+  const value = rc.getValue(field) ?? [];
+  const has = (v: OptionValue) => value.some((x) => String(x) === String(v));
+  return {
+    rc,
+    rendered,
+    state: useFieldState(rc, field),
+    options: list,
+    isSelected: (o) => has(o.value),
+    setSelected: (o, on) =>
+      update((wc) =>
+        wc.updateValue(field, (cur) => {
+          const now = cur ?? [];
+          const present = now.some((x) => String(x) === String(o.value));
+          if (on === present) return cur;
+          return on
+            ? [...now, o.value as CheckListValue]
+            : now.filter((x) => String(x) !== String(o.value));
+        }),
       ),
     onBlur: () => update((wc) => wc.setTouched(field, true, true)),
   };

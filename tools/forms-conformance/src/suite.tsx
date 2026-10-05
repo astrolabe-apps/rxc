@@ -10,6 +10,7 @@ import {
 import {
   Action,
   CheckboxField,
+  CheckListField,
   Contents,
   Dialog,
   Elements,
@@ -192,6 +193,35 @@ export function describeConformance(impl: Implementation): void {
       expect(byId<HTMLInputElement>("name")!.disabled).toBe(true);
     });
 
+    it("ticks a set of choices into an array, and refuses an empty one when required", () => {
+      const v = ctx.newControl<string[] | undefined>(undefined);
+      mount(
+        <CheckListField
+          field={v}
+          label="Reasons"
+          required
+          requiredMessage="Pick one"
+          options={[
+            { name: "Ay", value: "a" },
+            { name: "Bee", value: "b" },
+          ]}
+        />,
+      );
+      const box = (name: string) =>
+        [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
+          (i) => (i.closest("label")?.textContent ?? "").includes(name),
+        )!;
+      click(box("Bee"));
+      click(box("Ay"));
+      expect(rc.getValue(v)).toEqual(["b", "a"]);
+      expect(box("Ay").checked).toBe(true);
+      click(box("Bee"));
+      click(box("Ay"));
+      expect(rc.getValue(v)).toEqual([]);
+      act(() => ctx.update((wc) => wc.setTouched(v, true)));
+      expect(text()).toContain("Pick one");
+    });
+
     it("toggles a checkbox", () => {
       const ok = ctx.newControl(false);
       mount(<CheckboxField field={ok} id="ok" label="Agree" />);
@@ -231,6 +261,7 @@ export function describeConformance(impl: Implementation): void {
         ["select", (c) => <SelectField field={c} label="Select name" options={opts} required requiredMessage="Needed" helpText="Help" />],
         ["radio", (c) => <RadioField field={c} label="Radio name" options={opts} required requiredMessage="Needed" helpText="Help" />],
         ["checkbox", (c) => <CheckboxField field={c} label="Check name" required requiredMessage="Needed" helpText="Help" />],
+        ["checklist", (c) => <CheckListField field={c} label="Checklist name" options={opts} required requiredMessage="Needed" helpText="Help" />],
       ];
       const texts = (ids: string) =>
         ids
@@ -256,7 +287,10 @@ export function describeConformance(impl: Implementation): void {
       for (const [kind, ui] of cases) {
         const c = ctx.newControl<unknown>(undefined);
         mount(ui(c));
-        const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace("Checkbox", "Check");
+        const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace(
+          "Checkbox",
+          "Check",
+        );
         const named = (description: string) => [
           kind,
           [{ name: expect.stringContaining(label), description }],

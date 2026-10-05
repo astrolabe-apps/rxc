@@ -210,6 +210,7 @@ export const testRenderers: FormRenderers = {
   fieldShell: ({ children }) => <>{children}</>,
   inputFrame: Nothing,
   visibility: Visibility,
+  checkList: Nothing,
   form: ({ onSubmit, children }) => (
     <form
       data-form

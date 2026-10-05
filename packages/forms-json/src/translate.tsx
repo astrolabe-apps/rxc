@@ -17,6 +17,7 @@ import {
   StandardActionIds,
   useFormScope,
   CheckboxField,
+  CheckListField,
   Contents,
   Dialog,
   DisplayOnlyField,
@@ -33,6 +34,7 @@ import {
   type ClassValue,
   type FlexLayout,
   type FieldOption,
+  type CheckListValue,
   type FieldProps,
   type FormProp,
   type Validator,
@@ -385,6 +387,20 @@ const builtins: Builtin[] = [
         </Contents>
       );
     },
+  },
+  {
+    // Legacy's CheckList: a collection of option values, one checkbox per
+    // option (schemas-html's createCheckListRenderer). Before the collection
+    // translator, which would otherwise claim the array.
+    match: (d) => d.type === "Data" && d.renderOptions?.type === "CheckList",
+    renderTypes: ["CheckList"],
+    dynamics: ["AllowedOptions"],
+    render: ({ props, schema, dynamicValue }) => (
+      <CheckListField
+        {...(props as FieldProps<CheckListValue[] | undefined>)}
+        options={optionsFor(schema, dynamicValue)}
+      />
+    ),
   },
   {
     // Legacy's Array renderer: the rows, a Remove on each, an Add below —

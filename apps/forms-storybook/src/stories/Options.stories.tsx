@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   CheckboxField,
+  CheckListField,
   Contents,
   RadioField,
   SelectField,
@@ -131,4 +132,34 @@ export const Checkbox_: Story = {
   name: "Checkbox",
   render: (a) => <Checkbox {...a} />,
   args: { label: "I agree" },
+};
+
+const reasonOptions: FieldOption[] = [
+  { name: "New starter", value: "NewStarter" },
+  { name: "Changed role", value: "RoleChange" },
+  { name: "Other", value: "Other" },
+];
+
+function CheckList(a: OptionArgs): Rendered {
+  const { rendered } = useReactive();
+  const reasons = useControl<string[] | undefined>(undefined);
+  return rendered(
+    <>
+      <CheckListField
+        field={reasons}
+        label={a.label}
+        required={a.required}
+        options={reasonOptions}
+        helpText="Each option ticked is in the array; required refuses an empty one."
+      />
+      <Values control={reasons} />
+    </>,
+  );
+}
+
+/** A set of choices bound to an array — HVAMS's access reasons. */
+export const CheckList_: Story = {
+  name: "CheckList",
+  render: (a) => <CheckList {...a} />,
+  args: { label: "Reasons for access", required: true },
 };

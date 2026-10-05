@@ -26,6 +26,7 @@ import type {
   CheckboxRenderProps,
   DisplayOnlyRenderProps,
   RadioRenderProps,
+  CheckListRenderProps,
   SelectRenderProps,
   TextFieldRenderProps,
 } from "./widgets.js";
@@ -52,6 +53,8 @@ export interface FormRenderers {
   select: ComponentType<SelectRenderProps>;
   /** {@link RadioField}. */
   radio: ComponentType<RadioRenderProps>;
+  /** {@link CheckListField}. */
+  checkList: ComponentType<CheckListRenderProps>;
   /** {@link DisplayOnlyField}. */
   displayOnly: ComponentType<DisplayOnlyRenderProps>;
   /** Every button: {@link Action}, and the ones other renderers draw. */

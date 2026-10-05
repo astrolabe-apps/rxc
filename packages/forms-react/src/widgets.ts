@@ -174,3 +174,35 @@ export interface DisplayOnlyExtra {
  */
 export type DisplayOnlyRenderProps = FieldRenderProps<unknown> &
   DisplayOnlyExtra;
+
+/**
+ * One value in a {@link CheckListField}: an option's value, narrowed to what a
+ * set of choices holds. Not `boolean` — a set of booleans is not a choice.
+ *
+ * @group Authoring
+ */
+export type CheckListValue = string | number;
+
+/**
+ * {@link CheckListField}'s own props.
+ *
+ * @group Authoring
+ */
+export interface CheckListExtra {
+  /**
+   * The choices; each one ticked is in the value. A derivation re-filters
+   * them as the data moves. A value the options do not list stays in the
+   * array — it is the data's — and is simply not drawn.
+   */
+  options?: FormProp<FieldOption[]>;
+}
+
+/**
+ * What the `checkList` slot receives. `CheckListExtra` arrives unresolved.
+ *
+ * @group Implementations
+ */
+export type CheckListRenderProps = FieldRenderProps<
+  CheckListValue[] | undefined | null
+> &
+  CheckListExtra;

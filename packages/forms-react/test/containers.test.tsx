@@ -11,6 +11,7 @@ import {
   Tabs,
   TextField,
   useDisplayValue,
+  useMultiSelectController,
   useFormValidation,
   useSelectController,
   useTextInput,
@@ -501,6 +502,28 @@ describe("controllers", () => {
     expect(ctl.stringValue).toBe("3");
     act(() => ctl.setFromString(""));
     expect(rc.getValue(c)).toBeUndefined();
+  });
+
+  it("useMultiSelectController adds and removes by string, keeping what the options do not list", () => {
+    const c = dom.ctx.newControl<(string | number)[] | undefined>(["kept", 2]);
+    const options: FieldOption[] = [
+      { name: "One", value: 1 },
+      { name: "Two", value: 2 },
+    ];
+    let ctl!: ReturnType<typeof useMultiSelectController>;
+    function Probe() {
+      ctl = useMultiSelectController(c, options);
+      return ctl.rendered(<i />);
+    }
+    mount(<Probe />);
+    expect(options.map((o) => ctl.isSelected(o))).toEqual([false, true]);
+    act(() => ctl.setSelected(options[0]!, true));
+    expect(rc.getValue(c)).toEqual(["kept", 2, 1]);
+    act(() => ctl.setSelected(options[1]!, false));
+    expect(rc.getValue(c)).toEqual(["kept", 1]);
+    // Already in: no write. `"1"` and `1` are the same choice.
+    act(() => ctl.setSelected({ name: "One", value: "1" }, true));
+    expect(rc.getValue(c)).toEqual(["kept", 1]);
   });
 
   it("useDisplayValue formats through the options, and falls back when empty", () => {
