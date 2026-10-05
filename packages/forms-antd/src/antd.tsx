@@ -64,6 +64,7 @@ import {
   DefaultVisibility,
   FormElement,
   DisplayShell,
+  onFocusLeave,
   optionKeys,
 } from "@rx-controls/forms-html/shared";
 
@@ -369,7 +370,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
-        onBlur={ctl.onBlur}
+        onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
       >
         <Flex vertical gap={8}>
@@ -632,7 +633,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
         aria-describedby={describedBy(p)}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
-        onBlur={ctl.onBlur}
+        onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
       >
         <Flex vertical gap={8}>

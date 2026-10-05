@@ -161,7 +161,11 @@ export interface SelectController extends FieldController {
   setFromString(value: string): void;
   /** Write a value directly. */
   setValue(value: OptionValue): void;
-  /** Mark the field touched. */
+  /**
+   * Mark the field touched. For a widget of several elements — a radio's
+   * buttons — call it when focus leaves the widget as a whole, not as it
+   * moves between them; see {@link MultiSelectController.onBlur}.
+   */
   onBlur(): void;
 }
 
@@ -213,7 +217,12 @@ export interface MultiSelectController extends FieldController {
    * An empty set is written as `[]`.
    */
   setSelected(option: FieldOption, selected: boolean): void;
-  /** Mark the field touched. */
+  /**
+   * Mark the field touched. Call it when focus leaves the widget as a whole,
+   * not as it moves between the widget's own options: touched shows the
+   * field's error, and showing it while the user is still choosing can shift
+   * the layout under a click.
+   */
   onBlur(): void;
 }
 

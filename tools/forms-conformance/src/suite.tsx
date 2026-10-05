@@ -222,6 +222,47 @@ export function describeConformance(impl: Implementation): void {
       expect(text()).toContain("Pick one");
     });
 
+    for (const [kind, input, widget] of [
+      [
+        "a set of choices",
+        "checkbox",
+        (v: Control<string[] | undefined>) => (
+          <CheckListField field={v} label="Reasons" required options={options} />
+        ),
+      ],
+      [
+        "a radio",
+        "radio",
+        (v: Control<string | undefined>) => (
+          <RadioField field={v} label="Pick" required options={options} />
+        ),
+      ],
+    ] as const)
+      it(`touches ${kind} when focus leaves it, not when it moves between its options`, () => {
+        const v = ctx.newControl<never>(undefined as never);
+        mount(
+          <>
+            {widget(v)}
+            <button type="button">Elsewhere</button>
+          </>,
+        );
+        const [first, second] = container.querySelectorAll<HTMLInputElement>(
+          `input[type="${input}"]`,
+        );
+        const focusOut = (from: HTMLElement, to: HTMLElement) =>
+          act(() => {
+            from.dispatchEvent(
+              new FocusEvent("focusout", { bubbles: true, relatedTarget: to }),
+            );
+          });
+        // A move inside must not touch it: in a centred dialog, the required
+        // error appearing mid-click shifts the option away from the pointer.
+        focusOut(first, second);
+        expect(rc.isTouched(v)).toBe(false);
+        focusOut(second, buttonNamed("Elsewhere")!);
+        expect(rc.isTouched(v)).toBe(true);
+      });
+
     it("toggles a checkbox", () => {
       const ok = ctx.newControl(false);
       mount(<CheckboxField field={ok} id="ok" label="Agree" />);

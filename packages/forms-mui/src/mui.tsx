@@ -80,6 +80,7 @@ import {
   DefaultVisibility,
   FormElement,
   DisplayShell,
+  onFocusLeave,
   optionKeys,
 } from "@rx-controls/forms-html/shared";
 
@@ -608,7 +609,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
         aria-describedby={describedBy(p)}
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}
-        onBlur={ctl.onBlur}
+        onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
       >
         {entries.map(({ o, selected }, i) => (
@@ -650,7 +651,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
-        onBlur={ctl.onBlur}
+        onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
       >
         {ctl.options.map((o, i) => (

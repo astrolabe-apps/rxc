@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FocusEvent,
   type ReactNode,
 } from "react";
 import {
@@ -339,4 +340,20 @@ export function optionKeys(options: { value: unknown }[]): string[] {
     seen.set(v, n + 1);
     return n ? `${v}#${n}` : v;
   });
+}
+
+/**
+ * A container's `onBlur` for a widget made of several focusable elements — a
+ * check list's boxes: `leave` runs only when focus leaves the widget. React's
+ * `onBlur` on a container is `focusout`, which also fires as focus moves from
+ * one of its own elements to the next; touching the field then shows its error
+ * while the user is still choosing, and the layout that error shifts can move
+ * the next option out from under the pointer mid-click.
+ */
+export function onFocusLeave(
+  leave: () => void,
+): (e: FocusEvent<HTMLElement>) => void {
+  return (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) leave();
+  };
 }

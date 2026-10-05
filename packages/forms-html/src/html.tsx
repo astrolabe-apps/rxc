@@ -50,6 +50,7 @@ import {
   FadeVisibility,
   FormElement,
   DisplayShell,
+  onFocusLeave,
   optionKeys,
 } from "./shared.js";
 import { useHtmlTheme } from "./theme.js";
@@ -351,6 +352,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         className={mergeClass(t.className, p.className)}
         aria-describedby={describedBy(p)}
+        onBlur={onFocusLeave(ctl.onBlur)}
       >
         {entries.map(({ o, selected }, i) => (
           <div
@@ -368,7 +370,6 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
                 checked={selected}
                 disabled={locked || o.disabled}
                 onChange={() => ctl.setFromString(String(o.value))}
-                onBlur={ctl.onBlur}
               />
               <span className={mergeClass(t.label, p.textClassName)}>
                 {o.name}
@@ -411,7 +412,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
         className={mergeClass(t.className, p.className)}
-        onBlur={ctl.onBlur}
+        onBlur={onFocusLeave(ctl.onBlur)}
       >
         {ctl.options.map((o, i) => (
           <label key={keys[i]} className={t.entry || undefined}>
