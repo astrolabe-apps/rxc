@@ -7,7 +7,10 @@ last run's workarounds. The last run's findings are in
 [`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) (`0.1.0-alpha.0`); the
 brief keeps them out of reach until the new findings are written.
 
-Update the version and the rxc paths in the brief if they have moved.
+Update the version and the rxc paths in the brief if they have moved. **Run it against a published
+alpha that carries the fixes from the last report** (they landed after `0.1.0-alpha.0`): check
+`npm view @rx-controls/forms-react dist-tags` before starting, and publish the next alpha first if
+`alpha` still points at `0.1.0-alpha.0`.
 
 ---
 
@@ -59,6 +62,10 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
   `@rx-controls/react` / `@react-typed-forms/core`, and HVAMS's non-UI code. Nothing from an
   implementation package or `@astrolabe/ui`, and no DOM or class names for anything the contract
   has a boundary for.
+- **Layout is the exception: it is classes.** A grid, a row, columns per breakpoint — Tailwind on a
+  group's `className` (how its children lay out) and `shellClassName` (how it sits in its
+  parent's layout) is the intended way, not a breach of the rule. See `FORMS-V2-INTERFACES.md` §7,
+  "Layout is classes". Visual styling of a widget is still the implementation's.
 - The implementation is chosen in exactly one place: the page puts
   `<FormProvider renderers={htmlRenderers}>` around the form.
 - Wherever the rule can't be kept, that's a finding. Plain JSX for page chrome is fine.
@@ -67,17 +74,23 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
 - Keep the data layer: compat `useControl` for `form` (`AccessRequestEdit`) and its fields, passed
   straight into v2 fields.
 - Text fields keep `autoComplete` and `required`. State and Agency are `SelectField`s; Agency is
-  hidden until a state is chosen (the `hidden` prop, not conditional rendering). The 300 / 250
-  limits are `validate` rules and the counters are `TextDisplay`s with a derived `text`. The
-  description shows only when "Other" is among the reasons and is cleared when hidden. The
+  hidden until a state is chosen (the `hidden` prop, not conditional rendering). The four personal
+  fields sit **two to a row** on wide screens and one per row on narrow ones, as the original did.
+  The reason and description stop the user at 300 / 250 characters, with an error if a longer value
+  arrives anyway, and each has an "n / max characters" counter that turns red past its limit. The
+  description shows only when "Other" is among the reasons and is cleared when hidden — to the
+  value the DTO expects for an empty answer, not just whatever clearing writes by default. The
   sections are `Section` / `Contents` with a `title`.
-- The reasons checkboxes bind `AccessRequestReason[]`. If there is still no built-in multi-select,
-  write one with `fieldRenderer` + `useFieldShell`, plain DOM checkboxes inside the shell.
-- Submit is an `<Action>` whose handler awaits `useFormValidation().check()` before posting. Keep
-  the success view and the 400 / 409 / 429 handling exactly.
+- The reasons checkboxes bind `AccessRequestReason[]`. Use what the contract provides for a set
+  of choices; write one with `fieldRenderer` + `useFieldShell` only if it provides nothing.
+- Submit posts only once the form validates, and **Enter in a field submits** as a native form
+  would. Keep the success view and the 400 / 409 / 429 handling exactly. The submit error is a
+  message assistive technology announces; the counters are not.
 - Keep: agency resets to the chosen state's first agency when the state changes; an agency no
   longer in the options is cleared; the email is prefilled from `?email=`. Note for each whether
   it still needs an effect.
+- For every requirement above, look for what the contract offers before writing an effect or a
+  widget, and record which needed one.
 
 ## Checks that found real bugs last time — run them again
 - **Server errors vs. validators.** With a server 400 on a field, confirm the message shows under
@@ -86,7 +99,17 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
 - **Accessible errors under each implementation.** Assert errors through the accessibility tree —
   `toHaveAccessibleDescription` on the control — not just visible text, under html *and* Ant.
 - **Visibility inside containers.** Does anything in the form (or the contract) need a container
-  to know which of its children are hidden — a column layout, a tab, a wizard page?
+  to know which of its children are hidden — a column layout, a tab, a wizard page? With the
+  personal fields two to a row, hide one of them (temporarily) and confirm the next field moves
+  up into its cell rather than leaving a hole.
+- **Names as well as descriptions.** Every control — the checkboxes' group and the selects
+  included — has an accessible **name** and description (`toHaveAccessibleName` /
+  `toHaveAccessibleDescription`), under html and Ant. Section titles are headings
+  (`getByRole("heading")`).
+- **Enter.** In a real browser, Enter in a text field submits — refused with every error shown on
+  an empty form, posting on a valid one, once.
+- **Announcements.** The submit error is a live region (`role="alert"`); a counter is not, so
+  typing is not read out key by key.
 
 ## The implementation swap
 Mount the **unchanged** form under `antdRenderers`. Fill it in, submit a refused form, trigger a
@@ -129,4 +152,6 @@ rxc source lines for each finding:
    or an implementation bug.
 5. **Compat interop and the engine bump.**
 6. **Against the previous run** — only now read `FORMS-V2-HVAMS-REQUEST-ACCESS.md`: for each of its
-   findings, fixed, changed or still open, and anything new this run found that it missed.
+   findings, fixed, changed or still open, and anything new this run found that it missed. Most of
+   its findings are marked resolved there; say whether each resolution holds up in a real form,
+   and where it does not, why.
