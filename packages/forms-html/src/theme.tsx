@@ -403,8 +403,7 @@ export const defaultHtmlTheme: HtmlTheme = {
  * variants (v4 reversed their order) — a single arbitrary variant instead,
  * `[&[data-active]_button]:…`. **Does not presuppose preflight** — ServiceTas
  * runs without it (`corePlugins: { preflight: false }`) — so each slot
- * resets what preflight would have: a `<fieldset>` shell's border, margin
- * and padding, a `<button>`'s border, background and font, a `<p>`'s
+ * resets what preflight would have: a `<button>`'s border, background and font, a `<p>`'s
  * margin.
  *
  * Legacy `defaultTailwindTheme`'s classes where legacy had real ones (group
@@ -416,11 +415,9 @@ export const defaultHtmlTheme: HtmlTheme = {
  */
 export const tailwindHtmlTheme: HtmlTheme = {
   shell: {
-    // A shell may be a <fieldset> (labelAs "legend"): reset its UA box.
-    vertical:
-      "rxf-shell rxf-shell--vertical m-0 flex min-w-0 flex-col gap-1 border-0 p-0",
+    vertical: "rxf-shell rxf-shell--vertical flex min-w-0 flex-col gap-1",
     horizontal:
-      "rxf-shell rxf-shell--horizontal m-0 flex min-w-0 flex-row items-baseline gap-3 border-0 p-0",
+      "rxf-shell rxf-shell--horizontal flex min-w-0 flex-row items-baseline gap-3",
     label: "rxf-label text-sm font-semibold text-gray-700",
     labelAfter: "rxf-label-after inline-flex items-center gap-2 cursor-pointer",
     control: "rxf-control block",

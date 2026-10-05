@@ -103,7 +103,6 @@ function MuiFieldShell(p: FieldShellProps) {
         error={!!p.error}
         required={p.required}
         disabled={p.disabled}
-        component={legend ? "fieldset" : "div"}
         className={mergeClass(undefined, p.className)}
         sx={{ mb: 1 }}
       >
@@ -137,7 +136,7 @@ function MuiFieldShell(p: FieldShellProps) {
                 </InputLabel>
               ) : (
                 <FormLabel
-                  component={legend ? "legend" : "label"}
+                  component={legend ? "div" : "label"}
                   id={fieldLabelId(p.id)}
                   htmlFor={legend ? undefined : p.id}
                   className={mergeClass(
@@ -354,7 +353,12 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
     >
       <Checkbox
         id={p.id}
-        slotProps={{ input: { "aria-describedby": describedBy(p) } }}
+        slotProps={{
+          input: {
+            "aria-describedby": describedBy(p),
+            "aria-invalid": p.error ? true : undefined,
+          },
+        }}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         onChange={(e) => ctl.setChecked(e.target.checked)}
@@ -607,6 +611,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
         name={p.id}
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
+        aria-invalid={p.error ? true : undefined}
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}
         onBlur={onFocusLeave(ctl.onBlur)}

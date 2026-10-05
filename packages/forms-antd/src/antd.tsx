@@ -333,6 +333,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       <Checkbox
         id={p.id}
         aria-describedby={describedBy(p)}
+        aria-invalid={p.error ? true : undefined}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         onChange={(e) => ctl.setChecked(e.target.checked)}
@@ -579,6 +580,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       <Select
         id={p.id}
         aria-describedby={describedBy(p)}
+        aria-invalid={p.error ? true : undefined}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         status={p.error ? "error" : undefined}
         disabled={ctl.state.disabled || ctl.state.readOnly}
@@ -631,6 +633,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
         name={p.id}
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
+        aria-invalid={p.error ? true : undefined}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={onFocusLeave(ctl.onBlur)}

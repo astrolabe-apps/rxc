@@ -59,10 +59,11 @@ import { useHtmlTheme } from "./theme.js";
 
 function HtmlFieldShell(p: FieldShellProps) {
   const t = useHtmlTheme().shell;
+  // A "legend" captions a group the widget draws itself, so it is a plain
+  // element the group names by id: a fieldset here would be a second group.
   const legend = p.labelAs === "legend";
   const after = p.labelPosition === "after";
-  const Outer = legend ? "fieldset" : "div";
-  const Label = legend ? "legend" : "label";
+  const Label = legend ? "div" : "label";
   const hasLabel = p.label !== undefined && p.label !== null;
   const required = p.required && (
     <span className={t.required.className}>{t.required.text}</span>
@@ -78,7 +79,7 @@ function HtmlFieldShell(p: FieldShellProps) {
     </span>
   );
   return (
-    <Outer
+    <div
       className={mergeClass(
         p.orientation === "horizontal" ? t.horizontal : t.vertical,
         p.className,
@@ -120,7 +121,7 @@ function HtmlFieldShell(p: FieldShellProps) {
             {p.error}
           </p>
         ))}
-    </Outer>
+    </div>
   );
 }
 
@@ -306,6 +307,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         aria-describedby={describedBy(p)}
+        aria-invalid={p.error ? true : undefined}
         onChange={(e) => ctl.setChecked(e.target.checked)}
         onBlur={ctl.onBlur}
       />
@@ -352,6 +354,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         className={mergeClass(t.className, p.className)}
         aria-describedby={describedBy(p)}
+        aria-invalid={p.error ? true : undefined}
         onBlur={onFocusLeave(ctl.onBlur)}
       >
         {entries.map(({ o, selected }, i) => (
@@ -384,7 +387,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
 }
 
 /**
- * A labelled group of native checkboxes: the shell's legend names the group
+ * A labelled group of native checkboxes: the shell's caption names the group
  * and its description describes it, so the one `role="group"` carries both.
  */
 function HtmlCheckList(p: CheckListRenderProps): Rendered {

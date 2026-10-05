@@ -32,7 +32,13 @@ export interface FieldShellProps {
   id: string;
   /** The label, under id {@link fieldLabelId}. */
   label?: ReactNode;
-  /** Draw the label as a `label` element, or a `legend` over a group of controls. */
+  /**
+   * Draw the label as a `label` element, or as a `legend`: a caption over a
+   * group of controls the widget draws itself. The widget's group (a
+   * `role="group"`, a `radiogroup`) is the one named group — it takes the
+   * caption by `aria-labelledby` and the description by `aria-describedby` —
+   * so the shell adds no group of its own: no `fieldset`.
+   */
   labelAs?: "label" | "legend";
   /**
    * Where the label sits. `after` also lets the shell **wrap** the control,

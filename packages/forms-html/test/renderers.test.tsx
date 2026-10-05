@@ -135,14 +135,17 @@ describe("the options widgets", () => {
     expect(untrackedRead.getValue(c)).toBe(3);
   });
 
-  it("RadioField labels the group with a legend and renders per-option content", () => {
+  it("RadioField names its radiogroup from the caption and renders per-option content", () => {
     const c = dom.ctx.newControl<OptionValue>(3);
     mount(
       <RadioField field={c} label="Priority" options={options}>
         {(o, selected) => <i data-extra={`${o.value}:${selected}`} />}
       </RadioField>,
     );
-    expect($("fieldset > legend")!.textContent).toBe("Priority");
+    const group = $('[role="radiogroup"]')!;
+    expect(document.getElementById(group.getAttribute("aria-labelledby")!)!.textContent).toBe(
+      "Priority",
+    );
     expect($$('input[type="radio"]').map((r) => (r as HTMLInputElement).checked)).toEqual([
       false,
       true,

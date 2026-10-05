@@ -323,8 +323,18 @@ export function describeConformance(impl: Implementation): void {
             : (el.getAttribute("aria-label") ??
               (forIt ?? el.closest("label"))?.textContent?.trim() ??
               "(no name)");
-          return { name, description: texts(el.getAttribute("aria-describedby")!) };
+          return {
+            name,
+            description: texts(el.getAttribute("aria-describedby")!),
+            invalid: el.getAttribute("aria-invalid") === "true",
+          };
         });
+      // A set of choices is one group, named and described; a field, none.
+      // (A library's decoration — MUI's notch is a fieldset — is aria-hidden.)
+      const groups = () =>
+        [...container.querySelectorAll('fieldset, [role="group"], [role="radiogroup"]')].filter(
+          (el) => !el.closest('[aria-hidden="true"]'),
+        ).length;
       for (const [kind, ui] of cases) {
         const c = ctx.newControl<unknown>(undefined);
         mount(ui(c));
@@ -332,13 +342,18 @@ export function describeConformance(impl: Implementation): void {
           "Checkbox",
           "Check",
         );
-        const named = (description: string) => [
+        const named = (description: string, invalid: boolean) => [
           kind,
-          [{ name: expect.stringContaining(label), description }],
+          [{ name: expect.stringContaining(label), description, invalid }],
         ];
-        expect([kind, read()]).toEqual(named("Help"));
+        expect([kind, read()]).toEqual(named("Help", false));
+        expect([kind, groups()]).toEqual([
+          kind,
+          kind === "radio" || kind === "checklist" ? 1 : 0,
+        ]);
         act(() => ctx.update((wc) => wc.setTouched(c, true)));
-        expect([kind, read()]).toEqual(named("Needed"));
+        // ARIA has no aria-invalid on role="group"; the description carries it.
+        expect([kind, read()]).toEqual(named("Needed", kind !== "checklist"));
       }
     });
 
