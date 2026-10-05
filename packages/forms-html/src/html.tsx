@@ -175,6 +175,7 @@ function HtmlInputFrame(p: InputFrameProps) {
           "aria-invalid": p.invalid || undefined,
           "aria-required": p.required || undefined,
           "aria-describedby": p.describedBy,
+          ref: p.controlRef,
         },
         state,
       )}
@@ -213,6 +214,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       <Frame
         id={p.id}
         describedBy={describedBy(p)}
+        controlRef={ctl.elementRef}
         invalid={!!p.error}
         required={p.required}
         disabled={ctl.state.disabled}
@@ -308,6 +310,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       labelTextClassName={p.labelTextClassName}
     >
       <input
+        ref={ctl.elementRef}
         id={p.id}
         type="checkbox"
         className={t.input || undefined}
@@ -374,6 +377,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
           >
             <label className={t.entry || undefined}>
               <input
+                ref={i === 0 ? ctl.elementRef : undefined}
                 id={`${p.id}_${i}`}
                 type="radio"
                 className={t.input || undefined}
@@ -429,6 +433,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
         {ctl.options.map((o, i) => (
           <label key={keys[i]} className={t.entry || undefined}>
             <input
+              ref={i === 0 ? ctl.elementRef : undefined}
               id={`${p.id}_${i}`}
               type="checkbox"
               className={t.input || undefined}
@@ -635,6 +640,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       <Frame
         id={p.id}
         describedBy={describedBy(p)}
+        controlRef={ctl.elementRef}
         invalid={!!p.error}
         required={p.required}
         disabled={ctl.state.disabled}

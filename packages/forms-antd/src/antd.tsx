@@ -235,6 +235,7 @@ function AntInputFrame(p: InputFrameProps) {
           "aria-invalid": p.invalid || undefined,
           "aria-required": p.required || undefined,
           "aria-describedby": p.describedBy,
+          ref: p.controlRef,
         },
         state,
       )}
@@ -273,6 +274,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       <Frame
         id={p.id}
         describedBy={describedBy(p)}
+        controlRef={ctl.elementRef}
         invalid={!!p.error}
         required={p.required}
         disabled={ctl.state.disabled}
@@ -359,6 +361,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       className={p.shellClassName}
     >
       <Checkbox
+        ref={ctl.elementRef}
         id={p.id}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
@@ -407,6 +410,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
           {ctl.options.map((o, i) => (
             <Checkbox
               key={keys[i]}
+              ref={i === 0 ? ctl.elementRef : undefined}
               checked={ctl.isSelected(o)}
               disabled={locked || o.disabled}
               onChange={(e) => ctl.setSelected(o, e.target.checked)}
@@ -645,6 +649,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       labelTextClassName={p.labelTextClassName}
     >
       <Select
+        ref={ctl.elementRef}
         id={p.id}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
@@ -711,7 +716,11 @@ function AntRadio(p: RadioRenderProps): Rendered {
         <Flex vertical gap={8}>
           {entries.map(({ o, selected }, i) => (
             <div key={keys[i]} className={entryClass(selected)}>
-              <Radio value={String(o.value)} disabled={locked || o.disabled}>
+              <Radio
+                ref={i === 0 ? ctl.elementRef : undefined}
+                value={String(o.value)}
+                disabled={locked || o.disabled}
+              >
                 {o.name}
               </Radio>
               {p.children?.(o, selected)}

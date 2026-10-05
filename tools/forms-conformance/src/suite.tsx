@@ -653,6 +653,63 @@ export function describeConformance(impl: Implementation): void {
       expect(submitted).toEqual(["Ada", "Ada"]);
     });
 
+    it("publishes a focus target for every widget kind", () => {
+      const opts = [
+        { name: "Ay", value: "a" },
+        { name: "Bee", value: "b" },
+      ];
+      const cases: [string, Control<any>, (c: Control<any>) => ReactNode][] = [
+        ["text", ctx.newControl(""), (c) => <TextField field={c} label="T" />],
+        ["select", ctx.newControl(undefined), (c) => <SelectField field={c} label="S" options={opts} />],
+        ["radio", ctx.newControl(undefined), (c) => <RadioField field={c} label="R" options={opts} />],
+        ["checkbox", ctx.newControl(false), (c) => <CheckboxField field={c} label="C" />],
+        ["checklist", ctx.newControl([]), (c) => <CheckListField field={c} label="L" options={opts} />],
+      ];
+      mount(<>{cases.map(([k, c, ui]) => <div key={k}>{ui(c)}</div>)}</>);
+      expect(
+        cases.map(([k, c]) => [k, typeof (c.meta.element as { focus?: unknown } | undefined)?.focus]),
+      ).toEqual(cases.map(([k]) => [k, "function"]));
+    });
+
+    it("focuses the first field in error, in document order, when a submit is refused", async () => {
+      const showTop = ctx.newControl(false);
+      const top = ctx.newControl("");
+      const first = ctx.newControl("");
+      const second = ctx.newControl("");
+      function Submitting() {
+        validation = useFormValidation();
+        return (
+          <Form validation={validation} onSubmit={() => {}}>
+            {/* Revealed after the others mounted, so it registers last. */}
+            <TextField field={top} id="top" label="Top" required hidden={(r) => !r.getValue(showTop)} />
+            <TextField field={ctx.newControl("")} id="optional" label="Optional" />
+            <TextField field={first} id="first" label="First" required />
+            <TextField field={second} id="second" label="Second" required />
+            <Action actionId="save" text="Save" submit variant="primary" />
+          </Form>
+        );
+      }
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {(impl.wrap ?? ((t: ReactNode) => t))(
+              <FormProvider renderers={impl.renderers}>
+                <Submitting />
+              </FormProvider>,
+            )}
+          </ControlContextProvider>,
+        ),
+      );
+      click(buttonNamed("Save")!);
+      await flush();
+      expect(document.activeElement?.id).toBe("first");
+      set(first, "ok");
+      set(showTop, true);
+      click(buttonNamed("Save")!);
+      await flush();
+      expect(document.activeElement?.id).toBe("top");
+    });
+
     it("runs an action, and locks it while an async handler is busy", async () => {
       let finish!: () => void;
       const clicked = vi.fn(() => new Promise<void>((r) => (finish = r)));

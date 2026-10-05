@@ -15,6 +15,7 @@ import {
 } from "@rx-controls/core";
 import { useControlContext } from "@rx-controls/react";
 import type { ValidationScope, ValidationScopeKind } from "./validation.js";
+import type { FocusTarget } from "./controllers.js";
 
 /*
  * The validation scope tree — the implementation behind the public
@@ -54,6 +55,25 @@ export interface ValidationScopeImpl extends ValidationScope {
   beginPending(): () => void;
   /** Join the parent's `children`. Returns the detach. */
   attach(): () => void;
+  /** The focus targets of the fields inside showing an error, in member order. */
+  invalidTargets(): FocusTarget[];
+}
+
+function isFocusTarget(v: unknown): v is FocusTarget {
+  return typeof (v as FocusTarget | null)?.focus === "function";
+}
+
+/** Document order where both are DOM nodes; otherwise keep member order. */
+function documentOrder(a: FocusTarget, b: FocusTarget): number {
+  const node = (t: FocusTarget) =>
+    typeof (t as unknown as Node).compareDocumentPosition === "function"
+      ? (t as unknown as Node)
+      : null;
+  const na = node(a);
+  const nb = node(b);
+  if (!na || !nb || na === nb) return 0;
+  // DOCUMENT_POSITION_FOLLOWING: b comes after a.
+  return na.compareDocumentPosition(nb) & 4 ? -1 : 1;
 }
 
 /** Each scope's child list, so `attach` can reach its parent's. */
@@ -148,6 +168,23 @@ export function createValidationScope(
           else wc.setTouched(touch, true);
         }
       }),
+    invalidTargets: () => {
+      const out: FocusTarget[] = [];
+      for (const { judge, touch } of members.values()) {
+        const child = scopeOfGroup.get(touch);
+        if (child) out.push(...child.invalidTargets());
+        else if (!untrackedRead.isValid(judge) && untrackedRead.isTouched(touch)) {
+          const el = touch.meta.element;
+          if (isFocusTarget(el)) out.push(el);
+        }
+      }
+      return out;
+    },
+    focusInvalid: () => {
+      const first = scope.invalidTargets().sort(documentOrder)[0];
+      first?.focus();
+      return first !== undefined;
+    },
     check: async () => {
       await scope.settled();
       const valid = untrackedRead.isValid(group);

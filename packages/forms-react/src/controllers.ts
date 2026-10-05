@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type FormProp } from "./props.js";
@@ -24,6 +24,16 @@ import type {
  */
 
 /**
+ * Something focus can move to: a DOM element, a native input's handle.
+ *
+ * @group Implementations
+ */
+export interface FocusTarget {
+  /** Move focus here. */
+  focus(): void;
+}
+
+/**
  * What every controller returns.
  *
  * @group Implementations
@@ -35,6 +45,37 @@ export interface FieldController {
   rendered: <T extends ReactNode>(node: T) => Rendered;
   /** The field's state against the scope its boundary published. */
   state: FieldState;
+  /**
+   * Attach to the element focus should go to for this field — the input, or
+   * a group's first option; through an input frame, pass it as `controlRef`.
+   * It publishes the element on `control.meta.element`, the convention the
+   * control libraries share, which is what lets a refused submit focus the
+   * first invalid field and a host scroll to a server error.
+   */
+  elementRef: (target: FocusTarget | null) => void;
+}
+
+/** Every mounted widget's focus target per control, latest last. */
+const focusTargets = new WeakMap<Control<unknown>, FocusTarget[]>();
+
+/**
+ * A field's {@link FieldController.elementRef}: publish the element on
+ * `meta.element`. Two widgets may bind one control; the latest mounted wins,
+ * and when it goes the control falls back to the one still there rather than
+ * to nothing.
+ */
+function useElementRef(field: Control<unknown>) {
+  const mine = useRef<FocusTarget | null>(null);
+  return useCallback(
+    (target: FocusTarget | null) => {
+      const list = (focusTargets.get(field) ?? []).filter((t) => t !== mine.current);
+      mine.current = target;
+      if (target) list.push(target);
+      focusTargets.set(field, list);
+      field.meta.element = list[list.length - 1];
+    },
+    [field],
+  );
 }
 
 /**
@@ -67,6 +108,7 @@ export function useTextInput(
     rc,
     rendered,
     state: useFieldState(rc, field),
+    elementRef: useElementRef(field),
     value,
     filled: value !== "",
     setValue: (v) => update((wc) => wc.setValue(field, v)),
@@ -104,6 +146,7 @@ export function useNumberInput(
     rc,
     rendered,
     state: useFieldState(rc, field),
+    elementRef: useElementRef(field),
     value,
     filled: value !== undefined,
     setValue: (v) => update((wc) => wc.setValue(field, v)),
@@ -138,6 +181,7 @@ export function useCheckbox(
     rc,
     rendered,
     state: useFieldState(rc, field),
+    elementRef: useElementRef(field),
     checked: rc.getValue(field) ?? false,
     setChecked: (v) => update((wc) => wc.setValue(field, v)),
     onBlur: () => update((wc) => wc.setTouched(field, true, true)),
@@ -188,6 +232,7 @@ export function useSelectController(
     rc,
     rendered,
     state: useFieldState(rc, field),
+    elementRef: useElementRef(field),
     options: list,
     stringValue: value === undefined || value === null ? "" : String(value),
     setValue,
@@ -244,6 +289,7 @@ export function useMultiSelectController(
     rc,
     rendered,
     state: useFieldState(rc, field),
+    elementRef: useElementRef(field),
     options: list,
     isSelected: (o) => has(o.value),
     setSelected: (o, on) =>
@@ -266,7 +312,8 @@ export function useMultiSelectController(
  *
  * @group Implementations
  */
-export interface DisplayValueController extends FieldController {
+export interface DisplayValueController
+  extends Omit<FieldController, "elementRef"> {
   /** The value as text, or `undefined` when empty. */
   text: string | undefined;
   /** The value is empty. */

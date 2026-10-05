@@ -88,6 +88,13 @@ export interface ValidationScope {
    * form's submit is `root.check()`; a wizard's Next is its page's.
    */
   check(): Promise<boolean>;
+  /**
+   * Move focus to the first field inside that is showing an error — first in
+   * document order where the widgets are DOM elements. Reaches a field
+   * through the element its widget publishes (`control.meta.element`).
+   * Returns whether there was one. A refused `<Form onSubmit>` calls it.
+   */
+  focusInvalid(): boolean;
 }
 
 /**

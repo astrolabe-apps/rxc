@@ -173,6 +173,12 @@ export interface FormProps extends ScopeNarrowing {
    * the enclosing form's.
    */
   onSubmit?: () => void | Promise<void>;
+  /**
+   * On a refused submit, move focus to the first field showing an error, so
+   * the user is taken to what to fix even when it is off screen. Default
+   * `true`.
+   */
+  focusInvalid?: boolean;
 }
 
 /**
@@ -190,6 +196,7 @@ export function Form({
   validationKey,
   validation: given,
   onSubmit,
+  focusInvalid = true,
   ...narrowing
 }: FormProps): ReactNode {
   const parent = useInternalScope();
@@ -211,9 +218,12 @@ export function Form({
   handler.current = onSubmit;
   const hasSubmit = onSubmit !== undefined;
   const submit = useCallback(async () => {
-    if (!(await validation.check())) return;
+    if (!(await validation.check())) {
+      if (focusInvalid) validation.focusInvalid();
+      return;
+    }
     await handler.current?.();
-  }, [validation]);
+  }, [validation, focusInvalid]);
   const {
     presence,
     disabled,

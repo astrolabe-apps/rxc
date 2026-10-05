@@ -7,6 +7,7 @@ import type {
 } from "react";
 import type { ClassValue, FormProp } from "./props.js";
 import { useRenderers } from "./registry.js";
+import type { FieldController, FocusTarget } from "./controllers.js";
 
 /**
  * The chrome around one field: label, control, help and error, laid out and
@@ -151,6 +152,11 @@ export interface InputFrameProps {
   start?: ReactNode | ((state: FrameState) => ReactNode);
   /** Content at the trailing edge. */
   end?: ReactNode | ((state: FrameState) => ReactNode);
+  /**
+   * The widget's {@link FieldController.elementRef}: the frame hands it to the
+   * control in `slot.ref`, merged with any ref of its own.
+   */
+  controlRef?: (target: FocusTarget | null) => void;
   /** The field is invalid. */
   invalid?: boolean;
   /** The field is required: the control's `aria-required`. */

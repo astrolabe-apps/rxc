@@ -1,10 +1,12 @@
 import {
   createContext,
   useContext,
+  useMemo,
   useState,
   type CSSProperties,
   type FocusEvent,
   type ReactNode,
+  type Ref,
 } from "react";
 import Checkbox from "@mui/material/Checkbox";
 import { useTheme } from "@mui/material/styles";
@@ -161,6 +163,16 @@ function MuiFieldShell(p: FieldShellProps) {
   );
 }
 
+/** One ref callback that feeds both: MUI's own on the control, and the widget's. */
+function mergeRefs<T>(...refs: (Ref<T> | undefined)[]): (el: T | null) => void {
+  return (el) => {
+    for (const r of refs) {
+      if (typeof r === "function") r(el);
+      else if (r) (r as { current: T | null }).current = el;
+    }
+  };
+}
+
 /**
  * Module-level and stable on purpose. MUI reaches the
  * control slot through `inputComponent`, i.e. a *component type*; an inline
@@ -170,13 +182,20 @@ function MuiFieldShell(p: FieldShellProps) {
 function MuiSlotBridge({
   __render,
   __state,
+  __controlRef,
   value: _v,
   onChange: _c,
   defaultValue: _d,
   ownerState: _o,
   ...rest
 }: Record<string, any>) {
-  return __render(rest as ControlSlotProps, __state as FrameState);
+  // MUI's own ref on the control, and the widget's — one stable callback, so
+  // neither is detached and reattached on every render.
+  const ref = useMemo(
+    () => mergeRefs(rest.ref, __controlRef),
+    [rest.ref, __controlRef],
+  );
+  return __render({ ...rest, ref } as ControlSlotProps, __state as FrameState);
 }
 
 function MuiInputFrame(p: InputFrameProps) {
@@ -234,7 +253,7 @@ function MuiInputFrame(p: InputFrameProps) {
         ) : undefined
       }
       inputComponent={MuiSlotBridge}
-      inputProps={{ __render: render, __state: state }}
+      inputProps={{ __render: render, __state: state, __controlRef: p.controlRef }}
     />
   );
 }
@@ -267,6 +286,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       <Frame
         id={p.id}
         describedBy={describedBy(p)}
+        controlRef={ctl.elementRef}
         invalid={!!p.error}
         required={p.required}
         disabled={ctl.state.disabled}
@@ -358,6 +378,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
         id={p.id}
         slotProps={{
           input: {
+            ref: ctl.elementRef,
             "aria-describedby": describedBy(p),
             "aria-invalid": p.error ? true : undefined,
             "aria-required": p.required || undefined,
@@ -591,6 +612,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       {/* MUI's Select draws its own outlined input, so it takes the label
           text directly rather than going through the frame's context. */}
       <Select
+        inputRef={ctl.elementRef}
         id={p.id}
         label={p.label}
         labelId={p.label != null ? fieldLabelId(p.id) : undefined}
@@ -664,7 +686,11 @@ function MuiRadio(p: RadioRenderProps): Rendered {
           <Box key={keys[i]} className={entryClass(selected)}>
             <FormControlLabel
               value={String(o.value)}
-              control={<Radio />}
+              control={
+                <Radio
+                  slotProps={{ input: { ref: i === 0 ? ctl.elementRef : undefined } }}
+                />
+              }
               label={o.name}
               disabled={locked || o.disabled}
             />
@@ -707,6 +733,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
             key={keys[i]}
             control={
               <Checkbox
+                slotProps={{ input: { ref: i === 0 ? ctl.elementRef : undefined } }}
                 checked={ctl.isSelected(o)}
                 onChange={(e) => ctl.setSelected(o, e.target.checked)}
               />
