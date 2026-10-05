@@ -119,7 +119,12 @@ export function Contents({
   headingLevel,
   children,
   classes = defaultHtmlTheme.contents,
-}: GroupRenderProps & { classes?: HtmlTheme["contents"] }) {
+  titleStyle,
+}: GroupRenderProps & {
+  classes?: HtmlTheme["contents"];
+  /** The title's typography, for an implementation whose styles are runtime tokens. */
+  titleStyle?: CSSProperties;
+}) {
   // With transitions off the region goes at once, whatever the theme
   // animates: the attribute, and no collapse.
   const mode = transitions ? classes.hideWith : "attribute";
@@ -133,6 +138,7 @@ export function Contents({
         classes.title,
         combineClass(labelClassName, labelTextClassName),
       )}
+      style={titleStyle}
     >
       {title}
     </div>

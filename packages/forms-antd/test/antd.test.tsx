@@ -17,6 +17,7 @@ import {
   TextDisplay,
   TextField,
   Wizard,
+  Section,
 } from "@rx-controls/forms-react";
 import { antdRenderers } from "../src/index";
 
@@ -115,6 +116,26 @@ describe("Ant", () => {
     expect(shell.style.color).not.toBe("");
     // Ant's Typography sets a colour of its own; it must inherit the tone.
     expect(shell.querySelector<HTMLElement>(".ant-typography")!.style.color).toBe("inherit");
+  });
+
+  it("sets section titles in the library's heading type, sized for a form", () => {
+    mount(
+      <Section title="Outer">
+        <Section title="Inner">x</Section>
+      </Section>,
+    );
+    const heading = (t: string) =>
+      [...document.querySelectorAll<HTMLElement>('[role="heading"]')].find(
+        (h) => h.textContent === t,
+      )!;
+    expect([heading("Outer").getAttribute("aria-level"), heading("Outer").style.fontSize]).toEqual([
+      "2",
+      "20px",
+    ]);
+    expect([heading("Inner").getAttribute("aria-level"), heading("Inner").style.fontSize]).toEqual([
+      "3",
+      "16px",
+    ]);
   });
 
   it("passes no prop Ant 6 has deprecated", () => {

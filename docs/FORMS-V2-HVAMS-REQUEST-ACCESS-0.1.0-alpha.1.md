@@ -445,5 +445,12 @@ fix is worth a line in the adoption notes.
 
 **After alpha.2 (unpublished):** `restrictToOptions` now spells out the 1.4 caveat: it resets
 when the list moves away from the value, not on every change. The `getByLabel` trap is noted on
-`FieldProps.required`, in the API reference, since the forms packages have no adoption guide. §4's
-Ant group chrome is still open.
+`FieldProps.required`, in the API reference, since the forms packages have no adoption guide.
+
+§4's "Ant draws no group chrome of its own" was narrower than it read. Ant has no form-section
+component (nor has MUI): `Card`, `Divider` and `Collapse` are styling choices an author can make
+with `className`, and the shared region's structure was already right. The gap was the title,
+which got html's unstyled hook class. It is now set in each library's own type: Ant's heading
+tokens (heading 4's size at the top level, heading 5's deeper) and MUI's `h6` / `subtitle1`.
+Both are sized for a form section rather than by outline level, since level 2 is 30px in Ant and
+60px in MUI.

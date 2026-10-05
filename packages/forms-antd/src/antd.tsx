@@ -52,6 +52,7 @@ import {
   type FrameState,
   type InputFrameProps,
   type TabsRenderProps,
+  type GroupRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
@@ -493,6 +494,32 @@ function AntAction(p: ActionRenderProps) {
 }
 
 /** A tone's colour from Ant's theme tokens, inherited by the text inside. */
+/**
+ * A titled group: the shared region, its title set in Ant's heading type from
+ * theme tokens. Not `Typography.Title` itself, which draws an h-element; the
+ * heading's level is the outline's, by role. Sized for a form section rather
+ * than by that level — level 2 would be Ant's 30px — so the top level takes
+ * heading 4's size and anything deeper heading 5's.
+ */
+function AntContents(p: GroupRenderProps) {
+  const { token } = theme.useToken();
+  const top = (p.headingLevel ?? 2) <= 2;
+  return (
+    <Contents
+      {...p}
+      titleStyle={{
+        // Ant sets its font per component, not on the page.
+        fontFamily: token.fontFamily,
+        color: token.colorTextHeading,
+        fontWeight: token.fontWeightStrong,
+        fontSize: top ? token.fontSizeHeading4 : token.fontSizeHeading5,
+        lineHeight: top ? token.lineHeightHeading4 : token.lineHeightHeading5,
+        marginBottom: token.marginXS,
+      }}
+    />
+  );
+}
+
 function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
   const { token } = theme.useToken();
   if (!tone) return undefined;
@@ -791,7 +818,7 @@ export const antdRenderers: FormRenderers = {
   html: AntHtml,
   icon: AntIcon,
   action: AntAction,
-  contents: Contents,
+  contents: AntContents,
   inline: Inline,
   wizard: AntWizard,
   dialog: AntDialog,

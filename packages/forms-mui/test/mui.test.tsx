@@ -13,6 +13,7 @@ import {
   FormProvider,
   TextDisplay,
   TextField,
+  Section,
 } from "@rx-controls/forms-react";
 import { muiRenderers } from "../src/index";
 
@@ -98,6 +99,26 @@ describe("MUI", () => {
   it("colours a toned display from the palette", () => {
     mount(<TextDisplay text="Bad" tone="error" />);
     expect(document.querySelector<HTMLElement>('[data-tone="error"]')!.style.color).not.toBe("");
+  });
+
+  it("sets section titles in the library's heading type, sized for a form", () => {
+    mount(
+      <Section title="Outer">
+        <Section title="Inner">x</Section>
+      </Section>,
+    );
+    const heading = (t: string) =>
+      [...document.querySelectorAll<HTMLElement>('[role="heading"]')].find(
+        (h) => h.textContent === t,
+      )!;
+    expect([heading("Outer").getAttribute("aria-level"), heading("Outer").style.fontSize]).toEqual([
+      "2",
+      "1.25rem",
+    ]);
+    expect([heading("Inner").getAttribute("aria-level"), heading("Inner").style.fontSize]).toEqual([
+      "3",
+      "1rem",
+    ]);
   });
 
   it("maps variants onto MUI's button variants", () => {

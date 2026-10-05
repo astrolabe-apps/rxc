@@ -68,6 +68,7 @@ import {
   type FrameState,
   type InputFrameProps,
   type TabsRenderProps,
+  type GroupRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
   type TextFieldRenderProps,
@@ -445,6 +446,32 @@ function MuiAction(p: ActionRenderProps) {
 }
 
 /** A tone's colour from the MUI palette, inherited by the text inside. */
+/**
+ * A titled group: the shared region, its title set in MUI's type scale. The
+ * variant is chosen for a form section, not from the outline level — MUI's
+ * `h2` is 60px — which is MUI's own convention: the variant for the look, the
+ * element (here a `role="heading"` at the outline's level) for the meaning.
+ */
+function MuiContents(p: GroupRenderProps) {
+  const t = useTheme();
+  const top = (p.headingLevel ?? 2) <= 2;
+  const type = top ? t.typography.h6 : t.typography.subtitle1;
+  return (
+    <Contents
+      {...p}
+      titleStyle={{
+        fontFamily: type.fontFamily,
+        fontSize: type.fontSize,
+        lineHeight: type.lineHeight,
+        letterSpacing: type.letterSpacing,
+        fontWeight: t.typography.fontWeightMedium,
+        color: t.palette.text.primary,
+        marginBottom: t.spacing(1),
+      }}
+    />
+  );
+}
+
 function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
   const theme = useTheme();
   return tone ? { color: theme.palette[tone].main } : undefined;
@@ -784,7 +811,7 @@ export const muiRenderers: FormRenderers = {
   html: MuiHtml,
   icon: MuiIcon,
   action: MuiAction,
-  contents: Contents,
+  contents: MuiContents,
   inline: Inline,
   wizard: MuiWizard,
   dialog: MuiDialogImpl,
