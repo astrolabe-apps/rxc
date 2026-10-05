@@ -104,7 +104,12 @@ export interface SelectExtra {
    * compare as strings, the way the control round-trips them, so `1` and
    * `"1"` are the same choice. Never while the field is hidden, locked or
    * read-only, and never in design mode. Pair it with `defaultValue` for
-   * "reset to the first choice when the list changes".
+   * "reset to the first choice when the list moves away from the value".
+   *
+   * That is not "reset on every change": a value the new list still offers
+   * is kept. If two states shared an agency, switching between them would
+   * keep it rather than reset to the new state's first. A form that needs
+   * a reset on every change of the driving value still writes it itself.
    */
   restrictToOptions?: boolean;
 }

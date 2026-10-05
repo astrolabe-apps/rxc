@@ -411,3 +411,39 @@ what the earlier findings were.
 5. Warn on, or reserve, an author `validate` key that collides with an unclaimed error (1.5);
    document that server errors clear because core clears on write (1.6).
 6. Export `ReadContext`; fix the engine packages' `alpha` tags.
+
+## Checked against `0.1.0-alpha.2`
+
+A regression check in the same HVAMS worktree, not a cold rerun: the dependencies moved to
+alpha.2 (one `@rx-controls/core` and one `@rx-controls/react`, both 1.1.2), and the trial's
+workarounds came out. The form now spells the submit error the natural way,
+`hidden={(rc) => !rc.getValue(submitError)}` with `announce`. `ReadContext` comes from
+forms-react, so hvams-common no longer depends on `@rx-controls/core` / `react` directly. The
+page object drops the label regex and the `.last()` on the reasons group.
+
+| finding | alpha.2 | in the real form |
+|---|---|---|
+| 1.1 check list touched on internal focus moves | fixed | **Holds.** The modify-access dialog's checkbox step now passes with no patch. The 3 failing tests now stop only at the submit step, on the same in-flight 409 from the dev database. |
+| 1.2 `required` not exposed; marker in the name | fixed | **Holds.** Exact names under html and Ant ("First Name", no `*`). The six required controls (the five text and select fields, plus the agency once a state is chosen) carry `required` / `aria-required`, and Phone does not. |
+| 1.3 `announce` and `hidden` | fixed | **Holds.** The submit error is `hidden` until a submit fails. An empty `role="alert"` is already in the page, and the 409 message fills that same node. |
+| 1.5 keyed `default` swallows the server error | fixed | **Holds.** With `validate={{ default: () => null }}` on Phone, the server's message shows and clears on edit, under html and Ant. |
+| 1.7 `ReadContext` not exported | fixed | **Holds.** Imported from forms-react. |
+| §2 html's check list draws two groups | fixed | **Holds.** One `group` named "What do you need to do in the portal?", carrying the error as its description. |
+| §4 Ant's select has no `aria-invalid` | fixed | **Holds.** After a refused submit, every required control has `aria-invalid="true"` under both implementations. |
+| §5 stale `alpha` tags | fixed | **Holds.** |
+| 1.4 "reset when the list changes" doc caveat; §4 Ant draws no group chrome | not in alpha.2's commit titles | Not checked. |
+
+Also re-run: hiding Last Name still moves Email into its cell under both, the console is clean,
+and `rush build` succeeds for every HVAMS project. Under html and Ant, `request-access.spec`,
+`guest-routes.spec` and the trial spec pass 15/15.
+
+**A test-tool trap, not a v2 bug:** Playwright's `getByLabel(text, { exact: true })` matches the
+`<label>`'s raw text, including the `aria-hidden` marker. It finds nothing, although the
+accessible name is exactly the label. The page object now finds fields by role and accessible
+name instead. Any adopter whose specs use exact `getByLabel` will hit this on alpha.2, and the
+fix is worth a line in the adoption notes.
+
+**After alpha.2 (unpublished):** `restrictToOptions` now spells out the 1.4 caveat: it resets
+when the list moves away from the value, not on every change. The `getByLabel` trap is noted on
+`FieldProps.required`, in the API reference, since the forms packages have no adoption guide. §4's
+Ant group chrome is still open.

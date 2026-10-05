@@ -102,7 +102,17 @@ export interface FieldProps<T> {
   defaultValue?: FormProp<T>;
   /** The label. */
   label?: FormProp<ReactNode>;
-  /** Reject an empty value. A flag, never baked into `label`: the implementation draws the marker. */
+  /**
+   * Reject an empty value. A flag, never baked into `label`: the
+   * implementation draws the marker, and the control carries
+   * `aria-required`.
+   *
+   * The marker is `aria-hidden`, so the field's accessible name is exactly
+   * its label. In tests, find the field by role and name
+   * (`getByRole("textbox", { name: "First Name" })`). A query that matches a
+   * label element's raw text, such as Playwright's
+   * `getByLabel(…, { exact: true })`, also sees the marker and finds nothing.
+   */
   required?: FormProp<boolean>;
   /** The message for an empty required value. */
   requiredMessage?: FormProp<string>;
