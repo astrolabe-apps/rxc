@@ -1,4 +1,17 @@
-import type { Control, ReadContext } from "@rx-controls/core";
+import type {
+  Control,
+  ReadContext as CoreReadContext,
+} from "@rx-controls/core";
+
+/**
+ * What a derived {@link FormProp} is a function of: `@rx-controls/core`'s
+ * `ReadContext`, the same type under the same name, so a derivation written
+ * once and used in several props (`(rc) => …`) can be typed without a direct
+ * dependency on core.
+ *
+ * @group Authoring
+ */
+export type ReadContext = CoreReadContext;
 
 /**
  * A prop that may be reactive. One of three shapes:

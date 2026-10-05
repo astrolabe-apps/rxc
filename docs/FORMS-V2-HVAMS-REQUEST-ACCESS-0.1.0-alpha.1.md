@@ -209,6 +209,9 @@ Writing a derivation once and using it in several props (`otherChosen(rc)`, `age
 compat package. So `hvams-common` gained a direct `@rx-controls/core` dependency only for a
 type. `FormProp` is exported, and the type its function arm takes should be too.
 
+**Fixed (after the trial):** forms-react exports `ReadContext`, an alias of core's (the same
+type, in the reference under Authoring).
+
 ### 1.8 Things that are not gaps
 
 - **Compat controls in, no cast.** `Control<AccessRequestReason[] | undefined>`,
