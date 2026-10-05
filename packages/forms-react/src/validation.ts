@@ -80,7 +80,12 @@ export interface ValidationScope {
   pending(rc: ReadContext): boolean;
   /** Resolves once nothing inside is pending. At once, if nothing is. */
   settled(): Promise<void>;
-  /** Touch every field inside, so the errors it already has show. */
+  /**
+   * Touch every field inside, so the errors it already has show. A hidden
+   * field is passed by: it is not validating and the user has not seen it,
+   * so a field revealed after a refused submit appears untouched, as one on
+   * an unvisited tab stays unmarked.
+   */
   touchAll(): void;
   /**
    * The gate: wait for pending validators, and if anything inside is invalid,

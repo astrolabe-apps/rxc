@@ -45,9 +45,14 @@ export interface ValidationScopeImpl extends ValidationScope {
    * Add a member. `judge` is what validity is read from — a field boundary's
    * verdict, which carries only its own rules and the errors no rule claims —
    * and `touch` is what `touchAll` touches so the errors show: the field's
-   * data control.
+   * data control. `active`, a field's validation config, is false while the
+   * field is hidden: `touchAll` passes it by.
    */
-  register(judge: Control<unknown>, touch: Control<unknown>): () => void;
+  register(
+    judge: Control<unknown>,
+    touch: Control<unknown>,
+    active?: Control<{ active: boolean }>,
+  ): () => void;
   /**
    * Called when a validator returns a promise; the returned function when it
    * answers or is superseded. Counts here and in every enclosing scope.
@@ -100,7 +105,11 @@ export function createValidationScope(
   // Bumped on every change so `showingErrors(rc)` follows membership.
   const members = new Map<
     string,
-    { judge: Control<unknown>; touch: Control<unknown> }
+    {
+      judge: Control<unknown>;
+      touch: Control<unknown>;
+      active?: Control<{ active: boolean }>;
+    }
   >();
   const membership = ctx.newControl(0);
   let memberKeys = 0;
@@ -121,9 +130,9 @@ export function createValidationScope(
       }
       return undefined;
     },
-    register(judge, touch) {
+    register(judge, touch, active) {
       const mkey = "m" + memberKeys++;
-      members.set(mkey, { judge, touch });
+      members.set(mkey, { judge, touch, active });
       ctx.update((wc) => {
         attachFields(wc, group, { [mkey]: judge });
         wc.updateValue(membership, (n) => n + 1);
@@ -162,10 +171,13 @@ export function createValidationScope(
       }),
     touchAll: () =>
       ctx.update((wc) => {
-        for (const { touch } of members.values()) {
+        for (const { touch, active } of members.values()) {
           const child = scopeOfGroup.get(touch);
           if (child) child.touchAll();
-          else wc.setTouched(touch, true);
+          // A hidden field is not validating, and the user has not seen it:
+          // touching it would show its error the moment it appears.
+          else if (!active || untrackedRead.getValue(active).active)
+            wc.setTouched(touch, true);
         }
       }),
     invalidTargets: () => {

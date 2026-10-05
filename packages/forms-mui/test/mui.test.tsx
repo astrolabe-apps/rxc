@@ -11,6 +11,7 @@ import {
   Dialog,
   Form,
   FormProvider,
+  SelectField,
   TextDisplay,
   TextField,
   Section,
@@ -137,6 +138,21 @@ describe("MUI", () => {
       "3",
       "1rem",
     ]);
+  });
+
+  it("offers no empty item on a required select that has a value", () => {
+    const opts = [{ name: "A", value: "a" }];
+    const items = (required: boolean) => {
+      mount(<SelectField field={ctx.newControl<string | undefined>("a")} id="s" options={opts} required={required} />);
+      act(() => {
+        document
+          .querySelector('[role="combobox"]')!
+          .dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+      });
+      return [...document.querySelectorAll('[role="option"]')].map((o) => o.textContent);
+    };
+    expect(items(true)).toEqual(["A"]);
+    expect(items(false)).toEqual(["—", "A"]);
   });
 
   it("maps variants onto MUI's button variants", () => {

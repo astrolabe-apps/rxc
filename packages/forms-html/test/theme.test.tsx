@@ -104,7 +104,7 @@ describe("the themes", () => {
 
   it("has only rxf- hook classes in the default's class slots", () => {
     // String slots that are not classes.
-    const notClasses = /(^|\.)(text|emptyText|classNameOn|hideWith)$/;
+    const notClasses = /(^|\.)(text|note|emptyText|classNameOn|hideWith)$/;
     const walk = (t: unknown, path: string): void => {
       if (typeof t === "string") {
         if (notClasses.test(path) || !t) return;

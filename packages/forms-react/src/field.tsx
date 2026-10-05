@@ -294,8 +294,8 @@ export function fieldRenderer<T, P extends object = {}>(
       verdict,
     );
     useEffect(
-      () => vscope?.register(verdict, control),
-      [vscope, verdict, control],
+      () => vscope?.register(verdict, control, cfg),
+      [vscope, verdict, control, cfg],
     );
 
     // The boundary that bound the data is the only thing that knows what to

@@ -16,6 +16,8 @@ import {
 } from "react";
 import {
   combineClass,
+  describedBy,
+  fieldRequiredId,
   mergeClass,
   useFieldShell,
   type ClassValue,
@@ -303,6 +305,43 @@ const regionOnlyStyle: CSSProperties = {
   clipPath: "inset(50%)",
   whiteSpace: "nowrap",
 };
+
+/**
+ * `aria-describedby` for a control whose shell describes it as required
+ * (`describeRequired`): the note first, then the help or error.
+ */
+export function requiredDescribedBy(p: {
+  id: string;
+  required?: boolean;
+  error?: ReactNode;
+  helpText?: ReactNode;
+}): string | undefined {
+  const rest = describedBy(p);
+  if (!p.required) return rest;
+  return rest ? `${fieldRequiredId(p.id)} ${rest}` : fieldRequiredId(p.id);
+}
+
+/**
+ * A shell's `describeRequired` note: the words, visually hidden, under the
+ * id the widget's `aria-describedby` names. Nothing unless both are asked for.
+ */
+export function RequiredNote({
+  id,
+  required,
+  describeRequired,
+  text,
+}: {
+  id: string;
+  required?: boolean;
+  describeRequired?: boolean;
+  text: ReactNode;
+}) {
+  return required && describeRequired ? (
+    <span id={fieldRequiredId(id)} style={regionOnlyStyle}>
+      {text}
+    </span>
+  ) : null;
+}
 
 /** A display's content shows nothing: `null`, `undefined`, `false` or `""`. */
 export function noContent(content: ReactNode): boolean {

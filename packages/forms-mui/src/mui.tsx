@@ -86,6 +86,8 @@ import {
   noContent,
   onFocusLeave,
   optionKeys,
+  RequiredNote,
+  requiredDescribedBy,
 } from "@rx-controls/forms-html/shared";
 
 /**
@@ -153,6 +155,12 @@ function MuiFieldShell(p: FieldShellProps) {
             {p.children}
           </>
         )}
+        <RequiredNote
+          id={p.id}
+          required={p.required}
+          describeRequired={p.describeRequired}
+          text="Required"
+        />
         {(p.error || p.helpText) && (
           <FormHelperText id={p.error ? fieldErrorId(p.id) : fieldHelpId(p.id)}>
             {p.error ?? p.helpText}
@@ -623,9 +631,12 @@ function MuiSelect(p: SelectRenderProps): Rendered {
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={ctl.onBlur}
       >
-        <MenuItem value="">
-          <em>—</em>
-        </MenuItem>
+        {/* A required select with a value has no way back to empty. */}
+        {(!p.required || ctl.stringValue === "") && (
+          <MenuItem value="">
+            <em>—</em>
+          </MenuItem>
+        )}
         {ctl.options.map((o, i) => (
           <MenuItem
             key={keys[i]}
@@ -714,6 +725,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
       labelAs="legend"
       surface="custom"
       required={p.required}
+      describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       error={p.error}
@@ -724,7 +736,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
       <FormGroup
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
-        aria-describedby={describedBy(p)}
+        aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
       >
@@ -733,7 +745,12 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
             key={keys[i]}
             control={
               <Checkbox
-                slotProps={{ input: { ref: i === 0 ? ctl.elementRef : undefined } }}
+                slotProps={{
+                  input: {
+                    ref: i === 0 ? ctl.elementRef : undefined,
+                    "aria-invalid": p.error ? true : undefined,
+                  },
+                }}
                 checked={ctl.isSelected(o)}
                 onChange={(e) => ctl.setSelected(o, e.target.checked)}
               />

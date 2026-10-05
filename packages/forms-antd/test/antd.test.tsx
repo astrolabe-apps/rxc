@@ -158,6 +158,19 @@ describe("Ant", () => {
     ]);
   });
 
+  it("offers no clear on a required select that has a value", () => {
+    const opts = [{ name: "A", value: "a" }];
+    mount(
+      <>
+        <SelectField field={ctx.newControl<string | undefined>("a")} id="req" options={opts} required />
+        <SelectField field={ctx.newControl<string | undefined>("a")} id="opt" options={opts} />
+      </>,
+    );
+    const clear = (id: string) =>
+      document.getElementById(id)!.closest(".ant-select")!.querySelectorAll(".ant-select-clear").length;
+    expect([clear("req"), clear("opt")]).toEqual([0, 1]);
+  });
+
   it("passes no prop Ant 6 has deprecated", () => {
     const open = ctx.newControl(true);
     mount(

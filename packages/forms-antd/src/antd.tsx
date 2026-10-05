@@ -68,6 +68,8 @@ import {
   noContent,
   onFocusLeave,
   optionKeys,
+  RequiredNote,
+  requiredDescribedBy,
 } from "@rx-controls/forms-html/shared";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
@@ -121,6 +123,12 @@ function AntFieldShell(p: FieldShellProps) {
       // over, which left a display after a field in error flush against it.
       style={{ marginBottom: 0 }}
     >
+      <RequiredNote
+        id={p.id}
+        required={p.required}
+        describeRequired={p.describeRequired}
+        text="Required"
+      />
       {p.labelPosition === "after" ? (
         // Ant's own checkbox takes its label as a child, which a shell cannot
         // reach into — so the trailing label is a sibling <label> instead,
@@ -392,6 +400,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
       labelAs="legend"
       surface="custom"
       required={p.required}
+      describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       error={p.error}
@@ -402,7 +411,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
       <div
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
-        aria-describedby={describedBy(p)}
+        aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
       >
@@ -411,6 +420,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
             <Checkbox
               key={keys[i]}
               ref={i === 0 ? ctl.elementRef : undefined}
+              aria-invalid={p.error ? true : undefined}
               checked={ctl.isSelected(o)}
               disabled={locked || o.disabled}
               onChange={(e) => ctl.setSelected(o, e.target.checked)}
@@ -657,7 +667,8 @@ function AntSelect(p: SelectRenderProps): Rendered {
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         status={p.error ? "error" : undefined}
         disabled={ctl.state.disabled || ctl.state.readOnly}
-        allowClear
+        // A required select with a value has no way back to empty.
+        allowClear={!p.required || ctl.stringValue === ""}
         onChange={(v) => ctl.setFromString(v ?? "")}
         onBlur={ctl.onBlur}
         options={ctl.options.map((o, i) => ({

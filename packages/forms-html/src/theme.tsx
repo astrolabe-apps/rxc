@@ -55,6 +55,11 @@ export interface HtmlTheme {
       className: string;
       /** Its text. Empty for a marker drawn entirely in CSS. */
       text: string;
+      /**
+       * What a group that cannot carry `aria-required` (a check list) is
+       * described with, visually hidden. Words, for assistive technology.
+       */
+      note: string;
     };
   };
   /** The input frame. */
@@ -342,7 +347,7 @@ export const defaultHtmlTheme: HtmlTheme = {
     help: "rxf-help",
     error: "rxf-error",
     renderError: null,
-    required: { className: "rxf-required", text: "*" },
+    required: { className: "rxf-required", text: "*", note: "Required" },
   },
   frame: {
     className: "rxf-frame",
@@ -475,7 +480,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
     error: "rxf-error m-0 text-sm text-red-500",
     renderError: null,
     // label.requiredElement
-    required: { className: "rxf-required text-red-500", text: " *" },
+    required: { className: "rxf-required text-red-500", text: " *", note: "Required" },
   },
   frame: {
     className:

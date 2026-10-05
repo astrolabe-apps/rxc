@@ -125,6 +125,18 @@ describe("the options widgets", () => {
     { name: "High", value: 3 },
   ];
 
+  it("SelectField drops the empty choice once a required one has a value", () => {
+    mount(
+      <>
+        <SelectField field={dom.ctx.newControl<OptionValue>(3)} id="req" options={options} required />
+        <SelectField field={dom.ctx.newControl<OptionValue>(3)} id="opt" options={options} />
+        <SelectField field={dom.ctx.newControl<OptionValue>(undefined)} id="unset" options={options} required />
+      </>,
+    );
+    const empty = (id: string) => $(`#${id}`)!.querySelectorAll('option[value=""]').length;
+    expect([empty("req"), empty("opt"), empty("unset")]).toEqual([0, 1, 1]);
+  });
+
   it("SelectField keeps a numeric option numeric", () => {
     const c = dom.ctx.newControl<OptionValue>(undefined);
     mount(<SelectField field={c} options={options} />);

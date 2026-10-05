@@ -24,7 +24,7 @@ function Text(p: TextFieldRenderProps) {
 const renderers = { ...testRenderers, textfield: Text };
 const element = (c: Control<unknown>) => c.meta.element;
 
-describe("focus targets", () => {
+describe("a refused submit", () => {
   it("publishes the element, falling back to a widget still mounted when the latest goes", () => {
     const c = dom.ctx.newControl("");
     const second = dom.ctx.newControl(true);
@@ -65,5 +65,33 @@ describe("focus targets", () => {
     await flush();
     expect(document.activeElement?.id).not.toBe("a");
     expect(untrackedRead.isTouched(c)).toBe(true);
+  });
+
+  it("does not touch a hidden field, so one revealed afterwards is not already in error", async () => {
+    const shown = dom.ctx.newControl("");
+    const other = dom.ctx.newControl(false);
+    const description = dom.ctx.newControl("");
+    dom.mount(
+      <FormProvider renderers={testRenderers}>
+        <Form onSubmit={() => {}}>
+          <TextField field={shown} id="shown" required />
+          <TextField
+            field={description}
+            id="description"
+            required
+            hidden={(rc) => !rc.getValue(other)}
+          />
+          <Action actionId="save" text="Save" submit />
+        </Form>
+      </FormProvider>,
+    );
+    act(() => dom.container.querySelector<HTMLButtonElement>("[data-action]")!.click());
+    await flush();
+    expect([untrackedRead.isTouched(shown), untrackedRead.isTouched(description)]).toEqual([
+      true,
+      false,
+    ]);
+    act(() => dom.ctx.update((wc) => wc.setValue(other, true)));
+    expect(dom.container.querySelector('[data-field="description"] [data-error]')).toBeNull();
   });
 });

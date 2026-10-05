@@ -55,6 +55,8 @@ import {
   noContent,
   onFocusLeave,
   optionKeys,
+  RequiredNote,
+  requiredDescribedBy,
 } from "./shared.js";
 import { useHtmlTheme } from "./theme.js";
 
@@ -113,6 +115,12 @@ function HtmlFieldShell(p: FieldShellProps) {
           <div className={t.control}>{p.children}</div>
         </>
       )}
+      <RequiredNote
+        id={p.id}
+        required={p.required}
+        describeRequired={p.describeRequired}
+        text={t.required.note}
+      />
       {p.helpText && !p.error && (
         <p className={t.help} id={fieldHelpId(p.id)}>
           {p.helpText}
@@ -416,6 +424,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
       labelAs="legend"
       surface="custom"
       required={p.required}
+      describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       error={p.error}
@@ -426,7 +435,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
       <div
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
-        aria-describedby={describedBy(p)}
+        aria-describedby={requiredDescribedBy(p)}
         className={mergeClass(t.className, p.className)}
         onBlur={onFocusLeave(ctl.onBlur)}
       >
@@ -436,6 +445,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
               ref={i === 0 ? ctl.elementRef : undefined}
               id={`${p.id}_${i}`}
               type="checkbox"
+              aria-invalid={p.error ? true : undefined}
               className={t.input || undefined}
               value={String(o.value)}
               checked={ctl.isSelected(o)}
@@ -659,7 +669,10 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
               ctl.onBlur();
             }}
           >
-            <option value="">{t.emptyText}</option>
+            {/* A required select with a value has no way back to empty. */}
+            {(!p.required || ctl.stringValue === "") && (
+              <option value="">{t.emptyText}</option>
+            )}
             {ctl.options.map((o, i) => (
               <option
                 key={keys[i]}

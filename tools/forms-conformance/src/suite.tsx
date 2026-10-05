@@ -359,11 +359,13 @@ export function describeConformance(impl: Implementation): void {
         );
         // The exact name — the marker is not part of it — and required said
         // by the control. ARIA has neither aria-invalid nor aria-required on
-        // role="group", so a check list says both through its description.
+        // role="group", so a check list's group is described as required
+        // (first, before the help or error) and its checkboxes carry invalid.
         const group = kind === "checklist";
+        const said = (d: string) => (group ? `Required ${d}` : d);
         const named = (description: string, invalid: boolean) => [
           kind,
-          [{ name: label, description, invalid, required: !group }],
+          [{ name: label, description: said(description), invalid, required: !group }],
         ];
         expect([kind, read()]).toEqual(named("Help", false));
         expect([kind, groups()]).toEqual([
@@ -372,6 +374,12 @@ export function describeConformance(impl: Implementation): void {
         ]);
         act(() => ctx.update((wc) => wc.setTouched(c, true)));
         expect([kind, read()]).toEqual(named("Needed", !group));
+        if (group)
+          expect(
+            [...container.querySelectorAll('input[type="checkbox"]')].map((b) =>
+              b.getAttribute("aria-invalid"),
+            ),
+          ).toEqual(["true", "true"]);
       }
     });
 

@@ -61,6 +61,14 @@ export interface FieldShellProps {
    * required itself, by `aria-required`.
    */
   required?: boolean;
+  /**
+   * The control cannot say it is required itself — a `role="group"` takes
+   * neither `aria-required` nor `aria-invalid` — so the shell says it: with
+   * `required`, visually hidden text under id {@link fieldRequiredId}, which
+   * the widget puts first in its `aria-describedby`. In the description, not
+   * the label, so the field's name stays exactly its label.
+   */
+  describeRequired?: boolean;
   /** The field is disabled; some libraries grey the label and help from this. */
   disabled?: boolean;
   /** Help text, under id {@link fieldHelpId} when no error is showing. */
@@ -238,6 +246,17 @@ export function fieldErrorId(id: string): string {
  */
 export function fieldHelpId(id: string): string {
   return `${id}-help`;
+}
+
+/**
+ * The id the {@link FieldShellProps | shell} renders a field's "required"
+ * note under, for a control that cannot carry `aria-required`
+ * ({@link FieldShellProps.describeRequired}).
+ *
+ * @group Implementations
+ */
+export function fieldRequiredId(id: string): string {
+  return `${id}-required`;
 }
 
 /**

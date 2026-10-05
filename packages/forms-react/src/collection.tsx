@@ -188,8 +188,8 @@ export function collectionRenderer<T, P extends object = {}>(
     const verdict = useControl<unknown>(undefined);
     useFieldValidation(control, validators, cfg, vscope, id, verdict);
     useEffect(
-      () => vscope?.register(verdict, control),
-      [vscope, verdict, control],
+      () => vscope?.register(verdict, control, cfg),
+      [vscope, verdict, control, cfg],
     );
 
     // clearHidden reaches the array itself, not only its elements' fields.
