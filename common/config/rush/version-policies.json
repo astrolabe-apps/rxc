@@ -116,7 +116,7 @@
     // the contract is still an alpha: every edit would otherwise need one.
     "policyName": "forms-v2-alpha",
     "definitionName": "lockStepVersion",
-    "version": "0.1.0-alpha.2",
+    "version": "0.1.0-alpha.3",
     "nextBump": "prerelease",
     "exemptFromRushChange": true
   }

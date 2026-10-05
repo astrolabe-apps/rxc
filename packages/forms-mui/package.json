@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/forms-mui",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "The Forms v2 MUI implementation: every registry slot drawn with @mui/material, and the contract's regression gate.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",
