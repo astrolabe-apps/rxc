@@ -4,20 +4,21 @@ The prompt for rerunning the Request Access trial against a new Forms v2 alpha. 
 below the line into a fresh Claude Code session in a new HVAMS worktree. It is a **cold read**:
 the conversion is redone from scratch each time, so the contract is judged without knowing the
 last run's workarounds. The last run's findings are in
-[`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md)
-(with its alpha.2 check at the end); the run before that is
-[`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) (`0.1.0-alpha.0`). The
-brief keeps both out of reach until the new findings are written.
+[`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md);
+the runs before it are the
+[alpha.3](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.3.md),
+[alpha.1](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md) and
+[alpha.0](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) reports. The brief keeps all of them out of reach
+until the new findings are written.
 
-**This run adds visual parity.** The earlier runs judged the contract alone and left the page
-unstyled. This one also has to make the v2 page look like the original, within reason, which
-tests what the earlier runs never did: whether an app can bring its own look to Forms v2 without
-touching its forms.
+**Visual parity is part of the run** (since alpha.3): the v2 page has to look like the original,
+within reason, which tests whether an app can bring its own look to Forms v2 without touching its
+forms. alpha.4's look needed a theme plus two slot overrides; the aim now is a theme alone.
 
 Update the version and the rxc paths in the brief if they have moved. **Run it against a published
-alpha that carries the work since `0.1.0-alpha.2`**: section titles in each library's type, group
-`kind` and the `FormRenderers` override. Check `npm view @rx-controls/forms-react dist-tags` before
-starting, and publish the next alpha first if `alpha` still points at `0.1.0-alpha.2`.
+alpha that carries the work since `0.1.0-alpha.4`**: display colours by precedence, per-widget
+shell slots, and `showCount`. Check `npm view @rx-controls/forms-react dist-tags` before starting,
+and publish the next alpha first if `alpha` still points at `0.1.0-alpha.4`.
 
 ---
 
@@ -34,9 +35,9 @@ reason**. There are two goals, in this order:
 The branch is throwaway: nothing needs to be production ready, and temporary scaffolding (a
 side-by-side page, extra dev dependencies) is fine.
 
-**Do not read `~/astrolabe/rxc/docs/FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md` or
-`FORMS-V2-HVAMS-REQUEST-ACCESS.md` until your own findings are written.** They are the previous
-runs' reports; reading them first defeats the point.
+**Do not read any `~/astrolabe/rxc/docs/FORMS-V2-HVAMS-REQUEST-ACCESS*.md` until your own
+findings are written.** They are the previous runs' reports; reading them first defeats the
+point.
 
 ## Where things are
 - The form: `HVAMS.RoadManager.Server/ClientApp/common/src/hvams/accessRequests/RequestAccessForm.tsx`
@@ -81,11 +82,13 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
   group's `className` (how its children lay out) and `shellClassName` (how it sits in its
   parent's layout) is the intended way, not a breach of the rule. See `FORMS-V2-INTERFACES.md` §7,
   "Layout is classes". Visual styling of a widget is still the implementation's.
-- The implementation is chosen in exactly one place: the page puts
-  `<FormProvider renderers={htmlRenderers}>` around the form. **The look is chosen there too**: in
-  one HVAMS module beside it (a theme, plus any slot overrides), which the page wraps around the
-  form. The form files carry no styling beyond layout, so swapping the implementation or the theme
-  never touches them.
+- The implementation is chosen in exactly one place: **the rmi site's root layout**
+  (`sites/rmi/src/app/layout.tsx`) puts `<FormProvider renderers={htmlRenderers}>` around the app.
+  **The look is chosen there too**: one HVAMS module (a theme, plus any slot overrides) wrapped
+  around the app inside the provider. Every v2 piece, the second host's included, then needs
+  nothing around it. A scaffolding page that wants another implementation (the Ant swap) nests its
+  own provider. The form files carry no styling beyond layout, so swapping the implementation or
+  the theme never touches them.
 - Wherever the rule can't be kept, that's a finding. Plain JSX for page chrome is fine.
 
 ## How to convert
@@ -93,9 +96,11 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
   straight into v2 fields.
 - Text fields keep `autoComplete` and `required`. State and Agency are `SelectField`s; Agency is
   hidden until a state is chosen (the `hidden` prop, not conditional rendering). The four personal
-  fields sit **two to a row** on wide screens and one per row on narrow ones, as the original did.
+  fields sit **two to a row** on wide screens and one per row on narrow ones. That is a deliberate
+  change: the original is two to a row at every width.
   The reason and description stop the user at 300 / 250 characters, with an error if a longer value
-  arrives anyway, and each has an "n / max characters" counter that turns red past its limit. The
+  arrives anyway, and each has an "n / max characters" counter that turns red past its limit. Look
+  for what the contract offers for a counter before writing one. The
   description shows only when "Other" is among the reasons and is cleared when hidden — to the
   value the DTO expects for an empty answer, not just whatever clearing writes by default. The
   sections are `Section` / `Contents` with a `title`.
@@ -117,6 +122,8 @@ implementation's level, in the HVAMS module the page wraps around the form:
   over `tailwindHtmlTheme` (`packages/forms-html/src/theme.tsx`). Take the classes from what the
   original renders: read `@astrolabe/ui`'s components for them, but don't import those components
   into the form.
+- **Aim for a theme alone.** Every slot override is a finding: record what the theme could not
+  say.
 - **A slot override where a theme can't reach.** `FormRenderers` (forms-react) overrides slots
   for part of an app over the active implementation. Its function form receives the enclosing slots
   to wrap, and a group renderer's `kind` tells a section from a plain region. Writing a slot
@@ -152,7 +159,8 @@ implementation's level, in the HVAMS module the page wraps around the form:
   typing is not read out key by key.
 
 ## The implementation swap
-Mount the **unchanged** form under `antdRenderers`, without the HVAMS theme module (that is html's).
+Mount the **unchanged** form under `antdRenderers`, in a nested `<FormProvider>` on its scaffolding
+page: it replaces the root's html implementation, and the HVAMS look (html's) does not reach it.
 Fill it in, submit a refused form, trigger a server 400, submit a valid one. For each difference,
 say whether it is a contract gap or an implementation bug.
 
@@ -198,7 +206,8 @@ rxc source lines for each finding:
 5. **The swap**: everything that behaved differently under Ant, and whether each is a contract gap
    or an implementation bug.
 6. **Compat interop and the engine bump.**
-7. **Against the previous runs** — only now read `FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md`
-   (and, for history, `FORMS-V2-HVAMS-REQUEST-ACCESS.md`): for each of its findings, fixed,
-   changed or still open, and anything new this run found that it missed. Most of its findings are
-   marked fixed there; say whether each fix holds up in a real form, and where it does not, why.
+7. **Against the previous runs** — only now read `FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md`,
+   the direct predecessor (and, for history, the alpha.3, alpha.1 and alpha.0 reports): for each
+   of its findings and its "Suggested changes", fixed, changed or still open, and anything new this
+   run found that it missed. Say whether each fix holds up in a real form, and where it does not,
+   why.
