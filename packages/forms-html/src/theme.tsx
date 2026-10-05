@@ -28,6 +28,13 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  * @group Theming
  */
 export interface HtmlTheme {
+  /**
+   * The field shell, per widget: slots merged over `shell` for the shell
+   * around that widget (`FieldShellProps.widget` — `select`, `checkList`,
+   * or a third-party widget's own name). For a look whose shells differ by
+   * widget. The shell also carries the name as `data-widget`.
+   */
+  shellFor: Partial<Record<string, DeepPartial<HtmlTheme["shell"]>>>;
   /** The field shell. */
   shell: {
     /** The outer element, label above the control. */
@@ -211,20 +218,27 @@ export interface HtmlTheme {
   };
   /** The wrapper a display or a button sits in. */
   displayShell: {
-    /** Around a display. */
+    /** Around a display. Not its colour: that is `color`, which a tone replaces. */
     display: string;
+    /**
+     * A display's base text colour, dropped when it has a tone — so a tone
+     * replaces it rather than competing with it. Put a base colour here, not
+     * on the text slot: the tone colours the wrapper and the text inherits
+     * it, so a colour on the text itself masks every tone.
+     */
+    color: string;
     /** Around a button. */
     action: string;
     /**
-     * Added around a display with a `tone` — its colour, inherited by the
-     * text inside.
+     * Around a display with a `tone`, in place of `color`: its colour,
+     * inherited by the text inside.
      */
     tones: Record<Tone, string>;
     /**
-     * Added around an **announced** display with a `tone`: a message the
-     * user must not miss — the box a refused submit's error sits in, where
-     * a counter turning red past its limit (toned, not announced) gets the
-     * colour alone.
+     * Around an **announced** display with a `tone`, in place of the tone's
+     * class: a message the user must not miss — the box a refused submit's
+     * error sits in, with its own colour — where a counter turning red past
+     * its limit (toned, not announced) gets `tones` alone.
      */
     message: Record<Tone, string>;
   };
@@ -338,6 +352,7 @@ export type PartialHtmlTheme = DeepPartial<HtmlTheme>;
  * @group Theming
  */
 export const defaultHtmlTheme: HtmlTheme = {
+  shellFor: {},
   shell: {
     vertical: "rxf-shell rxf-shell--vertical",
     horizontal: "rxf-shell rxf-shell--horizontal",
@@ -394,6 +409,7 @@ export const defaultHtmlTheme: HtmlTheme = {
   elements: { className: "rxf-elements" },
   displayShell: {
     display: "rxf-display",
+    color: "",
     action: "rxf-action",
     tones: {
       error: "rxf-tone-error",
@@ -402,10 +418,10 @@ export const defaultHtmlTheme: HtmlTheme = {
       success: "rxf-tone-success",
     },
     message: {
-      error: "rxf-message",
-      warning: "rxf-message",
-      info: "rxf-message",
-      success: "rxf-message",
+      error: "rxf-message rxf-tone-error",
+      warning: "rxf-message rxf-tone-warning",
+      info: "rxf-message rxf-tone-info",
+      success: "rxf-message rxf-tone-success",
     },
   },
   text: { className: "rxf-text", inline: "rxf-text" },
@@ -468,6 +484,7 @@ export const defaultHtmlTheme: HtmlTheme = {
  * @group Theming
  */
 export const tailwindHtmlTheme: HtmlTheme = {
+  shellFor: {},
   shell: {
     vertical: "rxf-shell rxf-shell--vertical flex min-w-0 flex-col gap-1",
     horizontal:
@@ -542,6 +559,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
   elements: { className: "rxf-elements flex flex-col gap-2.5" },
   displayShell: {
     display: "rxf-display block [.rxf-inline_&]:inline",
+    color: "",
     action: "rxf-action inline-block [.rxf-inline_&]:inline",
     tones: {
       error: "rxf-tone-error text-red-700",
@@ -550,10 +568,10 @@ export const tailwindHtmlTheme: HtmlTheme = {
       success: "rxf-tone-success text-green-700",
     },
     message: {
-      error: "rxf-message",
-      warning: "rxf-message",
-      info: "rxf-message",
-      success: "rxf-message",
+      error: "rxf-message rxf-tone-error text-red-700",
+      warning: "rxf-message rxf-tone-warning text-amber-700",
+      info: "rxf-message rxf-tone-info text-sky-700",
+      success: "rxf-message rxf-tone-success text-green-700",
     },
   },
   text: { className: "rxf-text m-0", inline: "rxf-text" },

@@ -390,8 +390,13 @@ export function DisplayShell({
       className={mergeClass(
         cat(
           classes[kind],
-          tone && classes.tones[tone],
-          announce && tone && classes.message[tone],
+          // One colour, by precedence, never two competing by CSS order: an
+          // announced message's, else the tone's, else the display's base.
+          announce && tone
+            ? classes.message[tone]
+            : tone
+              ? classes.tones[tone]
+              : kind === "display" && classes.color,
         ),
         shellClassName,
       )}
@@ -418,6 +423,7 @@ export function ElementsList(
   const Shell = useFieldShell();
   return (
     <Shell
+      widget="elements"
       id={p.id}
       label={p.label}
       labelAs="legend"

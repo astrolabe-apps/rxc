@@ -280,6 +280,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
   const maxLength = getProp(ctl.rc, p.maxLength);
   return ctl.rendered(
     <Shell
+      widget="textfield"
       id={p.id}
       label={p.label}
       surface="frame"
@@ -347,6 +348,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     );
   return ctl.rendered(
     <Shell
+      widget="displayOnly"
       id={p.id}
       label={p.label}
       surface="custom"
@@ -372,6 +374,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
     <Shell
+      widget="checkbox"
       id={p.id}
       label={p.label}
       labelPosition="after"
@@ -606,6 +609,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
     <Shell
+      widget="select"
       id={p.id}
       label={p.label}
       surface="frame"
@@ -670,6 +674,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
     );
   return ctl.rendered(
     <Shell
+      widget="radio"
       id={p.id}
       label={p.label}
       labelAs="legend"
@@ -720,6 +725,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
     <Shell
+      widget="checkList"
       id={p.id}
       label={p.label}
       labelAs="legend"

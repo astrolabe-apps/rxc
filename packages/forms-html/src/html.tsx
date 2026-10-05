@@ -58,12 +58,34 @@ import {
   RequiredNote,
   requiredDescribedBy,
 } from "./shared.js";
-import { useHtmlTheme } from "./theme.js";
+import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
 // ── Shell: family 1 (children-hosting, class-driven — Bootstrap / shadcn) ──
 
+type ShellTheme = HtmlTheme["shell"];
+/** Each theme's shell per widget, merged once. */
+const shellsFor = new WeakMap<HtmlTheme, Map<string, ShellTheme>>();
+
+/** The shell slots for a widget: `shellFor[widget]` over `shell`. */
+function shellOf(theme: HtmlTheme, widget: string | undefined): ShellTheme {
+  const over = widget === undefined ? undefined : theme.shellFor[widget];
+  if (!over) return theme.shell;
+  let cache = shellsFor.get(theme);
+  if (!cache) shellsFor.set(theme, (cache = new Map()));
+  let merged = cache.get(widget!);
+  if (!merged) {
+    merged = {
+      ...theme.shell,
+      ...(over as Partial<ShellTheme>),
+      required: { ...theme.shell.required, ...over.required },
+    };
+    cache.set(widget!, merged);
+  }
+  return merged;
+}
+
 function HtmlFieldShell(p: FieldShellProps) {
-  const t = useHtmlTheme().shell;
+  const t = shellOf(useHtmlTheme(), p.widget);
   // A "legend" captions a group the widget draws itself, so it is a plain
   // element the group names by id: a fieldset here would be a second group.
   const legend = p.labelAs === "legend";
@@ -91,6 +113,7 @@ function HtmlFieldShell(p: FieldShellProps) {
         p.orientation === "horizontal" ? t.horizontal : t.vertical,
         p.className,
       )}
+      data-widget={p.widget}
       data-invalid={p.error ? "" : undefined}
       data-disabled={p.disabled ? "" : undefined}
     >
@@ -208,6 +231,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const maxLength = getProp(ctl.rc, p.maxLength);
   return ctl.rendered(
     <Shell
+      widget="textfield"
       id={p.id}
       label={p.label}
       surface="frame"
@@ -277,6 +301,7 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     );
   return ctl.rendered(
     <Shell
+      widget="displayOnly"
       id={p.id}
       label={p.label}
       surface="custom"
@@ -305,6 +330,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
   const t = useHtmlTheme().checkbox;
   return ctl.rendered(
     <Shell
+      widget="checkbox"
       id={p.id}
       label={p.label}
       labelPosition="after"
@@ -356,6 +382,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
     mergeClass(mergeClass(t.entryWrapper, entryCls), selected ? onCls : offCls);
   return ctl.rendered(
     <Shell
+      widget="radio"
       id={p.id}
       label={p.label}
       labelAs="legend"
@@ -419,6 +446,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
     <Shell
+      widget="checkList"
       id={p.id}
       label={p.label}
       labelAs="legend"
@@ -636,6 +664,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
   const t = useHtmlTheme().select;
   return ctl.rendered(
     <Shell
+      widget="select"
       id={p.id}
       label={p.label}
       surface="frame"

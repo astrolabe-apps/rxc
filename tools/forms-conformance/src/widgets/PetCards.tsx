@@ -36,6 +36,7 @@ function PetCardsImpl<T>(
   const locked = !p.actions.canEdit;
   return rendered(
     <Shell
+      widget="petCards"
       id={p.id}
       label={p.label}
       labelAs="legend"

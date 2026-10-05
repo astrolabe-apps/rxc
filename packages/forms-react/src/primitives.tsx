@@ -31,6 +31,14 @@ import type { FieldController, FocusTarget } from "./controllers.js";
 export interface FieldShellProps {
   /** The control's id — what the label points at. */
   id: string;
+  /**
+   * Which widget the shell is around: the registry slot key for a built-in
+   * (`"textfield"`, `"select"`, `"checkList"`, …), any name for a widget of
+   * your own. A look whose shells differ by widget — a smaller label over a
+   * select than over a text input — styles by it rather than replacing a
+   * slot.
+   */
+  widget?: string;
   /** The label, under id {@link fieldLabelId}. */
   label?: ReactNode;
   /**

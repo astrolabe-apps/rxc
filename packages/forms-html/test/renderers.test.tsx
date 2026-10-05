@@ -533,18 +533,57 @@ describe("what the theme reaches", () => {
     expect(body("inner")).not.toContain("card");
   });
 
-  it("boxes an announced, toned display as a message, and only that", () => {
+  it("gives a display one colour by precedence: message, else tone, else base", () => {
     mount(
       <>
         <TextDisplay text="refused" tone="error" announce />
         <TextDisplay text="301 / 300" tone="error" />
+        <TextDisplay text="12 / 300" />
       </>,
-      { theme: { displayShell: { message: { error: "box" } } } },
+      {
+        theme: {
+          displayShell: {
+            display: "d",
+            color: "base",
+            tones: { error: "red" },
+            message: { error: "box" },
+          },
+        },
+      },
     );
     const shell = (t: string) =>
-      $$("[data-tone]").find((e) => e.textContent === t)!.className;
-    expect(shell("refused")).toContain("box");
-    expect(shell("301 / 300")).not.toContain("box");
+      $$(".d").find((e) => e.textContent === t)!.className;
+    // Never two colours competing by CSS order.
+    expect([shell("refused"), shell("301 / 300"), shell("12 / 300")]).toEqual([
+      "d box",
+      "d red",
+      "d base",
+    ]);
+  });
+
+  it("styles a shell per widget: shellFor over shell, and data-widget", () => {
+    mount(
+      <>
+        <TextField field={dom.ctx.newControl("")} id="t" label="Text" required />
+        <SelectField field={dom.ctx.newControl<OptionValue>(undefined)} id="s" label="Pick" options={[{ name: "A", value: "a" }]} required />
+      </>,
+      {
+        theme: {
+          shell: { label: "big", required: { className: "mark", text: "*" } },
+          shellFor: { select: { label: "small", required: { text: "!" } } },
+        },
+      },
+    );
+    const shell = (id: string) => $(`#${id}`)!.closest("[data-widget]")!;
+    expect([shell("t").getAttribute("data-widget"), shell("s").getAttribute("data-widget")]).toEqual([
+      "textfield",
+      "select",
+    ]);
+    const label = (id: string) => shell(id).querySelector(`#${id}-label`)!;
+    expect([label("t").className, label("s").className]).toEqual(["big", "small"]);
+    // A nested slot merges too: the select's marker text, the shell's class.
+    expect(shell("s").querySelector(".mark")!.textContent).toBe("!");
+    expect(shell("t").querySelector(".mark")!.textContent).toBe("*");
   });
 
   it("turns transitions off from the theme: no fade wrapper, gone at once", () => {

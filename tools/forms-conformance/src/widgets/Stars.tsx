@@ -31,6 +31,7 @@ function StarsImpl(
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
     <Shell
+      widget="stars"
       id={p.id}
       label={p.label}
       labelAs="legend"
