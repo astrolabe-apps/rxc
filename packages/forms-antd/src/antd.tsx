@@ -79,14 +79,30 @@ function AntFieldShell(p: FieldShellProps) {
   return (
     <Form.Item
       layout={p.orientation === "horizontal" ? "horizontal" : "vertical"}
-      // The contract's label id on a span inside Ant's own <label>.
+      // The contract's label id on a span inside Ant's own <label>. The
+      // marker is drawn here rather than by `required`: Ant's is a CSS
+      // ::before, which browsers read into the accessible name.
       label={
         p.labelPosition === "after" || p.label == null ? undefined : (
-          <span id={fieldLabelId(p.id)}>{p.label}</span>
+          <>
+            {p.required && (
+              <span
+                aria-hidden="true"
+                style={{
+                  color: token.colorError,
+                  marginInlineEnd: token.marginXXS,
+                  fontFamily: "SimSun, sans-serif",
+                  lineHeight: 1,
+                }}
+              >
+                *
+              </span>
+            )}
+            <span id={fieldLabelId(p.id)}>{p.label}</span>
+          </>
         )
       }
       htmlFor={p.labelAs === "legend" ? undefined : p.id}
-      required={p.required}
       validateStatus={p.error ? "error" : undefined}
       // Form.Item renders `help` under ids of its own; the contract's ids
       // (what every control's aria-describedby names) go on a span inside.
@@ -117,7 +133,12 @@ function AntFieldShell(p: FieldShellProps) {
             }}
           >
             {p.label}
-            {p.required && <span style={{ color: token.colorError }}> *</span>}
+            {p.required && (
+              <span aria-hidden="true" style={{ color: token.colorError }}>
+                {" "}
+                *
+              </span>
+            )}
           </label>
         </Flex>
       ) : (
@@ -207,6 +228,7 @@ function AntInputFrame(p: InputFrameProps) {
           disabled: p.disabled,
           readOnly: p.readOnly,
           "aria-invalid": p.invalid || undefined,
+          "aria-required": p.required || undefined,
           "aria-describedby": p.describedBy,
         },
         state,
@@ -247,6 +269,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
         id={p.id}
         describedBy={describedBy(p)}
         invalid={!!p.error}
+        required={p.required}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
         multiline={multiline}
@@ -334,6 +357,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
         id={p.id}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
+        aria-required={p.required || undefined}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         onChange={(e) => ctl.setChecked(e.target.checked)}
@@ -581,6 +605,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
         id={p.id}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
+        aria-required={p.required || undefined}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         status={p.error ? "error" : undefined}
         disabled={ctl.state.disabled || ctl.state.readOnly}
@@ -634,6 +659,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
+        aria-required={p.required || undefined}
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={onFocusLeave(ctl.onBlur)}

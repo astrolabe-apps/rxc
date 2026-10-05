@@ -304,10 +304,20 @@ export function describeConformance(impl: Implementation): void {
         ["checkbox", (c) => <CheckboxField field={c} label="Check name" required requiredMessage="Needed" helpText="Help" />],
         ["checklist", (c) => <CheckListField field={c} label="Checklist name" options={opts} required requiredMessage="Needed" helpText="Help" />],
       ];
+      // Text as assistive technology reads it: aria-hidden decoration (a
+      // required marker) left out.
+      const readable = (el: Element) => {
+        const copy = el.cloneNode(true) as Element;
+        copy.querySelectorAll('[aria-hidden="true"]').forEach((h) => h.remove());
+        return copy.textContent!.replace(/\s+/g, " ").trim();
+      };
       const texts = (ids: string) =>
         ids
           .split(/\s+/)
-          .map((id) => document.getElementById(id)?.textContent?.trim() ?? `(no #${id})`)
+          .map((id) => {
+            const el = document.getElementById(id);
+            return el ? readable(el) : `(no #${id})`;
+          })
           .join(" ");
       // What assistive technology reads off the control that is described:
       // its name — aria-labelledby, else a label for it or around it — and
@@ -318,15 +328,16 @@ export function describeConformance(impl: Implementation): void {
           const forIt = el.id
             ? container.querySelector(`label[for="${CSS.escape(el.id)}"]`)
             : null;
+          const labelEl = forIt ?? el.closest("label");
           const name = by
             ? texts(by)
             : (el.getAttribute("aria-label") ??
-              (forIt ?? el.closest("label"))?.textContent?.trim() ??
-              "(no name)");
+              (labelEl ? readable(labelEl) : "(no name)"));
           return {
             name,
             description: texts(el.getAttribute("aria-describedby")!),
             invalid: el.getAttribute("aria-invalid") === "true",
+            required: el.getAttribute("aria-required") === "true",
           };
         });
       // A set of choices is one group, named and described; a field, none.
@@ -342,9 +353,13 @@ export function describeConformance(impl: Implementation): void {
           "Checkbox",
           "Check",
         );
+        // The exact name — the marker is not part of it — and required said
+        // by the control. ARIA has neither aria-invalid nor aria-required on
+        // role="group", so a check list says both through its description.
+        const group = kind === "checklist";
         const named = (description: string, invalid: boolean) => [
           kind,
-          [{ name: expect.stringContaining(label), description, invalid }],
+          [{ name: label, description, invalid, required: !group }],
         ];
         expect([kind, read()]).toEqual(named("Help", false));
         expect([kind, groups()]).toEqual([
@@ -352,8 +367,7 @@ export function describeConformance(impl: Implementation): void {
           kind === "radio" || kind === "checklist" ? 1 : 0,
         ]);
         act(() => ctx.update((wc) => wc.setTouched(c, true)));
-        // ARIA has no aria-invalid on role="group"; the description carries it.
-        expect([kind, read()]).toEqual(named("Needed", kind !== "checklist"));
+        expect([kind, read()]).toEqual(named("Needed", !group));
       }
     });
 

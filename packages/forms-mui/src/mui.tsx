@@ -114,7 +114,7 @@ function MuiFieldShell(p: FieldShellProps) {
             label={
               <>
                 {p.label}
-                {p.required && " *"}
+                {p.required && <span aria-hidden="true"> *</span>}
               </>
             }
             disabled={p.disabled}
@@ -195,6 +195,7 @@ function MuiInputFrame(p: InputFrameProps) {
     p.render(
       {
         ...cp,
+        "aria-required": p.required || undefined,
         onFocus: (e) => {
           cp.onFocus?.(e);
           setFocused(true);
@@ -266,6 +267,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
         id={p.id}
         describedBy={describedBy(p)}
         invalid={!!p.error}
+        required={p.required}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
         multiline={multiline}
@@ -357,6 +359,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
           input: {
             "aria-describedby": describedBy(p),
             "aria-invalid": p.error ? true : undefined,
+            "aria-required": p.required || undefined,
           },
         }}
         checked={ctl.checked}
@@ -612,6 +615,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
+        aria-required={p.required || undefined}
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}
         onBlur={onFocusLeave(ctl.onBlur)}

@@ -54,7 +54,11 @@ export interface FieldShellProps {
   surface?: "frame" | "custom";
   /** Label beside the control, or above it. Default `vertical`. */
   orientation?: "vertical" | "horizontal";
-  /** Draw the required marker. */
+  /**
+   * Draw the required marker. The marker is decoration — `aria-hidden`, so
+   * it stays out of the field's accessible name; the control says it is
+   * required itself, by `aria-required`.
+   */
   required?: boolean;
   /** The field is disabled; some libraries grey the label and help from this. */
   disabled?: boolean;
@@ -97,6 +101,11 @@ export interface ControlSlotProps {
   readOnly?: boolean;
   /** Invalid. */
   "aria-invalid"?: boolean;
+  /**
+   * Required — `aria-required` rather than the native attribute, which would
+   * add the browser's own validation bubble to the form's.
+   */
+  "aria-required"?: boolean;
   /** The id of the help or error that describes it. */
   "aria-describedby"?: string;
 }
@@ -144,6 +153,8 @@ export interface InputFrameProps {
   end?: ReactNode | ((state: FrameState) => ReactNode);
   /** The field is invalid. */
   invalid?: boolean;
+  /** The field is required: the control's `aria-required`. */
+  required?: boolean;
   /** The field is disabled. */
   disabled?: boolean;
   /** The field is read-only. */

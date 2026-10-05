@@ -66,7 +66,9 @@ function HtmlFieldShell(p: FieldShellProps) {
   const Label = legend ? "div" : "label";
   const hasLabel = p.label !== undefined && p.label !== null;
   const required = p.required && (
-    <span className={t.required.className}>{t.required.text}</span>
+    <span className={t.required.className} aria-hidden="true">
+      {t.required.text}
+    </span>
   );
   const labelClass = mergeClass(
     t.label,
@@ -168,6 +170,7 @@ function HtmlInputFrame(p: InputFrameProps) {
           disabled: p.disabled,
           readOnly: p.readOnly,
           "aria-invalid": p.invalid || undefined,
+          "aria-required": p.required || undefined,
           "aria-describedby": p.describedBy,
         },
         state,
@@ -208,6 +211,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
         id={p.id}
         describedBy={describedBy(p)}
         invalid={!!p.error}
+        required={p.required}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
         multiline={multiline}
@@ -308,6 +312,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
         disabled={ctl.state.disabled || ctl.state.readOnly}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
+        aria-required={p.required || undefined}
         onChange={(e) => ctl.setChecked(e.target.checked)}
         onBlur={ctl.onBlur}
       />
@@ -355,6 +360,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
         className={mergeClass(t.className, p.className)}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
+        aria-required={p.required || undefined}
         onBlur={onFocusLeave(ctl.onBlur)}
       >
         {entries.map(({ o, selected }, i) => (
@@ -622,6 +628,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
         id={p.id}
         describedBy={describedBy(p)}
         invalid={!!p.error}
+        required={p.required}
         disabled={ctl.state.disabled}
         readOnly={ctl.state.readOnly}
         filled={ctl.stringValue !== ""}

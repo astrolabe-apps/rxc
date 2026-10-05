@@ -124,6 +124,15 @@ every self-drawn widget (select, check list group, radio group). The marker shou
 `aria-hidden`. The conformance suite should assert the exact accessible name, not just that one
 exists.
 
+**Fixed (after the trial):** `InputFrameProps.required` becomes the control's `aria-required`
+through `ControlSlotProps`, and the select, radio group and checkbox set it themselves, under
+html, MUI and Ant. `aria-required` and not the native attribute, which would add the browser's
+own bubble. Every implementation's marker is `aria-hidden`. Ant's is now drawn by the shell,
+since `Form.Item`'s `required` draws it as a CSS `::before`, which browsers read into the
+name. Conformance asserts the exact name and `aria-required`. One exception: ARIA allows neither
+`aria-required` nor `aria-invalid` on `role="group"`, so a check list says it is required only
+through its error description.
+
 ### 1.3 `announce` and `hidden` don't compose (contract)
 
 The submit error has to be a live region that is empty until a submit fails. The contract says
@@ -226,6 +235,10 @@ implementations, touch on a refused submit, locks, and the shell's ids.
 **Would want built in:** "focus left the widget" in the controller (1.1), and a conformance
 check that a set-of-choices widget is exactly one named, described group.
 
+**Fixed (after the trial):** a `labelAs="legend"` shell is now a caption that the widget's own
+group names by id, with no `fieldset`. html and MUI drew one before. Conformance asserts exactly one
+group for a radio and a check list under every implementation.
+
 ---
 
 ## 3. Validation and submit
@@ -278,6 +291,9 @@ valid submit and Enter all pass under Ant, with a clean console.
 | `Form.Item` spacing; errors animate in | implementation look; the first screenshot after a refused submit caught the animation mid-way |
 | the select is Ant's virtual list, not a native `<select>` | not a contract matter, but the page object needed an implementation branch to choose an option |
 | one cold-start timeout on the Ant 409 check (passes 3/3 on repeat) | test timing under `next dev` compilation, not v2 |
+
+**Fixed (after the trial):** Ant's select carries `aria-invalid`. So do the radio group and the
+checkbox under all three implementations, which conformance now asserts.
 
 **The side-by-side page** is `/requestAccessCompare`: the original form, restored from git,
 on the left, and v2 under Ant on the right.
