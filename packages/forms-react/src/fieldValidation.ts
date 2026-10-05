@@ -75,6 +75,24 @@ export function bareValidatorKey(owner: string): string {
 }
 
 /**
+ * The keys a boundary's validators publish under. A bare function, and an
+ * author's `default` key, both go under {@link bareValidatorKey}: `default`
+ * is reserved, like `required`, because a boundary claiming the plain key
+ * would swallow a server error arriving under it — no message shown, and
+ * nothing to tell the host it was not applied.
+ */
+export function validatorEntries<T>(
+  validate: Validator<T> | Record<string, Validator<T>> | undefined,
+  owner: string,
+): Record<string, Validator<T>> {
+  if (typeof validate === "function")
+    return { [bareValidatorKey(owner)]: validate };
+  if (!validate || !("default" in validate)) return validate ?? {};
+  const { default: own, ...rest } = validate;
+  return { ...rest, [bareValidatorKey(owner)]: own! };
+}
+
+/**
  * Run a boundary's validators. In the boundary, so no implementation can see
  * one and therefore none can drop one — and it runs while presence is
  * `silent` and nothing is on screen.
@@ -110,10 +128,7 @@ export function useFieldValidation<T>(
   verdict: Control<unknown>,
 ): void {
   const ctx = useControlContext();
-  const entries: Record<string, Validator<T>> =
-    typeof validate === "function"
-      ? { [bareValidatorKey(owner)]: validate }
-      : (validate ?? {});
+  const entries = validatorEntries(validate, owner);
 
   const ref = useRef(entries);
   ref.current = entries;

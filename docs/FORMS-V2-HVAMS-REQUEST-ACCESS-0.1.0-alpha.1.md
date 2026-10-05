@@ -185,6 +185,12 @@ the form" fallback doesn't fire either, and the user sees nothing at all.
 *What the library should offer:* a dev warning when an author key equals a key that already
 holds an unclaimed error, or reserve `default` the way `required@` is reserved.
 
+**Fixed (after the trial):** `default` is reserved. A record's `default` validator is published
+under `default@<id>`, the same as a bare function, so `{ default: fn }` and `fn` mean the same
+and neither claims the key server errors arrive under. A warning would not have covered it:
+the server error usually arrives after the field has mounted, and a write to a claimed key
+can't be told apart from the author's own rule. The HVAMS repro test runs with both spellings.
+
 ### 1.6 Clearing a server error on edit is the core's, not the form's (observation)
 
 The server message goes away on edit because **core clears every error on every value write**
@@ -192,6 +198,9 @@ unless the control has `keepErrors` (`core/src/types.ts:20-33`). It is correct h
 nothing in the forms contract states it, and a host that sets `keepErrors` on a form's data
 for another reason would leave the user stuck: the unclaimed error stays in the verdict, and
 `check()` refuses every later submit. Worth one line in `FieldRenderProps.error`'s doc.
+
+**Fixed (after the trial):** `FieldRenderProps.error` now says so, including the `keepErrors`
+consequence.
 
 ### 1.7 `ReadContext` is not re-exported (minor)
 

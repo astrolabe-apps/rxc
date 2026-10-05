@@ -116,17 +116,21 @@ describe("the field boundary", () => {
     ]);
   });
 
-  it("keeps showing a server error under `default` when it has a bare validator", () => {
+  it.each([
+    ["a bare validator", () => null],
+    ["a validator keyed `default`", { default: () => null }],
+  ] as const)("keeps showing a server error under `default` when it has %s", (_, validate) => {
     // HVAMS's repro: server 400s land under "default"; a bare `validate`
     // used to be keyed `default` too, claim the server's message as its own
-    // rule's, and so neither show it nor count it.
+    // rule's, and so neither show it nor count it. An author's `default` key
+    // did the same until the key was reserved.
     const c = dom.ctx.newControl("a@b");
     let validation!: ValidationScope;
     function Owner() {
       validation = useFormValidation();
       return (
         <Form validation={validation}>
-          <Text field={c} id="email" validate={() => null} />
+          <Text field={c} id="email" validate={validate} />
         </Form>
       );
     }

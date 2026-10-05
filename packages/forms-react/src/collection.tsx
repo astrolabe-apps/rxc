@@ -28,7 +28,7 @@ import {
   useDefaultValue,
   useFieldValidation,
   useMirror,
-  bareValidatorKey,
+  validatorEntries,
   useClearHidden,
   type ClearedTo,
 } from "./fieldValidation.js";
@@ -173,10 +173,7 @@ export function collectionRenderer<T, P extends object = {}>(
 
     // The length bounds are a validator on the array itself, keyed `length`.
     const validators = useMemo(() => {
-      const base: Record<string, Validator<T[]>> =
-        typeof validate === "function"
-          ? { [bareValidatorKey(id)]: validate }
-          : { ...(validate ?? {}) };
+      const base = { ...validatorEntries(validate, id) };
       if (minLength !== undefined || maxLength !== undefined)
         base.length = lengthValidator<T>({ minLength, maxLength });
       return base;

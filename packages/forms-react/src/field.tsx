@@ -20,7 +20,7 @@ import {
   useDefaultValue,
   useFieldValidation,
   useMirror,
-  bareValidatorKey,
+  validatorEntries,
   useRestrictToAllowed,
   useClearHidden,
   type ClearedTo,
@@ -110,7 +110,9 @@ export interface FieldProps<T> {
    * Validators for this field's value. A record keys each one, so each
    * publishes and clears independently; a bare function is keyed per
    * boundary (`default@<id>`), so it never claims the plain `default` key a
-   * host's server errors usually arrive under.
+   * host's server errors usually arrive under. That key is reserved: a
+   * record's `default` is the bare function by another name, under the same
+   * per-boundary key.
    */
   validate?: Validator<T> | Record<string, Validator<T>>;
   /** Help shown with the field. */
@@ -162,6 +164,11 @@ export interface FieldRenderProps<T> {
    * rule wrote (a server rejection). Not a rule another boundary over the
    * same control applies — a field without `required` never shows "Please
    * enter a value" because a field elsewhere requires the same value.
+   *
+   * A server rejection goes away when the user edits the value because core
+   * clears every error on a control when its value is written — not because
+   * of anything here. A control created with `keepErrors` keeps it; until the
+   * host clears it, the field shows it and `check()` refuses every submit.
    */
   error?: ReactNode;
   /** Help shown with the field. */
@@ -357,9 +364,5 @@ function withRules<T>(
   rules: Record<string, Validator<T>>,
   owner: string,
 ): Record<string, Validator<T>> {
-  const own =
-    typeof validate === "function"
-      ? { [bareValidatorKey(owner)]: validate }
-      : (validate ?? {});
-  return { ...own, ...rules };
+  return { ...validatorEntries(validate, owner), ...rules };
 }
