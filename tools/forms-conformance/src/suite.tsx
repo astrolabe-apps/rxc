@@ -383,6 +383,30 @@ export function describeConformance(impl: Implementation): void {
       }
     });
 
+    it("shows a character count as part of the field, describing the input", () => {
+      const c = ctx.newControl("abc");
+      const d = ctx.newControl("ab");
+      mount(
+        <>
+          <TextField field={c} id="counted" label="Counted" maxLength={10} showCount helpText="Help" />
+          <TextField
+            field={d}
+            id="worded"
+            label="Worded"
+            maxLength={10}
+            showCount={{ format: (n, max) => `${n} of ${max} characters` }}
+          />
+        </>,
+      );
+      const count = (id: string) => byId(`${id}-count`)?.textContent;
+      expect([count("counted"), count("worded")]).toEqual(["3 / 10", "2 of 10 characters"]);
+      // In the input's description, after the help.
+      expect(byId("counted")!.getAttribute("aria-describedby")).toBe("counted-help counted-count");
+      expect(byId("worded")!.getAttribute("aria-describedby")).toBe("worded-count");
+      set(c, "abcdef");
+      expect(count("counted")).toBe("6 / 10");
+    });
+
     it("caps a text field at maxLength, and reports a longer value as an error", () => {
       const c = ctx.newControl("too long already");
       mount(<TextField field={c} id="capped" label="Capped" maxLength={5} />);

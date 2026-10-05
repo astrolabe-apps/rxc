@@ -36,6 +36,26 @@ export interface TextFieldExtra {
    * does not cap) is reported rather than silently accepted.
    */
   maxLength?: FormProp<number>;
+  /**
+   * Show how many characters the value holds — "12 / 300" against
+   * `maxLength`, or a formatter's own words:
+   * `{ format: (n, max) => n + " / " + max + " characters" }`. An object, not
+   * a bare function, which a `FormProp` would take for a derivation. Part of
+   * the field: the implementation draws it in the field's shell and the
+   * control is described by it, so a screen-reader user hears the limit
+   * before reaching it.
+   */
+  showCount?: FormProp<boolean | CountFormat>;
+}
+
+/**
+ * {@link TextFieldExtra.showCount}'s own words for the count.
+ *
+ * @group Authoring
+ */
+export interface CountFormat {
+  /** The count's text, for the value's length and the field's `maxLength`. */
+  format(length: number, max?: number): ReactNode;
 }
 
 /**

@@ -183,6 +183,12 @@ export interface FieldRenderProps<T> {
    * Like any error it shows only once the field is touched. A server error
    * set on a field the user never left — Enter pressed in it — waits for a
    * touch: a host applying server errors touches the fields it sets them on.
+   *
+   * A host clears its **own** keys (`setError(c, "default", null)`), not
+   * `clearErrors()`: that also takes the rule errors the boundaries published
+   * onto the data, so the data reads valid until each rule next runs. The
+   * field still shows them (it reads its own verdict), but code reading the
+   * data's validity is misled.
    */
   error?: ReactNode;
   /** Help shown with the field. */

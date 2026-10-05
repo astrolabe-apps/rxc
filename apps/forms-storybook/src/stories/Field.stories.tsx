@@ -149,3 +149,27 @@ export const DefaultValueCycle: Story = {
   render: () => <DefaultCycle />,
   args: { clearHidden: true },
 };
+
+function Counted(): Rendered {
+  const { rendered } = useReactive();
+  const data = useControl({ reason: "", note: "" });
+  return rendered(
+    <Contents>
+      <TextField
+        field={data.fields.reason}
+        label="Reason for access"
+        multiline
+        maxLength={300}
+        showCount={{ format: (n, max) => `${n} / ${max} characters` }}
+        helpText="Tell us what you need it for."
+      />
+      <TextField field={data.fields.note} label="Note" maxLength={20} showCount />
+    </Contents>,
+  );
+}
+
+/**
+ * `showCount`: the count is part of the field, drawn in its shell and in the
+ * input's description; `{ format }` for words of the field's own.
+ */
+export const CharacterCount: Story = { render: () => <Counted /> };

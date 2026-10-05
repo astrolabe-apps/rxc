@@ -586,6 +586,16 @@ describe("what the theme reaches", () => {
     expect(shell("t").querySelector(".mark")!.textContent).toBe("*");
   });
 
+  it("draws a count past its limit with countOver in place of count", () => {
+    const c = dom.ctx.newControl("abcdef");
+    mount(<TextField field={c} id="t" maxLength={5} showCount />, {
+      theme: { shell: { count: "n", countOver: "over" } },
+    });
+    expect([$("#t-count")!.className, $("#t-count")!.textContent]).toEqual(["over", "6 / 5"]);
+    set(c, "abc");
+    expect([$("#t-count")!.className, $("#t-count")!.textContent]).toEqual(["n", "3 / 5"]);
+  });
+
   it("turns transitions off from the theme: no fade wrapper, gone at once", () => {
     const hide = dom.ctx.newControl(false);
     mount(<TextField field={dom.ctx.newControl("")} id="f" hidden={hide} />, {

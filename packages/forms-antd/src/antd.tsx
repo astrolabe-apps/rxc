@@ -22,6 +22,8 @@ import {
 } from "antd";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
+  countText,
+  fieldCountId,
   describedBy,
   fieldErrorId,
   fieldLabelId,
@@ -115,6 +117,17 @@ function AntFieldShell(p: FieldShellProps) {
           <span id={fieldErrorId(p.id)}>{p.error}</span>
         ) : p.helpText ? (
           <span id={fieldHelpId(p.id)}>{p.helpText}</span>
+        ) : undefined
+      }
+      // The count under the help, as Ant draws a form item's `extra`.
+      extra={
+        p.count != null ? (
+          <span
+            id={fieldCountId(p.id)}
+            style={p.countOver ? { color: token.colorError } : undefined}
+          >
+            {p.count}
+          </span>
         ) : undefined
       }
       className={mergeClass(undefined, p.className)}
@@ -266,9 +279,13 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
   const inputMode = getProp(ctl.rc, p.inputMode);
   const autoComplete = getProp(ctl.rc, p.autoComplete);
   const maxLength = getProp(ctl.rc, p.maxLength);
+  const count = countText(ctl.value, getProp(ctl.rc, p.showCount), maxLength);
+  const countOver = maxLength !== undefined && ctl.value.length > maxLength;
   return ctl.rendered(
     <Shell
       widget="textfield"
+      count={count}
+      countOver={countOver}
       id={p.id}
       label={p.label}
       surface="frame"
@@ -282,7 +299,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
     >
       <Frame
         id={p.id}
-        describedBy={describedBy(p)}
+        describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
         invalid={!!p.error}
         required={p.required}

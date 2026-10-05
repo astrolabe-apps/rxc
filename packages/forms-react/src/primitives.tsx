@@ -8,6 +8,7 @@ import type {
 import type { ClassValue, FormProp } from "./props.js";
 import { useRenderers } from "./registry.js";
 import type { FieldController, FocusTarget } from "./controllers.js";
+import type { CountFormat } from "./widgets.js";
 
 /**
  * The chrome around one field: label, control, help and error, laid out and
@@ -83,6 +84,14 @@ export interface FieldShellProps {
   helpText?: ReactNode;
   /** The error to show, under id {@link fieldErrorId}. */
   error?: ReactNode;
+  /**
+   * A character count to draw with the field (`TextField`'s `showCount`,
+   * through {@link countText}), under id {@link fieldCountId} — which
+   * {@link describedBy} adds to the control's description.
+   */
+  count?: ReactNode;
+  /** The value is past its limit: draw the count as over. */
+  countOver?: boolean;
   /** The control. */
   children: ReactNode;
   /** The wrapper. */
@@ -279,10 +288,41 @@ export function describedBy(field: {
   id: string;
   error?: ReactNode;
   helpText?: ReactNode;
+  /** A count the shell draws ({@link FieldShellProps.count}): named after the help or error. */
+  count?: ReactNode;
 }): string | undefined {
-  return field.error
+  const main = field.error
     ? fieldErrorId(field.id)
     : field.helpText
       ? fieldHelpId(field.id)
       : undefined;
+  if (field.count == null) return main;
+  return main ? `${main} ${fieldCountId(field.id)}` : fieldCountId(field.id);
+}
+
+/**
+ * The id the {@link FieldShellProps | shell} renders a field's character
+ * count under.
+ *
+ * @group Implementations
+ */
+export function fieldCountId(id: string): string {
+  return `${id}-count`;
+}
+
+/**
+ * What a `showCount` draws for a value: the formatter's words, or "n / max"
+ * (just "n" with no limit). Nothing when the count is not asked for.
+ *
+ * @group Implementations
+ */
+export function countText(
+  value: string,
+  showCount: boolean | CountFormat | undefined,
+  max: number | undefined,
+): ReactNode {
+  if (!showCount) return undefined;
+  const n = value.length;
+  if (showCount !== true) return showCount.format(n, max);
+  return max === undefined ? String(n) : `${n} / ${max}`;
 }

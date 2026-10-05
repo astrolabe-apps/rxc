@@ -49,6 +49,10 @@ export interface HtmlTheme {
     control: string;
     /** Help text. */
     help: string;
+    /** A field's character count (`showCount`), within its limit. */
+    count: string;
+    /** The count past the limit, in place of `count`: one colour, not two. */
+    countOver: string;
     /** The error. */
     error: string;
     /**
@@ -363,6 +367,8 @@ export const defaultHtmlTheme: HtmlTheme = {
     error: "rxf-error",
     renderError: null,
     required: { className: "rxf-required", text: "*", note: "Required" },
+    count: "rxf-count",
+    countOver: "rxf-count rxf-count-over",
   },
   frame: {
     className: "rxf-frame",
@@ -498,6 +504,8 @@ export const tailwindHtmlTheme: HtmlTheme = {
     renderError: null,
     // label.requiredElement
     required: { className: "rxf-required text-red-500", text: " *", note: "Required" },
+    count: "rxf-count m-0 text-xs text-gray-500",
+    countOver: "rxf-count rxf-count-over m-0 text-xs text-red-600",
   },
   frame: {
     className:

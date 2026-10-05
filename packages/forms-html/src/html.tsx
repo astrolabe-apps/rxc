@@ -7,6 +7,8 @@ import {
 } from "react";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
+  countText,
+  fieldCountId,
   describedBy,
   fieldErrorId,
   fieldLabelId,
@@ -157,6 +159,11 @@ function HtmlFieldShell(p: FieldShellProps) {
             {p.error}
           </p>
         ))}
+      {p.count != null && (
+        <p className={p.countOver ? t.countOver : t.count} id={fieldCountId(p.id)}>
+          {p.count}
+        </p>
+      )}
     </div>
   );
 }
@@ -229,9 +236,13 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const inputMode = getProp(ctl.rc, p.inputMode);
   const autoComplete = getProp(ctl.rc, p.autoComplete);
   const maxLength = getProp(ctl.rc, p.maxLength);
+  const count = countText(ctl.value, getProp(ctl.rc, p.showCount), maxLength);
+  const countOver = maxLength !== undefined && ctl.value.length > maxLength;
   return ctl.rendered(
     <Shell
       widget="textfield"
+      count={count}
+      countOver={countOver}
       id={p.id}
       label={p.label}
       surface="frame"
@@ -245,7 +256,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
     >
       <Frame
         id={p.id}
-        describedBy={describedBy(p)}
+        describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
         invalid={!!p.error}
         required={p.required}
