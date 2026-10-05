@@ -145,6 +145,11 @@ export interface FormProviderProps {
  * is about the app, not any one form; mounts the implementation's `root` when
  * it declares one.
  *
+ * Put the app's look there too (a theme provider, a {@link FormRenderers}
+ * override), once, around everything. Then a v2 piece dropped into an
+ * existing page or a legacy form needs nothing around it: no page chooses the
+ * implementation again.
+ *
  * @group Authoring
  */
 export function FormProvider({

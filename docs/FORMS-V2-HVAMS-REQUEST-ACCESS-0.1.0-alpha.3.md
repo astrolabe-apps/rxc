@@ -508,3 +508,25 @@ The visual-parity half is new to this run, so most of these could not have been 
   server 400, focused-field 400, announcements, alpha.1 re-checks) pass 14/14 across html and
   Ant, and the walk logs no warnings.
 - The side-by-side page is `/requestAccessCompare` (`?v=original|html|antd` for one column).
+
+---
+
+## After the trial (unpublished)
+
+The suggested changes, as made:
+
+| finding | change |
+|---|---|
+| 1.1 layout classes merge into the theme's body | `contents.body` is hooks only; the new `contents.layout` applies only when the author gives no `className`. A group's `className` is its whole layout, so no `{ replace }` is needed (that spelling still works). |
+| 1.3 no per-kind group slots | `contents.section: { wrapper, title, body }`, added for `kind === "section"` only. |
+| 1.2 message box vs inline colour | `displayShell.message: Record<Tone, string>`, added around an **announced** toned display. A toned counter keeps the colour alone, and no new author prop. |
+| 1.4 transitions are a slot | `visibility.transitions: false` in the theme; html's `visibility` slot follows it. |
+| §5 Ant: flush after a field in error | Spacing is the container's under Ant and MUI, as under html: a group body is a token-spaced column, and the field shells have no margin, so there is none for Ant's error to take over. Fields placed straight in a `<Form>` with no group are no longer spaced under Ant / MUI (as under html). |
+| 1.6 no element, no focus | Every controller has `elementRef`, publishing `control.meta.element` (typed only as something with `focus()`); frames take it as `controlRef`. `ValidationScope.focusInvalid()` focuses the first field showing an error, in document order; a refused `<Form onSubmit>` calls it unless `focusInvalid={false}`. |
+| 1.5 a revealed field already in error | `touchAll` passes by hidden fields. |
+| 1.8 check list a11y | Each checkbox carries `aria-invalid`. The group is described as required (`FieldShellProps.describeRequired`, a visually hidden note first in `aria-describedby`), so the name stays exactly the label. `aria-required` on a checkbox would mean "this box must be ticked", so it is not used. |
+| §3 a required select can be set back to empty | A required select with a value drops its empty choice: html's empty option, Ant's clear, MUI's empty item. |
+| §3 an untouched field's server error | Documented on `FieldRenderProps.error`: it waits for a touch, so a host applying server errors touches those fields. |
+| 1.7 provider per host | Documented on `FormProvider`: it and the app's look go at the app root, once. |
+
+With 1.1–1.4, the HVAMS look should be a theme with no slot overrides. The next run is the test of that.

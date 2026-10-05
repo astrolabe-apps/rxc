@@ -179,6 +179,10 @@ export interface FieldRenderProps<T> {
    * clears every error on a control when its value is written — not because
    * of anything here. A control created with `keepErrors` keeps it; until the
    * host clears it, the field shows it and `check()` refuses every submit.
+   *
+   * Like any error it shows only once the field is touched. A server error
+   * set on a field the user never left — Enter pressed in it — waits for a
+   * touch: a host applying server errors touches the fields it sets them on.
    */
   error?: ReactNode;
   /** Help shown with the field. */
