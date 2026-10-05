@@ -336,6 +336,7 @@ on the left, and v2 under Ant on the right.
   `@rx-controls/react` gives `alpha: 0.2.4`, both against `latest: 1.1.2`. Anyone following
   "ask npm for the alpha tag" for the engine packages gets a pre-1.0 engine and a second copy.
   The `alpha` tag should be removed from those two, or moved.
+  **Fixed (after the trial):** removed. Both packages now carry only `latest: 1.1.2`.
 - **Interop held.** The form is a legacy SWC-tracked component that reads `isSubmitted.value`
   ambiently and writes `submitError.value` / `agenciesByState.value` with legacy mutators, and
   it renders v2 boundaries bound to its own compat controls. Writes in both directions showed
