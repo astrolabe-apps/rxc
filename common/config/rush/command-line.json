@@ -40,16 +40,16 @@
       "commandKind": "global",
       "name": "publish-latest",
       "summary": "Publish the stable packages to npm `latest`",
-      "description": "Publishes @rx-controls/core, @rx-controls/react and the compat package (version policy `stable`) to the `latest` dist-tag, each only if its version is newer than the registry's. Never publishes the Forms v2 alphas. XDG_CONFIG_HOME is preserved so browser authentication works. Build first (`rush build`).",
-      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy stable --publish --tag latest --set-access-level public -b main",
+      "description": "Publishes @rx-controls/core, @rx-controls/react and the compat package (version policy `stable`) to the `latest` dist-tag, each only if its version is newer than the registry's. Never publishes the Forms v2 alphas. XDG_CONFIG_HOME is preserved so browser authentication works. Builds those packages and their dependencies first, so `lib/` is never stale, and publishes nothing if the build fails.",
+      "shellCommand": "rush build --to version-policy:stable && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy stable --publish --tag latest --set-access-level public -b main",
       "safeForSimultaneousRushProcesses": true
     },
     {
       "commandKind": "global",
       "name": "publish-alpha",
       "summary": "Publish the Forms v2 packages to npm `alpha`",
-      "description": "Publishes the six Forms v2 packages (version policy `forms-v2-alpha`) to the `alpha` dist-tag, each only if its version is newer than the registry's. Never touches `latest`. Access is set public, which a scoped package's first publish needs. XDG_CONFIG_HOME is preserved so browser authentication works. Build first (`rush build`).",
-      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --publish --tag alpha --set-access-level public -b main",
+      "description": "Publishes the six Forms v2 packages (version policy `forms-v2-alpha`) to the `alpha` dist-tag, each only if its version is newer than the registry's. Never touches `latest`. Access is set public, which a scoped package's first publish needs. XDG_CONFIG_HOME is preserved so browser authentication works. Builds those packages and their dependencies first, so `lib/` is never stale, and publishes nothing if the build fails.",
+      "shellCommand": "rush build --to version-policy:forms-v2-alpha && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --publish --tag alpha --set-access-level public -b main",
       "safeForSimultaneousRushProcesses": true
     }
   ],

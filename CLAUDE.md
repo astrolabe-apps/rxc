@@ -183,7 +183,9 @@ no consumer ever ran them on 18; the earlier releases that declared 18 (`@rx-con
 Each publishes only versions newer than the registry's, so running one never republishes the
 other's packages, and neither can put an alpha on `latest`. Both pass `--set-access-level public`
 (Rush otherwise passes `restricted` for a scoped package, which would make a new one private) and
-preserve `XDG_CONFIG_HOME` so npm's browser authentication works. Build first (`rush build`). **The stable packages publish to
+preserve `XDG_CONFIG_HOME` so npm's browser authentication works. Each builds its own packages
+and their dependencies first (`rush build --to version-policy:<policy>`), so a stale `lib/` is
+never published, and a failed build publishes nothing. **The stable packages publish to
 `latest`; the Forms v2 packages to `alpha`**, so a plain `npm install` never picks up a
 prerelease and a consumer opts in with `@alpha`. Later alphas bump the `.N`.
 
