@@ -522,9 +522,16 @@ with no mismatch, both with the root supplying the provider and inside a Fluent 
 Each of the two fixes was checked by removing it: the server render throws, or hydration
 regenerates the tree.
 
-Left: the next alpha — `forms-fluent` is versioned `0.1.0-alpha.3` with the other six, which
-are already published at that version, so `rush publish-alpha` as it stands would publish it
-alone at `alpha.3`; a lock-step bump to `alpha.4` would carry the html / MUI tab wiring too.
+Rebased onto `0.1.0-alpha.4`, it took that release's contract changes as the other
+implementations did: a check list described as required through the shell's `describeRequired`
+note with each checkbox `aria-invalid` in error, a required select with a value dropping its
+empty choice, and every shell naming its `widget`. (`DisplayShell`'s one-colour precedence is
+html's classes; Fluent colours through `style` and needed nothing.)
+
+Left: publishing. `forms-fluent` is versioned `0.1.0-alpha.4` with the other six, which are
+already published at it, so `rush publish-alpha` as it stands would publish `forms-fluent` alone
+at `alpha.4` — while the html / MUI tab wiring and the four new suite assertions wait for
+`alpha.5`. A lock-step bump to `alpha.5` would carry them all together.
 
 *Exit:* green on the shared suite, its own tests and the story smoke test.
 

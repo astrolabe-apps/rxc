@@ -87,6 +87,8 @@ import {
   noContent,
   onFocusLeave,
   optionKeys,
+  RequiredNote,
+  requiredDescribedBy,
 } from "@rx-controls/forms-html/shared";
 
 // ── Root: inherit the host's theme ────────────────────────────────────
@@ -157,6 +159,12 @@ function FluentFieldShell(p: FieldShellProps) {
           : undefined
       }
     >
+      <RequiredNote
+        id={p.id}
+        required={p.required}
+        describeRequired={p.describeRequired}
+        text="Required"
+      />
       {p.labelPosition === "after" ? (
         // Fluent's checkbox takes its label as a slot of its own, which a
         // shell cannot reach into — so the trailing label is a sibling.
@@ -265,6 +273,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
   const maxLength = getProp(ctl.rc, p.maxLength);
   return ctl.rendered(
     <Shell
+      widget="textfield"
       id={p.id}
       label={p.label}
       surface="frame"
@@ -331,6 +340,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   if (p.inline) return ctl.rendered(text);
   return ctl.rendered(
     <Shell
+      widget="displayOnly"
       id={p.id}
       label={p.label}
       surface="custom"
@@ -349,6 +359,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
     <Shell
+      widget="checkbox"
       id={p.id}
       label={p.label}
       labelPosition="after"
@@ -382,11 +393,13 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
     <Shell
+      widget="checkList"
       id={p.id}
       label={p.label}
       labelAs="legend"
       surface="custom"
       required={p.required}
+      describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       error={p.error}
@@ -397,7 +410,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
       <div
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
-        aria-describedby={describedBy(p)}
+        aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={mergeClass(undefined, p.className)}
         style={{ display: "flex", flexDirection: "column" }}
@@ -407,6 +420,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
             key={keys[i]}
             ref={i === 0 ? ctl.elementRef : undefined}
             label={o.name}
+            aria-invalid={p.error ? true : undefined}
             checked={ctl.isSelected(o)}
             disabled={locked || o.disabled}
             onChange={(_, d) => ctl.setSelected(o, !!d.checked)}
@@ -424,6 +438,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
     <Shell
+      widget="select"
       id={p.id}
       label={p.label}
       surface="custom"
@@ -447,7 +462,8 @@ function FluentSelect(p: SelectRenderProps): Rendered {
         onChange={(_, d) => ctl.setFromString(d.value)}
         onBlur={ctl.onBlur}
       >
-        <option value="" />
+        {/* A required select with a value has no way back to empty. */}
+        {(!p.required || ctl.stringValue === "") && <option value="" />}
         {ctl.options.map((o, i) => (
           <option key={keys[i]} value={String(o.value)} disabled={o.disabled}>
             {o.name}
@@ -473,6 +489,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
     );
   return ctl.rendered(
     <Shell
+      widget="radio"
       id={p.id}
       label={p.label}
       labelAs="legend"

@@ -14,6 +14,7 @@ import {
   FormProvider,
   RadioField,
   Section,
+  SelectField,
   Tabs,
   TextDisplay,
   TextField,
@@ -229,6 +230,21 @@ describe("Fluent", () => {
       "3",
       "var(--fontSizeBase400)",
     ]);
+  });
+
+  it("offers no empty choice on a required select that has a value", () => {
+    const opts = [{ name: "A", value: "a" }];
+    mount(
+      <>
+        <SelectField field={ctx.newControl<string | undefined>("a")} id="req" options={opts} required />
+        <SelectField field={ctx.newControl<string | undefined>("a")} id="opt" options={opts} />
+        <SelectField field={ctx.newControl<string | undefined>(undefined)} id="unset" options={opts} required />
+      </>,
+    );
+    const empty = (id: string) =>
+      [...document.querySelectorAll<HTMLOptionElement>(`#${id} option`)].filter((o) => o.value === "").length;
+    // Still offered while empty: a native <select> shows its first option.
+    expect([empty("req"), empty("opt"), empty("unset")]).toEqual([0, 1, 1]);
   });
 
   it("shows a busy action with a spinner, Fluent's Button having no loading state", async () => {
