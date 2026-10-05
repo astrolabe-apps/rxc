@@ -94,6 +94,7 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
         )}
       </button>
       <Body
+        kind="contents"
         hidden={!shown}
         transitions={p.transitions}
         headingLevel={p.headingLevel}

@@ -44,10 +44,11 @@ export * from "./widgets.js";
 // Named, not `*`: registry.tsx also holds `Form`'s optional lookup.
 export {
   FormProvider,
+  FormRenderers,
   useRenderers,
   type FormElementProps,
   type FormProviderProps,
-  type FormRenderers,
+  type FormRenderersProps,
   type RegistrySlot,
 } from "./registry.js";
 export * from "./builtins.js";

@@ -3,14 +3,17 @@ import type { ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   CheckboxField,
+  combineClass,
   Contents,
   DisplayOnlyField,
+  FormRenderers,
   InlineGroup,
   Section,
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
 import { CheckForm, Values, type ScopeArgs } from "../support";
+import type { GroupRenderProps } from "@rx-controls/forms-react";
 
 type GroupArgs = ScopeArgs;
 
@@ -122,3 +125,47 @@ function ClassGrid(): Rendered {
  * rather than leaving a hole — what legacy's `Grid` did by filtering.
  */
 export const ClassNameGrid: Story = { render: () => <ClassGrid /> };
+
+/** Every section below gets a border; plain regions and the implementation stay as they are. */
+const borderedSections = (outer: FormRenderers): Partial<FormRenderers> => ({
+  contents: (p: GroupRenderProps) => (
+    <outer.contents
+      {...p}
+      shellClassName={
+        p.kind === "section"
+          ? combineClass(p.shellClassName, "rounded-md border border-gray-300 p-4")
+          : p.shellClassName
+      }
+    />
+  ),
+});
+
+function Bordered(): Rendered {
+  const { rendered } = useReactive();
+  const data = useControl({ first: "", last: "", pet: false, name: "" });
+  const f = data.fields;
+  return rendered(
+    <FormRenderers renderers={borderedSections}>
+      <div className="flex flex-col gap-4">
+        <Section title="Who">
+          <TextField field={f.first} label="First name" required />
+          <TextField field={f.last} label="Last name" />
+        </Section>
+        <Section title="Pets">
+          <CheckboxField field={f.pet} label="I have a pet" />
+          {/* A plain region: shown or hidden, never bordered. */}
+          <Contents hidden={(rc) => !rc.getValue(f.pet)}>
+            <TextField field={f.name} label="Pet's name" />
+          </Contents>
+        </Section>
+      </div>
+    </FormRenderers>,
+  );
+}
+
+/**
+ * `FormRenderers` over the active implementation: a function of the enclosing
+ * slots, so it wraps the implementation's own region rather than replacing it,
+ * and `kind` keeps the border to sections. The same code under html, MUI and Ant.
+ */
+export const BorderedSections: Story = { render: () => <Bordered /> };

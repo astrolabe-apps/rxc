@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useMemo,
   type ComponentType,
   type ReactNode,
 } from "react";
@@ -155,6 +156,66 @@ export function FormProvider({
     <RenderersContext.Provider value={renderers}>
       {Root ? <Root>{children}</Root> : children}
     </RenderersContext.Provider>
+  );
+}
+
+/**
+ * The props of {@link FormRenderers}.
+ *
+ * @group Authoring
+ */
+export interface FormRenderersProps {
+  /**
+   * Slots to replace for everything below, over the enclosing
+   * implementation's. A function receives the enclosing slots, so it can
+   * wrap one rather than replace it — which is what makes an override work
+   * the same under every implementation:
+   *
+   * ```tsx
+   * const bordered = (outer: FormRenderers) => ({
+   *   contents: (p: GroupRenderProps) => (
+   *     <outer.contents
+   *       {...p}
+   *       shellClassName={p.kind === "section" ? combineClass(p.shellClassName, "border") : p.shellClassName}
+   *     />
+   *   ),
+   * });
+   * ```
+   *
+   * Pass a module constant or a memoised value. A slot is a component, so a
+   * new one every render remounts everything it draws.
+   */
+  renderers:
+    | Partial<FormRenderers>
+    | ((outer: FormRenderers) => Partial<FormRenderers>);
+  /** The part of the app the override applies to. */
+  children: ReactNode;
+}
+
+/**
+ * Override slots of the active implementation for a part of the app: borders
+ * on every section of one area, a different button in another. Nests, each
+ * level over the one above. Unlike a second {@link FormProvider} it keeps the
+ * enclosing implementation — its `root` is already mounted above and is not
+ * mounted again, so a `root` here is ignored.
+ *
+ * @group Authoring
+ */
+export function FormRenderers({
+  renderers,
+  children,
+}: FormRenderersProps): ReactNode {
+  const outer = useRenderers();
+  const value = useMemo(
+    () => ({
+      ...outer,
+      ...(typeof renderers === "function" ? renderers(outer) : renderers),
+      root: outer.root,
+    }),
+    [outer, renderers],
+  );
+  return (
+    <RenderersContext.Provider value={value}>{children}</RenderersContext.Provider>
   );
 }
 

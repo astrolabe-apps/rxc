@@ -92,6 +92,15 @@ export interface GroupProps {
  * @group Implementations
  */
 export interface GroupRenderProps {
+  /**
+   * Which group this is: a `section` (a {@link Section}, or any group built
+   * with `{ scope: true }` — a titled, scoped part of the form), `inline`
+   * (an {@link InlineGroup}, or `{ inline: true }`), or plain `contents` (a
+   * {@link Contents} — often an invisible wrapper that only shows or hides a
+   * bit of form). What lets a renderer or an override style sections without
+   * styling every region.
+   */
+  kind: "contents" | "section" | "inline";
   /** The heading, if any. */
   title?: ReactNode;
   /**
@@ -208,6 +217,7 @@ export function groupRenderer<P extends object = {}>(
     // element it already renders. Rendering the children bare when hidden
     // would remount them, and leave any plain JSX among them on screen.
     const renderProps: GroupRenderProps = {
+      kind: options?.inline ? "inline" : options?.scope ? "section" : "contents",
       title,
       headingLevel: bound.headingLevel,
       className: getProp(rc, props.className),

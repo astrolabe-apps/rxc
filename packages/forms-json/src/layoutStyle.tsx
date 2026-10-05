@@ -96,6 +96,7 @@ export function Offscreen({
   );
   return rendered(
     <Region
+      kind="contents"
       hidden={isOff}
       transitions={parent.transitions}
       headingLevel={parent.headingLevel}

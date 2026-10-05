@@ -16,6 +16,10 @@ import {
   Elements,
   Form,
   FormProvider,
+  FormRenderers as FormRenderersOverride,
+  Section,
+  combineClass,
+  type GroupRenderProps,
   HtmlDisplay,
   RadioField,
   SelectField,
@@ -378,6 +382,32 @@ export function describeConformance(impl: Implementation): void {
       act(() => ctx.update((wc) => wc.setTouched(c, true)));
       expect(text()).toContain("At most 5 characters");
       expect(validation.isValid(rc)).toBe(false);
+    });
+
+    it("lets a FormRenderers override style sections only, over the implementation's own region", () => {
+      const bordered = (outer: FormRenderers): Partial<FormRenderers> => ({
+        contents: (p: GroupRenderProps) => (
+          <outer.contents
+            {...p}
+            shellClassName={
+              p.kind === "section" ? combineClass(p.shellClassName, "bordered") : p.shellClassName
+            }
+          />
+        ),
+      });
+      mount(
+        <FormRenderersOverride renderers={bordered}>
+          <Section title="A section">
+            <Contents>plain region</Contents>
+          </Section>
+        </FormRenderersOverride>,
+      );
+      const bordered$ = [...container.querySelectorAll(".bordered")];
+      expect(bordered$).toHaveLength(1);
+      // The implementation's own region: its heading inside, the plain one
+      // nested and not bordered.
+      expect(bordered$[0]!.querySelector('[role="heading"]')?.textContent).toBe("A section");
+      expect(bordered$[0]!.textContent).toContain("plain region");
     });
 
     it("draws group titles as headings, one level deeper per titled group", () => {
