@@ -116,7 +116,10 @@ function AntFieldShell(p: FieldShellProps) {
         ) : undefined
       }
       className={mergeClass(undefined, p.className)}
-      style={{ marginBottom: 12 }}
+      // Spacing is the container's (the group body's gap), as under html.
+      // Explicitly none: Ant's own margin is one an error message takes
+      // over, which left a display after a field in error flush against it.
+      style={{ marginBottom: 0 }}
     >
       {p.labelPosition === "after" ? (
         // Ant's own checkbox takes its label as a child, which a shell cannot
@@ -507,6 +510,13 @@ function AntContents(p: GroupRenderProps) {
   return (
     <ContentsRegion
       {...p}
+      // The body's default layout: a column spaced from the tokens, so every
+      // child — a display, a nested region — is spaced, not only the fields.
+      layoutStyle={{
+        display: "flex",
+        flexDirection: "column",
+        gap: token.marginSM,
+      }}
       titleStyle={{
         // Ant sets its font per component, not on the page.
         fontFamily: token.fontFamily,

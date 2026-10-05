@@ -12,6 +12,7 @@ import {
   FormProvider,
   InlineGroup,
   RadioField,
+  Section,
   SelectField,
   Tabs,
   TextDisplay,
@@ -478,5 +479,70 @@ describe("FadeVisibility", () => {
     });
     expect($(".my-fade")).not.toBeNull();
     expect(defaultHtmlTheme.visibility.fade).toBe("rxf-fade");
+  });
+});
+
+describe("what the theme reaches", () => {
+  // The innermost body with this text: an outer body contains it too.
+  const body = (text: string) =>
+    $$(".rxf-contents-body").findLast((e) => e.textContent === text)!.className;
+
+  it("applies the theme's body layout only when the author gives none", () => {
+    mount(
+      <>
+        <Contents>plain</Contents>
+        <Contents className="grid grid-cols-2 gap-1">grid</Contents>
+        <Contents className={{ replace: "flex gap-1" }}>replaced</Contents>
+      </>,
+      { theme: tailwindHtmlTheme },
+    );
+    expect(body("plain")).toBe("rxf-contents-body flex flex-col gap-4");
+    // The author's class is the whole layout, the hook kept: no flex-col or
+    // gap-4 left to fight the grid.
+    expect(body("grid")).toBe("rxf-contents-body grid grid-cols-2 gap-1");
+    expect($$("div").some((e) => e.className === "flex gap-1")).toBe(true);
+  });
+
+  it("adds the section slots to a section only", () => {
+    mount(
+      <Section title="S">
+        <Contents>inner</Contents>
+      </Section>,
+      {
+        theme: {
+          contents: { section: { wrapper: "card", title: "card-title", body: "card-body" } },
+        },
+      },
+    );
+    expect($$(".card")).toHaveLength(1);
+    expect($(".card")!.querySelector('[role="heading"]')!.className).toContain("card-title");
+    expect($$(".card-body")).toHaveLength(1);
+    // The plain region inside is not a card.
+    expect(body("inner")).not.toContain("card");
+  });
+
+  it("boxes an announced, toned display as a message, and only that", () => {
+    mount(
+      <>
+        <TextDisplay text="refused" tone="error" announce />
+        <TextDisplay text="301 / 300" tone="error" />
+      </>,
+      { theme: { displayShell: { message: { error: "box" } } } },
+    );
+    const shell = (t: string) =>
+      $$("[data-tone]").find((e) => e.textContent === t)!.className;
+    expect(shell("refused")).toContain("box");
+    expect(shell("301 / 300")).not.toContain("box");
+  });
+
+  it("turns transitions off from the theme: no fade wrapper, gone at once", () => {
+    const hide = dom.ctx.newControl(false);
+    mount(<TextField field={dom.ctx.newControl("")} id="f" hidden={hide} />, {
+      fade: true,
+      theme: { visibility: { transitions: false } },
+    });
+    expect($(".rxf-fade")).toBeNull();
+    set(hide, true);
+    expect($("#f")).toBeNull();
   });
 });

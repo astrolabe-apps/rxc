@@ -24,6 +24,7 @@ import {
   useMultiSelectController,
   useTextInput,
   type ActionRenderProps,
+  type VisibilityProps,
   type HtmlDisplayRenderProps,
   type IconDisplayRenderProps,
   type TextDisplayRenderProps,
@@ -47,6 +48,7 @@ import {
   ContentsRegion,
   Inline,
   ElementsList,
+  DefaultVisibility,
   FadeVisibility,
   FormElement,
   DisplayShell,
@@ -795,9 +797,22 @@ function HtmlElements(p: CollectionRenderProps<unknown>) {
 }
 
 /**
+ * The `visibility` slot as the theme says: {@link FadeVisibility}, or at once
+ * with `visibility.transitions: false`. A theme is fixed for a region, so the
+ * component here does not change under a mounted widget.
+ */
+function HtmlVisibility(p: VisibilityProps) {
+  return useHtmlTheme().visibility.transitions ? (
+    <FadeVisibility {...p} />
+  ) : (
+    <DefaultVisibility {...p} />
+  );
+}
+
+/**
  * The HTML implementation: every registry slot, drawn as plain DOM and styled
  * through {@link HtmlTheme}. Pass it to `FormProvider`, or spread it and
- * replace a slot: `{ ...htmlRenderers, visibility: DefaultVisibility }`.
+ * replace a slot.
  *
  * Behaviour never depends on a class: with {@link defaultHtmlTheme} and no
  * CSS at all, hidden regions, inactive tabs and wizard pages, and closed
@@ -822,7 +837,7 @@ export const htmlRenderers: FormRenderers = {
   dialog: HtmlDialog,
   tabs: HtmlTabs,
   elements: HtmlElements,
-  visibility: FadeVisibility,
+  visibility: HtmlVisibility,
   form: FormElement,
   checkList: HtmlCheckList,
   fieldShell: HtmlFieldShell,

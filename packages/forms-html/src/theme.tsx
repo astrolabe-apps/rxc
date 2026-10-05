@@ -146,8 +146,31 @@ export interface HtmlTheme {
     inner: string;
     /** The title. */
     title: string;
-    /** The standard body. */
+    /**
+     * The standard body: always applied. Hooks and anything that is not
+     * layout — the author's `className` adds to it.
+     */
     body: string;
+    /**
+     * The body's layout when the author gives none. A group's `className`
+     * **is** its layout, so it replaces this rather than merging with it: a
+     * theme's `flex flex-col gap-4` would otherwise fight an author's `grid`
+     * or `gap-1`, decided by stylesheet order.
+     */
+    layout: string;
+    /**
+     * Added for a section (`kind: "section"` — a `Section`, or any group
+     * built with `{ scope: true }`) and only for one: the card around a
+     * titled part of the form, without bordering every plain region.
+     */
+    section: {
+      /** Added to the wrapper. */
+      wrapper: string;
+      /** Added to the title. */
+      title: string;
+      /** Added to the body. */
+      body: string;
+    };
     /** A body with a `layout`: the flex box. */
     flexBody: string;
     /** Its gap when the layout sets none. */
@@ -160,8 +183,15 @@ export interface HtmlTheme {
     /** Its title. */
     title: string;
   };
-  /** {@link FadeVisibility}. */
+  /** The `visibility` slot. */
   visibility: {
+    /**
+     * Animate a boundary leaving: {@link FadeVisibility}, which holds its last
+     * frame for the exit. `false` hides at once ({@link DefaultVisibility}):
+     * no wrapper element, no hold. A theme setting, so an app chooses it
+     * where it chooses its look, not in its forms.
+     */
+    transitions: boolean;
     /**
      * The wrapper that holds a leaving boundary's last frame. It gets
      * `data-leaving` for the length of the exit; with no CSS for it the
@@ -185,6 +215,13 @@ export interface HtmlTheme {
      * text inside.
      */
     tones: Record<Tone, string>;
+    /**
+     * Added around an **announced** display with a `tone`: a message the
+     * user must not miss — the box a refused submit's error sits in, where
+     * a counter turning red past its limit (toned, not announced) gets the
+     * colour alone.
+     */
+    message: Record<Tone, string>;
   };
   /** The text display. */
   text: {
@@ -338,11 +375,17 @@ export const defaultHtmlTheme: HtmlTheme = {
     inner: "rxf-contents-inner",
     title: "rxf-group-title",
     body: "rxf-contents-body",
+    layout: "",
+    section: {
+      wrapper: "rxf-section",
+      title: "rxf-section-title",
+      body: "rxf-section-body",
+    },
     flexBody: "rxf-contents-flex",
     flexGap: 16,
   },
   inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
-  visibility: { fade: "rxf-fade" },
+  visibility: { transitions: true, fade: "rxf-fade" },
   elements: { className: "rxf-elements" },
   displayShell: {
     display: "rxf-display",
@@ -352,6 +395,12 @@ export const defaultHtmlTheme: HtmlTheme = {
       warning: "rxf-tone-warning",
       info: "rxf-tone-info",
       success: "rxf-tone-success",
+    },
+    message: {
+      error: "rxf-message",
+      warning: "rxf-message",
+      info: "rxf-message",
+      success: "rxf-message",
     },
   },
   text: { className: "rxf-text", inline: "rxf-text" },
@@ -468,13 +517,20 @@ export const tailwindHtmlTheme: HtmlTheme = {
     // group.groupLabelClass
     title: "rxf-group-title font-bold",
     // group.standardClassName / flexClassName
-    body: "rxf-contents-body flex flex-col gap-4",
+    body: "rxf-contents-body",
+    layout: "flex flex-col gap-4",
+    section: {
+      wrapper: "rxf-section",
+      title: "rxf-section-title",
+      body: "rxf-section-body",
+    },
     flexBody: "rxf-contents-flex gap-2",
     flexGap: "0.5rem",
   },
   // group.inlineClass
   inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
   visibility: {
+    transitions: true,
     // Inline in prose, where a block wrapper would break the sentence.
     fade: "rxf-fade transition-[opacity,transform] duration-200 data-[leaving]:-translate-y-1 data-[leaving]:opacity-0 [.rxf-inline_&]:inline",
   },
@@ -487,6 +543,12 @@ export const tailwindHtmlTheme: HtmlTheme = {
       warning: "rxf-tone-warning text-amber-700",
       info: "rxf-tone-info text-sky-700",
       success: "rxf-tone-success text-green-700",
+    },
+    message: {
+      error: "rxf-message",
+      warning: "rxf-message",
+      info: "rxf-message",
+      success: "rxf-message",
     },
   },
   text: { className: "rxf-text m-0", inline: "rxf-text" },

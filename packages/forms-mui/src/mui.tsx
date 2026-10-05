@@ -106,7 +106,6 @@ function MuiFieldShell(p: FieldShellProps) {
         required={p.required}
         disabled={p.disabled}
         className={mergeClass(undefined, p.className)}
-        sx={{ mb: 1 }}
       >
         {hasLabel && p.labelPosition === "after" ? (
           // MUI's trailing label is a component that wraps both.
@@ -459,6 +458,13 @@ function MuiContents(p: GroupRenderProps) {
   return (
     <ContentsRegion
       {...p}
+      // The body's default layout: spacing is the container's, as under html,
+      // so a display or a nested region is spaced like a field.
+      layoutStyle={{
+        display: "flex",
+        flexDirection: "column",
+        gap: t.spacing(1),
+      }}
       titleStyle={{
         fontFamily: type.fontFamily,
         fontSize: type.fontSize,

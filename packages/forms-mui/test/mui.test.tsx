@@ -101,6 +101,24 @@ describe("MUI", () => {
     expect(document.querySelector<HTMLElement>('[data-tone="error"]')!.style.color).not.toBe("");
   });
 
+  it("spaces every child of a group, a display after a field in error included", () => {
+    const c = ctx.newControl<string | undefined>(undefined);
+    mount(
+      <Section title="S">
+        <TextField field={c} id="f" label="F" required />
+        <TextDisplay text="after" />
+      </Section>,
+    );
+    act(() => ctx.update((wc) => wc.setTouched(c, true)));
+    const heading = document.querySelector('[role="heading"]')!;
+    const body = heading.nextElementSibling as HTMLElement;
+    expect([body.style.display, body.style.flexDirection, body.style.gap]).toEqual([
+      "flex",
+      "column",
+      "8px",
+    ]);
+  });
+
   it("sets section titles in the library's heading type, sized for a form", () => {
     mount(
       <Section title="Outer">

@@ -96,6 +96,11 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
   );
 }
 
+/** Join class names, skipping the empty and the false. */
+function cat(...cs: (string | false | undefined)[]): string {
+  return cs.filter(Boolean).join(" ");
+}
+
 /**
  * The region the `contents` slot draws — forms-react's `Contents` and
  * `Section` — as plain DOM: the chrome-less group. Always the same element,
@@ -119,13 +124,25 @@ export function ContentsRegion({
   transitions,
   headingLevel,
   children,
+  kind,
   classes = defaultHtmlTheme.contents,
   titleStyle,
+  layoutStyle,
 }: GroupRenderProps & {
   classes?: HtmlTheme["contents"];
   /** The title's typography, for an implementation whose styles are runtime tokens. */
   titleStyle?: CSSProperties;
+  /**
+   * The body's default layout as a style, for an implementation whose styles
+   * are runtime tokens — `classes.layout`'s counterpart, and like it dropped
+   * when the author gives a `className`.
+   */
+  layoutStyle?: CSSProperties;
 }) {
+  const section = kind === "section";
+  // The author's className is the body's layout: the theme's default only
+  // when there is none.
+  const ownLayout = className === undefined;
   // With transitions off the region goes at once, whatever the theme
   // animates: the attribute, and no collapse.
   const mode = transitions ? classes.hideWith : "attribute";
@@ -136,7 +153,7 @@ export function ContentsRegion({
       role="heading"
       aria-level={headingLevel}
       className={mergeClass(
-        classes.title,
+        cat(classes.title, section && classes.section.title),
         combineClass(labelClassName, labelTextClassName),
       )}
       style={titleStyle}
@@ -148,8 +165,23 @@ export function ContentsRegion({
   // attributes and not the tree.
   const body = (
     <div
-      className={mergeClass(layout ? classes.flexBody : classes.body, className)}
-      style={layout ? flexStyle(layout, classes.flexGap) : undefined}
+      className={mergeClass(
+        layout
+          ? classes.flexBody
+          : cat(
+              classes.body,
+              section && classes.section.body,
+              ownLayout && classes.layout,
+            ),
+        className,
+      )}
+      style={
+        layout
+          ? flexStyle(layout, classes.flexGap)
+          : ownLayout
+            ? layoutStyle
+            : undefined
+      }
     >
       {children}
     </div>
@@ -161,11 +193,12 @@ export function ContentsRegion({
   return (
     <div
       className={mergeClass(
-        mode === "collapse"
-          ? `${classes.wrapper} ${classes.collapse}`
-          : hidden && mode === "class"
-            ? `${classes.wrapper} ${classes.hidden}`
-            : classes.wrapper,
+        cat(
+          classes.wrapper,
+          section && classes.section.wrapper,
+          mode === "collapse" && classes.collapse,
+          hidden && mode === "class" && classes.hidden,
+        ),
         shellClassName,
       )}
       data-hidden={hidden ? "" : undefined}
@@ -316,7 +349,11 @@ export function DisplayShell({
   return (
     <Tag
       className={mergeClass(
-        tone ? `${classes[kind]} ${classes.tones[tone]}` : classes[kind],
+        cat(
+          classes[kind],
+          tone && classes.tones[tone],
+          announce && tone && classes.message[tone],
+        ),
         shellClassName,
       )}
       data-tone={tone}
