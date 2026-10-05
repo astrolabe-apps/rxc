@@ -57,6 +57,12 @@
       "shouldPublish": true
     },
     {
+      "packageName": "@rx-controls/forms-fluent",
+      "projectFolder": "packages/forms-fluent",
+      "versionPolicyName": "forms-v2-alpha",
+      "shouldPublish": true
+    },
+    {
       "packageName": "@react-typed-forms/core",
       "projectFolder": "packages/compat-controls",
       "versionPolicyName": "stable",

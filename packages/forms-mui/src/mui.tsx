@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useId,
   useMemo,
   useState,
   type CSSProperties,
@@ -405,6 +406,9 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
 }
 
 function MuiTabs(p: TabsRenderProps) {
+  const id = useId();
+  const tabId = (key: string) => `${id}-tab-${key}`;
+  const panelId = (key: string) => `${id}-panel-${key}`;
   return (
     <Box sx={p.hidden ? { display: "none" } : undefined}>
       <MuiTabList
@@ -419,6 +423,8 @@ function MuiTabs(p: TabsRenderProps) {
             key={i.key}
             value={i.key}
             label={i.title}
+            id={tabId(i.key)}
+            aria-controls={panelId(i.key)}
             sx={{
               ...(i.invalid ? { color: "error.main" } : {}),
               ...(i.hidden ? { display: "none" } : {}),
@@ -430,7 +436,13 @@ function MuiTabs(p: TabsRenderProps) {
           `silent` needs — every panel mounted, the inactive ones drawing
           nothing of their own accord. */}
       {p.items.map((i) => (
-        <Box key={i.key} sx={{ display: i.active ? undefined : "none" }}>
+        <Box
+          key={i.key}
+          id={panelId(i.key)}
+          role="tabpanel"
+          aria-labelledby={i.hidden ? undefined : tabId(i.key)}
+          sx={{ display: i.active ? undefined : "none" }}
+        >
           {i.content}
         </Box>
       ))}
