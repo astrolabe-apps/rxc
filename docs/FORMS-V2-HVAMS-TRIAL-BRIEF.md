@@ -4,25 +4,39 @@ The prompt for rerunning the Request Access trial against a new Forms v2 alpha. 
 below the line into a fresh Claude Code session in a new HVAMS worktree. It is a **cold read**:
 the conversion is redone from scratch each time, so the contract is judged without knowing the
 last run's workarounds. The last run's findings are in
-[`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) (`0.1.0-alpha.0`); the
-brief keeps them out of reach until the new findings are written.
+[`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md)
+(with its alpha.2 check at the end); the run before that is
+[`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) (`0.1.0-alpha.0`). The
+brief keeps both out of reach until the new findings are written.
+
+**This run adds visual parity.** The earlier runs judged the contract alone and left the page
+unstyled. This one also has to make the v2 page look like the original, within reason, which
+tests what the earlier runs never did: whether an app can bring its own look to Forms v2 without
+touching its forms.
 
 Update the version and the rxc paths in the brief if they have moved. **Run it against a published
-alpha that carries the fixes from the last report** (they landed after `0.1.0-alpha.0`): check
-`npm view @rx-controls/forms-react dist-tags` before starting, and publish the next alpha first if
-`alpha` still points at `0.1.0-alpha.0`.
+alpha that carries the work since `0.1.0-alpha.2`**: section titles in each library's type, group
+`kind` and the `FormRenderers` override. Check `npm view @rx-controls/forms-react dist-tags` before
+starting, and publish the next alpha first if `alpha` still points at `0.1.0-alpha.2`.
 
 ---
 
 Convert the HVAMS **Request Access** form to Forms v2, against the current `alpha` of the
-`@rx-controls/forms-*` packages. **The goal is to find gaps in the Forms v2 abstraction, not to
-produce a finished-looking page.** How it looks is irrelevant. What matters is whether this real
-form can be written cleanly against the contract, and everything you learn about where it can't.
+`@rx-controls/forms-*` packages, and make the converted page **look like the original, within
+reason**. There are two goals, in this order:
+
+1. **Find gaps in the Forms v2 abstraction**: whether this real form can be written cleanly against
+   the contract, and everything you learn about where it can't.
+2. **Visual parity with the original page**, achieved the way an adopting app would do it: by
+   styling the implementation, never the form. Every place parity can't be reached that way, or
+   needed something awkward, is a finding just as a contract gap is.
+
 The branch is throwaway: nothing needs to be production ready, and temporary scaffolding (a
 side-by-side page, extra dev dependencies) is fine.
 
-**Do not read `~/astrolabe/rxc/docs/FORMS-V2-HVAMS-REQUEST-ACCESS.md` until your own findings
-are written.** It is the previous run's report; reading it first defeats the point.
+**Do not read `~/astrolabe/rxc/docs/FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md` or
+`FORMS-V2-HVAMS-REQUEST-ACCESS.md` until your own findings are written.** They are the previous
+runs' reports; reading them first defeats the point.
 
 ## Where things are
 - The form: `HVAMS.RoadManager.Server/ClientApp/common/src/hvams/accessRequests/RequestAccessForm.tsx`
@@ -40,7 +54,8 @@ are written.** It is the previous run's report; reading it first defeats the poi
 ## The library
 Ask npm for the `alpha` tag explicitly.
 - `@rx-controls/forms-react@alpha`: **the contract.**
-- `@rx-controls/forms-html@alpha`: the implementation to draw with. Leave it unstyled.
+- `@rx-controls/forms-html@alpha`: the implementation to draw with, styled to match the original
+  (see "Visual parity" below).
 - `@rx-controls/forms-antd@alpha` (peer `antd`): only for the swap check.
 
 Source and design docs are in `~/astrolabe/rxc`: `docs/FORMS-V2-INTERFACES.md`,
@@ -67,7 +82,10 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
   parent's layout) is the intended way, not a breach of the rule. See `FORMS-V2-INTERFACES.md` §7,
   "Layout is classes". Visual styling of a widget is still the implementation's.
 - The implementation is chosen in exactly one place: the page puts
-  `<FormProvider renderers={htmlRenderers}>` around the form.
+  `<FormProvider renderers={htmlRenderers}>` around the form. **The look is chosen there too**: in
+  one HVAMS module beside it (a theme, plus any slot overrides), which the page wraps around the
+  form. The form files carry no styling beyond layout, so swapping the implementation or the theme
+  never touches them.
 - Wherever the rule can't be kept, that's a finding. Plain JSX for page chrome is fine.
 
 ## How to convert
@@ -92,6 +110,28 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
 - For every requirement above, look for what the contract offers before writing an effect or a
   widget, and record which needed one.
 
+## Visual parity
+Make `/requestAccess` under v2 look like the original page. Bring the look in at the
+implementation's level, in the HVAMS module the page wraps around the form:
+- **A theme first.** forms-html is styled by class slots: `HtmlThemeProvider` with a partial theme
+  over `tailwindHtmlTheme` (`packages/forms-html/src/theme.tsx`). Take the classes from what the
+  original renders: read `@astrolabe/ui`'s components for them, but don't import those components
+  into the form.
+- **A slot override where a theme can't reach.** `FormRenderers` (forms-react) overrides slots
+  for part of an app over the active implementation. Its function form receives the enclosing slots
+  to wrap, and a group renderer's `kind` tells a section from a plain region. Writing a slot
+  renderer of your own, even one drawn with `@astrolabe/ui` components, is allowed here, but record
+  each one and why the theme was not enough. Every one is evidence about the theme's reach.
+- **Within reason** means: the same layout and breakpoints, spacing, type sizes and weights,
+  colours, input and select look (border, radius, height, focus ring), checkbox look, button look,
+  section titles, and where and how help, errors and the required marker appear. It does not mean
+  pixel-perfect, the same DOM, or the same class names. Stop at "a user would not notice", and list
+  what still differs.
+- Compare at desktop width and at a phone width (375px), in four states: empty, a refused submit
+  (every error showing), a state and agency chosen, and "Other" ticked with the description shown.
+  Take screenshots of both pages in each state for the report.
+- Parity is only for html. Ant keeps Ant's look in the swap below; the swap checks behaviour.
+
 ## Checks that found real bugs last time — run them again
 - **Server errors vs. validators.** With a server 400 on a field, confirm the message shows under
   that field and clears when the field is edited. Then give that field a bare-function
@@ -112,11 +152,14 @@ temporarily). Build every workspace project, not just rmi, since the bump touche
   typing is not read out key by key.
 
 ## The implementation swap
-Mount the **unchanged** form under `antdRenderers`. Fill it in, submit a refused form, trigger a
-server 400, submit a valid one. For each difference, say whether it is a contract gap or an
-implementation bug. Then put up a **side-by-side page for visual comparison: the original form
-(restored from git, next to the v2 form) against v2 under Ant**, and leave it running for the
-user to look at.
+Mount the **unchanged** form under `antdRenderers`, without the HVAMS theme module (that is html's).
+Fill it in, submit a refused form, trigger a server 400, submit a valid one. For each difference,
+say whether it is a contract gap or an implementation bug.
+
+## Side by side
+Put up a **side-by-side page: the original form (restored from git, next to the v2 form) against
+v2 under html with the HVAMS theme module**, plus v2 under Ant as a third column or a second page.
+Leave it running for the user to look at.
 
 ## Environment
 - Run the **develop** backend from this worktree — never the `release-candidate` checkout, which is
@@ -148,10 +191,14 @@ rxc source lines for each finding:
 2. **The custom multi-select**: what came free, what was awkward, what you'd want built in.
 3. **Validation and submit**: whether `check()`, `required`, `validate` and server errors covered
    the real form.
-4. **The swap**: everything that behaved differently under Ant, and whether each is a contract gap
+4. **Visual parity**: the screenshots side by side, per state and width; what the theme alone
+   matched; each slot override and why the theme could not do it; what still differs and whether
+   that is a theme gap, a contract gap, or "within reason"; and how big the HVAMS theme module came
+   out. Say whether another HVAMS form could reuse the module as it stands.
+5. **The swap**: everything that behaved differently under Ant, and whether each is a contract gap
    or an implementation bug.
-5. **Compat interop and the engine bump.**
-6. **Against the previous run** — only now read `FORMS-V2-HVAMS-REQUEST-ACCESS.md`: for each of its
-   findings, fixed, changed or still open, and anything new this run found that it missed. Most of
-   its findings are marked resolved there; say whether each resolution holds up in a real form,
-   and where it does not, why.
+6. **Compat interop and the engine bump.**
+7. **Against the previous runs** — only now read `FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md`
+   (and, for history, `FORMS-V2-HVAMS-REQUEST-ACCESS.md`): for each of its findings, fixed,
+   changed or still open, and anything new this run found that it missed. Most of its findings are
+   marked fixed there; say whether each fix holds up in a real form, and where it does not, why.
