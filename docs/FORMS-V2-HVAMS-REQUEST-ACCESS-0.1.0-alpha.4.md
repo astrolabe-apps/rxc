@@ -445,3 +445,16 @@ workaround. Nothing has regressed.
   requests in the shared dev DB, which also fail on HEAD.
 - Side by side: `/requestAccessCompare` (original │ v2 html + HVAMS look │ v2 Ant);
   `/requestAccessOriginal`, `/requestAccess`, `/requestAccessAntd` one at a time.
+
+---
+
+## After the trial (unpublished)
+
+| suggestion | change |
+|---|---|
+| 1. tone vs base colour; `message` adds to the tone | A display's colour is one class, by precedence: an announced, toned display's `displayShell.message`, else `tones[tone]`, else the new base `displayShell.color`. Never two competing by CSS order. The theme doc says a colour on the `text` slot masks the inherited tone. |
+| 2. per-widget shells | `FieldShellProps.widget` (the slot key for a built-in), `data-widget` on html's shell, and `HtmlTheme.shellFor` merged over `shell` per widget. The select and check list overrides become theme data. |
+| 3. a counter on the field (G1) | `TextFieldExtra.showCount`: `true` for "n / max", `{ format }` for the field's own words. It is an object because a bare function in a `FormProp` is a derivation. Drawn in the shell under `fieldCountId` and named in the input's description after the help. html's `shell.countOver` replaces `shell.count` past the limit; Ant draws it as the item's `extra`, MUI as a helper line. |
+| 4. host error-clearing (G4) | Documented on `FieldRenderProps.error`: a host clears its own keys, not `clearErrors()`. |
+| 5. `resetOn` (G2); Ant sections as `Card` | Not done. `resetOn` waits for a form whose data needs it. A card is a look an Ant app can add with a `FormRenderers` wrap on `kind === "section"`, rather than one forms-antd imposes on everyone. |
+| 6. the brief | Provider and look at the rmi root layout; the original is not responsive; alpha.4 is the predecessor; aim for a theme alone. |
