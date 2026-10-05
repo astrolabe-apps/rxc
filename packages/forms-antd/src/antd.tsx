@@ -59,7 +59,7 @@ import {
   combineClass,
 } from "@rx-controls/forms-react";
 import {
-  Contents,
+  ContentsRegion,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -505,7 +505,7 @@ function AntContents(p: GroupRenderProps) {
   const { token } = theme.useToken();
   const top = (p.headingLevel ?? 2) <= 2;
   return (
-    <Contents
+    <ContentsRegion
       {...p}
       titleStyle={{
         // Ant sets its font per component, not on the page.

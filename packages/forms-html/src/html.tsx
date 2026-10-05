@@ -44,7 +44,7 @@ import {
   combineClass,
 } from "@rx-controls/forms-react";
 import {
-  Contents,
+  ContentsRegion,
   Inline,
   ElementsList,
   FadeVisibility,
@@ -785,7 +785,7 @@ function join(...cs: string[]): string | undefined {
 // The shared pieces take their classes as a parameter; the html set passes
 // the theme's, and the other three implementations keep the defaults.
 function HtmlContents(p: GroupRenderProps) {
-  return <Contents {...p} classes={useHtmlTheme().contents} />;
+  return <ContentsRegion {...p} classes={useHtmlTheme().contents} />;
 }
 function HtmlInline(p: GroupRenderProps) {
   return <Inline {...p} classes={useHtmlTheme().inline} />;

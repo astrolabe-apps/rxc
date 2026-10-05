@@ -97,16 +97,17 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
 }
 
 /**
- * The chrome-less group. Always the same element, so hiding it never remounts
- * what is inside — and the hidden state covers plain JSX children, which no
- * boundary is responsible for.
+ * The region the `contents` slot draws — forms-react's `Contents` and
+ * `Section` — as plain DOM: the chrome-less group. Always the same element,
+ * so hiding it never remounts what is inside — and the hidden state covers
+ * plain JSX children, which no boundary is responsible for.
  *
  * How it hides is the theme's `hideWith`: the attribute (no CSS needed), a
  * class, or an animated collapse — grid-template-rows 1fr → 0fr and opacity,
  * during which the boundaries inside keep drawing their own last frames.
  * `inert` takes it out of tab order and the a11y tree in every mode.
  */
-export function Contents({
+export function ContentsRegion({
   title,
   className,
   shellClassName,

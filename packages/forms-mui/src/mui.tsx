@@ -75,7 +75,7 @@ import {
   combineClass,
 } from "@rx-controls/forms-react";
 import {
-  Contents,
+  ContentsRegion,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -457,7 +457,7 @@ function MuiContents(p: GroupRenderProps) {
   const top = (p.headingLevel ?? 2) <= 2;
   const type = top ? t.typography.h6 : t.typography.subtitle1;
   return (
-    <Contents
+    <ContentsRegion
       {...p}
       titleStyle={{
         fontFamily: type.fontFamily,
