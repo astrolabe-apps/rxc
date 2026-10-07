@@ -399,8 +399,8 @@ uses today:
   still on the ambient surface.
 
 ServiceTas work continues underneath on the burndown list — `DataGrid` / `Pager` /
-`ColumnOptions`, the `Accordion` adornment, host adornments (`Spotlight`), the help popover as a
-shell override — so the JSON path advances while HVAMS sets the pace. The gates from phase 3 keep
+`ColumnOptions`, host adornments (`Spotlight`) — the `Accordion` adornment and help beside the
+label are phase 8's — so the JSON path advances while HVAMS sets the pace. The gates from phase 3 keep
 it from sliding backwards regardless. A code-first ServiceTas trial (the MAST EOI wizard,
 [`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md))
 feeds the same list from the JSX side.
@@ -493,10 +493,10 @@ already broken elsewhere. They are now in the shared suite (33 cases):
 Each new assertion was checked by reintroducing the defect: html's unwired tabs, and Fluent
 without `inert` or without the focus return, each fail it.
 
-**Decision pending:** `SelectField`'s `startIcon` / `endIcon` are drawn only by html; MUI, Ant
-and Fluent drop them silently. Either the three draw them (MUI's `startAdornment`, Ant's `prefix`;
-Fluent's `Select` has no slot, so beside it, as its multiline frame does) and the suite says so,
-or they leave the select's props. Similarly, a multiline frame's `start` / `end` sit beside
+**Decided (phase 8):** `SelectField`'s `startIcon` / `endIcon` are drawn only by html; MUI, Ant
+and Fluent drop them silently. The three draw them (MUI's `startAdornment`, Ant's `prefix`;
+Fluent's `Select` has no slot, so beside it, as its multiline frame does) and the suite says so —
+the same answer as display-only's icons. Similarly, a multiline frame's `start` / `end` sit beside
 Fluent's `Textarea`, not inside its border — `Textarea` has no content slots.
 
 **Server rendering is covered** — a kitchen-sink form server-rendered with no DOM and hydrated
@@ -536,6 +536,57 @@ at `alpha.4` — while the html / MUI tab wiring and the four new suite assertio
 `alpha.5`. A lock-step bump to `alpha.5` would carry them all together.
 
 *Exit:* green on the shared suite, its own tests and the story smoke test.
+
+### 8 — `alpha.5`: the MAST trial's gaps
+
+From the code-first ServiceTas trial
+([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md)).
+Every contract item lands in all four implementations — html, MUI, Ant and Fluent — with a
+conformance case where it is a behaviour and a story where it is something to see. `rushx gates`
+runs before anything that touches the loader lands.
+
+- **Icons on display-only and select (T3).** `DisplayOnlyField` draws `startIcon` / `endIcon`
+  either side of the value; today every implementation drops them, and so does the JSON path,
+  where the loader passes a `ControlStart` / `ControlEnd` `Icon` adornment on and the audit
+  cannot see the loss. The select's icons, pending from phase 7, get the same answer.
+- **`hideLabel` on `FieldProps` (G4).** The label stays the field's accessible name and is not
+  drawn. The loader maps `hideTitle` onto it — today it drops the label, leaving the field with
+  no name at all.
+- **`heading` on `TextDisplay` (G1).** A boolean, not a level: the display is drawn as a heading
+  at the level a titled group's title would take where it sits, so heading structure still
+  follows nesting and no author picks a number. A theme slot per level under html; the type
+  scale the section titles already use under MUI, Ant and Fluent.
+- **Host-driven wizards (G2).** `WizardProps.navigation: "none"` draws no step strip and no
+  Back / Next. Everything else stays the wizard's — one page at a time from the bound index,
+  every page mounted and validating, hidden pages skipped, a page left touched, visited and
+  error markers — and `useWizard()`, for code inside a page, hands out the same `next()` /
+  `back()` the buttons use (the page's `check()`, async validators awaited, hidden pages
+  skipped) plus `goTo(key)`, for an outcome a server call decides.
+- **`clearHidden` on `GroupProps` (G3).** It is already a `ScopeNarrowing`; groups pass it on.
+- **`helpPlacement: "below" | "labelEnd"` on `FieldProps` (G5).** Per field, because the JSON
+  format chooses it per field (a `HelpText` adornment's `placement`), which a shell override
+  could not express. How `labelEnd` is drawn is the implementation's. The loader stops dropping
+  the placement.
+- **`Disclosure` (G6).** A container: a title, `defaultOpen`, an optional bound `open` control.
+  Closed, its content is `silent` — mounted, validating, never cleared — as a closed dialog's is,
+  and its header carries the `showingErrors` marker. A refused submit whose first field in error
+  is inside a closed disclosure opens it before focusing. The loader translates the `Accordion`
+  adornment onto it.
+- **Icon classes on actions (T2).** html's theme gains `action.iconClassName` and a per-variant
+  one, on a wrapper around the icon (or the busy spinner).
+- **`onClick: () => unknown` (G7).** The boundary only needs to know when it settles.
+- **Docs.** Theme classes against an app's element CSS (T1); `transpilePackages` listing the
+  engine packages under Next.js, in the compat README and in the duplicate-engine warning's
+  text; `@rx-controls/react` as a direct dependency of a compat app writing v2 components; a
+  compat control under a nullable parent typed `T | null | undefined`.
+
+Published as one lock-step bump to `alpha.5`, which also carries `forms-fluent`'s first release
+and phase 7's tab wiring.
+
+*Exit:* the MAST trial re-run on `alpha.5` with its workarounds gone — the `PagesWizard`
+override, the nested `<Form clearHidden>`, the `sr-only` labels, `BulletValue`, the plain-JSX
+`<details>`, the `async` wrapper around `onClick`, the `[&>i]` icon selectors, and `QuestionRadio`
+(by `shellFor`, already in) — leaving no slot overrides at all.
 
 ### Later, not blocked on any of this
 
