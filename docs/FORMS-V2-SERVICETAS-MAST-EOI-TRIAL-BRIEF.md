@@ -10,6 +10,11 @@ ended with a list of workarounds, and alpha.5 (phase 8 of
 run's branch and is judged on whether each workaround can go. The report is the worklist, so it is
 read first.
 
+**The focus is platform independence** (goal 4 in [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md)): the
+ServiceTas component layer and the pages must not be DOM-specific. The alpha.4 run proved the look
+can live in a theme; this run has to prove the *form source* — pages and component layer alike —
+would render unchanged on another platform.
+
 Update the version, the commit and the paths if they have moved. Check
 `npm view @rx-controls/forms-react dist-tags` before starting; `alpha` should be `0.1.0-alpha.5`.
 
@@ -17,13 +22,16 @@ Update the version, the commit and the paths if they have moved. Check
 
 Rerun the ServiceTas **MAST licence EOI wizard** trial against `@rx-controls/forms-*@0.1.0-alpha.5`.
 The previous run converted the JSON wizard to code against `0.1.0-alpha.4` and recorded every place
-it needed a workaround. alpha.5 was built to remove them. There are three goals, in this order:
+it needed a workaround. alpha.5 was built to remove them. There are four goals, in this order:
 
-1. **The worklist**: remove each alpha.4 workaround using what alpha.5 added, and record, for each,
+1. **No DOM in the form source.** The pages and the ServiceTas component layer are written only
+   against the contract, with nothing that ties them to the web — see "The component layer is not
+   DOM-specific" below. This is the point of the run: everything else serves it.
+2. **The worklist**: remove each alpha.4 workaround using what alpha.5 added, and record, for each,
    whether the new API fits the real form, fits awkwardly, or does not fit.
-2. **Use the new features in anger**, and find what is wrong with them that the rxc tests could
+3. **Use the new features in anger**, and find what is wrong with them that the rxc tests could
    not: the tests are synthetic, and this form is not.
-3. **Find what is still missing**, and hold visual parity with the JSON version while doing it.
+4. **Find what is still missing**, and hold visual parity with the JSON version while doing it.
 
 The branch is throwaway: nothing needs to be production ready.
 
@@ -61,14 +69,57 @@ It explains every workaround below, and its gap numbers (G1–G7, T1–T5) are t
   result, and whether the warning's new text (it now names `transpilePackages`) would have led you
   to the fix. Put it back either way.
 
+## The component layer is not DOM-specific
+Forms v2 promises that the same form source renders on HTML and React Native (goal 4 in
+`~/astrolabe/rxc/docs/FORMS-V2-GOALS.md`; read that section and "Layout is classes" in
+`FORMS-V2-INTERFACES.md` §7). ServiceTas's `components.tsx` is **form source**, not a renderer:
+every later ServiceTas v2 form is built from it. If it is DOM-specific, so is every form that uses
+it, and neither a native app nor another implementation can take them over. alpha.4's layer is not
+there yet: `Disclosure` and `PageBackdrop` were plain JSX, `faIcon` draws a Font Awesome `<i>`,
+`BulletValue` draws its bullet with a `before:` pseudo-element, buttons were sized through
+`[&>i]` selectors, and hidden labels hung on `sr-only`.
+
+The rule, for the pages **and** `components.tsx`:
+- **Only contract boundaries and other ServiceTas components.** `Contents`, `InlineGroup`,
+  `Section`, `TextDisplay`, `HtmlDisplay`, `IconDisplay`, `DisplayOnlyField`, the fields, `Action`,
+  `Wizard`, `Disclosure`, `Dialog`, `Tabs`. No intrinsic elements (`div`, `span`, `p`, `i`, `img`,
+  `details`, …), no DOM refs or events, no `dangerouslySetInnerHTML`, no `document` / `window`.
+- **Classes are for layout only, and only layout that can reach native.** A grid, a flex row, a
+  gap, breakpoint columns: yes — NativeWind carries those. Not pseudo-elements (`before:`),
+  descendant or arbitrary selectors (`[&>i]`, `[&_svg]`), `sr-only`, or a class that does a
+  behaviour's job. `layout` on a group is the typed flex body for where no stylesheet reaches.
+- **Visual styling is the theme's**, not the component's: a card's border and background, a
+  heading's size, a colour. A class on `shellClassName` that draws a card (alpha.4's `cardClass`)
+  is styling; move it into the theme (`shellFor`, the `section` slots, `text.heading`) or record
+  why the theme could not say it.
+- **A genuinely platform-specific piece goes behind a seam**, never inline: a separate module
+  with a web version (and, in principle, a `.native.tsx` one), which the component layer imports
+  by name. An icon is the usual case — the contract takes icons as nodes, so `faIcon` belongs in
+  that module, not in a component. Record each seam, and why the contract had no boundary for it.
+- **`HtmlDisplay` is web content.** It is a contract boundary, so it is allowed, but record every
+  place the form needs an HTML string (the `Lead` component takes one) and whether text, or an
+  `InlineGroup` of text and a link, would do.
+
+How to check it:
+- **An inventory.** After the worklist, list every DOM-specific thing left in the pages and
+  `components.tsx` — an element, a class feature, an API — each with the contract piece that would
+  replace it, or the gap that stops it. The target is an empty list. A quick first pass:
+  `grep -nE "<[a-z][a-z0-9]*[ />]" client-common/forms-v2/components.tsx client-common/components/mast/eoi-v2/`
+  finds intrinsic elements, and the class strings need reading by eye.
+- **The implementation swap.** Mount the unchanged wizard under `antdRenderers`
+  (`@rx-controls/forms-antd@alpha`, peer `antd`) in a nested `<FormProvider>` on a scaffolding page,
+  with no ServiceTas theme. Ant is still the web, so this does not prove native — but anything in
+  the component layer that breaks or looks wrong there is coupling to `forms-html` or its theme,
+  which a native implementation would hit too. Record each one.
+
 ## The rules (unchanged)
 - Pages import only from `@rx-controls/forms-react`, `@rx-controls/react` /
   `@react-typed-forms/core`, the ServiceTas component layer and ServiceTas's non-UI code.
   Layout is classes; looks are the theme's.
 - The look lives in the theme and the component layer, chosen once at the app root. **The target
   is no slot overrides at all.** Each one that remains is a finding.
-- Do not weaken the component layer to make a workaround go: if a component still needs plain JSX,
-  that is the finding.
+- Do not weaken the component layer to make a workaround go, and do not keep plain JSX to finish
+  sooner: if a component still needs an intrinsic element, that is the finding.
 
 ## The worklist
 For each item: remove the workaround, use the alpha.5 replacement, and record how it went.
@@ -140,14 +191,19 @@ the provider and the component layer before and after.
 ## Report back
 Write `~/astrolabe/rxc/docs/FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md`, in the style of the
 alpha.4 report, citing rxc source lines for each finding:
-1. **The worklist**, as a table: each workaround gone, changed or still needed, and why. Then the
+1. **Platform independence**, first: the inventory of everything DOM-specific left in the pages and
+   `components.tsx` (the target is none), each with what would replace it or the gap that stops
+   it; the seams, and what each wraps; the HTML strings and whether they need to be HTML; and what
+   the Ant swap showed. Say plainly whether the component layer would carry to a native
+   implementation as it stands, and if not, what stands in the way.
+2. **The worklist**, as a table: each workaround gone, changed or still needed, and why. Then the
    slot overrides that remain (the target is none), and the theme / provider / component-layer
    sizes before and after.
-2. **The new APIs in a real form**: what fitted, what was awkward, what is wrong with them.
-3. **New gaps** this run found, numbered fresh, each with what you did instead and what the
-   library should offer.
-4. **Visual parity**, with the screenshots, including the narrow widths and the missing-details
+3. **The new APIs in a real form**: what fitted, what was awkward, what is wrong with them.
+4. **New gaps** this run found, numbered fresh, each with what you did instead and what the
+   library should offer. A missing boundary that forced DOM into the component layer is a gap.
+5. **Visual parity**, with the screenshots, including the narrow widths and the missing-details
    box.
-5. **Compat and the engine**: the version bump, the lockfile, and the `transpilePackages` check.
-6. **Against alpha.4**: each of its "Suggested changes" — fixed, changed or still open — and
+6. **Compat and the engine**: the version bump, the lockfile, and the `transpilePackages` check.
+7. **Against alpha.4**: each of its "Suggested changes" — fixed, changed or still open — and
    anything it got wrong.
