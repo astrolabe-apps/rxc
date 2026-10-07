@@ -37,7 +37,7 @@ function TextField(p: TextFieldRenderProps): Rendered {
   const edit = useFormEdit();
   const placeholder = getProp(rc, p.placeholder);
   return rendered(
-    <label data-field={p.id} data-inline={p.inline ? "" : undefined}>
+    <label data-field={p.id} data-inline={p.inline ? "" : undefined} data-help-placement={p.helpPlacement}>
       <span data-label data-hidden-label={p.hideLabel ? "" : undefined}>{p.label}</span>
       {p.required && <span data-required>*</span>}
       <input

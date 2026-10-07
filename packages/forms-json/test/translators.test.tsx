@@ -809,13 +809,31 @@ describe("adornments", () => {
       [str("a")],
       { a: "" },
     );
-    // Where help sits is the shell's business, so `placement` is dropped —
-    // and the audit says so.
-    expect(warnings.map((w) => w.detail)).toEqual([
-      '"adornments.HelpText.placement" is not read by any translator — dropped',
-    ]);
-    expect(text()).toContain("Some help.");
+    // LabelEnd is the contract's labelEnd: behind a Help button beside the
+    // label, still the input's description.
+    expect(warnings).toEqual([]);
+    expect($('button[aria-label="Help"]')).not.toBeNull();
+    const input = $<HTMLInputElement>("input");
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)!.textContent).toBe(
+      "Some help.",
+    );
     expect($("i.fa.fa-at")).not.toBeNull();
+  });
+
+  it("draws HelpText at any other placement below the control", () => {
+    h.load(
+      [
+        {
+          type: "Data",
+          field: "a",
+          adornments: [{ type: "HelpText", helpText: "Some help.", placement: "ControlEnd" }],
+        },
+      ],
+      [str("a")],
+      { a: "" },
+    );
+    expect($('button[aria-label="Help"]')).toBeNull();
+    expect(text()).toContain("Some help.");
   });
 
   it("reports an adornment nothing handles", () => {

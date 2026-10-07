@@ -217,3 +217,30 @@ function Identifiers(): Rendered {
  * identifier switched off, whatever the form says.
  */
 export const HiddenLabel: Story = { render: () => <Identifiers /> };
+
+function HelpAtLabelEnd(): Rendered {
+  const { rendered } = useReactive();
+  const data = useControl({ uvi: "", owner: "" });
+  return rendered(
+    <Contents>
+      <TextField
+        field={data.fields.uvi}
+        label="Unique Vessel Identifier"
+        helpText="A Unique Vessel Identifier is issued by AMSA."
+        helpPlacement="labelEnd"
+        required
+      />
+      <TextField
+        field={data.fields.owner}
+        label="Registered owner"
+        helpText="As it appears on the registration."
+      />
+    </Contents>,
+  );
+}
+
+/**
+ * `helpPlacement="labelEnd"`: the help behind a button at the label's end,
+ * against the default below. Either way it is the input's description.
+ */
+export const HelpPlacement: Story = { render: () => <HelpAtLabelEnd /> };

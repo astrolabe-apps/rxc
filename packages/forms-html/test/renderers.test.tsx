@@ -82,6 +82,21 @@ describe("TextField", () => {
     expect(input.getAttribute("aria-invalid")).toBe("true");
   });
 
+  it("shows labelEnd help on its button's press, in the tree either way", () => {
+    mount(
+      <TextField field={dom.ctx.newControl("")} id="f" label="Name" helpText="As on your licence" helpPlacement="labelEnd" />,
+    );
+    const button = $<HTMLButtonElement>('button[aria-label="Help"]')!;
+    const help = $("#f-help")!;
+    // Collapsed: clipped, still there to describe the input.
+    expect([button.getAttribute("aria-expanded"), help.style.clipPath]).toEqual(["false", "inset(50%)"]);
+    expect([button.getAttribute("aria-controls"), $("#f")!.getAttribute("aria-describedby")]).toEqual(["f-help", "f-help"]);
+    act(() => button.click());
+    expect([button.getAttribute("aria-expanded"), help.style.clipPath]).toEqual(["true", ""]);
+    // The button sits beside the label, in the theme's row.
+    expect(button.parentElement!.className).toBe("rxf-label-row");
+  });
+
   it("writes what is typed, and passes inputMode, autoComplete and placeholder", () => {
     const c = dom.ctx.newControl("");
     mount(

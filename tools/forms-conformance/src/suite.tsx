@@ -453,6 +453,29 @@ export function describeConformance(impl: Implementation): void {
       }
     });
 
+    it("puts a field's help behind a button at the label's end, still its description (labelEnd)", () => {
+      const opts = [
+        { name: "Ay", value: "a" },
+        { name: "Bee", value: "b" },
+      ];
+      const cases: [string, (c: Control<any>) => ReactNode][] = [
+        ["text", (c) => <TextField field={c} label="Text name" helpText="Help words" helpPlacement="labelEnd" />],
+        ["select", (c) => <SelectField field={c} label="Select name" options={opts} helpText="Help words" helpPlacement="labelEnd" />],
+        ["radio", (c) => <RadioField field={c} label="Radio name" options={opts} helpText="Help words" helpPlacement="labelEnd" />],
+        ["checkbox", (c) => <CheckboxField field={c} label="Check name" helpText="Help words" helpPlacement="labelEnd" />],
+      ];
+      for (const [kind, ui] of cases) {
+        mount(ui(ctx.newControl<unknown>(undefined)));
+        const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace("Checkbox", "Check");
+        // The name stays exactly the label, and the help is still read with it.
+        expect([kind, read().map((r) => [r.name, r.description])]).toEqual([kind, [[label, "Help words"]]]);
+        // One button for it, named Help, outside every label element.
+        const buttons = [...document.querySelectorAll('button[aria-label="Help"]')];
+        expect([kind, buttons.length, buttons.some((b) => b.closest("label"))]).toEqual([kind, 1, false]);
+        act(() => root.render(null));
+      }
+    });
+
     it("draws a display-only field's and a select's icons either side of the value", () => {
       const v = ctx.newControl("12 Main St");
       const s = ctx.newControl<string | undefined>("a");

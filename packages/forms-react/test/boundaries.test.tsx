@@ -79,6 +79,14 @@ describe("the field boundary", () => {
     expect($("[data-label]")!.hasAttribute("data-hidden-label")).toBe(false);
   });
 
+  it("hands over helpPlacement resolved", () => {
+    const at = dom.ctx.newControl<"below" | "labelEnd">("labelEnd");
+    mount(<Text field={dom.ctx.newControl("")} helpText="Help" helpPlacement={at} />);
+    expect($("[data-field]")!.getAttribute("data-help-placement")).toBe("labelEnd");
+    set(at, "below");
+    expect($("[data-field]")!.getAttribute("data-help-placement")).toBe("below");
+  });
+
   it("passes props outside the contract through unresolved", () => {
     const c = dom.ctx.newControl("");
     const placeholder = dom.ctx.newControl("type here");

@@ -564,10 +564,13 @@ runs before anything that touches the loader lands.
   `back()` the buttons use (the page's `check()`, async validators awaited, hidden pages
   skipped) plus `goTo(key)`, for an outcome a server call decides.
 - **`clearHidden` on `GroupProps` (G3). ✅** It is already a `ScopeNarrowing`; groups pass it on.
-- **`helpPlacement: "below" | "labelEnd"` on `FieldProps` (G5).** Per field, because the JSON
+- **`helpPlacement: "below" | "labelEnd"` on `FieldProps` (G5). ✅** Per field, because the JSON
   format chooses it per field (a `HelpText` adornment's `placement`), which a shell override
-  could not express. How `labelEnd` is drawn is the implementation's. The loader stops dropping
-  the placement.
+  could not express. How `labelEnd` is drawn is the implementation's — html a toggle, MUI a
+  tooltip on a static label, Ant its own label row with a tooltip (Form.Item's `tooltip` would
+  put the icon's name into the field's), Fluent its `InfoLabel` — always a button named Help
+  outside the label element, the help still the control's description. The loader maps
+  `LabelEnd` onto it.
 - **`Disclosure` (G6).** A container: a title, `defaultOpen`, an optional bound `open` control.
   Closed, its content is `silent` — mounted, validating, never cleared — as a closed dialog's is,
   and its header carries the `showingErrors` marker. A refused submit whose first field in error

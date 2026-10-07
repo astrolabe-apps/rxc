@@ -309,6 +309,17 @@ export const visuallyHiddenStyle: CSSProperties = {
 };
 
 /**
+ * The field's help goes behind a button at the label's end
+ * (`helpPlacement: "labelEnd"`), and there is help to put there.
+ */
+export function labelEndHelp(p: {
+  helpPlacement?: string;
+  helpText?: ReactNode;
+}): boolean {
+  return p.helpPlacement === "labelEnd" && !noContent(p.helpText);
+}
+
+/**
  * `aria-describedby` for a control whose shell describes it as required
  * (`describeRequired`): the note first, then the help or error.
  */

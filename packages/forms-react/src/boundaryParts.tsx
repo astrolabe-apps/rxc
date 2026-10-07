@@ -134,6 +134,7 @@ export const fieldContractKeys: ReadonlySet<string> = new Set([
   "requiredMessage",
   "validate",
   "helpText",
+  "helpPlacement",
   "startIcon",
   "endIcon",
   "className",

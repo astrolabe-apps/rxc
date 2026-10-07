@@ -60,6 +60,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  labelEndHelp,
   visuallyHiddenStyle,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
@@ -111,6 +112,33 @@ function HtmlFieldShell(p: FieldShellProps) {
       {required}
     </span>
   );
+  // `labelEnd` help: a button beside the label — never inside it, which
+  // would put its name into the field's — that shows the help. The help
+  // element stays rendered either way, so it describes the control while
+  // only visually hidden.
+  const labelEnd = labelEndHelp(p);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpButton = labelEnd && (
+    <button
+      type="button"
+      className={t.helpButton.className}
+      aria-label={t.helpButton.text}
+      aria-expanded={helpOpen}
+      aria-controls={fieldHelpId(p.id)}
+      onClick={() => setHelpOpen((o) => !o)}
+    >
+      {t.helpButton.icon}
+    </button>
+  );
+  const withHelp = (label: ReactNode) =>
+    labelEnd ? (
+      <div className={t.labelRow}>
+        {label}
+        {helpButton}
+      </div>
+    ) : (
+      label
+    );
   return (
     <div
       className={mergeClass(
@@ -133,26 +161,31 @@ function HtmlFieldShell(p: FieldShellProps) {
           >
             {p.label}
           </Label>
+          {helpButton}
           <div className={t.control}>{p.children}</div>
         </>
       ) : hasLabel && after ? (
         // The label wraps the control, which is how html does a trailing one.
-        <label className={t.labelAfter} id={fieldLabelId(p.id)}>
-          {p.children}
-          {labelText}
-        </label>
+        withHelp(
+          <label className={t.labelAfter} id={fieldLabelId(p.id)}>
+            {p.children}
+            {labelText}
+          </label>,
+        )
       ) : (
         <>
-          {hasLabel && (
-            <Label
-              className={labelClass}
-              id={fieldLabelId(p.id)}
-              {...(legend ? {} : { htmlFor: p.id })}
-            >
-              {p.label}
-              {required}
-            </Label>
-          )}
+          {hasLabel
+            ? withHelp(
+                <Label
+                  className={labelClass}
+                  id={fieldLabelId(p.id)}
+                  {...(legend ? {} : { htmlFor: p.id })}
+                >
+                  {p.label}
+                  {required}
+                </Label>,
+              )
+            : helpButton}
           <div className={t.control}>{p.children}</div>
         </>
       )}
@@ -162,10 +195,21 @@ function HtmlFieldShell(p: FieldShellProps) {
         describeRequired={p.describeRequired}
         text={t.required.note}
       />
-      {p.helpText && !p.error && (
-        <p className={t.help} id={fieldHelpId(p.id)}>
+      {labelEnd ? (
+        <p
+          className={t.help}
+          id={fieldHelpId(p.id)}
+          style={helpOpen ? undefined : visuallyHiddenStyle}
+        >
           {p.helpText}
         </p>
+      ) : (
+        p.helpText &&
+        !p.error && (
+          <p className={t.help} id={fieldHelpId(p.id)}>
+            {p.helpText}
+          </p>
+        )
       )}
       {p.error &&
         (t.renderError ? (
@@ -266,6 +310,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -340,6 +385,7 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -374,6 +420,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -427,6 +474,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -493,6 +541,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
       describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -730,6 +779,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}

@@ -72,6 +72,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  labelEndHelp,
   visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
 
@@ -83,6 +84,36 @@ import {
 
 function AntFieldShell(p: FieldShellProps) {
   const { token } = theme.useToken();
+  const marker = p.required && (
+    <span
+      aria-hidden="true"
+      style={{
+        color: token.colorError,
+        marginInlineEnd: token.marginXXS,
+        fontFamily: "SimSun, sans-serif",
+        lineHeight: 1,
+      }}
+    >
+      *
+    </span>
+  );
+  // `labelEnd` help: an info button beside the label, its help in a
+  // tooltip. Not Form.Item's own `tooltip`, which puts the icon — and its
+  // name — inside the <label>, i.e. into the field's name: the shell draws
+  // the label row itself, outside Form.Item's label, in its type.
+  const labelEnd = labelEndHelp(p);
+  const helpButton = labelEnd && (
+    <AntTooltip title={p.helpText} trigger={["hover", "focus"]}>
+      <Button
+        type="text"
+        size="small"
+        aria-label="Help"
+        icon={<span aria-hidden="true">ⓘ</span>}
+        style={{ color: token.colorTextDescription }}
+      />
+    </AntTooltip>
+  );
+  const ownLabel = labelEnd && p.labelPosition !== "after" && p.label != null && !p.hideLabel;
   return (
     <Form.Item
       layout={p.orientation === "horizontal" ? "horizontal" : "vertical"}
@@ -90,21 +121,9 @@ function AntFieldShell(p: FieldShellProps) {
       // marker is drawn here rather than by `required`: Ant's is a CSS
       // ::before, which browsers read into the accessible name.
       label={
-        p.labelPosition === "after" || p.label == null || p.hideLabel ? undefined : (
+        p.labelPosition === "after" || p.label == null || p.hideLabel || ownLabel ? undefined : (
           <>
-            {p.required && (
-              <span
-                aria-hidden="true"
-                style={{
-                  color: token.colorError,
-                  marginInlineEnd: token.marginXXS,
-                  fontFamily: "SimSun, sans-serif",
-                  lineHeight: 1,
-                }}
-              >
-                *
-              </span>
-            )}
+            {marker}
             <span id={fieldLabelId(p.id)}>{p.label}</span>
           </>
         )
@@ -116,7 +135,7 @@ function AntFieldShell(p: FieldShellProps) {
       help={
         p.error ? (
           <span id={fieldErrorId(p.id)}>{p.error}</span>
-        ) : p.helpText ? (
+        ) : p.helpText && !labelEnd ? (
           <span id={fieldHelpId(p.id)}>{p.helpText}</span>
         ) : undefined
       }
@@ -143,6 +162,27 @@ function AntFieldShell(p: FieldShellProps) {
         describeRequired={p.describeRequired}
         text="Required"
       />
+      {labelEnd && (
+        <span id={fieldHelpId(p.id)} style={visuallyHiddenStyle}>
+          {p.helpText}
+        </span>
+      )}
+      {ownLabel && (
+        <Flex align="center" gap={token.marginXXS} style={{ paddingBottom: token.paddingXS }}>
+          {p.labelAs === "legend" ? (
+            <div id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
+              {marker}
+              {p.label}
+            </div>
+          ) : (
+            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
+              {marker}
+              {p.label}
+            </label>
+          )}
+          {helpButton}
+        </Flex>
+      )}
       {p.label != null && p.hideLabel ? (
         // Named, not drawn: a plain label, visually hidden, beside the control.
         <>
@@ -159,6 +199,7 @@ function AntFieldShell(p: FieldShellProps) {
               {p.label}
             </label>
           )}
+          {helpButton}
           {p.children}
         </>
       ) : p.labelPosition === "after" ? (
@@ -185,9 +226,13 @@ function AntFieldShell(p: FieldShellProps) {
               </span>
             )}
           </label>
+          {helpButton}
         </Flex>
       ) : (
-        p.children
+        <>
+          {p.label == null && helpButton}
+          {p.children}
+        </>
       )}
     </Form.Item>
   );
@@ -312,6 +357,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -397,6 +443,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
     >
@@ -428,6 +475,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
     >
@@ -468,6 +516,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
       describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -739,6 +788,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -813,6 +863,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}

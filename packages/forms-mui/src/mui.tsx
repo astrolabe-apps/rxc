@@ -19,6 +19,8 @@ import InputAdornment from "@mui/material/InputAdornment";
 import InputLabel from "@mui/material/InputLabel";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Button from "@mui/material/Button";
 import MuiTabList from "@mui/material/Tabs";
 import MuiTab from "@mui/material/Tab";
@@ -91,6 +93,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  labelEndHelp,
   visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
 
@@ -106,8 +109,30 @@ function MuiFieldShell(p: FieldShellProps) {
   const legend = p.labelAs === "legend";
   const framed = p.surface === "frame";
   const hasLabel = p.label !== undefined && p.label !== null;
-  // A hidden label cuts no notch: the frame gets no label at all.
-  const notch = framed && !legend && !p.hideLabel ? p.label : null;
+  // `labelEnd` help: a static label with an info button beside it — the
+  // floating label has no room for one — the help in the button's tooltip
+  // (on hover and on focus) and, for assistive technology, visually hidden
+  // under its id. The button sits outside the label, so the field's name
+  // stays its label.
+  const labelEnd = labelEndHelp(p);
+  // A hidden label cuts no notch, and neither does a static one.
+  const notch = framed && !legend && !p.hideLabel && !labelEnd ? p.label : null;
+  const helpButton = labelEnd && (
+    <Tooltip title={p.helpText} describeChild>
+      <IconButton size="small" aria-label="Help" sx={{ p: 0.25, fontSize: "1rem" }}>
+        <span aria-hidden="true">ⓘ</span>
+      </IconButton>
+    </Tooltip>
+  );
+  const withHelp = (label: ReactNode) =>
+    labelEnd ? (
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        {label}
+        {helpButton}
+      </Box>
+    ) : (
+      label
+    );
   return (
     <MuiLabelContext.Provider value={notch}>
       <FormControl
@@ -133,26 +158,30 @@ function MuiFieldShell(p: FieldShellProps) {
                 {p.label}
               </label>
             )}
+            {helpButton}
             {p.children}
           </>
         ) : hasLabel && p.labelPosition === "after" ? (
           // MUI's trailing label is a component that wraps both.
-          <FormControlLabel
-            htmlFor={p.id}
-            id={fieldLabelId(p.id)}
-            label={
-              <>
-                {p.label}
-                {p.required && <span aria-hidden="true"> *</span>}
-              </>
-            }
-            disabled={p.disabled}
-            control={<span className="mui-control-slot">{p.children}</span>}
-          />
+          withHelp(
+            <FormControlLabel
+              htmlFor={p.id}
+              id={fieldLabelId(p.id)}
+              label={
+                <>
+                  {p.label}
+                  {p.required && <span aria-hidden="true"> *</span>}
+                </>
+              }
+              disabled={p.disabled}
+              control={<span className="mui-control-slot">{p.children}</span>}
+            />,
+          )
         ) : (
           <>
+            {!hasLabel && helpButton}
             {hasLabel &&
-              (framed && !legend ? (
+              (framed && !legend && !labelEnd ? (
                 <InputLabel
                   htmlFor={p.id}
                   id={fieldLabelId(p.id)}
@@ -164,17 +193,19 @@ function MuiFieldShell(p: FieldShellProps) {
                   {p.label}
                 </InputLabel>
               ) : (
-                <FormLabel
-                  component={legend ? "div" : "label"}
-                  id={fieldLabelId(p.id)}
-                  htmlFor={legend ? undefined : p.id}
-                  className={mergeClass(
-                    undefined,
-                    combineClass(p.labelClassName, p.labelTextClassName),
-                  )}
-                >
-                  {p.label}
-                </FormLabel>
+                withHelp(
+                  <FormLabel
+                    component={legend ? "div" : "label"}
+                    id={fieldLabelId(p.id)}
+                    htmlFor={legend ? undefined : p.id}
+                    className={mergeClass(
+                      undefined,
+                      combineClass(p.labelClassName, p.labelTextClassName),
+                    )}
+                  >
+                    {p.label}
+                  </FormLabel>,
+                )
               ))}
             {p.children}
           </>
@@ -185,10 +216,21 @@ function MuiFieldShell(p: FieldShellProps) {
           describeRequired={p.describeRequired}
           text="Required"
         />
-        {(p.error || p.helpText) && (
-          <FormHelperText id={p.error ? fieldErrorId(p.id) : fieldHelpId(p.id)}>
-            {p.error ?? p.helpText}
-          </FormHelperText>
+        {labelEnd ? (
+          <>
+            <span id={fieldHelpId(p.id)} style={visuallyHiddenStyle}>
+              {p.helpText}
+            </span>
+            {p.error && (
+              <FormHelperText id={fieldErrorId(p.id)}>{p.error}</FormHelperText>
+            )}
+          </>
+        ) : (
+          (p.error || p.helpText) && (
+            <FormHelperText id={p.error ? fieldErrorId(p.id) : fieldHelpId(p.id)}>
+              {p.error ?? p.helpText}
+            </FormHelperText>
+          )
         )}
         {p.count != null && (
           <FormHelperText id={fieldCountId(p.id)} error={!!p.countOver}>
@@ -321,6 +363,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -402,6 +445,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
     >
@@ -437,6 +481,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
     >
@@ -698,6 +743,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -708,7 +754,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       <Select
         inputRef={ctl.elementRef}
         id={p.id}
-        label={p.hideLabel ? undefined : p.label}
+        label={p.hideLabel || labelEndHelp(p) ? undefined : p.label}
         labelId={p.label != null ? fieldLabelId(p.id) : undefined}
         SelectDisplayProps={{ "aria-describedby": describedBy(p) }}
         startAdornment={
@@ -775,6 +821,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -828,6 +875,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
       describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}

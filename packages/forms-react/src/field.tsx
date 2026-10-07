@@ -39,6 +39,14 @@ import {
 } from "./boundaryParts.js";
 
 /**
+ * Where a field's help is drawn: under the control, or behind a button at the
+ * label's end.
+ *
+ * @group Authoring
+ */
+export type HelpPlacement = "below" | "labelEnd";
+
+/**
  * A validator's verdict: a message, or nothing when the value is valid.
  *
  * @group Authoring
@@ -134,6 +142,13 @@ export interface FieldProps<T> {
   validate?: Validator<T> | Record<string, Validator<T>>;
   /** Help shown with the field. */
   helpText?: FormProp<ReactNode>;
+  /**
+   * Where the help is drawn: `below` the control (the default), or behind a
+   * button at the label's end (`labelEnd`) — an info icon whose help opens on
+   * demand. Either way the help is the control's description, so assistive
+   * technology reads it with the field.
+   */
+  helpPlacement?: FormProp<HelpPlacement>;
   /** Content at the control's leading edge, inside its frame — an icon, a unit. */
   startIcon?: FormProp<ReactNode>;
   /** Content at the control's trailing edge, inside its frame. */
@@ -202,6 +217,8 @@ export interface FieldRenderProps<T> {
   error?: ReactNode;
   /** Help shown with the field. */
   helpText?: ReactNode;
+  /** Where the help is drawn — see {@link FieldShellProps.helpPlacement}. */
+  helpPlacement?: HelpPlacement;
   /** Content at the control's leading edge. */
   startIcon?: ReactNode;
   /** Content at the control's trailing edge. */
@@ -355,6 +372,7 @@ export function fieldRenderer<T, P extends object = {}>(
       required,
       error: state.touched && own.length ? own[0] : undefined,
       helpText: getProp(rc, props.helpText),
+      helpPlacement: getProp(rc, props.helpPlacement),
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),
       inline: scope.inline,

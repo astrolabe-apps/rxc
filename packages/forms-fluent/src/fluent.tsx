@@ -21,6 +21,8 @@ import {
   FieldContextProvider,
   FluentProvider,
   Input,
+  InfoButton,
+  InfoLabel,
   Label,
   Radio,
   RadioGroup,
@@ -91,6 +93,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  labelEndHelp,
   visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
 
@@ -129,6 +132,12 @@ function FluentFieldShell(p: FieldShellProps) {
   const control = (
     <FieldContextProvider value={undefined}>{p.children}</FieldContextProvider>
   );
+  // `labelEnd` help: Fluent's own InfoLabel, whose info button sits beside
+  // the <label>, not in it — so the field's name stays its label. Its
+  // popover shows the help; for assistive technology the help is also
+  // rendered visually hidden under its id, as the control's description.
+  const labelEnd = labelEndHelp(p);
+  const infoButton = labelEnd && <InfoButton info={{ children: p.helpText }} aria-label="Help" />;
   return (
     <Field
       orientation={p.orientation}
@@ -144,7 +153,21 @@ function FluentFieldShell(p: FieldShellProps) {
               required: p.required,
               disabled: p.disabled,
               className: mergeClass(undefined, p.labelClassName),
-              children: labelText,
+              children: labelEnd
+                ? (_: unknown, props: object) => (
+                    <InfoLabel
+                      {...props}
+                      id={fieldLabelId(p.id)}
+                      htmlFor={p.labelAs === "legend" ? undefined : p.id}
+                      required={p.required}
+                      disabled={p.disabled}
+                      info={{ children: p.helpText }}
+                      infoButton={{ "aria-label": "Help" }}
+                    >
+                      {labelText}
+                    </InfoLabel>
+                  )
+                : labelText,
             }
       }
       validationState={p.error ? "error" : "none"}
@@ -159,11 +182,11 @@ function FluentFieldShell(p: FieldShellProps) {
       // The help, then the count: both in Field's hint, which it draws
       // under the control. The help gives way to an error; the count stays.
       hint={
-        (!p.error && p.helpText) || p.count != null
+        (!p.error && p.helpText && !labelEnd) || p.count != null
           ? {
               children: (
                 <>
-                  {!p.error && p.helpText && (
+                  {!p.error && p.helpText && !labelEnd && (
                     <span id={fieldHelpId(p.id)} style={{ display: "block" }}>
                       {p.helpText}
                     </span>
@@ -193,6 +216,11 @@ function FluentFieldShell(p: FieldShellProps) {
         describeRequired={p.describeRequired}
         text="Required"
       />
+      {labelEnd && (
+        <span id={fieldHelpId(p.id)} style={visuallyHiddenStyle}>
+          {p.helpText}
+        </span>
+      )}
       {p.label != null && p.hideLabel ? (
         // Named, not drawn: a plain label, visually hidden, beside the control.
         <>
@@ -209,6 +237,7 @@ function FluentFieldShell(p: FieldShellProps) {
               {p.label}
             </label>
           )}
+          {infoButton}
           {control}
         </>
       ) : p.labelPosition === "after" ? (
@@ -225,9 +254,13 @@ function FluentFieldShell(p: FieldShellProps) {
           >
             {labelText}
           </Label>
+          {infoButton}
         </span>
       ) : (
-        control
+        <>
+          {p.label == null && infoButton}
+          {control}
+        </>
       )}
     </Field>
   );
@@ -331,6 +364,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -416,6 +450,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
     >
@@ -453,6 +488,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
     >
@@ -489,6 +525,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
       describeRequired
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -533,6 +570,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}
@@ -588,6 +626,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
       error={p.error}
       className={p.shellClassName}
       labelClassName={p.labelClassName}

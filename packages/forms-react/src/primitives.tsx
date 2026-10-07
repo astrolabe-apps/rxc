@@ -9,6 +9,7 @@ import type { ClassValue, FormProp } from "./props.js";
 import { useRenderers } from "./registry.js";
 import type { FieldController, FocusTarget } from "./controllers.js";
 import type { CountFormat } from "./widgets.js";
+import type { HelpPlacement } from "./field.js";
 
 /**
  * The chrome around one field: label, control, help and error, laid out and
@@ -89,6 +90,17 @@ export interface FieldShellProps {
   disabled?: boolean;
   /** Help text, under id {@link fieldHelpId} when no error is showing. */
   helpText?: ReactNode;
+  /**
+   * Where the help is drawn. `below` (the default): under the control.
+   * `labelEnd`: a button at the label's end — named "Help", outside the
+   * label element so the field's name stays its label, and reachable by
+   * keyboard — that shows the help on demand. The help element itself stays
+   * rendered under {@link fieldHelpId}, in the accessibility tree whether or
+   * not it is showing, so the control's description is the same either way
+   * (an error in its place while one shows, as {@link describedBy} has it).
+   * The button stays while an error shows: the help is still worth reading.
+   */
+  helpPlacement?: HelpPlacement;
   /** The error to show, under id {@link fieldErrorId}. */
   error?: ReactNode;
   /**

@@ -143,8 +143,9 @@ const controls = [
       },
     ],
   },
-  // A HelpText adornment lands as the shell's help text; its `placement`
-  // (here LabelEnd) is dropped on purpose — the shell decides where help goes.
+  // A HelpText adornment lands as the field's help text, and its LabelEnd
+  // placement as `helpPlacement: "labelEnd"` — a Help button beside the
+  // label. Its `helpLabel` has no counterpart, and is reported.
   {
     type: "Data",
     field: "status",

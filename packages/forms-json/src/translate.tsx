@@ -769,17 +769,22 @@ function buildProps(
     (def.renderOptions?.groupOptions as { hideTitle?: boolean } | undefined)
       ?.hideTitle === true;
 
-  // The HelpText adornment is the contract's `helpText` prop. Its
-  // `placement` is dropped on purpose: where help text sits is the shell's
-  // business, and the eight libraries surveyed each fix it somewhere
-  //. On a Group or a Display there is no prop for it to become.
-  // Unless the host registered its own `HelpText`, which then owns it.
+  // The HelpText adornment is the contract's `helpText` prop, and its
+  // `LabelEnd` placement the contract's `labelEnd` — an info button at the
+  // label's end. Any other placement is `below`, the contract's only other
+  // (legacy itself draws no HelpText; its hosts did). On a Group or a
+  // Display there is no prop for it to become. Unless the host registered
+  // its own `HelpText`, which then owns it.
   const help = hostAdornments.has("HelpText")
     ? undefined
     : def.adornments?.find((a) => a.type === "HelpText");
   const helpText =
     def.type === "Data" && typeof help?.helpText === "string"
       ? help.helpText
+      : undefined;
+  const helpPlacement =
+    helpText !== undefined && help?.placement === "LabelEnd"
+      ? ("labelEnd" as const)
       : undefined;
 
   // An Icon adornment at the control's start or end is the field's
@@ -823,6 +828,7 @@ function buildProps(
     required: def.required ?? undefined,
     requiredMessage: def.requiredErrorText ?? undefined,
     helpText,
+    helpPlacement,
     startIcon,
     endIcon,
     hidden: hiddenFromExpr ?? staticHidden ?? undefined,
@@ -1014,6 +1020,7 @@ const propSources: Record<string, (keyof AnyDef)[]> = {
   dontClearHidden: ["dontClearHidden"],
   defaultValue: ["defaultValue"],
   validate: ["validators"],
+  helpPlacement: ["adornments"],
   startIcon: ["adornments"],
   endIcon: ["adornments"],
   className: ["styleClass"],

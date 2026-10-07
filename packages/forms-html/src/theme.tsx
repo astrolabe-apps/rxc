@@ -49,6 +49,20 @@ export interface HtmlTheme {
     control: string;
     /** Help text. */
     help: string;
+    /**
+     * Help at the label's end (`helpPlacement: "labelEnd"`): the label and
+     * its button side by side.
+     */
+    labelRow: string;
+    /** The button that shows `labelEnd` help, beside the label. */
+    helpButton: {
+      /** Its element. */
+      className: string;
+      /** What it shows — an info glyph, an icon component. */
+      icon: ReactNode;
+      /** Its accessible name. Words, for assistive technology. */
+      text: string;
+    };
     /** A field's character count (`showCount`), within its limit. */
     count: string;
     /** The count past the limit, in place of `count`: one colour, not two. */
@@ -377,6 +391,12 @@ export const defaultHtmlTheme: HtmlTheme = {
     labelAfter: "rxf-label-after",
     control: "rxf-control",
     help: "rxf-help",
+    labelRow: "rxf-label-row",
+    helpButton: {
+      className: "rxf-help-button",
+      icon: <span aria-hidden="true">ⓘ</span>,
+      text: "Help",
+    },
     error: "rxf-error",
     renderError: null,
     required: { className: "rxf-required", text: "*", note: "Required" },
@@ -530,6 +550,13 @@ export const tailwindHtmlTheme: HtmlTheme = {
     labelAfter: "rxf-label-after inline-flex items-center gap-2 cursor-pointer",
     control: "rxf-control block",
     help: "rxf-help m-0 text-xs text-gray-500",
+    labelRow: "rxf-label-row inline-flex items-center gap-1",
+    helpButton: {
+      className:
+        "rxf-help-button inline-flex cursor-pointer items-center border-0 bg-transparent p-0 leading-none text-gray-500 hover:text-gray-700",
+      icon: <span aria-hidden="true">ⓘ</span>,
+      text: "Help",
+    },
     // layout.errorClass
     error: "rxf-error m-0 text-sm text-red-500",
     renderError: null,
