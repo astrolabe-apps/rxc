@@ -50,9 +50,10 @@ It explains every workaround below, and its gap numbers (G1–G7, T1–T5) are t
 
 ## First: versions and one engine copy
 - Bump `@rx-controls/forms-react` and `@rx-controls/forms-html` to `0.1.0-alpha.5` (pinned
-  exactly, as before). alpha.5 depends on `@rx-controls/core` / `@rx-controls/react` `^1.1.3`, so
-  `@react-typed-forms/core` (compat) goes to `^5.1.3` and the direct `@rx-controls/react` to
-  `^1.1.3`, **everywhere each is declared**.
+  exactly, as before). alpha.5 needs `@rx-controls/core` / `@rx-controls/react` `^1.1.3`; take the
+  current releases, which also carry the lazy-child flags fix: `@react-typed-forms/core` (compat)
+  goes to `^5.1.4` and the direct `@rx-controls/react` to `^1.1.4`, **everywhere each is
+  declared**.
 - Confirm the lockfile holds exactly one `@rx-controls/core` and one `@rx-controls/react`.
 - The portal's `next.config.js` already lists the engine packages in `transpilePackages` (§3 of
   the alpha.4 report). Keep it. Then check, once, whether it is still needed: take it out, run
