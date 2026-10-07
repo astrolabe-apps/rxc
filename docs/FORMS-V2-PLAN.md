@@ -80,7 +80,7 @@ design and its reasons. The POC's comments are already most of that reference, b
 findings by number (`finding 57`), and the README is deleted in phase 5. A comment that is ported
 has to stand on its own or point at a design doc.
 
-`forms-native` and a datagrid add-on come later and slot in beside `forms-html`.
+`forms-native` (phase 9) and a datagrid add-on slot in beside `forms-html`.
 
 ## Phases
 
@@ -599,11 +599,32 @@ override, the nested `<Form clearHidden>`, the `sr-only` labels, `BulletValue`, 
 `<details>`, the `async` wrapper around `onClick`, the `[&>i]` icon selectors, and `QuestionRadio`
 (by `shellFor`, already in) — leaving no slot overrides at all.
 
+### 9 — React Native, `forms-native`
+
+Next after phase 8, not later: a React Native implementation of the contract, for an app that
+needs one. It shares the contract, not source (decision 6), and is the first implementation off
+the web — so it is the real test of goal 4, as MUI was of goal 5. Starts as a one-renderer spike,
+as Fluent's did, and answers first:
+
+- **Styling.** NativeWind (which carries the corpus's `native:` / `web:` classes, and the
+  "layout is classes" decision) or its own token theme; and what a group's `className` layout
+  means on native.
+- **The test environment.** Its suite runs under React Native's renderer, not happy-dom, so
+  `describeConformance` — which reads the DOM — needs a native reading or a native half.
+- **What has no native element**: `HtmlDisplay`, a `<form>`'s submit, focus targets, the hidden
+  label and live regions (React Native's own accessibility props).
+
+The MAST trial's platform inventory
+([`FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md))
+is its first input: the boundaries a real form uses, and what its component layer still leans on
+the web for.
+
+*Exit:* the shared suite green under it, and a real form's unchanged source rendering on a device.
+
 ### Later, not blocked on any of this
 
 - **The designer** (goal 7). Needs definitions exposed as live values; reimplemented against the
   v2 renderers, as promised.
-- **`forms-native`**, starting as a one-renderer spike. Shares the contract, not source (decision 6).
 - **A ServiceTas migration.** Moving production ServiceTas off the legacy stack is a separate
   decision; it keeps running on the compat engine until then.
 - **Base UI**, the one family the primitives were modelled on and never built against.

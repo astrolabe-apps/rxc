@@ -13,7 +13,9 @@ read first.
 **The focus is platform independence** (goal 4 in [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md)): the
 ServiceTas component layer and the pages must not be DOM-specific. The alpha.4 run proved the look
 can live in a theme; this run has to prove the *form source* — pages and component layer alike —
-would render unchanged on another platform.
+would render unchanged on another platform. It is not hypothetical: a React Native implementation
+(`forms-native`, phase 9 of the plan) is next, and this form's component layer is one of the first
+things it will be pointed at. The run's inventory is its input.
 
 Update the version, the commit and the paths if they have moved. Check
 `npm view @rx-controls/forms-react dist-tags` before starting; `alpha` should be `0.1.0-alpha.5`.
@@ -74,7 +76,9 @@ Forms v2 promises that the same form source renders on HTML and React Native (go
 `~/astrolabe/rxc/docs/FORMS-V2-GOALS.md`; read that section and "Layout is classes" in
 `FORMS-V2-INTERFACES.md` §7). ServiceTas's `components.tsx` is **form source**, not a renderer:
 every later ServiceTas v2 form is built from it. If it is DOM-specific, so is every form that uses
-it, and neither a native app nor another implementation can take them over. alpha.4's layer is not
+it, and neither a native app nor another implementation can take them over. A React Native
+implementation is next on the rxc plan, and this layer will be one of the first things mounted
+under it, so what you find here decides what it has to provide. alpha.4's layer is not
 there yet: `Disclosure` and `PageBackdrop` were plain JSX, `faIcon` draws a Font Awesome `<i>`,
 `BulletValue` draws its bullet with a `before:` pseudo-element, buttons were sized through
 `[&>i]` selectors, and hidden labels hung on `sr-only`.
@@ -93,8 +97,8 @@ The rule, for the pages **and** `components.tsx`:
   is styling; move it into the theme (`shellFor`, the `section` slots, `text.heading`) or record
   why the theme could not say it.
 - **A genuinely platform-specific piece goes behind a seam**, never inline: a separate module
-  with a web version (and, in principle, a `.native.tsx` one), which the component layer imports
-  by name. An icon is the usual case — the contract takes icons as nodes, so `faIcon` belongs in
+  with a web version now and a `.native.tsx` one when the native implementation lands, which the
+  component layer imports by name. An icon is the usual case — the contract takes icons as nodes, so `faIcon` belongs in
   that module, not in a component. Record each seam, and why the contract had no boundary for it.
 - **`HtmlDisplay` is web content.** It is a contract boundary, so it is allowed, but record every
   place the form needs an HTML string (the `Lead` component takes one) and whether text, or an
@@ -195,7 +199,10 @@ alpha.4 report, citing rxc source lines for each finding:
    `components.tsx` (the target is none), each with what would replace it or the gap that stops
    it; the seams, and what each wraps; the HTML strings and whether they need to be HTML; and what
    the Ant swap showed. Say plainly whether the component layer would carry to a native
-   implementation as it stands, and if not, what stands in the way.
+   implementation as it stands, and if not, what stands in the way. Then, **for `forms-native`**:
+   which boundaries and render props this form uses (the set a native implementation must cover
+   to run it), every layout class it depends on (what NativeWind, or `layout`, has to carry), its
+   icons, and its HTML strings.
 2. **The worklist**, as a table: each workaround gone, changed or still needed, and why. Then the
    slot overrides that remain (the target is none), and the theme / provider / component-layer
    sizes before and after.
