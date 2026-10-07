@@ -593,7 +593,8 @@ runs before anything that touches the loader lands.
 Published as one lock-step bump to `alpha.5`, which also carries `forms-fluent`'s first release
 and phase 7's tab wiring.
 
-*Exit:* the MAST trial re-run on `alpha.5` with its workarounds gone — the `PagesWizard`
+*Exit:* the MAST trial re-run on `alpha.5`
+([`FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md)) with its workarounds gone — the `PagesWizard`
 override, the nested `<Form clearHidden>`, the `sr-only` labels, `BulletValue`, the plain-JSX
 `<details>`, the `async` wrapper around `onClick`, the `[&>i]` icon selectors, and `QuestionRadio`
 (by `shellFor`, already in) — leaving no slot overrides at all.
