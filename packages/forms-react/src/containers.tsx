@@ -806,9 +806,13 @@ export type DisclosureImplSource =
   | ComponentType<DisclosureRenderProps>
   | RegistrySlot;
 
-/** `useLayoutEffect` on the client, `useEffect` on the server. */
+/** `useLayoutEffect` on the client (a DOM, or React Native), `useEffect` on the server. */
 const useCommitEffect =
-  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+  typeof document !== "undefined" ||
+  // React Native has layout effects but no `document`; it identifies itself here.
+  (typeof navigator !== "undefined" && navigator.product === "ReactNative")
+    ? useLayoutEffect
+    : useEffect;
 
 /**
  * Build a disclosure component.

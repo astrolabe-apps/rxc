@@ -619,6 +619,47 @@ The MAST trial's platform inventory
 is its first input: the boundaries a real form uses, and what its component layer still leans on
 the web for.
 
+**Its library stack is the ServiceTas app's** (`ServiceTasAPI/NewClientApp/servicetas-rn`): Expo
+54, React Native 0.81.5, React 19.1.0, NativeWind 4.2 on Tailwind 3.4, `@rn-primitives` for the
+composite widgets (as legacy `@react-typed-forms/schemas-rn` uses them), `react-native-render-html`
+and Font Awesome's React Native icons. It declares `react-native >=0.81.5`. Moving the app to Expo
+55 (React Native 0.83, React 19.2 — one React with this repo) is open if the split costs anything.
+
+**The spike** (`packages/forms-native`, private, outside the alpha policy) found:
+
+- **A bug on native in shared code, fixed.** `@rx-controls/react` and forms-react chose
+  commit-phase effects with `typeof document`, meant to detect server rendering — and React Native
+  has no `document`, so on a device the render-body write drain, validators publishing and the
+  disclosure's reveal all ran after paint. React Native is now recognised by `navigator.product`
+  (a patch to `@rx-controls/react`).
+- **No React 19.2-only API** is used anywhere below the implementations, so the packages run on
+  React 19.1 — to be proven in the app, not assumed.
+- **The test environment** is react-native-web under Vitest and happy-dom (`react-native` aliased),
+  quiet on the console, rendering React Native's own components on React 19.2: React Native's
+  renderer cannot run here, since 0.81 pins React 19.1. The native half is a smoke in the app.
+- **react-native-web cannot tell native-honest accessibility from web-only.** It passes every
+  `aria-*` prop to the DOM — `aria-describedby`, `aria-required`, `aria-invalid`, which native React
+  Native does not have — and drops `accessibilityHint`, native's description. So the
+  implementation sets both halves (a string `aria-label` and `accessibilityHint` for native;
+  `aria-labelledby` / `aria-describedby` by id for the web, which the app also targets) and
+  each platform ignores the other's. Pinned by `test/probe.test.tsx`.
+- **Native names and descriptions are strings; the contract's are nodes.** `label`, `helpText` and
+  `error` arrive as `ReactNode`; the spike flattens them (`textOf`). A label that is not text has no
+  native name — a contract question for phase 9 proper.
+- **The controllers are platform-neutral** — `useTextInput`'s `setValue(string)` / `onBlur()` drive a
+  `TextInput` unchanged — but the **frame's slot props are DOM-typed** (`ControlSlotProps`'
+  `className`, `CSSProperties` style, DOM focus-event handlers): a native frame casts.
+- **Some suite assertions are web-shaped**: a `hideLabel` label element clipped by a CSS style,
+  a `<form>` element to submit. Native has neither — a hidden label is the control's own name, and
+  submission is the submit action's. The suite needs a reading of these that does not assume a DOM.
+- **Styling is the open question.** NativeWind classes (the app's, and "layout is classes") need
+  the library compiled with NativeWind's JSX runtime, as legacy `schemas-rn` was built
+  (`--jsxImportSource nativewind`); the spike draws structure with style objects only.
+
+Drawn so far: the text field (shell, frame, input), groups, text displays (headings, live
+regions), actions and the form. The shared suite, opt-in while slots are stubbed (`rushx
+conformance`), passes 15 of 40.
+
 *Exit:* the shared suite green under it, and a real form's unchanged source rendering on a device.
 
 ### Later, not blocked on any of this

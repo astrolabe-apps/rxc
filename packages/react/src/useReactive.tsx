@@ -288,9 +288,17 @@ function deferRender(tracker: Tracker): void {
  * anything on stderr fails `rush test`. Neither of this effect's jobs
  * matters on the server: nothing has committed, so there is nothing queued
  * to drain, and `openRc` is overwritten by the next `beginTracking()`.
+ *
+ * "The server" is no `document` **and not React Native**, which has layout
+ * effects but no `document` either — tested on `document` alone, a device
+ * ran every commit-phase job after paint.
  */
 export const useCommitEffect =
-  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+  typeof document !== "undefined" ||
+  // React Native identifies itself here.
+  (typeof navigator !== "undefined" && navigator.product === "ReactNative")
+    ? useLayoutEffect
+    : useEffect;
 
 // ── useReactive ─────────────────────────────────────────────────────
 

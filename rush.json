@@ -63,6 +63,11 @@
       "shouldPublish": true
     },
     {
+      "packageName": "@rx-controls/forms-native",
+      "projectFolder": "packages/forms-native",
+      "shouldPublish": false
+    },
+    {
       "packageName": "@react-typed-forms/core",
       "projectFolder": "packages/compat-controls",
       "versionPolicyName": "stable",

@@ -23,7 +23,11 @@ import type { ValidationScopeImpl } from "./validationScope.js";
  * passive effect is all it needs there.
  */
 const useCommitEffect =
-  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+  typeof document !== "undefined" ||
+  // React Native has layout effects but no `document`; it identifies itself here.
+  (typeof navigator !== "undefined" && navigator.product === "ReactNative")
+    ? useLayoutEffect
+    : useEffect;
 
 /*
  * The field boundary's validation engine. Not exported from the package; the

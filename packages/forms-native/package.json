@@ -1,0 +1,53 @@
+{
+  "name": "@rx-controls/forms-native",
+  "version": "0.1.0-alpha.5",
+  "private": true,
+  "description": "The Forms v2 React Native implementation: registry slots drawn with React Native's own components, styled through NativeWind.",
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/forms-native"
+  },
+  "type": "module",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "conformance": "CONFORMANCE=1 vitest run"
+  },
+  "dependencies": {
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "react-native": ">=0.81.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.0",
+    "@types/react-dom": "~19.2.0",
+    "happy-dom": "~15.11.0",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0",
+    "react-native": "0.81.5",
+    "react-native-web": "~0.21.0",
+    "rxc-forms-conformance": "workspace:^",
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0"
+  }
+}
