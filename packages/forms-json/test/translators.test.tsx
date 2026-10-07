@@ -79,13 +79,37 @@ describe("TextField", () => {
     expect($$(".only-this").length).toBe(1);
   });
 
-  it("drops the label for hideTitle", () => {
-    h.load(
+  it("keeps a hidden title as the field's name, not drawn, for hideTitle", () => {
+    const { warnings } = h.load(
       [{ type: "Data", field: "name", title: "Hidden label", hideTitle: true }],
       [str("name")],
       { name: "" },
     );
-    expect(text()).not.toContain("Hidden label");
+    expect(warnings).toEqual([]);
+    // Legacy drew no label and left the input unnamed; it is named now.
+    const input = $<HTMLInputElement>("input");
+    const label = $(`label[for="${input.id}"]`);
+    expect(label.textContent).toBe("Hidden label");
+    expect(label.style.clipPath).toBe("inset(50%)");
+  });
+
+  it("drops a compound's hidden title: a group's title names nothing", () => {
+    const { warnings } = h.load(
+      [
+        {
+          type: "Data",
+          field: "address",
+          title: "Address section",
+          hideTitle: true,
+          children: [{ type: "Data", field: "street" }],
+        },
+      ],
+      [{ field: "address", type: "Compound", children: [str("street", { displayName: "Street" })] }],
+      { address: { street: "" } },
+    );
+    expect(warnings).toEqual([]);
+    expect(text()).not.toContain("Address section");
+    expect(text()).toContain("Street");
   });
 });
 

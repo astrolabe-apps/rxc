@@ -91,6 +91,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
 
 // ── Root: inherit the host's theme ────────────────────────────────────
@@ -133,7 +134,7 @@ function FluentFieldShell(p: FieldShellProps) {
       orientation={p.orientation}
       className={mergeClass(undefined, p.className)}
       label={
-        p.labelPosition === "after" || p.label == null
+        p.labelPosition === "after" || p.label == null || p.hideLabel
           ? undefined
           : {
               id: fieldLabelId(p.id),
@@ -192,7 +193,25 @@ function FluentFieldShell(p: FieldShellProps) {
         describeRequired={p.describeRequired}
         text="Required"
       />
-      {p.labelPosition === "after" ? (
+      {p.label != null && p.hideLabel ? (
+        // Named, not drawn: a plain label, visually hidden, beside the control.
+        <>
+          {p.labelAs === "legend" ? (
+            <div id={fieldLabelId(p.id)} style={visuallyHiddenStyle}>
+              {p.label}
+            </div>
+          ) : (
+            <label
+              htmlFor={p.id}
+              id={fieldLabelId(p.id)}
+              style={visuallyHiddenStyle}
+            >
+              {p.label}
+            </label>
+          )}
+          {control}
+        </>
+      ) : p.labelPosition === "after" ? (
         // Fluent's checkbox takes its label as a slot of its own, which a
         // shell cannot reach into — so the trailing label is a sibling.
         <span style={{ display: "flex", alignItems: "center" }}>
@@ -307,6 +326,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
       countOver={countOver}
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="frame"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -358,13 +378,31 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
 function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  // The icons either side of the value, spaced as Fluent spaces an
+  // `Input`'s content slots.
+  const icon = (node: ReactNode, side: "start" | "end") =>
+    node != null && (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          verticalAlign: "middle",
+          [side === "start" ? "marginInlineEnd" : "marginInlineStart"]:
+            tokens.spacingHorizontalXS,
+        }}
+      >
+        {node}
+      </span>
+    );
   const text = (
     <Text
       id={p.id}
       className={mergeClass(undefined, p.className ?? p.textClassName)}
       style={p.noSelection ? { userSelect: "none" } : undefined}
     >
+      {icon(p.startIcon, "start")}
       {ctl.content}
+      {icon(p.endIcon, "end")}
     </Text>
   );
   // Fluent's Text is already a span; inline only drops the shell.
@@ -374,6 +412,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       widget="displayOnly"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
@@ -385,6 +424,21 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   );
 }
 
+/**
+ * Fluent's `Select` has no content slots, so a select's icons sit beside it,
+ * as a multiline frame's do beside `Textarea`.
+ */
+function BesideSelect(p: { start?: ReactNode; end?: ReactNode; children: ReactNode }) {
+  if (p.start == null && p.end == null) return <>{p.children}</>;
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: tokens.spacingHorizontalXS }}>
+      {p.start}
+      <span style={{ flex: 1, minWidth: 0 }}>{p.children}</span>
+      {p.end}
+    </span>
+  );
+}
+
 function FluentCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
@@ -393,6 +447,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       widget="checkbox"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelPosition="after"
       surface="custom"
       required={p.required}
@@ -427,6 +482,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
       widget="checkList"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}
@@ -472,6 +528,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
       widget="select"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -481,26 +538,28 @@ function FluentSelect(p: SelectRenderProps): Rendered {
       labelClassName={p.labelClassName}
       labelTextClassName={p.labelTextClassName}
     >
-      <Select
-        ref={ctl.elementRef}
-        id={p.id}
-        className={mergeClass(undefined, p.className)}
-        aria-describedby={describedBy(p)}
-        aria-invalid={p.error ? true : undefined}
-        aria-required={p.required || undefined}
-        value={ctl.stringValue}
-        disabled={ctl.state.disabled || ctl.state.readOnly}
-        onChange={(_, d) => ctl.setFromString(d.value)}
-        onBlur={ctl.onBlur}
-      >
-        {/* A required select with a value has no way back to empty. */}
-        {(!p.required || ctl.stringValue === "") && <option value="" />}
-        {ctl.options.map((o, i) => (
-          <option key={keys[i]} value={String(o.value)} disabled={o.disabled}>
-            {o.name}
-          </option>
-        ))}
-      </Select>
+      <BesideSelect start={p.startIcon} end={p.endIcon}>
+        <Select
+          ref={ctl.elementRef}
+          id={p.id}
+          className={mergeClass(undefined, p.className)}
+          aria-describedby={describedBy(p)}
+          aria-invalid={p.error ? true : undefined}
+          aria-required={p.required || undefined}
+          value={ctl.stringValue}
+          disabled={ctl.state.disabled || ctl.state.readOnly}
+          onChange={(_, d) => ctl.setFromString(d.value)}
+          onBlur={ctl.onBlur}
+        >
+          {/* A required select with a value has no way back to empty. */}
+          {(!p.required || ctl.stringValue === "") && <option value="" />}
+          {ctl.options.map((o, i) => (
+            <option key={keys[i]} value={String(o.value)} disabled={o.disabled}>
+              {o.name}
+            </option>
+          ))}
+        </Select>
+      </BesideSelect>
     </Shell>,
   );
 }
@@ -523,6 +582,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
       widget="radio"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}

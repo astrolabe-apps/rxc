@@ -294,10 +294,12 @@ export function Inline({
 }
 
 /**
- * An empty live region takes no space and draws nothing, but stays in the
- * accessibility tree — out of flow, so it is no item of a grid or flex body.
+ * Visually hidden, still in the accessibility tree — an empty live region, a
+ * required note, a hidden label. Out of flow, so it is no item of a grid or
+ * flex body. A style rather than a class: hiding is behaviour, and works with
+ * no stylesheet.
  */
-const regionOnlyStyle: CSSProperties = {
+export const visuallyHiddenStyle: CSSProperties = {
   position: "absolute",
   width: 1,
   height: 1,
@@ -337,7 +339,7 @@ export function RequiredNote({
   text: ReactNode;
 }) {
   return required && describeRequired ? (
-    <span id={fieldRequiredId(id)} style={regionOnlyStyle}>
+    <span id={fieldRequiredId(id)} style={visuallyHiddenStyle}>
       {text}
     </span>
   ) : null;
@@ -384,7 +386,7 @@ export function DisplayShell({
 }) {
   const Tag = inline ? "span" : "div";
   const role = announce ? (tone === "error" ? "alert" : "status") : undefined;
-  if (announce && regionOnly) return <Tag role={role} style={regionOnlyStyle} />;
+  if (announce && regionOnly) return <Tag role={role} style={visuallyHiddenStyle} />;
   return (
     <Tag
       className={mergeClass(

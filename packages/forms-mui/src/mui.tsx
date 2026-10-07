@@ -91,6 +91,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
 
 /**
@@ -105,8 +106,10 @@ function MuiFieldShell(p: FieldShellProps) {
   const legend = p.labelAs === "legend";
   const framed = p.surface === "frame";
   const hasLabel = p.label !== undefined && p.label !== null;
+  // A hidden label cuts no notch: the frame gets no label at all.
+  const notch = framed && !legend && !p.hideLabel ? p.label : null;
   return (
-    <MuiLabelContext.Provider value={framed && !legend ? p.label : null}>
+    <MuiLabelContext.Provider value={notch}>
       <FormControl
         fullWidth
         error={!!p.error}
@@ -114,7 +117,25 @@ function MuiFieldShell(p: FieldShellProps) {
         disabled={p.disabled}
         className={mergeClass(undefined, p.className)}
       >
-        {hasLabel && p.labelPosition === "after" ? (
+        {hasLabel && p.hideLabel ? (
+          // Named, not drawn: a plain label, visually hidden, never wrapping.
+          <>
+            {legend ? (
+              <div id={fieldLabelId(p.id)} style={visuallyHiddenStyle}>
+                {p.label}
+              </div>
+            ) : (
+              <label
+                htmlFor={p.id}
+                id={fieldLabelId(p.id)}
+                style={visuallyHiddenStyle}
+              >
+                {p.label}
+              </label>
+            )}
+            {p.children}
+          </>
+        ) : hasLabel && p.labelPosition === "after" ? (
           // MUI's trailing label is a component that wraps both.
           <FormControlLabel
             htmlFor={p.id}
@@ -295,6 +316,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       countOver={countOver}
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="frame"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -347,6 +369,17 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  // The icons either side of the value, as an adornment sits in a frame.
+  const start = p.startIcon != null && (
+    <InputAdornment position="start" component="span">
+      {p.startIcon}
+    </InputAdornment>
+  );
+  const end = p.endIcon != null && (
+    <InputAdornment position="end" component="span">
+      {p.endIcon}
+    </InputAdornment>
+  );
   if (p.inline)
     return ctl.rendered(
       <Typography
@@ -355,7 +388,9 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         variant="body2"
         className={mergeClass(undefined, p.className ?? p.textClassName)}
       >
+        {start}
         {ctl.content}
+        {end}
       </Typography>,
     );
   return ctl.rendered(
@@ -363,6 +398,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       widget="displayOnly"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
@@ -373,9 +409,15 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         id={p.id}
         variant="body1"
         className={mergeClass(undefined, p.className ?? p.textClassName)}
-        sx={p.noSelection ? { userSelect: "none" } : undefined}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          ...(p.noSelection ? { userSelect: "none" } : {}),
+        }}
       >
+        {start}
         {ctl.content}
+        {end}
       </Typography>
     </Shell>,
   );
@@ -389,6 +431,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
       widget="checkbox"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelPosition="after"
       surface="custom"
       required={p.required}
@@ -635,6 +678,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       widget="select"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="frame"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -649,9 +693,19 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       <Select
         inputRef={ctl.elementRef}
         id={p.id}
-        label={p.label}
+        label={p.hideLabel ? undefined : p.label}
         labelId={p.label != null ? fieldLabelId(p.id) : undefined}
         SelectDisplayProps={{ "aria-describedby": describedBy(p) }}
+        startAdornment={
+          p.startIcon != null ? (
+            <InputAdornment position="start">{p.startIcon}</InputAdornment>
+          ) : undefined
+        }
+        endAdornment={
+          p.endIcon != null ? (
+            <InputAdornment position="end">{p.endIcon}</InputAdornment>
+          ) : undefined
+        }
         value={ctl.stringValue}
         displayEmpty
         disabled={ctl.state.disabled || ctl.state.readOnly}
@@ -700,6 +754,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
       widget="radio"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}
@@ -751,6 +806,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
       widget="checkList"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}

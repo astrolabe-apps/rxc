@@ -130,6 +130,8 @@ export interface HtmlTheme {
     className: string;
     /** Inside an inline group. */
     inline: string;
+    /** Around a `startIcon` / `endIcon`, either side of the value. */
+    icon: string;
   };
   /** The standard group. */
   contents: {
@@ -392,7 +394,11 @@ export const defaultHtmlTheme: HtmlTheme = {
     input: "",
     label: "",
   },
-  displayOnly: { className: "rxf-readonly", inline: "rxf-readonly-inline" },
+  displayOnly: {
+    className: "rxf-readonly",
+    inline: "rxf-readonly-inline",
+    icon: "rxf-readonly-icon",
+  },
   contents: {
     wrapper: "rxf-contents",
     hideWith: "attribute",
@@ -533,8 +539,9 @@ export const tailwindHtmlTheme: HtmlTheme = {
     label: "",
   },
   displayOnly: {
-    className: "rxf-readonly min-h-[1.5em] py-1.5",
+    className: "rxf-readonly flex items-center gap-1.5 min-h-[1.5em] py-1.5",
     inline: "rxf-readonly-inline font-semibold",
+    icon: "rxf-readonly-icon inline-flex items-center",
   },
   contents: {
     wrapper: "rxf-contents",

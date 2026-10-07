@@ -71,12 +71,13 @@ function DisplayOnly(): Rendered {
         field={f.joined}
         label="Joined"
         format={(v) => new Date(String(v)).toDateString()}
+        startIcon={<span aria-hidden="true">●</span>}
       />
     </div>,
   );
 }
 
-/** A field that never writes: option names, arrays, empty and design-mode text, a format. */
+/** A field that never writes: option names, arrays, empty and design-mode text, a format, an icon. */
 export const DisplayOnlyValues: Story = { render: () => <DisplayOnly /> };
 
 function Tones(): Rendered {

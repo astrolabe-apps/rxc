@@ -129,6 +129,7 @@ export const fieldContractKeys: ReadonlySet<string> = new Set([
   "clearTo",
   "defaultValue",
   "label",
+  "hideLabel",
   "required",
   "requiredMessage",
   "validate",

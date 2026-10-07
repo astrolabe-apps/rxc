@@ -56,7 +56,7 @@ export interface ActionProps {
    * The handler. One that returns a promise shows the button busy until it
    * settles, and holds the lock `disableType` names.
    */
-  onClick?: () => void | Promise<void>;
+  onClick?: () => unknown;
   /**
    * Submit the enclosing form instead: its `check()`, then its `onSubmit`
    * (see {@link FormProps.onSubmit}), busy until that settles. It is also the
@@ -242,7 +242,7 @@ export function actionRenderer(
     const onClick = () => {
       if (scope.designMode || disabled) return;
       const result = submits ? formSubmit!() : props.onClick?.();
-      if (!(result instanceof Promise)) return;
+      if (!isThenable(result)) return;
       // `self` holds this button; `global` also holds the form's lock, which
       // the form reads as `disabled` for every boundary in it.
       const global = disableType === "global" ? lock : undefined;
@@ -250,7 +250,8 @@ export function actionRenderer(
         if (disableType !== "none") wc.setValue(busy, true);
         if (global) wc.updateValue(global, (n) => n + 1);
       });
-      void result.finally(() =>
+      // `finally`, so a rejection still surfaces as the handler's own.
+      void Promise.resolve(result).finally(() =>
         update((wc) => {
           wc.setValue(busy, false);
           if (global) wc.updateValue(global, (n) => Math.max(0, n - 1));
@@ -288,4 +289,13 @@ export function actionRenderer(
     source as ComponentType<never>,
   );
   return bailout(ActionBoundary);
+}
+
+/** A promise, or anything shaped like one — what makes a click busy. */
+function isThenable(v: unknown): v is PromiseLike<unknown> {
+  return (
+    v != null &&
+    (typeof v === "object" || typeof v === "function") &&
+    typeof (v as PromiseLike<unknown>).then === "function"
+  );
 }

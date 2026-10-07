@@ -38,7 +38,7 @@ function TextField(p: TextFieldRenderProps): Rendered {
   const placeholder = getProp(rc, p.placeholder);
   return rendered(
     <label data-field={p.id} data-inline={p.inline ? "" : undefined}>
-      <span data-label>{p.label}</span>
+      <span data-label data-hidden-label={p.hideLabel ? "" : undefined}>{p.label}</span>
       {p.required && <span data-required>*</span>}
       <input
         id={p.id}

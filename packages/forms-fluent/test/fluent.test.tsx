@@ -135,7 +135,7 @@ describe("Fluent", () => {
     const open = ctx.newControl(false);
     mount(
       <>
-        <Action actionId="open" text="Open" onClick={() => set(open, true)} />
+        <Action actionId="open" text="Open" onClick={() => void set(open, true)} />
         <Dialog open={open} title="Details">
           <TextField field={ctx.newControl("")} id="inside" />
         </Dialog>

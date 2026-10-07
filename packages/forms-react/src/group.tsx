@@ -78,6 +78,13 @@ export interface GroupProps {
    */
   transitions?: boolean;
   /**
+   * Clear the values of fields that become hidden inside this group, or keep
+   * them — overriding the form's `clearHidden` for this part of it. A group
+   * of optional answers each revealed by a switch can clear what is switched
+   * off while the rest of the form keeps hidden values.
+   */
+  clearHidden?: boolean;
+  /**
    * The group's name in the validation tree. Meaningful only on a group that
    * makes a scope — one built `{ scope: true }`, such as {@link Section}.
    */
@@ -187,21 +194,25 @@ export function groupRenderer<P extends object = {}>(
     const bound = useBoundScope(props);
     // `inline` is the container's kind, not a prop, so it is a boundary
     // option — and reaches the children as a scope facet.
-    const { transitions } = props;
+    const { transitions, clearHidden } = props;
     const title = getProp(rc, props.title);
     // A titled group is a level in the outline: what is inside it heads one
     // deeper. Inline prose has no outline.
     const titled = title !== undefined && title !== null && !options?.inline;
     const scope = useMemo(
       () =>
-        options?.inline || transitions !== undefined || titled
+        options?.inline ||
+        transitions !== undefined ||
+        clearHidden !== undefined ||
+        titled
           ? narrowScope(bound, {
               inline: options?.inline || undefined,
               transitions,
+              clearHidden,
               headingLevel: titled ? bound.headingLevel + 1 : undefined,
             })
           : bound,
-      [bound, transitions, titled],
+      [bound, transitions, clearHidden, titled],
     );
     const presence = scope.presence(rc);
     // Opt-in: only a group that is asked "is my content invalid" makes a
@@ -267,6 +278,7 @@ const groupContractKeys: ReadonlySet<string> = new Set([
   "labelTextClassName",
   "layout",
   "transitions",
+  "clearHidden",
   "validationKey",
   "children",
 ]);

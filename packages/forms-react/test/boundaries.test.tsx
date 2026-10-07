@@ -70,6 +70,15 @@ describe("the field boundary", () => {
     expect($("[data-label]")!.textContent).toBe("Given name");
   });
 
+  it("hands over hideLabel resolved, with the label still there to name the field", () => {
+    const hide = dom.ctx.newControl(true);
+    mount(<Text field={dom.ctx.newControl("")} label="Name" hideLabel={hide} />);
+    expect($("[data-label]")!.textContent).toBe("Name");
+    expect($("[data-label]")!.hasAttribute("data-hidden-label")).toBe(true);
+    set(hide, false);
+    expect($("[data-label]")!.hasAttribute("data-hidden-label")).toBe(false);
+  });
+
   it("passes props outside the contract through unresolved", () => {
     const c = dom.ctx.newControl("");
     const placeholder = dom.ctx.newControl("type here");
@@ -291,6 +300,31 @@ describe("the field boundary", () => {
     );
     set(hide, true);
     expect(untrackedRead.getValue(arr)).toEqual([]);
+  });
+
+  it("clears under a group's clearHidden, and keeps outside it", () => {
+    const inside = dom.ctx.newControl<string | undefined>("in");
+    const outside = dom.ctx.newControl<string | undefined>("out");
+    const hide = dom.ctx.newControl(false);
+    const kept = dom.ctx.newControl<string | undefined>("kept");
+    mount(
+      <>
+        <Group clearHidden>
+          <Text field={inside} hidden={hide} />
+          {/* A nested group can turn it back off. */}
+          <Group clearHidden={false}>
+            <Text field={kept} hidden={hide} />
+          </Group>
+        </Group>
+        <Text field={outside} hidden={hide} />
+      </>,
+    );
+    set(hide, true);
+    expect([
+      untrackedRead.getValue(inside),
+      untrackedRead.getValue(kept),
+      untrackedRead.getValue(outside),
+    ]).toEqual([undefined, "kept", "out"]);
   });
 
   it("keeps its value with dontClearHidden, or without the form's clearHidden", () => {
@@ -743,6 +777,28 @@ describe("the action boundary", () => {
     await act(async () => resolve());
     await flush();
     expect(btn().disabled).toBe(false);
+  });
+
+  it("is busy for any thenable a handler returns, and ignores any other value", async () => {
+    let resolve!: () => void;
+    // Not a Promise — a library's thenable — and a handler resolving to a value.
+    const thenable = { then: (ok: () => void) => void (resolve = ok) };
+    mount(
+      <>
+        <Button actionId="lib" onClick={() => thenable} />
+        <Button actionId="value" onClick={() => 42} />
+      </>,
+    );
+    const btn = (id: string) => $<HTMLButtonElement>(`[data-action=${id}]`)!;
+    act(() => btn("value").click());
+    expect(btn("value").hasAttribute("data-busy")).toBe(false);
+    act(() => btn("lib").click());
+    expect(btn("lib").hasAttribute("data-busy")).toBe(true);
+    // A thenable is adopted a microtask later; then it settles.
+    await act(async () => {});
+    await act(async () => resolve());
+    await flush();
+    expect(btn("lib").hasAttribute("data-busy")).toBe(false);
   });
 
   it("with disableType global, locks the whole form while it runs", async () => {

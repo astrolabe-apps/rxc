@@ -802,14 +802,24 @@ function buildProps(
   // fallback (read by the action translator). Building a label for them
   // would be reported as dropped by every translator — and rightly.
   const labelled = def.type === "Data" || def.type === "Group";
+  // A field's hidden title still names it: legacy drew no label, and left
+  // the control with no accessible name. Only a single value is a field —
+  // a compound is drawn as a group and a collection as a list, whose titles
+  // name nothing, so a hidden one is simply absent, as is a group's.
+  const hideLabel =
+    hideTitle &&
+    def.type === "Data" &&
+    schema?.type !== "Compound" &&
+    !schema?.collection;
   return {
     field: control,
     label:
-      !labelled || hideTitle
+      !labelled || (hideTitle && !hideLabel)
         ? undefined
         : labelProp
           ? (rc) => getProp(rc, labelProp) as ReactNode
           : (def.title ?? schema?.displayName ?? undefined),
+    hideLabel: hideLabel || undefined,
     required: def.required ?? undefined,
     requiredMessage: def.requiredErrorText ?? undefined,
     helpText,
@@ -995,6 +1005,7 @@ function unreadDeep(
  */
 const propSources: Record<string, (keyof AnyDef)[]> = {
   label: ["title"],
+  hideLabel: ["hideTitle"],
   required: ["required"],
   requiredMessage: ["requiredErrorText"],
   hidden: ["hidden"],

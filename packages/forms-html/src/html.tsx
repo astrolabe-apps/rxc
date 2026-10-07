@@ -60,6 +60,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  visuallyHiddenStyle,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -120,7 +121,21 @@ function HtmlFieldShell(p: FieldShellProps) {
       data-invalid={p.error ? "" : undefined}
       data-disabled={p.disabled ? "" : undefined}
     >
-      {hasLabel && after ? (
+      {hasLabel && p.hideLabel ? (
+        // Named, not drawn: the label element kept, visually hidden, with no
+        // theme class and no marker. Never wrapping the control, even for a
+        // trailing label, since the control is drawn.
+        <>
+          <Label
+            id={fieldLabelId(p.id)}
+            style={visuallyHiddenStyle}
+            {...(legend ? {} : { htmlFor: p.id })}
+          >
+            {p.label}
+          </Label>
+          <div className={t.control}>{p.children}</div>
+        </>
+      ) : hasLabel && after ? (
         // The label wraps the control, which is how html does a trailing one.
         <label className={t.labelAfter} id={fieldLabelId(p.id)}>
           {p.children}
@@ -246,6 +261,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       countOver={countOver}
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="frame"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -301,6 +317,8 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const t = useHtmlTheme().displayOnly;
+  const start = p.startIcon != null && <span className={t.icon}>{p.startIcon}</span>;
+  const end = p.endIcon != null && <span className={t.icon}>{p.endIcon}</span>;
   // Inline: the value in prose — no shell, no label, a span.
   if (p.inline)
     return ctl.rendered(
@@ -308,7 +326,9 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         id={p.id}
         className={mergeClass(t.inline, p.className ?? p.textClassName)}
       >
+        {start}
         {ctl.content}
+        {end}
       </span>,
     );
   return ctl.rendered(
@@ -316,6 +336,7 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       widget="displayOnly"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
@@ -330,7 +351,9 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         style={p.noSelection ? { userSelect: "none" } : undefined}
         aria-describedby={describedBy(p)}
       >
+        {start}
         {ctl.content}
+        {end}
       </div>
     </Shell>,
   );
@@ -345,6 +368,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       widget="checkbox"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelPosition="after"
       surface="custom"
       required={p.required}
@@ -397,6 +421,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
       widget="radio"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}
@@ -461,6 +486,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
       widget="checkList"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}
@@ -686,6 +712,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       widget="select"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="frame"
       required={p.required}
       disabled={ctl.state.disabled}

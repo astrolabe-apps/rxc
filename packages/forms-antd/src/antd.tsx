@@ -72,6 +72,7 @@ import {
   optionKeys,
   RequiredNote,
   requiredDescribedBy,
+  visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
@@ -89,7 +90,7 @@ function AntFieldShell(p: FieldShellProps) {
       // marker is drawn here rather than by `required`: Ant's is a CSS
       // ::before, which browsers read into the accessible name.
       label={
-        p.labelPosition === "after" || p.label == null ? undefined : (
+        p.labelPosition === "after" || p.label == null || p.hideLabel ? undefined : (
           <>
             {p.required && (
               <span
@@ -142,7 +143,25 @@ function AntFieldShell(p: FieldShellProps) {
         describeRequired={p.describeRequired}
         text="Required"
       />
-      {p.labelPosition === "after" ? (
+      {p.label != null && p.hideLabel ? (
+        // Named, not drawn: a plain label, visually hidden, beside the control.
+        <>
+          {p.labelAs === "legend" ? (
+            <div id={fieldLabelId(p.id)} style={visuallyHiddenStyle}>
+              {p.label}
+            </div>
+          ) : (
+            <label
+              htmlFor={p.id}
+              id={fieldLabelId(p.id)}
+              style={visuallyHiddenStyle}
+            >
+              {p.label}
+            </label>
+          )}
+          {p.children}
+        </>
+      ) : p.labelPosition === "after" ? (
         // Ant's own checkbox takes its label as a child, which a shell cannot
         // reach into — so the trailing label is a sibling <label> instead,
         // the same bill the frame pays.
@@ -288,6 +307,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       countOver={countOver}
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="frame"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -339,6 +359,23 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
+  const { token } = theme.useToken();
+  // The icons either side of the value, spaced as Ant spaces an affix.
+  const icon = (node: ReactNode, side: "start" | "end") =>
+    node != null && (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          [side === "start" ? "marginInlineEnd" : "marginInlineStart"]:
+            token.marginXXS,
+        }}
+      >
+        {node}
+      </span>
+    );
+  const start = icon(p.startIcon, "start");
+  const end = icon(p.endIcon, "end");
   // Ant's Text is already a span; inline only drops the shell.
   if (p.inline)
     return ctl.rendered(
@@ -346,7 +383,9 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         id={p.id}
         className={mergeClass(undefined, p.className ?? p.textClassName)}
       >
+        {start}
         {ctl.content}
+        {end}
       </Typography.Text>,
     );
   return ctl.rendered(
@@ -354,6 +393,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       widget="displayOnly"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="custom"
       disabled={ctl.state.disabled}
       helpText={p.helpText}
@@ -365,7 +405,9 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         className={mergeClass(undefined, p.className ?? p.textClassName)}
         style={p.noSelection ? { userSelect: "none" } : undefined}
       >
+        {start}
         {ctl.content}
+        {end}
       </Typography.Text>
     </Shell>,
   );
@@ -380,6 +422,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       widget="checkbox"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelPosition="after"
       surface="custom"
       required={p.required}
@@ -418,6 +461,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
       widget="checkList"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}
@@ -671,6 +715,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       widget="select"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -680,27 +725,44 @@ function AntSelect(p: SelectRenderProps): Rendered {
       labelClassName={p.labelClassName}
       labelTextClassName={p.labelTextClassName}
     >
-      <Select
-        ref={ctl.elementRef}
-        id={p.id}
-        aria-describedby={describedBy(p)}
-        aria-invalid={p.error ? true : undefined}
-        aria-required={p.required || undefined}
-        value={ctl.stringValue === "" ? undefined : ctl.stringValue}
-        status={p.error ? "error" : undefined}
-        disabled={ctl.state.disabled || ctl.state.readOnly}
-        // A required select with a value has no way back to empty.
-        allowClear={!p.required || ctl.stringValue === ""}
-        onChange={(v) => ctl.setFromString(v ?? "")}
-        onBlur={ctl.onBlur}
-        options={ctl.options.map((o, i) => ({
-          key: keys[i],
-          value: String(o.value),
-          label: o.name,
-          disabled: o.disabled,
-        }))}
-      />
+      <AntSelectWithEnd end={p.endIcon}>
+        <Select
+          ref={ctl.elementRef}
+          id={p.id}
+          prefix={p.startIcon ?? undefined}
+          aria-describedby={describedBy(p)}
+          aria-invalid={p.error ? true : undefined}
+          aria-required={p.required || undefined}
+          value={ctl.stringValue === "" ? undefined : ctl.stringValue}
+          status={p.error ? "error" : undefined}
+          disabled={ctl.state.disabled || ctl.state.readOnly}
+          // A required select with a value has no way back to empty.
+          allowClear={!p.required || ctl.stringValue === ""}
+          onChange={(v) => ctl.setFromString(v ?? "")}
+          onBlur={ctl.onBlur}
+          options={ctl.options.map((o, i) => ({
+            key: keys[i],
+            value: String(o.value),
+            label: o.name,
+            disabled: o.disabled,
+          }))}
+        />
+      </AntSelectWithEnd>
     </Shell>,
+  );
+}
+
+/**
+ * Ant's Select has a `prefix` but no trailing slot of its own — `suffixIcon`
+ * replaces the arrow — so an `endIcon` sits beside it.
+ */
+function AntSelectWithEnd({ end, children }: { end?: ReactNode; children: ReactNode }) {
+  if (end == null) return <>{children}</>;
+  return (
+    <Flex align="center" gap={8}>
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      {end}
+    </Flex>
   );
 }
 
@@ -726,6 +788,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
       widget="radio"
       id={p.id}
       label={p.label}
+      hideLabel={p.hideLabel}
       labelAs="legend"
       surface="custom"
       required={p.required}

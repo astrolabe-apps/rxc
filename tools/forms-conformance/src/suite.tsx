@@ -12,6 +12,7 @@ import {
   CheckboxField,
   CheckListField,
   Contents,
+  DisplayOnlyField,
   Dialog,
   Elements,
   Form,
@@ -133,6 +134,42 @@ export function describeConformance(impl: Implementation): void {
       ) as HTMLButtonElement | undefined;
     const set = <T,>(c: Control<T>, v: T) =>
       act(() => ctx.update((wc) => wc.setValue(c, v)));
+    // Text as assistive technology reads it: aria-hidden decoration (a
+    // required marker) left out.
+    const readable = (el: Element) => {
+      const copy = el.cloneNode(true) as Element;
+      copy.querySelectorAll('[aria-hidden="true"]').forEach((h) => h.remove());
+      return copy.textContent!.replace(/\s+/g, " ").trim();
+    };
+    const texts = (ids: string) =>
+      ids
+        .split(/\s+/)
+        .map((id) => {
+          const el = document.getElementById(id);
+          return el ? readable(el) : `(no #${id})`;
+        })
+        .join(" ");
+    // What assistive technology reads off the control that is described:
+    // its name — aria-labelledby, else a label for it or around it — and
+    // the text of the elements its aria-describedby names, which must exist.
+    const read = () =>
+      [...container.querySelectorAll("[aria-describedby]")].map((el) => {
+        const by = el.getAttribute("aria-labelledby");
+        const forIt = el.id
+          ? container.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+          : null;
+        const labelEl = forIt ?? el.closest("label");
+        const name = by
+          ? texts(by)
+          : (el.getAttribute("aria-label") ??
+            (labelEl ? readable(labelEl) : "(no name)"));
+        return {
+          name,
+          description: texts(el.getAttribute("aria-describedby")!),
+          invalid: el.getAttribute("aria-invalid") === "true",
+          required: el.getAttribute("aria-required") === "true",
+        };
+      });
     /** Out of the Tab order: inert, hidden, in a closed `<dialog>`, or not drawn. */
     const outOfReach = (el: Element) => {
       if (el.closest("[inert], [hidden], dialog:not([open])")) return true;
@@ -328,42 +365,6 @@ export function describeConformance(impl: Implementation): void {
         ["checkbox", (c) => <CheckboxField field={c} label="Check name" required requiredMessage="Needed" helpText="Help" />],
         ["checklist", (c) => <CheckListField field={c} label="Checklist name" options={opts} required requiredMessage="Needed" helpText="Help" />],
       ];
-      // Text as assistive technology reads it: aria-hidden decoration (a
-      // required marker) left out.
-      const readable = (el: Element) => {
-        const copy = el.cloneNode(true) as Element;
-        copy.querySelectorAll('[aria-hidden="true"]').forEach((h) => h.remove());
-        return copy.textContent!.replace(/\s+/g, " ").trim();
-      };
-      const texts = (ids: string) =>
-        ids
-          .split(/\s+/)
-          .map((id) => {
-            const el = document.getElementById(id);
-            return el ? readable(el) : `(no #${id})`;
-          })
-          .join(" ");
-      // What assistive technology reads off the control that is described:
-      // its name — aria-labelledby, else a label for it or around it — and
-      // the text of the elements its aria-describedby names, which must exist.
-      const read = () =>
-        [...container.querySelectorAll("[aria-describedby]")].map((el) => {
-          const by = el.getAttribute("aria-labelledby");
-          const forIt = el.id
-            ? container.querySelector(`label[for="${CSS.escape(el.id)}"]`)
-            : null;
-          const labelEl = forIt ?? el.closest("label");
-          const name = by
-            ? texts(by)
-            : (el.getAttribute("aria-label") ??
-              (labelEl ? readable(labelEl) : "(no name)"));
-          return {
-            name,
-            description: texts(el.getAttribute("aria-describedby")!),
-            invalid: el.getAttribute("aria-invalid") === "true",
-            required: el.getAttribute("aria-required") === "true",
-          };
-        });
       // A set of choices is one group, named and described; a field, none.
       // (A library's decoration — MUI's notch is a fieldset — is aria-hidden.)
       const groups = () =>
@@ -401,6 +402,92 @@ export function describeConformance(impl: Implementation): void {
             ),
           ).toEqual(["true", "true"]);
       }
+    });
+
+    it("names a field by a label it does not draw (hideLabel)", () => {
+      const opts = [
+        { name: "Ay", value: "a" },
+        { name: "Bee", value: "b" },
+      ];
+      // Visually hidden: in the tree, clipped to nothing — by an inline style
+      // or a library's screen-reader-only class.
+      const clipped = (el: Element | null) => {
+        for (let e = el; e; e = e.parentElement) {
+          const st = (e as HTMLElement).style;
+          if (st?.clipPath === "inset(50%)" || /^rect\(0/.test(st?.clip ?? ""))
+            return true;
+          if (/\b(sr-only|visually-hidden|visuallyhidden)\b/.test(e.className.toString()))
+            return true;
+        }
+        return false;
+      };
+      const cases: [string, (c: Control<any>) => ReactNode][] = [
+        ["text", (c) => <TextField field={c} id="f" label="Text name" hideLabel required helpText="Help" />],
+        ["select", (c) => <SelectField field={c} id="f" label="Select name" hideLabel options={opts} required helpText="Help" />],
+        ["radio", (c) => <RadioField field={c} id="f" label="Radio name" hideLabel options={opts} required helpText="Help" />],
+        ["checkbox", (c) => <CheckboxField field={c} id="f" label="Check name" hideLabel required helpText="Help" />],
+        ["checklist", (c) => <CheckListField field={c} id="f" label="Checklist name" hideLabel options={opts} required helpText="Help" />],
+      ];
+      for (const [kind, ui] of cases) {
+        mount(ui(ctx.newControl<unknown>(undefined)));
+        const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace("Checkbox", "Check");
+        // Named exactly as with a drawn label, described the same.
+        expect([kind, read().map((r) => [r.name, r.description])]).toEqual([
+          kind,
+          [[label, kind === "checklist" ? "Required Help" : "Help"]],
+        ]);
+        // The label is there, under its id, and not drawn — and with it goes
+        // the required marker: nothing on screen reads the label's words.
+        const el = byId("f-label");
+        expect([kind, !!el, clipped(el)]).toEqual([kind, true, true]);
+        const drawn = [...container.querySelectorAll("*")].filter(
+          (e) =>
+            !clipped(e) &&
+            !e.closest('[aria-hidden="true"]') &&
+            [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent!.includes(label)),
+        );
+        expect([kind, drawn.length]).toEqual([kind, 0]);
+        act(() => root.render(null));
+      }
+    });
+
+    it("draws a display-only field's and a select's icons either side of the value", () => {
+      const v = ctx.newControl("12 Main St");
+      const s = ctx.newControl<string | undefined>("a");
+      mount(
+        <>
+          <DisplayOnlyField
+            field={v}
+            id="shown"
+            label="Address"
+            startIcon={<i data-icon="d-start" />}
+            endIcon={<i data-icon="d-end" />}
+          />
+          <SelectField
+            field={s}
+            id="chosen"
+            label="Choice"
+            options={options}
+            startIcon={<i data-icon="s-start" />}
+            endIcon={<i data-icon="s-end" />}
+          />
+        </>,
+      );
+      const icon = (name: string) => container.querySelector(`[data-icon="${name}"]`);
+      const before = (a: Node | null, b: Node | null) =>
+        !!a && !!b && !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      // The display's value as text, and the select's control: an icon on
+      // each side, in document order.
+      const value = [...container.querySelectorAll("*")]
+        .flatMap((e) => [...e.childNodes])
+        .find((n) => n.nodeType === 3 && n.textContent === "12 Main St")!;
+      const select = byId("chosen")!;
+      expect([
+        before(icon("d-start"), value),
+        before(value, icon("d-end")),
+        before(icon("s-start"), select),
+        before(select, icon("s-end")),
+      ]).toEqual([true, true, true, true]);
     });
 
     it("shows a character count as part of the field, describing the input", () => {
@@ -650,7 +737,7 @@ export function describeConformance(impl: Implementation): void {
       const dismissed = vi.fn();
       mount(
         <>
-          <Action actionId="openDetails" text="Open details" onClick={() => set(open, true)} />
+          <Action actionId="openDetails" text="Open details" onClick={() => void set(open, true)} />
           <Dialog open={open} onClose={dismissed} title="Details">
             <TextField field={inside} id="inside" required />
           </Dialog>

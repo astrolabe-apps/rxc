@@ -173,3 +173,47 @@ function Counted(): Rendered {
  * input's description; `{ format }` for words of the field's own.
  */
 export const CharacterCount: Story = { render: () => <Counted /> };
+
+function Identifiers(): Rendered {
+  const { rendered } = useReactive();
+  const data = useControl({
+    byEmail: false,
+    email: "",
+    byPhone: false,
+    phone: "",
+  });
+  const f = data.fields;
+  return rendered(
+    <>
+      {/* Only this group clears what it hides: the switch is the field's
+          words, so each input is named by a label it does not draw. */}
+      <Contents clearHidden>
+        <CheckboxField field={f.byEmail} label="Identify me by email" />
+        <TextField
+          field={f.email}
+          label="Email"
+          hideLabel
+          required
+          hidden={(rc) => !rc.getValue(f.byEmail)}
+        />
+        <CheckboxField field={f.byPhone} label="Identify me by phone" />
+        <TextField
+          field={f.phone}
+          label="Phone"
+          hideLabel
+          required
+          hidden={(rc) => !rc.getValue(f.byPhone)}
+        />
+      </Contents>
+      <CheckForm />
+      <Values control={data} />
+    </>,
+  );
+}
+
+/**
+ * `hideLabel`: each revealed input is named "Email" / "Phone" for assistive
+ * technology, with nothing drawn; and a group's `clearHidden` clears an
+ * identifier switched off, whatever the form says.
+ */
+export const HiddenLabel: Story = { render: () => <Identifiers /> };

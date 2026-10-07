@@ -545,11 +545,11 @@ Every contract item lands in all four implementations — html, MUI, Ant and Flu
 conformance case where it is a behaviour and a story where it is something to see. `rushx gates`
 runs before anything that touches the loader lands.
 
-- **Icons on display-only and select (T3).** `DisplayOnlyField` draws `startIcon` / `endIcon`
+- **Icons on display-only and select (T3). ✅** `DisplayOnlyField` draws `startIcon` / `endIcon`
   either side of the value; today every implementation drops them, and so does the JSON path,
   where the loader passes a `ControlStart` / `ControlEnd` `Icon` adornment on and the audit
   cannot see the loss. The select's icons, pending from phase 7, get the same answer.
-- **`hideLabel` on `FieldProps` (G4).** The label stays the field's accessible name and is not
+- **`hideLabel` on `FieldProps` (G4). ✅** The label stays the field's accessible name and is not
   drawn. The loader maps `hideTitle` onto it — today it drops the label, leaving the field with
   no name at all.
 - **`heading` on `TextDisplay` (G1).** A boolean, not a level: the display is drawn as a heading
@@ -562,7 +562,7 @@ runs before anything that touches the loader lands.
   error markers — and `useWizard()`, for code inside a page, hands out the same `next()` /
   `back()` the buttons use (the page's `check()`, async validators awaited, hidden pages
   skipped) plus `goTo(key)`, for an outcome a server call decides.
-- **`clearHidden` on `GroupProps` (G3).** It is already a `ScopeNarrowing`; groups pass it on.
+- **`clearHidden` on `GroupProps` (G3). ✅** It is already a `ScopeNarrowing`; groups pass it on.
 - **`helpPlacement: "below" | "labelEnd"` on `FieldProps` (G5).** Per field, because the JSON
   format chooses it per field (a `HelpText` adornment's `placement`), which a shell override
   could not express. How `labelEnd` is drawn is the implementation's. The loader stops dropping
@@ -574,7 +574,7 @@ runs before anything that touches the loader lands.
   adornment onto it.
 - **Icon classes on actions (T2).** html's theme gains `action.iconClassName` and a per-variant
   one, on a wrapper around the icon (or the busy spinner).
-- **`onClick: () => unknown` (G7).** The boundary only needs to know when it settles.
+- **`onClick: () => unknown` (G7). ✅** The boundary only needs to know when it settles.
 - **Docs.** Theme classes against an app's element CSS (T1); `transpilePackages` listing the
   engine packages under Next.js, in the compat README and in the duplicate-engine warning's
   text; `@rx-controls/react` as a direct dependency of a compat app writing v2 components; a

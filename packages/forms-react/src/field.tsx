@@ -103,6 +103,13 @@ export interface FieldProps<T> {
   /** The label. */
   label?: FormProp<ReactNode>;
   /**
+   * Keep the label as the field's accessible name, but do not draw it — for a
+   * field whose words are already on screen, such as a text input revealed
+   * under the switch that names it. The label is still required for a name:
+   * a field without one has none.
+   */
+  hideLabel?: FormProp<boolean>;
+  /**
    * Reject an empty value. A flag, never baked into `label`: the
    * implementation draws the marker, and the control carries
    * `aria-required`.
@@ -166,6 +173,8 @@ export interface FieldRenderProps<T> {
   id: string;
   /** The label. */
   label?: ReactNode;
+  /** The label names the control but is not drawn — see {@link FieldShellProps.hideLabel}. */
+  hideLabel?: boolean;
   /** Draw the required marker. */
   required: boolean;
   /**
@@ -342,6 +351,7 @@ export function fieldRenderer<T, P extends object = {}>(
       field: control,
       id,
       label: getProp(rc, props.label),
+      hideLabel: getProp(rc, props.hideLabel) || undefined,
       required,
       error: state.touched && own.length ? own[0] : undefined,
       helpText: getProp(rc, props.helpText),
