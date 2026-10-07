@@ -8,6 +8,7 @@ import {
 import {
   Button,
   Checkbox,
+  Collapse,
   ConfigProvider,
   Flex,
   Form,
@@ -57,6 +58,7 @@ import {
   type GroupRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
+  type DisclosureRenderProps,
   type TextFieldRenderProps,
   combineClass,
 } from "@rx-controls/forms-react";
@@ -951,6 +953,36 @@ function AntWizard(p: WizardRenderProps) {
   );
 }
 
+/**
+ * Ant's Collapse, one panel: its header is the toggle (`aria-expanded`), and
+ * as with the modal it must be told twice to keep a closed panel's content —
+ * `forceRender` mounts it before the first open, `destroyOnHidden={false}`
+ * keeps it after a close. `silent` needs both.
+ */
+function AntDisclosure(p: DisclosureRenderProps) {
+  const { token } = theme.useToken();
+  return (
+    <Collapse
+      className={mergeClass(undefined, p.className)}
+      style={p.hidden ? { display: "none" } : undefined}
+      activeKey={p.open ? ["panel"] : []}
+      onChange={(keys) => p.setOpen((Array.isArray(keys) ? keys : [keys]).length > 0)}
+      destroyOnHidden={false}
+      data-invalid={p.invalid ? "" : undefined}
+      items={[
+        {
+          key: "panel",
+          forceRender: true,
+          label: (
+            <span style={p.invalid ? { color: token.colorError } : undefined}>{p.title}</span>
+          ),
+          children: <div id={p.id}>{p.content}</div>,
+        },
+      ]}
+    />
+  );
+}
+
 /** `forceRender` mounts the body before first open; `destroyOnHidden={false}` keeps it. */
 function AntDialog(p: DialogRenderProps) {
   if (p.inline)
@@ -1014,6 +1046,7 @@ export const antdRenderers: FormRenderers = {
   inline: Inline,
   wizard: AntWizard,
   dialog: AntDialog,
+  disclosure: AntDisclosure,
   tabs: AntTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

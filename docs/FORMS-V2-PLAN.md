@@ -571,11 +571,17 @@ runs before anything that touches the loader lands.
   put the icon's name into the field's), Fluent its `InfoLabel` — always a button named Help
   outside the label element, the help still the control's description. The loader maps
   `LabelEnd` onto it.
-- **`Disclosure` (G6).** A container: a title, `defaultOpen`, an optional bound `open` control.
+- **`Disclosure` (G6). ✅** A container: a title, `defaultOpen`, an optional bound `open` control.
   Closed, its content is `silent` — mounted, validating, never cleared — as a closed dialog's is,
   and its header carries the `showingErrors` marker. A refused submit whose first field in error
   is inside a closed disclosure opens it before focusing. The loader translates the `Accordion`
-  adornment onto it.
+  adornment onto it — and the `Accordion` group render type, its `placement: "title"`
+  children the toggle and `expandStateField` binding open (burndown 582 → 544, with the stand-in
+  host now passing `LabelEnd` on). The reveal is
+  general: a validation scope may carry one, and `focusInvalid` reveals each enclosing scope
+  outside in, each after the one above has committed. html draws a native `<details>`; MUI its
+  Accordion; Ant a one-panel Collapse told twice to keep its content; Fluent from parts, since
+  its AccordionPanel unmounts a closed panel.
 - **Icon classes on actions (T2).** html's theme gains `action.iconClassName` and a per-variant
   one, on a wrapper around the icon (or the busy spinner).
 - **`onClick: () => unknown` (G7). ✅** The boundary only needs to know when it settles.

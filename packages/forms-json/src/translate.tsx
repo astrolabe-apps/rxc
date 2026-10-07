@@ -20,6 +20,7 @@ import {
   CheckListField,
   Contents,
   Dialog,
+  Disclosure,
   DisplayOnlyField,
   Elements,
   getProp,
@@ -234,6 +235,30 @@ const builtins: Builtin[] = [
         {def.actionStyle === "Group" && children.length ? children : undefined}
       </Action>
     ),
+  },
+  {
+    // Legacy's Accordion group: children with `placement: "title"` are the
+    // toggle, the rest the content; `expandStateField` binds open to a field
+    // of the data the group sits in, as legacy's schemaDataForFieldRef did.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Accordion",
+    renderTypes: ["Accordion"],
+    render: ({ def, props, children, resolveField }) => {
+      const placements = (def.children ?? []).map((c) => c.placement);
+      const title = children.filter((_, i) => placements[i] === "title");
+      const body = children.filter((_, i) => placements[i] !== "title");
+      const stateRef = str(def.groupOptions?.expandStateField);
+      return (
+        <Disclosure
+          title={title.length ? <>{title}</> : undefined}
+          defaultOpen={def.groupOptions?.defaultExpanded === true}
+          open={stateRef ? (resolveField(stateRef) as Control<boolean> | undefined) : undefined}
+          hidden={props.hidden}
+          className={props.className}
+        >
+          {body}
+        </Disclosure>
+      );
+    },
   },
   {
     // Legacy's Dialog group: children with `placement: "trigger"` render in
@@ -1197,6 +1222,8 @@ function warnUnhandled(
     if (a.type === "Tooltip" && def.type === "Display") continue;
     // HelpText on a data control is the `helpText` prop (buildProps).
     if (a.type === "HelpText" && def.type === "Data") continue;
+    // Accordion wraps any control in a Disclosure (translate).
+    if (a.type === "Accordion") continue;
     // Icon at a control's edge on a data control is startIcon / endIcon.
     if (
       a.type === "Icon" &&
@@ -1456,6 +1483,23 @@ export function translate(
         )
       : undefined;
 
+  // Legacy's Accordion adornment wraps the whole control in a disclosure —
+  // hidden with it, its title the toggle. Unless the host took it over.
+  const accordion = hostAdornments.has("Accordion")
+    ? undefined
+    : def.adornments?.find((a) => a.type === "Accordion");
+  const withAccordion = (n: ReactNode): ReactNode =>
+    accordion ? (
+      <Disclosure
+        title={str(accordion.title)}
+        defaultOpen={accordion.defaultExpanded === true}
+        hidden={props.hidden}
+      >
+        {n}
+      </Disclosure>
+    ) : (
+      n
+    );
   if (!t) {
     at({
       kind: "control",
@@ -1467,13 +1511,13 @@ export function translate(
               def.displayData?.type ? ` / ${def.displayData.type}` : ""
             }${def.renderOptions?.type ? ` / ${def.renderOptions.type}` : ""}`,
     });
-    const node = wrapHosted((opts.onUnsupported ?? defaultUnsupported)(def));
+    const node = wrapHosted(withAccordion((opts.onUnsupported ?? defaultUnsupported)(def)));
     warnUnread(asDef(rawDef), seen, at);
     return <TranslatedKey key={key}>{node}</TranslatedKey>;
   }
   const propReads = new Set<string>();
   const node = wrapHosted(
-    t.render({
+    withAccordion(t.render({
       def,
       schema,
       props: recordingProps(props, propReads),
@@ -1484,7 +1528,8 @@ export function translate(
       retranslate,
       dynamicValue,
       icon,
-    }),
+      resolveField: (r) => resolveRef(scope, r)?.control,
+    })),
   );
   warnUnread(asDef(rawDef), seen, at);
   warnDropped(props, propReads, asDef(rawDef), at);

@@ -4,6 +4,7 @@ import { untrackedRead, type Control } from "@rx-controls/core";
 import { useControl } from "@rx-controls/react";
 import {
   Dialog,
+  Disclosure,
   DisplayOnlyField,
   Form,
   FormProvider,
@@ -50,6 +51,7 @@ function mount(ui: ReactNode, form: FormOpts = {}) {
 }
 const $ = <E extends Element = HTMLElement>(sel: string) =>
   dom.container.querySelector(sel) as E | null;
+const $$ = (sel: string) => [...dom.container.querySelectorAll(sel)];
 const click = (sel: string) => act(() => $<HTMLButtonElement>(sel)!.click());
 const set = <T,>(c: Control<T>, v: T) =>
   act(() => dom.ctx.update((wc) => wc.setValue(c, v)));
@@ -460,6 +462,64 @@ describe("Wizard: useWizard", () => {
 
   it("throws outside a wizard", () => {
     expect(() => mount(<Grab />)).toThrow(/inside a <Wizard>/);
+  });
+});
+
+describe("Disclosure", () => {
+  it("binds open to a control, and opens for design mode without writing it", () => {
+    const open = dom.ctx.newControl(false);
+    mount(
+      <Disclosure title="More" open={open}>
+        <TextField field={dom.ctx.newControl("")} id="in" />
+      </Disclosure>,
+    );
+    expect($("[data-disclosure]")!.hasAttribute("data-open")).toBe(false);
+    click("[data-toggle]");
+    expect(rc.getValue(open)).toBe(true);
+    set(open, false);
+    expect($("[data-disclosure]")!.hasAttribute("data-open")).toBe(false);
+    mount(
+      <Disclosure title="More" open={open}>
+        <TextField field={dom.ctx.newControl("")} id="in" />
+      </Disclosure>,
+      { designMode: true },
+    );
+    expect($("[data-disclosure]")!.hasAttribute("data-open")).toBe(true);
+    click("[data-toggle]");
+    expect(rc.getValue(open)).toBe(false);
+  });
+
+  it("touches its content when it closes, so the toggle can say what was left", () => {
+    const c = dom.ctx.newControl("");
+    mount(
+      <Disclosure title="More" defaultOpen>
+        <TextField field={c} id="in" required />
+      </Disclosure>,
+    );
+    expect(marked("[data-disclosure]")).toBe(false);
+    click("[data-toggle]");
+    expect([rc.isTouched(c), marked("[data-disclosure]")]).toEqual([true, true]);
+  });
+
+  it("reveals nested disclosures outside in before focusing a refused field", async () => {
+    const c = dom.ctx.newControl("");
+    mount(
+      <Disclosure title="Outer">
+        <Disclosure title="Inner">
+          <TextField field={c} id="deep" required />
+        </Disclosure>
+      </Disclosure>,
+    );
+    const focused: string[] = [];
+    // The test renderer's input is the widget's own element; record focus.
+    $("#deep")!.addEventListener("focus", () => focused.push("deep"));
+    dom.ctx.update((wc) => wc.setTouched(c, true));
+    // The field publishes no focus target in the test renderer, so give it one.
+    dom.ctx.update(() => void (c.meta.element = $("#deep")));
+    await act(async () => void root.focusInvalid());
+    await flush();
+    const open = $$("[data-disclosure]").map((d) => d.hasAttribute("data-open"));
+    expect([open, focused]).toEqual([[true, true], ["deep"]]);
   });
 });
 

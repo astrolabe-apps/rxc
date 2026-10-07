@@ -6,6 +6,7 @@ import {
   type ActionRenderProps,
   type CollectionRenderProps,
   type DialogRenderProps,
+  type DisclosureRenderProps,
   type TabsRenderProps,
   type WizardRenderProps,
   type DisplayRenderProps,
@@ -188,6 +189,20 @@ function Dialog(p: DialogRenderProps) {
   );
 }
 
+/** Content always mounted; closed hides it. */
+function Disclosure(p: DisclosureRenderProps) {
+  return (
+    <div data-disclosure data-open={p.open ? "" : undefined} data-invalid={p.invalid ? "" : undefined}>
+      <button type="button" data-toggle aria-expanded={p.open} aria-controls={p.id} onClick={() => p.setOpen(!p.open)}>
+        {p.title}
+      </button>
+      <div id={p.id} hidden={!p.open || undefined}>
+        {p.content}
+      </div>
+    </div>
+  );
+}
+
 const Nothing = () => null;
 
 export const testRenderers: FormRenderers = {
@@ -206,6 +221,7 @@ export const testRenderers: FormRenderers = {
   tabs: Tabs,
   wizard: Wizard,
   dialog: Dialog,
+  disclosure: Disclosure,
   elements: Elements,
   fieldShell: ({ children }) => <>{children}</>,
   inputFrame: Nothing,

@@ -62,6 +62,19 @@ export interface ValidationScopeImpl extends ValidationScope {
   attach(): () => void;
   /** The focus targets of the fields inside showing an error, in member order. */
   invalidTargets(): FocusTarget[];
+  /**
+   * The same, each with the child scopes between this one and the field —
+   * outermost first — so `focusInvalid` can reveal each on the way down.
+   */
+  invalidPaths(): { target: FocusTarget; path: ValidationScopeImpl[] }[];
+  /**
+   * Set by a container whose closed content cannot take focus — a
+   * disclosure. Asked to show its content before a refused submit focuses a
+   * field inside: returns `false` when it already shows (go on at once), or
+   * opens and returns `true`, promising to call `then` once the opened
+   * content has committed.
+   */
+  reveal?: (then: () => void) => boolean;
 }
 
 function isFocusTarget(v: unknown): v is FocusTarget {
@@ -180,22 +193,34 @@ export function createValidationScope(
             wc.setTouched(touch, true);
         }
       }),
-    invalidTargets: () => {
-      const out: FocusTarget[] = [];
+    invalidTargets: () => scope.invalidPaths().map((p) => p.target),
+    invalidPaths: () => {
+      const out: { target: FocusTarget; path: ValidationScopeImpl[] }[] = [];
       for (const { judge, touch } of members.values()) {
         const child = scopeOfGroup.get(touch);
-        if (child) out.push(...child.invalidTargets());
+        if (child)
+          for (const p of child.invalidPaths())
+            out.push({ target: p.target, path: [child, ...p.path] });
         else if (!untrackedRead.isValid(judge) && untrackedRead.isTouched(touch)) {
           const el = touch.meta.element;
-          if (isFocusTarget(el)) out.push(el);
+          if (isFocusTarget(el)) out.push({ target: el, path: [] });
         }
       }
       return out;
     },
     focusInvalid: () => {
-      const first = scope.invalidTargets().sort(documentOrder)[0];
-      first?.focus();
-      return first !== undefined;
+      const first = scope
+        .invalidPaths()
+        .sort((a, b) => documentOrder(a.target, b.target))[0];
+      if (!first) return false;
+      // Reveal each enclosing container that hides its content — outermost
+      // first, each after the one above has committed — then focus.
+      const step = (i: number): void => {
+        if (i === first.path.length) return void first.target.focus();
+        if (!first.path[i]!.reveal?.(() => step(i + 1))) step(i + 1);
+      };
+      step(0);
+      return true;
     },
     check: async () => {
       await scope.settled();

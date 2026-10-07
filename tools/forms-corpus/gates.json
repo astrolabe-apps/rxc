@@ -1,4 +1,8 @@
 {
-  "burndown": { "warnings": 582 },
-  "parity": { "runs": 144 }
+  "burndown": {
+    "warnings": 544
+  },
+  "parity": {
+    "runs": 144
+  }
 }

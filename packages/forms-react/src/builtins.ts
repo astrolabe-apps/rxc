@@ -3,7 +3,12 @@ import type { ReadContext } from "@rx-controls/core";
 import type { Rendered } from "@rx-controls/react";
 import type { ActionProps } from "./action.js";
 import type { CollectionProps } from "./collection.js";
-import type { DialogProps, TabsProps, WizardProps } from "./containers.js";
+import type {
+  DialogProps,
+  DisclosureProps,
+  TabsProps,
+  WizardProps,
+} from "./containers.js";
 import type {
   DisplayProps,
   HtmlDisplayExtra,
@@ -23,7 +28,12 @@ import type {
 } from "./widgets.js";
 import { actionRenderer } from "./action.js";
 import { collectionRenderer } from "./collection.js";
-import { dialogRenderer, tabsRenderer, wizardRenderer } from "./containers.js";
+import {
+  dialogRenderer,
+  disclosureRenderer,
+  tabsRenderer,
+  wizardRenderer,
+} from "./containers.js";
 import { displayRenderer } from "./display.js";
 import { fieldRenderer } from "./field.js";
 import { groupRenderer } from "./group.js";
@@ -196,6 +206,15 @@ export const Wizard: ComponentType<WizardProps> =
  */
 export const Dialog: ComponentType<DialogProps> =
   dialogRenderer({ key: "dialog" });
+
+/**
+ * A title that shows or hides its content. Closed is `silent`, as a closed
+ * dialog is; a refused submit opens it to focus a field inside.
+ *
+ * @group Authoring
+ */
+export const Disclosure: ComponentType<DisclosureProps> =
+  disclosureRenderer({ key: "disclosure" });
 
 /**
  * A button.

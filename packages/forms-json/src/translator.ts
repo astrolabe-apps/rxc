@@ -102,6 +102,13 @@ export interface TranslateArgs {
   dynamicValue: (type: string) => FormProp<unknown> | undefined;
   /** How icons are drawn: the host's {@link LoaderOptions.icon}, or the default. */
   icon: IconTranslator;
+  /**
+   * The control a field reference names, resolved as the definition's own
+   * `field` is — against the data the definition sits in — for a property
+   * that binds a second value, such as an accordion's `expandStateField`.
+   * `undefined` for a reference that walks off the data.
+   */
+  resolveField: (ref: string) => Control<any> | undefined;
 }
 
 /**

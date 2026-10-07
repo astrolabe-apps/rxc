@@ -9,6 +9,7 @@ import type { ActionRenderProps } from "./action.js";
 import type { CollectionRenderProps } from "./collection.js";
 import type {
   DialogRenderProps,
+  DisclosureRenderProps,
   TabsRenderProps,
   WizardRenderProps,
 } from "./containers.js";
@@ -76,6 +77,8 @@ export interface FormRenderers {
   wizard: ComponentType<WizardRenderProps>;
   /** {@link Dialog}. */
   dialog: ComponentType<DialogRenderProps>;
+  /** {@link Disclosure}. */
+  disclosure: ComponentType<DisclosureRenderProps>;
   /** {@link Elements}: the chrome-less collection. */
   elements: ComponentType<CollectionRenderProps<any>>;
   /** The field shell, reused by every field. */

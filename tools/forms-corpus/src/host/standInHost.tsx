@@ -236,6 +236,8 @@ export const standInHost: LoaderOptions = {
                   text={field<string>(a, "helpText")}
                 />
               ),
+              helpPlacement:
+                field<string>(a, "placement") === "LabelEnd" ? "labelEnd" : undefined,
             }
           : undefined,
     },

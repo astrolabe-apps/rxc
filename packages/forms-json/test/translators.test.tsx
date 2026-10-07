@@ -836,6 +836,55 @@ describe("adornments", () => {
     expect(text()).toContain("Some help.");
   });
 
+  it("wraps a control with an Accordion adornment in a disclosure, its title the toggle", () => {
+    const { warnings } = h.load(
+      [
+        {
+          type: "Display",
+          title: "How to find this?",
+          displayData: { type: "Text", text: "On the back of your card." },
+          adornments: [{ type: "Accordion", title: "How to find this", defaultExpanded: false }],
+        },
+      ],
+      [],
+      {},
+    );
+    expect(warnings).toEqual([]);
+    const details = $<HTMLDetailsElement>("details");
+    expect([details.querySelector("summary")!.textContent, details.open]).toEqual([
+      "How to find this",
+      false,
+    ]);
+    // Closed, the content is mounted.
+    expect(text()).toContain("On the back of your card.");
+  });
+
+  it("draws an Accordion group: title children as the toggle, open bound by expandStateField", () => {
+    const { warnings, data } = h.load(
+      [
+        {
+          type: "Group",
+          title: "Browse",
+          groupOptions: { type: "Accordion", hideTitle: true, expandStateField: "expanded" },
+          children: [
+            { type: "Display", placement: "title", displayData: { type: "Text", text: "Other services" } },
+            { type: "Data", field: "name" },
+          ],
+        },
+      ],
+      [{ field: "expanded", type: "Bool" }, str("name", { displayName: "Name" })],
+      { expanded: true, name: "" },
+    );
+    expect(warnings).toEqual([]);
+    const details = $<HTMLDetailsElement>("details");
+    expect([details.querySelector("summary")!.textContent, details.open]).toEqual([
+      "Other services",
+      true,
+    ]);
+    act(() => details.querySelector("summary")!.click());
+    expect([details.open, rc.getValue(data.fields.expanded)]).toEqual([false, false]);
+  });
+
   it("reports an adornment nothing handles", () => {
     const { warnings } = h.load(
       [{ type: "Data", field: "a", adornments: [{ type: "Spotlight", index: 1 }] }],

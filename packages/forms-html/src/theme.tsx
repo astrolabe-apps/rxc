@@ -348,6 +348,17 @@ export interface HtmlTheme {
     /** The button row. */
     actions: string;
   };
+  /** The disclosure: a native `<details>`. */
+  disclosure: {
+    /** The `<details>`. */
+    className: string;
+    /** The `<summary>` — the toggle. */
+    summary: string;
+    /** Around the content. */
+    content: string;
+    /** On the toggle while a touched field inside shows an error. */
+    invalidMarker: string;
+  };
 }
 
 /**
@@ -514,6 +525,12 @@ export const defaultHtmlTheme: HtmlTheme = {
     inline: "rxf-modal-inline",
     title: "rxf-modal-title",
     actions: "rxf-row",
+  },
+  disclosure: {
+    className: "rxf-disclosure",
+    summary: "rxf-disclosure-summary",
+    content: "rxf-disclosure-content",
+    invalidMarker: "rxf-disclosure-dot",
   },
 };
 
@@ -710,6 +727,12 @@ export const tailwindHtmlTheme: HtmlTheme = {
       "rxf-modal-inline rounded-lg border border-dashed border-gray-400 p-3",
     title: "rxf-modal-title mb-3 block font-semibold",
     actions: "rxf-row flex justify-end gap-2",
+  },
+  disclosure: {
+    className: "rxf-disclosure",
+    summary: "rxf-disclosure-summary cursor-pointer select-none font-medium text-gray-700",
+    content: "rxf-disclosure-content mt-2",
+    invalidMarker: "rxf-disclosure-dot ml-1 text-[9px] text-red-600",
   },
 };
 

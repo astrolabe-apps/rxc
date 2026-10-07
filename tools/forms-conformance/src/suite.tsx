@@ -14,6 +14,7 @@ import {
   Contents,
   DisplayOnlyField,
   Dialog,
+  Disclosure,
   Elements,
   Form,
   FormProvider,
@@ -953,6 +954,61 @@ export function describeConformance(impl: Implementation): void {
       expect(
         cases.map(([k, c]) => [k, typeof (c.meta.element as { focus?: unknown } | undefined)?.focus]),
       ).toEqual(cases.map(([k]) => [k, "function"]));
+    });
+
+    it("keeps a closed disclosure's content mounted and validating, and opens it to focus a refused field", async () => {
+      const where = ctx.newControl("");
+      function Submitting() {
+        validation = useFormValidation();
+        return (
+          <Form validation={validation} onSubmit={() => {}}>
+            <Disclosure title="How to find this">
+              <TextField field={where} id="where" label="Where" required />
+            </Disclosure>
+            <Action actionId="save" text="Save" submit variant="primary" />
+          </Form>
+        );
+      }
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {(impl.wrap ?? ((t: ReactNode) => t))(
+              <FormProvider renderers={impl.renderers}>
+                <Submitting />
+              </FormProvider>,
+            )}
+          </ControlContextProvider>,
+        ),
+      );
+      // The toggle: the element naming it that says whether it is expanded —
+      // aria-expanded, or a native <summary>, whose <details> says.
+      const toggle = () =>
+        [...document.querySelectorAll("summary, [aria-expanded]")].find((e) =>
+          e.textContent?.includes("How to find this"),
+        ) as HTMLElement;
+      const expanded = () => {
+        const t = toggle();
+        return t.tagName === "SUMMARY"
+          ? (t.parentElement as HTMLDetailsElement).open
+          : t.getAttribute("aria-expanded") === "true";
+      };
+      // Closed: the field is there, and still refuses the form.
+      expect([expanded(), !!byId("where"), await act(() => validation.check())]).toEqual([
+        false,
+        true,
+        false,
+      ]);
+      // The toggle opens and closes it, the field the same node throughout.
+      const input = byId("where");
+      click(toggle());
+      expect(expanded()).toBe(true);
+      click(toggle());
+      expect([expanded(), byId("where")]).toEqual([false, input]);
+      // A refused submit opens it, then focuses the field inside.
+      click(buttonNamed("Save")!);
+      await flush();
+      await flush();
+      expect([expanded(), document.activeElement?.id]).toEqual([true, "where"]);
     });
 
     it("focuses the first field in error, in document order, when a submit is refused", async () => {

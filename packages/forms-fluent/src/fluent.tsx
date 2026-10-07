@@ -78,6 +78,7 @@ import {
   type GroupRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
+  type DisclosureRenderProps,
   type TextFieldRenderProps,
   combineClass,
 } from "@rx-controls/forms-react";
@@ -968,6 +969,39 @@ function FluentWizard(p: WizardRenderProps) {
 }
 
 /**
+ * Built from parts: Fluent's AccordionPanel unmounts a closed panel, which
+ * would stop its fields validating. A subtle Button is the toggle
+ * (`aria-expanded`, `aria-controls`), and the region is `hidden` while
+ * closed — mounted, which is what `silent` needs.
+ */
+function FluentDisclosure(p: DisclosureRenderProps) {
+  return (
+    <div
+      className={mergeClass(undefined, p.className)}
+      style={p.hidden ? { display: "none" } : undefined}
+      data-invalid={p.invalid ? "" : undefined}
+    >
+      <Button
+        appearance="transparent"
+        aria-expanded={p.open}
+        aria-controls={p.id}
+        icon={<span aria-hidden="true">{p.open ? "\u25BE" : "\u25B8"}</span>}
+        style={{
+          paddingInline: 0,
+          ...(p.invalid ? { color: tokens.colorStatusDangerForeground1 } : {}),
+        }}
+        onClick={() => p.setOpen(!p.open)}
+      >
+        {p.title}
+      </Button>
+      <div id={p.id} hidden={!p.open || undefined} style={{ paddingTop: tokens.spacingVerticalS }}>
+        {p.content}
+      </div>
+    </div>
+  );
+}
+
+/**
  * `unmountOnClose={false}` keeps the body mounted, which `silent` needs — but
  * Fluent hides a closed surface only with opacity and `aria-hidden`, so a
  * control inside could still take focus, invisible. The closed surface is
@@ -1084,6 +1118,7 @@ export const fluentRenderers: FormRenderers = {
   inline: Inline,
   wizard: FluentWizard,
   dialog: FluentDialog,
+  disclosure: FluentDisclosure,
   tabs: FluentTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

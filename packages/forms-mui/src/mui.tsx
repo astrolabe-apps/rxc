@@ -19,6 +19,9 @@ import InputAdornment from "@mui/material/InputAdornment";
 import InputLabel from "@mui/material/InputLabel";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Box from "@mui/material/Box";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Button from "@mui/material/Button";
@@ -78,6 +81,7 @@ import {
   type GroupRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
+  type DisclosureRenderProps,
   type TextFieldRenderProps,
   combineClass,
 } from "@rx-controls/forms-react";
@@ -965,6 +969,36 @@ function MuiWizard(p: WizardRenderProps) {
   );
 }
 
+/**
+ * MUI's Accordion: its summary is the toggle (a button with `aria-expanded`),
+ * and a collapsed panel stays mounted, its Collapse hiding it — `silent`
+ * needs that.
+ */
+function MuiDisclosure(p: DisclosureRenderProps) {
+  return (
+    <Accordion
+      expanded={p.open}
+      onChange={(_, v) => p.setOpen(v)}
+      disableGutters
+      className={mergeClass(undefined, p.className)}
+      sx={p.hidden ? { display: "none" } : undefined}
+      data-invalid={p.invalid ? "" : undefined}
+    >
+      <AccordionSummary
+        aria-controls={p.id}
+        id={`${p.id}-toggle`}
+        // MUI's own chevron is in @mui/icons-material, not a dependency here.
+        expandIcon={<span aria-hidden="true">{"\u25BE"}</span>}
+      >
+        <Typography component="span" color={p.invalid ? "error" : undefined}>
+          {p.title}
+        </Typography>
+      </AccordionSummary>
+      <AccordionDetails id={p.id}>{p.content}</AccordionDetails>
+    </Accordion>
+  );
+}
+
 /** `keepMounted`: the closed dialog stays in the DOM, hidden — `silent` needs that. */
 function MuiDialogImpl(p: DialogRenderProps) {
   if (p.inline)
@@ -1019,6 +1053,7 @@ export const muiRenderers: FormRenderers = {
   inline: Inline,
   wizard: MuiWizard,
   dialog: MuiDialogImpl,
+  disclosure: MuiDisclosure,
   tabs: MuiTabs,
   elements: ElementsList,
   visibility: DefaultVisibility,

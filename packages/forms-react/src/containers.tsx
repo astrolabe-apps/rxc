@@ -2,6 +2,8 @@ import {
   createContext,
   useContext,
   useEffect,
+  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   type ComponentType,
@@ -732,4 +734,160 @@ export function dialogRenderer(
     source as ComponentType<never>,
   );
   return DialogBoundary;
+}
+
+/**
+ * A title that shows or hides its content — a "how to find this", an
+ * optional section. Closed, the content is `silent`, as a closed dialog's
+ * is: mounted, still validating, never cleared, so a required field inside a
+ * disclosure nobody opened still refuses the submit — and that submit opens
+ * it to focus the field. Closing it touches the content, as leaving a tab
+ * does. In design mode it shows its content.
+ *
+ * @group Authoring
+ */
+export interface DisclosureProps {
+  /** What the toggle says. */
+  title: FormProp<ReactNode>;
+  /** Open at first. Default closed. Ignored when `open` is bound. */
+  defaultOpen?: boolean;
+  /** Where open lives, when the author or the data owns it. */
+  open?: Control<boolean>;
+  /** Hide it, toggle and content. */
+  hidden?: FormProp<boolean | undefined>;
+  /** Lock the content. The toggle still opens and closes. */
+  disabled?: FormProp<boolean>;
+  /** Make the content read-only. */
+  readOnly?: FormProp<boolean>;
+  /** The outer element. */
+  className?: FormProp<ClassValue>;
+  /** Its name in the validation tree. */
+  validationKey?: string;
+  /** The content. */
+  children: ReactNode;
+}
+
+/**
+ * What a disclosure implementation receives: a toggle — a button with
+ * `aria-expanded`, controlling the region under `id` — and the content,
+ * always rendered, in one parent that never changes, off screen while
+ * closed so a closed disclosure still validates.
+ *
+ * @group Implementations
+ */
+export interface DisclosureRenderProps {
+  /** The region's id, for the toggle's `aria-controls`. */
+  id: string;
+  /** What the toggle says. */
+  title?: ReactNode;
+  /** Show the content. Always `true` in design mode. */
+  open: boolean;
+  /** Open or close it — the toggle's job. */
+  setOpen(open: boolean): void;
+  /** The content, already scoped. Always rendered. */
+  content: ReactNode;
+  /**
+   * A touched field inside is showing an error — so the toggle can say so
+   * while the content is closed. Closing touches the content.
+   */
+  invalid: boolean;
+  /** Hide the whole disclosure, without unmounting it. */
+  hidden: boolean;
+  /** The outer element. */
+  className?: ClassValue;
+}
+
+/**
+ * What a disclosure boundary draws with.
+ *
+ * @group Extensions
+ */
+export type DisclosureImplSource =
+  | ComponentType<DisclosureRenderProps>
+  | RegistrySlot;
+
+/** `useLayoutEffect` on the client, `useEffect` on the server. */
+const useCommitEffect =
+  typeof document !== "undefined" ? useLayoutEffect : useEffect;
+
+/**
+ * Build a disclosure component.
+ *
+ * @group Extensions
+ */
+export function disclosureRenderer(
+  source: DisclosureImplSource,
+): ComponentType<DisclosureProps> {
+  function DisclosureBoundary(props: DisclosureProps): Rendered {
+    const { rc, rendered, update } = useReactive();
+    const renderers = useRenderers();
+    const scope = useBoundScope(props);
+    const id = useId();
+    const internal = useControl(props.defaultOpen ?? false);
+    const openControl = props.open ?? internal;
+    const inline = scope.designMode;
+    // A bound value not yet set reads closed.
+    const open = inline || !!rc.getValue(openControl);
+    // Closed is `silent`: the content validates, and clearHidden leaves it.
+    const presence: Presence = open ? "rendered" : "silent";
+    const validation = useChildValidationScope(
+      useValidationScope(),
+      "disclosure",
+      props.validationKey,
+    );
+    const contentScope = useMemo(
+      () => narrowScope(scope, { presence: () => presence }),
+      [scope, presence],
+    );
+    useTouchOnLeave(
+      open,
+      (wasOpen) => {
+        if (wasOpen) validation.touchAll();
+      },
+      lockedHere(scope, rc),
+    );
+    const setOpen = (v: boolean) => update((wc) => wc.setValue(openControl, v));
+    // A refused submit focusing a field inside: open first, and hand the
+    // focus on once the opened content has committed.
+    const pendingReveal = useRef<(() => void) | undefined>(undefined);
+    const latest = useRef({ open, setOpen });
+    latest.current = { open, setOpen };
+    useEffect(() => {
+      validation.reveal = (then) => {
+        if (latest.current.open) return false;
+        pendingReveal.current = then;
+        latest.current.setOpen(true);
+        return true;
+      };
+      return () => {
+        validation.reveal = undefined;
+      };
+    }, [validation]);
+    useCommitEffect(() => {
+      if (!open || !pendingReveal.current) return;
+      const then = pendingReveal.current;
+      pendingReveal.current = undefined;
+      then();
+    }, [open]);
+
+    const Impl = resolveImpl(source as ComponentType<never>, renderers);
+    const renderProps: DisclosureRenderProps = {
+      id,
+      title: getProp(rc, props.title),
+      open,
+      setOpen: (v) => {
+        if (!inline) setOpen(v);
+      },
+      content: panel(contentScope, validation, props.children),
+      invalid: validation.showingErrors(rc),
+      hidden: scope.presence(rc) !== "rendered",
+      className: getProp(rc, props.className),
+    };
+    return rendered(<Impl {...renderProps} />);
+  }
+  DisclosureBoundary.displayName = boundaryName(
+    "DisclosureBoundary",
+    source as ComponentType<never>,
+  );
+  return DisclosureBoundary;
 }

@@ -42,6 +42,7 @@ import {
   type TabsRenderProps,
   type WizardRenderProps,
   type DialogRenderProps,
+  type DisclosureRenderProps,
   type TextFieldRenderProps,
   type GroupRenderProps,
   type CollectionRenderProps,
@@ -887,6 +888,47 @@ function HtmlWizard(p: WizardRenderProps) {
 }
 
 /**
+ * A native `<details>`: the browser's own disclosure — the summary is the
+ * toggle, announced expanded or collapsed, and find-in-page opens it. Open
+ * is the boundary's: the summary's click is taken over so the element never
+ * disagrees with the state, and a toggle the browser makes itself (that
+ * find-in-page) is reported back. Closed, the UA hides the content, mounted,
+ * which is what `silent` needs.
+ */
+function HtmlDisclosure(p: DisclosureRenderProps) {
+  const t = useHtmlTheme().disclosure;
+  return (
+    <details
+      className={mergeClass(t.className, p.className)}
+      open={p.open}
+      onToggle={(e) => {
+        if (e.currentTarget.open !== p.open) p.setOpen(e.currentTarget.open);
+      }}
+      data-invalid={p.invalid ? "" : undefined}
+      style={p.hidden ? { display: "none" } : undefined}
+    >
+      <summary
+        className={t.summary}
+        onClick={(e) => {
+          e.preventDefault();
+          p.setOpen(!p.open);
+        }}
+      >
+        {p.title}
+        {p.invalid && (
+          <span className={t.invalidMarker} aria-hidden="true">
+            {"\u25CF"}
+          </span>
+        )}
+      </summary>
+      <div id={p.id} className={t.content}>
+        {p.content}
+      </div>
+    </details>
+  );
+}
+
+/**
  * A native `<dialog>`. `showModal()`/`close()` are driven from an effect and
  * the content is always its child, so opening never moves it — and while
  * closed the UA hides it, mounted, which is what `silent` needs.
@@ -998,6 +1040,7 @@ export const htmlRenderers: FormRenderers = {
   inline: HtmlInline,
   wizard: HtmlWizard,
   dialog: HtmlDialog,
+  disclosure: HtmlDisclosure,
   tabs: HtmlTabs,
   elements: HtmlElements,
   visibility: HtmlVisibility,

@@ -22,7 +22,8 @@ export type ValidationScopeKind =
   | "tab"
   | "wizard"
   | "page"
-  | "dialog";
+  | "dialog"
+  | "disclosure";
 
 /**
  * One region's validity: a form, a section, a tab, a wizard page, a dialog.
