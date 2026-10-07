@@ -1,6 +1,13 @@
 # Change Log - @rx-controls/core
 
-This log was last generated on Thu, 01 Oct 2026 07:08:33 GMT and should not be manually modified.
+This log was last generated on Wed, 07 Oct 2026 07:01:06 GMT and should not be manually modified.
+
+## 1.1.3
+Wed, 07 Oct 2026 07:01:06 GMT
+
+### Patches
+
+- getTrackedValue's proxy tracks existence and enumeration checks (in, hasOwnProperty, Object.keys) the way it tracks reads. jsonata 2.2 checks hasOwnProperty before reading a key, so an expression over a key the data did not have yet never subscribed to it and never re-ran once the key was added.
 
 ## 1.1.2
 Thu, 01 Oct 2026 07:08:33 GMT

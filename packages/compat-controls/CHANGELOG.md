@@ -1,6 +1,13 @@
 # Change Log - @react-typed-forms/core
 
-This log was last generated on Thu, 01 Oct 2026 07:08:33 GMT and should not be manually modified.
+This log was last generated on Wed, 07 Oct 2026 07:01:06 GMT and should not be manually modified.
+
+## 5.1.3
+Wed, 07 Oct 2026 07:01:06 GMT
+
+### Patches
+
+- trackedValue's proxy tracks existence and enumeration checks (in, hasOwnProperty, Object.keys) the way it tracks reads. jsonata 2.2 checks hasOwnProperty before reading a key, so a legacy jsonata expression over a key the data did not have yet (e.g. a Visible of `docs.attend != null`) never re-ran once the key was added. Consumers can drop a jsonata ~2.1 pin.
 
 ## 5.1.2
 Thu, 01 Oct 2026 07:08:33 GMT

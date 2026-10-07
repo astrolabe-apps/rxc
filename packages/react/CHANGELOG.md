@@ -1,6 +1,11 @@
 # Change Log - @rx-controls/react
 
-This log was last generated on Thu, 01 Oct 2026 07:08:33 GMT and should not be manually modified.
+This log was last generated on Wed, 07 Oct 2026 07:01:06 GMT and should not be manually modified.
+
+## 1.1.3
+Wed, 07 Oct 2026 07:01:06 GMT
+
+_Version update only_
 
 ## 1.1.2
 Thu, 01 Oct 2026 07:08:33 GMT
