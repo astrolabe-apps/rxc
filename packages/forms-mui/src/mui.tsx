@@ -549,10 +549,23 @@ function MuiAction(p: ActionRenderProps) {
  * `h2` is 60px — which is MUI's own convention: the variant for the look, the
  * element (here a `role="heading"` at the outline's level) for the meaning.
  */
+/** A heading's type at an outline level: a group title's, and a heading display's. */
+function useHeadingType(level: number) {
+  const t = useTheme();
+  const type = level <= 2 ? t.typography.h6 : t.typography.subtitle1;
+  return {
+    fontFamily: type.fontFamily,
+    fontSize: type.fontSize,
+    lineHeight: type.lineHeight,
+    letterSpacing: type.letterSpacing,
+    fontWeight: t.typography.fontWeightMedium,
+    color: t.palette.text.primary,
+  };
+}
+
 function MuiContents(p: GroupRenderProps) {
   const t = useTheme();
-  const top = (p.headingLevel ?? 2) <= 2;
-  const type = top ? t.typography.h6 : t.typography.subtitle1;
+  const heading = useHeadingType(p.headingLevel ?? 2);
   return (
     <ContentsRegion
       {...p}
@@ -563,15 +576,7 @@ function MuiContents(p: GroupRenderProps) {
         flexDirection: "column",
         gap: t.spacing(1),
       }}
-      titleStyle={{
-        fontFamily: type.fontFamily,
-        fontSize: type.fontSize,
-        lineHeight: type.lineHeight,
-        letterSpacing: type.letterSpacing,
-        fontWeight: t.typography.fontWeightMedium,
-        color: t.palette.text.primary,
-        marginBottom: t.spacing(1),
-      }}
+      titleStyle={{ ...heading, marginBottom: t.spacing(1) }}
     />
   );
 }
@@ -585,6 +590,9 @@ function MuiText(p: TextDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const content = getProp(rc, p.text) ?? p.children;
+  // A heading by role, in a group title's type at this level.
+  const heading = !p.inline && !!getProp(rc, p.heading);
+  const headingType = useHeadingType(p.headingLevel);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -596,8 +604,15 @@ function MuiText(p: TextDisplayRenderProps) {
     >
       <Typography
         variant="body2"
-        component={p.inline ? "span" : "p"}
+        component={p.inline ? "span" : heading ? "div" : "p"}
         className={mergeClass(undefined, p.className)}
+        {...(heading
+          ? {
+              role: "heading",
+              "aria-level": p.headingLevel,
+              sx: { ...headingType, ...(p.tone ? { color: "inherit" } : {}) },
+            }
+          : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
           {content}
@@ -850,20 +865,24 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
 }
 
 function MuiWizard(p: WizardRenderProps) {
+  // `none`: the pages only — the host's own actions move the wizard.
+  const nav = p.navigation === "builtin";
   const shown = p.items.filter((i) => !i.hidden);
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
       {/* The stepper counts the shown pages only. */}
-      <Stepper
-        activeStep={shown.findIndex((i) => i.key === p.items[p.index]?.key)}
-        sx={{ mb: 2 }}
-      >
-        {shown.map((i) => (
-          <Step key={i.key}>
-            <StepLabel error={i.invalid}>{i.title}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+      {nav && (
+        <Stepper
+          activeStep={shown.findIndex((i) => i.key === p.items[p.index]?.key)}
+          sx={{ mb: 2 }}
+        >
+          {shown.map((i) => (
+            <Step key={i.key}>
+              <StepLabel error={i.invalid}>{i.title}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+      )}
       {/* Every page rendered: an unreached one is `silent`, not absent. */}
       {p.items.map((i) => (
         <div
@@ -876,22 +895,24 @@ function MuiWizard(p: WizardRenderProps) {
           {i.content}
         </div>
       ))}
-      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
-        <Action
-          actionId={StandardActionIds.back}
-          text="Back"
-          variant="secondary"
-          disabled={!p.canBack}
-          onClick={p.back}
-        />
-        <Action
-          actionId={StandardActionIds.next}
-          text="Next"
-          variant="primary"
-          disabled={!p.canNext}
-          onClick={p.next}
-        />
-      </Stack>
+      {nav && (
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+          <Action
+            actionId={StandardActionIds.back}
+            text="Back"
+            variant="secondary"
+            disabled={!p.canBack}
+            onClick={p.back}
+          />
+          <Action
+            actionId={StandardActionIds.next}
+            text="Next"
+            variant="primary"
+            disabled={!p.canNext}
+            onClick={p.next}
+          />
+        </Stack>
+      )}
     </div>
   );
 }

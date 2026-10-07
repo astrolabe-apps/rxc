@@ -254,6 +254,17 @@ export interface HtmlTheme {
     className: string;
     /** Inside an inline group. */
     inline: string;
+    /**
+     * Drawn as a heading (`heading`): `className` on every one, and the
+     * level's class beside it — the level the form's outline gives the
+     * place, 1 to 6. In place of the block `className`, not added to it.
+     */
+    heading: {
+      /** On every heading. */
+      className: string;
+      /** Beside it, by the heading's level. */
+      levels: Record<1 | 2 | 3 | 4 | 5 | 6, string>;
+    };
   };
   /** The HTML display. */
   html: {
@@ -436,7 +447,21 @@ export const defaultHtmlTheme: HtmlTheme = {
       success: "rxf-message rxf-tone-success",
     },
   },
-  text: { className: "rxf-text", inline: "rxf-text" },
+  text: {
+    className: "rxf-text",
+    inline: "rxf-text",
+    heading: {
+      className: "rxf-heading",
+      levels: {
+        1: "rxf-heading-1",
+        2: "rxf-heading-2",
+        3: "rxf-heading-3",
+        4: "rxf-heading-4",
+        5: "rxf-heading-5",
+        6: "rxf-heading-6",
+      },
+    },
+  },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
   action: {
@@ -589,7 +614,23 @@ export const tailwindHtmlTheme: HtmlTheme = {
       success: "rxf-message rxf-tone-success text-green-700",
     },
   },
-  text: { className: "rxf-text m-0", inline: "rxf-text" },
+  text: {
+    className: "rxf-text m-0",
+    inline: "rxf-text",
+    heading: {
+      // A group title's look at every level, as the group titles have: a
+      // heading's rank is the outline's, and sizes per level are the app's.
+      className: "rxf-heading m-0 font-bold",
+      levels: {
+        1: "rxf-heading-1",
+        2: "rxf-heading-2",
+        3: "rxf-heading-3",
+        4: "rxf-heading-4",
+        5: "rxf-heading-5",
+        6: "rxf-heading-6",
+      },
+    },
+  },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
   // action.buttonClass, over the standard palette in place of `primary-500`.

@@ -552,11 +552,12 @@ runs before anything that touches the loader lands.
 - **`hideLabel` on `FieldProps` (G4). ✅** The label stays the field's accessible name and is not
   drawn. The loader maps `hideTitle` onto it — today it drops the label, leaving the field with
   no name at all.
-- **`heading` on `TextDisplay` (G1).** A boolean, not a level: the display is drawn as a heading
+- **`heading` on `TextDisplay` (G1). ✅** A boolean, not a level: the display is drawn as a heading
   at the level a titled group's title would take where it sits, so heading structure still
-  follows nesting and no author picks a number. A theme slot per level under html; the type
-  scale the section titles already use under MUI, Ant and Fluent.
-- **Host-driven wizards (G2).** `WizardProps.navigation: "none"` draws no step strip and no
+  follows nesting and no author picks a number. A theme slot per level under html (bold at every level in the Tailwind
+  theme, as its group titles are: sizes per level are the app's); a group title's type at the
+  same level under MUI, Ant and Fluent.
+- **Host-driven wizards (G2). ✅** `WizardProps.navigation: "none"` draws no step strip and no
   Back / Next. Everything else stays the wizard's — one page at a time from the bound index,
   every page mounted and validating, hidden pages skipped, a page left touched, visited and
   error markers — and `useWizard()`, for code inside a page, hands out the same `next()` /

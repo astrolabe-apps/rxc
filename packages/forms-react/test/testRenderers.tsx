@@ -154,7 +154,7 @@ function Tabs(p: TabsRenderProps) {
 
 function Wizard(p: WizardRenderProps) {
   return (
-    <div data-wizard data-index={p.index}>
+    <div data-wizard data-index={p.index} data-navigation={p.navigation}>
       {p.items.map((i) => (
         <section
           key={i.key}

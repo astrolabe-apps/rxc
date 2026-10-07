@@ -22,12 +22,14 @@ import {
   combineClass,
   type GroupRenderProps,
   HtmlDisplay,
+  InlineGroup,
   RadioField,
   SelectField,
   Tabs,
   TextDisplay,
   TextField,
   useFormValidation,
+  useWizard,
   Wizard,
   type FormRenderers,
   type ValidationScope,
@@ -569,6 +571,30 @@ export function describeConformance(impl: Implementation): void {
       ]);
     });
 
+    it("draws a heading display at the outline's level, as a group title there would be", () => {
+      mount(
+        <>
+          <TextDisplay text="Page title" heading />
+          <Contents title="Section">
+            <TextDisplay text="Card title" heading />
+            <TextDisplay text="Body text" />
+          </Contents>
+          <InlineGroup>
+            <TextDisplay text="In prose" heading />
+          </InlineGroup>
+        </>,
+      );
+      const headings = [...container.querySelectorAll('[role="heading"], h1, h2, h3, h4, h5, h6')].map(
+        (h) => [h.textContent?.trim(), h.getAttribute("aria-level") ?? h.tagName.slice(1)],
+      );
+      // Never in prose: an inline group's text stays text.
+      expect(headings).toEqual([
+        ["Page title", "2"],
+        ["Section", "2"],
+        ["Card title", "3"],
+      ]);
+    });
+
     it("unmounts a hidden field's widget", () => {
       mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
       expect(byId("gone")).toBeNull();
@@ -783,6 +809,63 @@ export function describeConformance(impl: Implementation): void {
       click(buttonNamed("Next")!);
       await flush();
       expect(rc.getValue(page)).toBe(1);
+    });
+
+    it("draws only the pages of a wizard with no navigation, moved by its pages' own actions", async () => {
+      const name = ctx.newControl("");
+      const results: boolean[] = [];
+      function Continue() {
+        const wizard = useWizard();
+        return (
+          <Action
+            actionId="continue"
+            text="Continue"
+            onClick={async () => void results.push(await wizard.next())}
+          />
+        );
+      }
+      function Finish() {
+        const wizard = useWizard();
+        return <Action actionId="finish" text="Finish" onClick={() => wizard.goTo("done")} />;
+      }
+      mount(
+        <Wizard
+          navigation="none"
+          items={[
+            {
+              key: "who",
+              title: "Who step",
+              children: (
+                <>
+                  <TextField field={name} id="w" label="Name" required />
+                  <Continue />
+                </>
+              ),
+            },
+            { key: "check", title: "Check step", children: <Finish /> },
+            { key: "skipped", title: "Skipped step", children: <TextDisplay text="never" /> },
+            { key: "done", title: "Done step", children: <TextDisplay text="all done" /> },
+          ]}
+        />,
+      );
+      // No strip, no Back / Next: the step titles are drawn nowhere.
+      expect([buttonNamed("Next"), buttonNamed("Back"), text().includes("Who step")]).toEqual([
+        undefined,
+        undefined,
+        false,
+      ]);
+      // The page's own action is the gate: refused while the page fails.
+      click(buttonNamed("Continue")!);
+      await flush();
+      expect([results, onScreen(byId("w"))]).toEqual([[false], true]);
+      set(name, "Ada");
+      click(buttonNamed("Continue")!);
+      await flush();
+      expect([results, onScreen(buttonNamed("Finish"))]).toEqual([[false, true], true]);
+      // An outcome the host decided: straight to it, unchecked.
+      click(buttonNamed("Finish")!);
+      await flush();
+      expect(onScreen([...document.querySelectorAll("p, span, div")].find((e) => e.textContent === "all done"))).toBe(true);
     });
 
     it("submits a form through its submit action, and through the form element's own submit", async () => {

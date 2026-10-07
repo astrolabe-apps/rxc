@@ -3,6 +3,7 @@ import type { ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   Action,
+  Contents,
   DisplayOnlyField,
   HtmlDisplay,
   IconDisplay,
@@ -23,6 +24,23 @@ export default meta;
 type Story = StoryObj<DisplayArgs>;
 
 export const Text: Story = { render: (a) => <TextDisplay text={a.text} /> };
+
+/**
+ * `heading`: drawn as a heading at the level the outline gives the place —
+ * a page title at the top, a card title one below the section around it.
+ */
+export const Heading: Story = {
+  render: () => (
+    <Contents>
+      <TextDisplay text="Confirm your details" heading />
+      <TextDisplay text="We use these to find your licence." />
+      <Contents title="Postal address">
+        <TextDisplay text="Is this still right?" heading />
+        <TextDisplay text="12 Main St, Hobart" />
+      </Contents>
+    </Contents>
+  ),
+};
 
 export const Html: Story = {
   render: () => (

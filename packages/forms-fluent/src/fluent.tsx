@@ -759,6 +759,8 @@ function toneStyle(tone: Tone | undefined): CSSProperties | undefined {
 function FluentText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const content = getProp(rc, p.text) ?? p.children;
+  // A heading by role, in a group title's type at this level.
+  const heading = !p.inline && !!getProp(rc, p.heading);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -771,7 +773,17 @@ function FluentText(p: TextDisplayRenderProps) {
       <Text
         className={mergeClass(undefined, p.className)}
         // Fluent's Text sets its own colour; inherit the shell's tone.
-        style={p.tone ? { color: "inherit" } : undefined}
+        style={{
+          ...(heading
+            ? {
+                display: "block",
+                ...(p.headingLevel <= 2 ? typographyStyles.subtitle1 : typographyStyles.subtitle2),
+                color: tokens.colorNeutralForeground1,
+              }
+            : {}),
+          ...(p.tone ? { color: "inherit" } : {}),
+        }}
+        {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
           {content}
@@ -847,37 +859,41 @@ const useCommitEffect =
 
 /** v9 has no stepper: the header is a list of the shown pages. */
 function FluentWizard(p: WizardRenderProps) {
+  // `none`: the pages only — the host's own actions move the wizard.
+  const nav = p.navigation === "builtin";
   const shown = p.items.map((i, n) => ({ i, n })).filter(({ i }) => !i.hidden);
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
-      <ol
-        style={{
-          display: "flex",
-          gap: tokens.spacingHorizontalS,
-          listStyle: "none",
-          padding: 0,
-          margin: `0 0 ${tokens.spacingVerticalL}`,
-        }}
-      >
-        {shown.map(({ i, n }, step) => (
-          <li key={i.key} data-active={n === p.index ? "" : undefined}>
-            <Button
-              appearance={n === p.index ? "primary" : "subtle"}
-              size="small"
-              aria-current={n === p.index ? "step" : undefined}
-              data-invalid={i.invalid ? "" : undefined}
-              style={
-                i.invalid && n !== p.index
-                  ? { color: tokens.colorStatusDangerForeground1 }
-                  : undefined
-              }
-              onClick={() => p.goTo(n)}
-            >
-              {step + 1}. {i.title}
-            </Button>
-          </li>
-        ))}
-      </ol>
+      {nav && (
+        <ol
+          style={{
+            display: "flex",
+            gap: tokens.spacingHorizontalS,
+            listStyle: "none",
+            padding: 0,
+            margin: `0 0 ${tokens.spacingVerticalL}`,
+          }}
+        >
+          {shown.map(({ i, n }, step) => (
+            <li key={i.key} data-active={n === p.index ? "" : undefined}>
+              <Button
+                appearance={n === p.index ? "primary" : "subtle"}
+                size="small"
+                aria-current={n === p.index ? "step" : undefined}
+                data-invalid={i.invalid ? "" : undefined}
+                style={
+                  i.invalid && n !== p.index
+                    ? { color: tokens.colorStatusDangerForeground1 }
+                    : undefined
+                }
+                onClick={() => p.goTo(n)}
+              >
+                {step + 1}. {i.title}
+              </Button>
+            </li>
+          ))}
+        </ol>
+      )}
       {/* Every page rendered: an unreached one is `silent`, not absent. */}
       {p.items.map((i) => (
         <div
@@ -890,22 +906,24 @@ function FluentWizard(p: WizardRenderProps) {
           {i.content}
         </div>
       ))}
-      <div style={{ display: "flex", gap: tokens.spacingHorizontalS, marginTop: tokens.spacingVerticalM }}>
-        <Action
-          actionId={StandardActionIds.back}
-          text="Back"
-          variant="secondary"
-          disabled={!p.canBack}
-          onClick={p.back}
-        />
-        <Action
-          actionId={StandardActionIds.next}
-          text="Next"
-          variant="primary"
-          disabled={!p.canNext}
-          onClick={p.next}
-        />
-      </div>
+      {nav && (
+        <div style={{ display: "flex", gap: tokens.spacingHorizontalS, marginTop: tokens.spacingVerticalM }}>
+          <Action
+            actionId={StandardActionIds.back}
+            text="Back"
+            variant="secondary"
+            disabled={!p.canBack}
+            onClick={p.back}
+          />
+          <Action
+            actionId={StandardActionIds.next}
+            text="Next"
+            variant="primary"
+            disabled={!p.canNext}
+            onClick={p.next}
+          />
+        </div>
+      )}
     </div>
   );
 }

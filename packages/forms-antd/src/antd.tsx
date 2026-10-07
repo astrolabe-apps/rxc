@@ -577,6 +577,24 @@ function AntAction(p: ActionRenderProps) {
 
 /** A tone's colour from Ant's theme tokens, inherited by the text inside. */
 /**
+ * A heading's type at an outline level, from the tokens: a group title's, and
+ * a heading display's. Ant sets its font per component, not on the page.
+ */
+function headingStyle(
+  token: ReturnType<typeof theme.useToken>["token"],
+  level: number,
+): CSSProperties {
+  const top = level <= 2;
+  return {
+    fontFamily: token.fontFamily,
+    color: token.colorTextHeading,
+    fontWeight: token.fontWeightStrong,
+    fontSize: top ? token.fontSizeHeading4 : token.fontSizeHeading5,
+    lineHeight: top ? token.lineHeightHeading4 : token.lineHeightHeading5,
+  };
+}
+
+/**
  * A titled group: the shared region, its title set in Ant's heading type from
  * theme tokens. Not `Typography.Title` itself, which draws an h-element; the
  * heading's level is the outline's, by role. Sized for a form section rather
@@ -585,7 +603,6 @@ function AntAction(p: ActionRenderProps) {
  */
 function AntContents(p: GroupRenderProps) {
   const { token } = theme.useToken();
-  const top = (p.headingLevel ?? 2) <= 2;
   return (
     <ContentsRegion
       {...p}
@@ -597,12 +614,7 @@ function AntContents(p: GroupRenderProps) {
         gap: token.marginSM,
       }}
       titleStyle={{
-        // Ant sets its font per component, not on the page.
-        fontFamily: token.fontFamily,
-        color: token.colorTextHeading,
-        fontWeight: token.fontWeightStrong,
-        fontSize: top ? token.fontSizeHeading4 : token.fontSizeHeading5,
-        lineHeight: top ? token.lineHeightHeading4 : token.lineHeightHeading5,
+        ...headingStyle(token, p.headingLevel ?? 2),
         marginBottom: token.marginXS,
       }}
     />
@@ -624,7 +636,10 @@ function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
 function AntText(p: TextDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const { token } = theme.useToken();
   const content = getProp(rc, p.text) ?? p.children;
+  // A heading by role, in a group title's type at this level.
+  const heading = !p.inline && !!getProp(rc, p.heading);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -637,7 +652,11 @@ function AntText(p: TextDisplayRenderProps) {
       <Typography.Text
         className={mergeClass(undefined, p.className)}
         // Ant's Typography sets its own colour; inherit the shell's tone.
-        style={p.tone ? { color: "inherit" } : undefined}
+        style={{
+          ...(heading ? { display: "block", ...headingStyle(token, p.headingLevel) } : {}),
+          ...(p.tone ? { color: "inherit" } : {}),
+        }}
+        {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
           {content}
@@ -830,19 +849,23 @@ function AntRadio(p: RadioRenderProps): Rendered {
 }
 
 function AntWizard(p: WizardRenderProps) {
+  // `none`: the pages only — the host's own actions move the wizard.
+  const nav = p.navigation === "builtin";
   const shown = p.items.map((i, n) => ({ i, n })).filter(({ i }) => !i.hidden);
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
       {/* Steps over the shown pages; Ant reports a step by its position. */}
-      <Steps
-        current={shown.findIndex((s) => s.n === p.index)}
-        style={{ marginBottom: 16 }}
-        onChange={(step) => p.goTo(shown[step]!.n)}
-        items={shown.map(({ i }) => ({
-          title: i.title,
-          status: i.invalid ? "error" : undefined,
-        }))}
-      />
+      {nav && (
+        <Steps
+          current={shown.findIndex((s) => s.n === p.index)}
+          style={{ marginBottom: 16 }}
+          onChange={(step) => p.goTo(shown[step]!.n)}
+          items={shown.map(({ i }) => ({
+            title: i.title,
+            status: i.invalid ? "error" : undefined,
+          }))}
+        />
+      )}
       {/* Every page rendered: an unreached one is `silent`, not absent. */}
       {p.items.map((i) => (
         <div
@@ -855,22 +878,24 @@ function AntWizard(p: WizardRenderProps) {
           {i.content}
         </div>
       ))}
-      <Flex gap={8} style={{ marginTop: 12 }}>
-        <Action
-          actionId={StandardActionIds.back}
-          text="Back"
-          variant="secondary"
-          disabled={!p.canBack}
-          onClick={p.back}
-        />
-        <Action
-          actionId={StandardActionIds.next}
-          text="Next"
-          variant="primary"
-          disabled={!p.canNext}
-          onClick={p.next}
-        />
-      </Flex>
+      {nav && (
+        <Flex gap={8} style={{ marginTop: 12 }}>
+          <Action
+            actionId={StandardActionIds.back}
+            text="Back"
+            variant="secondary"
+            disabled={!p.canBack}
+            onClick={p.back}
+          />
+          <Action
+            actionId={StandardActionIds.next}
+            text="Next"
+            variant="primary"
+            disabled={!p.canNext}
+            onClick={p.next}
+          />
+        </Flex>
+      )}
     </div>
   );
 }

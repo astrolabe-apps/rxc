@@ -1,4 +1,6 @@
 import {
+  createContext,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -333,6 +335,15 @@ export interface WizardProps {
    * or deep-linked; absent, it is component state.
    */
   page?: Control<number | undefined>;
+  /**
+   * Who moves between pages. `builtin` (the default): the implementation
+   * draws the step strip and Back / Next. `none`: it draws neither, and the
+   * pages' own actions move it — through {@link useWizard}, or by writing a
+   * bound `page`. Everything else is the wizard's either way: one page at a
+   * time, every page mounted and validating, hidden pages skipped, a page
+   * left touched.
+   */
+  navigation?: "builtin" | "none";
   /** Hide the wizard. */
   hidden?: FormProp<boolean | undefined>;
   /** Lock every page. */
@@ -406,10 +417,61 @@ export interface WizardRenderProps {
   goTo(index: number): void;
   /** Design mode: show every page at once. */
   stacked: boolean;
+  /**
+   * `builtin`: draw the step strip and Back / Next. `none`: draw only the
+   * pages — the host's own actions move the wizard.
+   */
+  navigation: "builtin" | "none";
   /** Hide the whole wizard, without unmounting it. */
   hidden: boolean;
   /** The outer element. */
   className?: ClassValue;
+}
+
+/**
+ * The nearest wizard, for code inside its pages — a host-driven wizard's
+ * own actions ({@link WizardProps.navigation} `none`), or any page that
+ * wants to move it. The methods always act on the wizard as it is now, so a
+ * handler holding them across an `await` moves from the current page, not
+ * the one it started on.
+ *
+ * @group Authoring
+ */
+export interface WizardController {
+  /** The current page's key. */
+  page: string | undefined;
+  /** There is a shown page before this one. */
+  canBack: boolean;
+  /** There is a shown page after this one. */
+  canNext: boolean;
+  /**
+   * What the built-in Next does: the page's {@link ValidationScope.check} —
+   * its asynchronous validators awaited, its fields touched if a rule fails
+   * — then the next shown page if it passed. Resolves to whether it passed,
+   * so an action can go on to its server call only then.
+   */
+  next(): Promise<boolean>;
+  /** Go back to the previous shown page. */
+  back(): void;
+  /**
+   * Go to a page by key, unchecked — for an outcome the host decided, such
+   * as a server call's. The page left is touched, as on any move. Does
+   * nothing for a hidden page or an unknown key.
+   */
+  goTo(key: string): void;
+}
+
+const WizardContext = createContext<WizardController | undefined>(undefined);
+
+/**
+ * The nearest {@link WizardController}. Throws outside a wizard.
+ *
+ * @group Authoring
+ */
+export function useWizard(): WizardController {
+  const w = useContext(WizardContext);
+  if (!w) throw new Error("useWizard() must be called inside a <Wizard>'s page");
+  return w;
 }
 
 /**
@@ -483,6 +545,36 @@ export function wizardRenderer(
       lockedHere(scope, rc),
     );
 
+    // The page's gate — the same `check()` a form's submit is.
+    const checkedNext = async () => {
+      const current = items[index];
+      if (!current) return false;
+      const passed = await scopes.get(current.key)!.check();
+      if (passed) goTo(after(index));
+      return passed;
+    };
+    // The controller's methods read the latest render's, so one captured
+    // before an await still moves from where the wizard is now.
+    const latest = useRef({ checkedNext, goTo, back: () => goTo(before(index)), keys });
+    latest.current = { checkedNext, goTo, back: () => goTo(before(index)), keys };
+    const pageKey = keys[index];
+    const canBack = before(index) !== undefined;
+    const canNext = after(index) !== undefined;
+    const controller = useMemo<WizardController>(
+      () => ({
+        page: pageKey,
+        canBack,
+        canNext,
+        next: () => latest.current.checkedNext(),
+        back: () => latest.current.back(),
+        goTo: (key) => {
+          const i = latest.current.keys.indexOf(key);
+          if (i >= 0) latest.current.goTo(i);
+        },
+      }),
+      [pageKey, canBack, canNext],
+    );
+
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const renderProps: WizardRenderProps = {
       items: items.map((item, i) => ({
@@ -495,20 +587,21 @@ export function wizardRenderer(
         content: panel(panels.get(item.key)!, scopes.get(item.key)!, item.children),
       })),
       index,
-      canBack: before(index) !== undefined,
-      canNext: after(index) !== undefined,
-      // The page's gate — the same `check()` a form's submit is.
-      next: async () => {
-        const current = items[index];
-        if (current && (await scopes.get(current.key)!.check())) goTo(after(index));
-      },
+      canBack,
+      canNext,
+      next: async () => void (await checkedNext()),
       back: () => goTo(before(index)),
       goTo,
       stacked,
+      navigation: props.navigation ?? "builtin",
       hidden: scope.presence(rc) !== "rendered",
       className: getProp(rc, props.className),
     };
-    return rendered(<Impl {...renderProps} />);
+    return rendered(
+      <WizardContext.Provider value={controller}>
+        <Impl {...renderProps} />
+      </WizardContext.Provider>,
+    );
   }
   WizardBoundary.displayName = boundaryName(
     "WizardBoundary",

@@ -102,16 +102,30 @@ export interface DisplayRenderProps {
   regionOnly?: boolean;
   /** Content, for a display that takes it. */
   children?: ReactNode;
+  /**
+   * The level a heading drawn here takes — the same a titled group's title
+   * would take in this place (see {@link ScopeState.headingLevel}). For a
+   * display that is drawn as a heading, such as a `TextDisplay` with
+   * `heading`.
+   */
+  headingLevel: number;
 }
 
 /**
- * {@link TextDisplay}'s own prop.
+ * {@link TextDisplay}'s own props.
  *
  * @group Authoring
  */
 export interface TextDisplayExtra {
   /** The text. */
   text?: FormProp<ReactNode>;
+  /**
+   * Draw the text as a heading — a page's own title, a card's — at the level
+   * the form's outline gives this place: one below the titled group it sits
+   * in, as a group title there would be. No author picks a number, so the
+   * headings stay an outline as the form is rearranged.
+   */
+  heading?: FormProp<boolean>;
 }
 
 /**
@@ -197,6 +211,7 @@ export function displayRenderer<P extends object = {}>(
       announce,
       regionOnly: announce && presence === "hidden" ? true : undefined,
       children: props.children,
+      headingLevel: scope.headingLevel,
     };
     const impl = (
       <Impl {...renderProps} {...extraProps(props, displayContractKeys)} />

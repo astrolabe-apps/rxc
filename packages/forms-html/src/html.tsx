@@ -621,7 +621,12 @@ function HtmlAction(p: ActionRenderProps) {
 function HtmlText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const { displayShell, text: t } = useHtmlTheme();
-  const Tag = p.inline ? "span" : "p";
+  // A heading by role, as a group's title is: the level is the outline's,
+  // and an h-element's user-agent margins would restyle every theme. Never
+  // in prose.
+  const heading = !p.inline && !!getProp(rc, p.heading);
+  const level = Math.min(Math.max(p.headingLevel, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6;
+  const Tag = p.inline ? "span" : heading ? "div" : "p";
   const content = getProp(rc, p.text) ?? p.children;
   // Three slots, three elements: wrapper, element, text.
   return rendered(
@@ -634,7 +639,15 @@ function HtmlText(p: TextDisplayRenderProps) {
       classes={displayShell}
     >
       <Tag
-        className={mergeClass(p.inline ? t.inline : t.className, p.className)}
+        className={mergeClass(
+          p.inline
+            ? t.inline
+            : heading
+              ? `${t.heading.className} ${t.heading.levels[level]}`.trim()
+              : t.className,
+          p.className,
+        )}
+        {...(heading ? { role: "heading", "aria-level": level } : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
           {content}
@@ -766,26 +779,30 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
 
 function HtmlWizard(p: WizardRenderProps) {
   const t = useHtmlTheme().wizard;
+  // `none`: the pages only — the host's own actions move the wizard.
+  const nav = p.navigation === "builtin";
   return (
     <div style={p.hidden ? { display: "none" } : undefined}>
-      <ol className={t.steps}>
-        {/* Steps over the shown pages only, numbered among themselves. */}
-        {p.items
-          .map((i, n) => ({ i, n }))
-          .filter(({ i }) => !i.hidden)
-          .map(({ i, n }, step) => (
-            <li
-              key={i.key}
-              className={t.step}
-              data-active={n === p.index ? "" : undefined}
-              data-invalid={i.invalid ? "" : undefined}
-            >
-              <button type="button" onClick={() => p.goTo(n)}>
-                {step + 1}. {i.title}
-              </button>
-            </li>
-          ))}
-      </ol>
+      {nav && (
+        <ol className={t.steps}>
+          {/* Steps over the shown pages only, numbered among themselves. */}
+          {p.items
+            .map((i, n) => ({ i, n }))
+            .filter(({ i }) => !i.hidden)
+            .map(({ i, n }, step) => (
+              <li
+                key={i.key}
+                className={t.step}
+                data-active={n === p.index ? "" : undefined}
+                data-invalid={i.invalid ? "" : undefined}
+              >
+                <button type="button" onClick={() => p.goTo(n)}>
+                  {step + 1}. {i.title}
+                </button>
+              </li>
+            ))}
+        </ol>
+      )}
       {/* Every page rendered: an unreached one is `silent`, not absent. */}
       {p.items.map((i) => (
         <div
@@ -797,22 +814,24 @@ function HtmlWizard(p: WizardRenderProps) {
           {i.content}
         </div>
       ))}
-      <div className={t.nav} style={{ marginTop: 12 }}>
-        <Action
-          actionId={StandardActionIds.back}
-          text="Back"
-          variant="secondary"
-          disabled={!p.canBack}
-          onClick={p.back}
-        />
-        <Action
-          actionId={StandardActionIds.next}
-          text="Next"
-          variant="primary"
-          disabled={!p.canNext}
-          onClick={p.next}
-        />
-      </div>
+      {nav && (
+        <div className={t.nav} style={{ marginTop: 12 }}>
+          <Action
+            actionId={StandardActionIds.back}
+            text="Back"
+            variant="secondary"
+            disabled={!p.canBack}
+            onClick={p.back}
+          />
+          <Action
+            actionId={StandardActionIds.next}
+            text="Next"
+            variant="primary"
+            disabled={!p.canNext}
+            onClick={p.next}
+          />
+        </div>
+      )}
     </div>
   );
 }

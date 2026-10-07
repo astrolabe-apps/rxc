@@ -15,8 +15,10 @@ import {
   useFormValidation,
   useSelectController,
   useTextInput,
+  useWizard,
   Wizard,
   type FieldOption,
+  type WizardController,
   type OptionValue,
   type ValidationScope,
 } from "../src/index";
@@ -396,6 +398,68 @@ describe("Wizard: a hidden page", () => {
     set(hide, true);
     expect(index()).toBe("0");
     expect($<HTMLButtonElement>("[data-next]")!.disabled).toBe(true);
+  });
+});
+
+describe("Wizard: useWizard", () => {
+  let wizard!: WizardController;
+  function Grab() {
+    wizard = useWizard();
+    return null;
+  }
+
+  it("moves from where the wizard is now, for a controller held across an await", async () => {
+    const page = dom.ctx.newControl<number | undefined>(0);
+    mount(
+      <Wizard
+        page={page}
+        items={[
+          { key: "a", title: "A", children: <Grab /> },
+          { key: "b", title: "B", children: null },
+          { key: "c", title: "C", children: null },
+        ]}
+      />,
+    );
+    const held = wizard;
+    // The wizard moves while a handler is awaiting (a server call, say).
+    set(page, 1);
+    await act(async () => void (await held.next()));
+    expect(rc.getValue(page)).toBe(2);
+    act(() => held.back());
+    expect(rc.getValue(page)).toBe(1);
+    // The render-time facts follow too, on the current controller.
+    expect([wizard.page, wizard.canBack, wizard.canNext]).toEqual(["b", true, true]);
+  });
+
+  it("goes to a page by key, and not to a hidden or unknown one", () => {
+    const page = dom.ctx.newControl<number | undefined>(0);
+    mount(
+      <Wizard
+        navigation="none"
+        page={page}
+        items={[
+          { key: "a", title: "A", children: <Grab /> },
+          { key: "b", title: "B", hidden: true, children: null },
+          { key: "c", title: "C", children: null },
+        ]}
+      />,
+    );
+    act(() => wizard.goTo("b"));
+    act(() => wizard.goTo("nope"));
+    expect(rc.getValue(page)).toBe(0);
+    act(() => wizard.goTo("c"));
+    expect(rc.getValue(page)).toBe(2);
+  });
+
+  it("hands the implementation its navigation, builtin by default", () => {
+    mount(<Wizard items={[{ key: "a", title: "A", children: null }]} />);
+    expect($("[data-wizard]")!.getAttribute("data-navigation")).toBe("builtin");
+    mount(<Wizard navigation="none" items={[{ key: "a", title: "A", children: null }]} />);
+    expect($("[data-wizard]")!.getAttribute("data-navigation")).toBe("none");
+  });
+
+  it("throws outside a wizard", () => {
+    expect(() => mount(<Grab />)).toThrow(/inside a <Wizard>/);
   });
 });
 
