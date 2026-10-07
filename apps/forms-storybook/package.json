@@ -13,9 +13,11 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fluentui/react-components": "^9.74.9",
     "@mui/material": "^9.4.0",
     "@rx-controls/core": "workspace:^",
     "@rx-controls/forms-antd": "workspace:^",
+    "@rx-controls/forms-fluent": "workspace:^",
     "@rx-controls/forms-html": "workspace:^",
     "@rx-controls/forms-mui": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",

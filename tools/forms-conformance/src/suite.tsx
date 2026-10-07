@@ -133,6 +133,15 @@ export function describeConformance(impl: Implementation): void {
       ) as HTMLButtonElement | undefined;
     const set = <T,>(c: Control<T>, v: T) =>
       act(() => ctx.update((wc) => wc.setValue(c, v)));
+    /** Out of the Tab order: inert, hidden, in a closed `<dialog>`, or not drawn. */
+    const outOfReach = (el: Element) => {
+      if (el.closest("[inert], [hidden], dialog:not([open])")) return true;
+      for (let n: Element | null = el; n; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if (cs.display === "none" || cs.visibility === "hidden") return true;
+      }
+      return false;
+    };
     const click = (el: Element) => act(() => (el as HTMLElement).click());
     const type = (el: HTMLInputElement | HTMLTextAreaElement, value: string) => {
       const proto =
@@ -177,6 +186,11 @@ export function describeConformance(impl: Implementation): void {
       expect(text()).not.toContain("Please enter a value");
       blur(byId("name")!);
       expect(text()).toContain("Please enter a value");
+      // Read through the control's description, not announced on its own: a
+      // live region per invalid field would talk over the form's own
+      // (Fluent's Field makes its message an alert unless told not to).
+      const error = document.getElementById(byId("name")!.getAttribute("aria-describedby")!)!;
+      expect(error.closest('[role="alert"], [role="status"], [aria-live]')).toBeNull();
     });
 
     it("locks a field in a disabled form", () => {
@@ -213,7 +227,13 @@ export function describeConformance(impl: Implementation): void {
       );
       const box = (name: string) =>
         [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
-          (i) => (i.closest("label")?.textContent ?? "").includes(name),
+          // Its label: around it, or one `for` it (Fluent's is a sibling).
+          (i) =>
+            (
+              (i.id
+                ? container.querySelector(`label[for="${CSS.escape(i.id)}"]`)
+                : null) ?? i.closest("label")
+            )?.textContent?.includes(name),
         )!;
       click(box("Bee"));
       click(box("Ay"));
@@ -538,6 +558,32 @@ export function describeConformance(impl: Implementation): void {
       expect(rc.getValue(b)).toBe("");
     });
 
+    it("wires each tab to its panel, and the panel back to its tab", () => {
+      mount(
+        <Tabs
+          items={[
+            { key: "one", title: "First", children: <TextField field={ctx.newControl("")} id="a" /> },
+            { key: "two", title: "Second", children: <TextField field={ctx.newControl("")} id="b" /> },
+          ]}
+        />,
+      );
+      // A strip whose library draws no panels (MUI's, Fluent's) leaves this
+      // wiring to the implementation, and nothing else would notice it absent.
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      expect(tabs).toHaveLength(2);
+      for (const [tab, field] of [
+        [tabs[0]!, "a"],
+        [tabs[1]!, "b"],
+      ] as const) {
+        const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
+        expect([panel?.getAttribute("role"), panel?.getAttribute("aria-labelledby")]).toEqual([
+          "tabpanel",
+          tab.id,
+        ]);
+        expect(panel!.contains(byId(field))).toBe(true);
+      }
+    });
+
     it("takes a hidden tab off the strip, its panel kept mounted and no longer validating", () => {
       const hide = ctx.newControl(false);
       mount(
@@ -603,19 +649,32 @@ export function describeConformance(impl: Implementation): void {
       const inside = ctx.newControl("");
       const dismissed = vi.fn();
       mount(
-        <Dialog open={open} onClose={dismissed} title="Details">
-          <TextField field={inside} id="inside" required />
-        </Dialog>,
+        <>
+          <Action actionId="openDetails" text="Open details" onClick={() => set(open, true)} />
+          <Dialog open={open} onClose={dismissed} title="Details">
+            <TextField field={inside} id="inside" required />
+          </Dialog>
+        </>,
       );
       expect(byId("inside")).not.toBeNull();
       expect(validation.isValid(rc)).toBe(false);
-      set(open, true);
+      // Mounted, but out of reach: no Tab key lands in a dialog nobody can
+      // see (Fluent's closed surface is only transparent and aria-hidden).
+      // Checked before the first open only: after a close, MUI and Ant hide
+      // the surface when their exit transition ends, which happy-dom never runs.
+      expect(outOfReach(byId("inside")!)).toBe(true);
+      const opener = buttonNamed("Open details")!;
+      act(() => opener.focus());
+      click(opener);
       const node = byId("inside");
       set(open, false);
       await flush();
       expect(byId("inside")).toBe(node);
-      // Closed by the author's own code: not a dismissal.
+      // Closed by the author's own code: not a dismissal — and focus goes
+      // back where it was, which no library does for a dialog it did not
+      // open from its own trigger unless the implementation sees to it.
       expect(dismissed).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(opener);
     });
 
     it("refuses the wizard's Next on an invalid page, and advances on a valid one", async () => {

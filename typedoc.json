@@ -8,7 +8,8 @@
     "packages/forms-json",
     "packages/forms-html",
     "packages/forms-mui",
-    "packages/forms-antd"
+    "packages/forms-antd",
+    "packages/forms-fluent"
   ],
   "packageOptions": {
     "entryPoints": [

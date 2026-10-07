@@ -23,6 +23,7 @@ import {
 } from "@rx-controls/forms-html";
 import { muiRenderers } from "@rx-controls/forms-mui";
 import { antdRenderers } from "@rx-controls/forms-antd";
+import { fluentRenderers } from "@rx-controls/forms-fluent";
 
 /**
  * The implementations a story can be drawn with — every story is one per
@@ -32,6 +33,7 @@ export const implementations: Record<string, FormRenderers> = {
   html: htmlRenderers,
   mui: muiRenderers,
   antd: antdRenderers,
+  fluent: fluentRenderers,
 };
 
 /** The html implementation's two shipped themes. */

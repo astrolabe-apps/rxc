@@ -1,0 +1,55 @@
+{
+  "name": "@rx-controls/forms-fluent",
+  "version": "0.1.0-alpha.4",
+  "description": "The Forms v2 Fluent UI implementation: every registry slot drawn with Fluent UI React v9.",
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/forms-fluent"
+  },
+  "type": "module",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/forms-html": "workspace:^"
+  },
+  "peerDependencies": {
+    "@fluentui/react-components": "^9.74.9",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@fluentui/react-components": "^9.74.9",
+    "@fluentui/react-shared-contexts": "^9.26.4",
+    "@types/react": "~19.2.0",
+    "@types/react-dom": "~19.2.0",
+    "happy-dom": "~15.11.0",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0",
+    "rxc-forms-conformance": "workspace:^",
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -45,6 +45,7 @@ Amends *Proposed package layout* in the goals doc (updated to match).
 | `@rx-controls/forms-html` | `impls/html.tsx`, `shared.tsx`, `htmlTheme.tsx` | The HTML implementation and its `HtmlTheme`: `defaultHtmlTheme` (`rxf-` hook classes only) and `tailwindHtmlTheme`. No stylesheet. |
 | `@rx-controls/forms-mui` | `impls/mui.tsx` | The MUI implementation, and the contract's regression gate. |
 | `@rx-controls/forms-antd` | `impls/antd.tsx` | The Ant Design implementation. The second family-2 library, and the one whose chrome is runtime tokens rather than classes. |
+| `@rx-controls/forms-fluent` | new (phase 7) | The Fluent UI React v9 implementation, for a project built on Fluent. The family-2 library whose slots take a render function, so its frame *is* the library's own `Input`. |
 | `apps/forms-storybook` | `poc/forms-v2/src/App.tsx`, `PersonForm.tsx`, `widgets/` | Private. A story per boundary kind under every implementation — the demos, and a CI smoke test. |
 | `tools/forms-corpus` | `poc/forms-v2/scripts/` | Extract, burndown, parity, and the gates over both. Private; run locally — the corpus is not in the repository (phase 3). |
 
@@ -64,9 +65,16 @@ Three changes from the goals doc's layout:
   it in), `labelPosition` (its checkbox takes the label as a child), and a `silent` container that
   must be told twice to keep its content (`forceRender` *and* `destroyOnHidden={false}`). MUI
   alone would leave all three untested.
+- **A Fluent implementation, `forms-fluent`** (phase 7), because a project built on Fluent UI v9 will
+  use it. It is not a third Ant either: its slots take a render function, so the frame is
+  Fluent's own `Input` with the contract's render prop in the `input` slot — the first library
+  where survey point 6 costs nothing, and the first test of "family 3 generalises the others"
+  against a real slot API; its `Field` *injects* ids and ARIA into child controls through
+  context, which the contract's ids must win over; and its root sits inside a host's
+  `FluentProvider`, whose theme it must inherit rather than replace.
 
 **Reference documentation is generated, not written.** TypeDoc runs over the public packages —
-`forms-schema`, `forms-react`, `forms-json`, `forms-html`, `forms-mui`, `forms-antd` — from their
+`forms-schema`, `forms-react`, `forms-json`, `forms-html`, `forms-mui`, `forms-antd`, `forms-fluent` — from their
 doc comments, and is the API reference. The goals and interfaces docs stay what they are: the
 design and its reasons. The POC's comments are already most of that reference, but they cite README
 findings by number (`finding 57`), and the README is deleted in phase 5. A comment that is ported
@@ -396,6 +404,136 @@ shell override — so the JSON path advances while HVAMS sets the pace. The gate
 it from sliding backwards regardless.
 
 *Exit:* HVAMS ships a form on v2.
+
+### 7 — Fluent UI
+
+`@rx-controls/forms-fluent`, over `@fluentui/react-components` 9 (the current line — v8 is in
+maintenance and there is no v10), for a project built on Fluent. Published with the other five on
+the `forms-v2-alpha` policy.
+
+**The spike is done** — plain Fluent under happy-dom and in a browser, before any renderer was
+written. What it found, each of which becomes a Fluent test:
+
+- **The frame is Fluent's `Input`.** A slot render function (`input={{ children: (C, props) =>
+  … }}`, and `textarea` on `Textarea`) runs the contract's render prop inside Fluent's own
+  root: one control, the same node through focus, typing and blur, `start` / `end` inside the
+  border, and no stable-component-type bridge (MUI's `inputComponent` problem does not arise —
+  the function is called, not mounted). Fluent derives its invalid chrome from `aria-invalid`
+  on the **slot's props**, so that is where it goes, not only inside the function.
+- **`Field` must be cut off from the control.** Left in place, its context gives a contract field
+  `aria-describedby` "error help help error" (its own ids prepended to ours, error first), an
+  added `aria-labelledby`, a label `for` pointing at an id of its own, and native `required`
+  instead of `aria-required`. `<FieldContextProvider value={undefined}>` around the control,
+  with the contract's ids on the `label` / `hint` / `validationMessage` slots, gives exactly
+  the contract's name and description. A group's label takes `htmlFor: undefined`, or it
+  points at a control that does not exist. Its required marker is already `aria-hidden`. Its
+  validation message carries `role="alert"` — to be squared with the suite's live-region rules.
+- **A kept dialog is a keyboard trap.** `unmountOnClose={false}` keeps the content mounted (the
+  same node across open and close), and a programmatic close does not call `onOpenChange` while
+  Escape does — both what the contract needs. But closed, the surface is only `opacity: 0`,
+  `pointer-events: none` and `aria-hidden`: a control inside it still takes focus, invisible
+  and unannounced. And a programmatic close leaves focus on the invisible surface. So the
+  closed surface is `inert` (checked in a browser: it stops the focus), and the dialog returns
+  focus to what had it when it opened.
+- **The root inherits.** A `FluentProvider` with no `theme` shallow-merges its parent's (a host
+  brand colour came through in a browser); with no parent it warns, which fails the suites. No
+  provider above reads as `useThemeClassName() === ""`, so `root` supplies `webLightTheme` only
+  then.
+- **Tabs are a strip.** `TabList` owns no panels, so every panel stays mounted without being told
+  and a hidden tab is simply left off the strip — but it sets no `aria-controls`, so the panel
+  wiring is the implementation's.
+- **Quiet under happy-dom.** No console output from React 19, Tabster or the motion layer; the
+  missing-theme warning above was the only one. `Dropdown` works there too (its listbox is
+  portalled out of the form), so a `Dropdown`-drawn select is a choice, not a testing obstacle;
+  the built-in is the native-backed `Select` (string round-trip and accessibility for free), a
+  `Dropdown` one to follow if the project asks for it.
+- **No stepper.** v9 has none, so the wizard header is built from parts.
+
+**The renderers are in**, green on the shared suite (32), ten Fluent tests and the story smoke
+test (now 200: every story under Fluent too): `Field` as the shell, `Input` / `Textarea` as the
+frame, `Select`, `Checkbox`, `RadioGroup`, a `role="group"` of checkboxes, `TabList` with its own
+panels, `Dialog`, `Button` (busy as a `Spinner` icon; Fluent has no `loading`), tones and titles
+from `tokens` / `typographyStyles`. Building them found four more things the spike had not:
+
+- **`RadioGroup` copies its description onto every radio** unless the radio carries one, and only
+  `undefined` takes the copy — so each `Radio` gets `aria-describedby={null}`, or a group with
+  help text is described three times.
+- **Fluent drops `inert` from `DialogSurface`'s props**, so it is set on the element. And it has
+  to be lifted in a layout effect: Fluent moves focus into the surface on open from a passive
+  effect of its own (a child's, so it runs first), and a still-inert surface refuses it — the
+  dialog opened with focus left behind on the opener. A browser showed it; happy-dom does not
+  refuse focus to an inert element, so the test checks the surface's state when focus arrives.
+- **Fluent's checkbox label is a sibling `<label for>`**, not a wrapper. The suite's check-list
+  helper looked only for a wrapping label; it now accepts either, as its accessible-name check
+  already did.
+- **Fluent logs "Keyborg instance kN is being disposed incorrectly"** (dev builds only) when a
+  `FluentProvider` that hosted a `Dialog` unmounts while no other focus-tracking instance is alive
+  in the window. An app's provider never unmounts; a test's does, every test, so whether it fires
+  depended on test order — an `Input` rendered earlier leaves Fluent's window-level instance
+  alive. `test/setup.tsx` does that once up front. A consumer's own tests that unmount their
+  provider will meet it too, with or without this package.
+
+**What Fluent taught the contract.** Four of those were behaviours of the contract rather than of
+Fluent — held only by Fluent's own tests, so nothing held html, MUI, Ant, or the next
+implementation (an adopter's own design system, say) to them. A probe of all four found two
+already broken elsewhere. They are now in the shared suite (33 cases):
+
+- **Each tab wired to its panel** (`aria-controls` → `role="tabpanel"`, `aria-labelledby` back).
+  html and MUI had neither: a strip whose library draws no panels leaves the wiring to the
+  implementation, and nothing noticed. Both now wire it.
+- **A closed dialog's controls out of the Tab order**, before its first open. After a close, MUI
+  and Ant hide the surface when their exit transition ends, which happy-dom never runs; a
+  browser check found all four right there.
+- **A programmatic close returns focus** to what had it when the dialog opened.
+- **A field's error is not a live region** — read through the control's description, as every
+  implementation already did, now said.
+
+Each new assertion was checked by reintroducing the defect: html's unwired tabs, and Fluent
+without `inert` or without the focus return, each fail it.
+
+**Decision pending:** `SelectField`'s `startIcon` / `endIcon` are drawn only by html; MUI, Ant
+and Fluent drop them silently. Either the three draw them (MUI's `startAdornment`, Ant's `prefix`;
+Fluent's `Select` has no slot, so beside it, as its multiline frame does) and the suite says so,
+or they leave the select's props. Similarly, a multiline frame's `start` / `end` sit beside
+Fluent's `Textarea`, not inside its border — `Textarea` has no content slots.
+
+**Server rendering is covered** — a kitchen-sink form server-rendered with no DOM and hydrated
+with no mismatch, both with the root supplying the provider and inside a Fluent app's server setup
+(`RendererProvider` + `SSRProvider` + its own `FluentProvider`, the CSS collected with
+`renderToStyleElements`). It found two real defects and two in the test environment:
+
+- **The root needs `SSRProvider` too.** Without one, Fluent's dialog portal renders on the
+  server and React's server renderer throws. A Fluent app carries one; when the root supplies the
+  provider, it supplies `SSRProvider` with it.
+- **A kept-mounted dialog broke hydration.** Fluent's `Portal` makes its mount node in the first
+  client render, so `unmountOnClose={false}` portals during hydration where the server rendered
+  nothing, and React discards the server's whole tree. Fluent apps never meet it: a closed dialog
+  with the default `unmountOnClose` renders no portal. Under `SSRProvider` the dialog now waits
+  for hydration (`useIsSSR`); its fields mount, and start validating, on the client — the server
+  could not judge them anyway.
+- **happy-dom 15.11 answers `undefined` for a `<select>`'s `nextSibling`** (fixed by 20), which
+  hydration walks: Fluent's chevron after the `<select>` read as a mismatch. The hydration test
+  shims it, to go with the repo's move off happy-dom 15.
+- **Fluent captures `document` when its modules load**, as the default `targetDocument`, so a
+  "server" render inside happy-dom's module graph portals regardless of hidden globals. The test
+  renders the server side under Fluent's context with no `targetDocument`, as a server's graph
+  has.
+
+Each of the two fixes was checked by removing it: the server render throws, or hydration
+regenerates the tree.
+
+Rebased onto `0.1.0-alpha.4`, it took that release's contract changes as the other
+implementations did: a check list described as required through the shell's `describeRequired`
+note with each checkbox `aria-invalid` in error, a required select with a value dropping its
+empty choice, and every shell naming its `widget`. (`DisplayShell`'s one-colour precedence is
+html's classes; Fluent colours through `style` and needed nothing.)
+
+Left: publishing. `forms-fluent` is versioned `0.1.0-alpha.4` with the other six, which are
+already published at it, so `rush publish-alpha` as it stands would publish `forms-fluent` alone
+at `alpha.4` — while the html / MUI tab wiring and the four new suite assertions wait for
+`alpha.5`. A lock-step bump to `alpha.5` would carry them all together.
+
+*Exit:* green on the shared suite, its own tests and the story smoke test.
 
 ### Later, not blocked on any of this
 

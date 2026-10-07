@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type FocusEvent,
@@ -501,6 +502,9 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
 
 function HtmlTabs(p: TabsRenderProps) {
   const t = useHtmlTheme().tabs;
+  const id = useId();
+  const tabId = (key: string) => `${id}-tab-${key}`;
+  const panelId = (key: string) => `${id}-panel-${key}`;
   return (
     <div
       className={mergeClass(t.className, p.className)}
@@ -513,6 +517,8 @@ function HtmlTabs(p: TabsRenderProps) {
             key={i.key}
             type="button"
             role="tab"
+            id={tabId(i.key)}
+            aria-controls={panelId(i.key)}
             aria-selected={i.active}
             className={mergeClass(t.tab, i.active ? t.active : t.inactive)}
             data-invalid={i.invalid ? "" : undefined}
@@ -531,7 +537,9 @@ function HtmlTabs(p: TabsRenderProps) {
       {p.items.map((i) => (
         <div
           key={i.key}
+          id={panelId(i.key)}
           role="tabpanel"
+          aria-labelledby={i.hidden ? undefined : tabId(i.key)}
           className={t.panel}
           data-inactive={i.active ? undefined : ""}
           hidden={!i.active || undefined}
