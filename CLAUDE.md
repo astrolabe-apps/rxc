@@ -184,7 +184,11 @@ no consumer ever ran them on 18; the earlier releases that declared 18 (`@rx-con
 Each publishes only versions newer than the registry's, so running one never republishes the
 other's packages, and neither can put an alpha on `latest`. Both pass `--set-access-level public`
 (Rush otherwise passes `restricted` for a scoped package, which would make a new one private) and
-preserve `XDG_CONFIG_HOME` so npm's browser authentication works. Each builds its own packages
+preserve `XDG_CONFIG_HOME` so npm's browser authentication works. Credentials come from your own
+`~/.npmrc` (`npm login` once): there is deliberately **no `common/config/rush/.npmrc-publish`**,
+since when that file exists Rush points `HOME` at `common/temp/publish-home` and npm never reads
+`~/.npmrc` — the token then has to arrive through `NPM_AUTH_TOKEN`, and without it the publish
+fails with `ENEEDAUTH`. Add one back only for a CI publish. Each builds its own packages
 and their dependencies first (`rush build --to version-policy:<policy>`), so a stale `lib/` is
 never published, and a failed build publishes nothing. **The stable packages publish to
 `latest`; the Forms v2 packages to `alpha`**, so a plain `npm install` never picks up a
