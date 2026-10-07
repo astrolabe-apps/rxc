@@ -143,6 +143,30 @@ well and the versions will not resolve together, `pnpm.overrides` (or
 }
 ```
 
+### One version, two copies: a bundler
+
+The warning can fire with exactly one version of each package in the lockfile.
+Then the two copies are one file loaded twice — two module instances — and no
+override can help. The usual cause is Next.js's `transpilePackages`: a
+workspace package listed there is bundled into the server build, and the
+engine it imports is bundled with it, while code outside it loads the engine
+natively from `node_modules`. List the engine packages too, wherever a
+transpiled package imports them:
+
+```js
+// next.config.js
+transpilePackages: [
+  "your-shared-client",
+  "@react-typed-forms/core",
+  "@rx-controls/core",
+  "@rx-controls/react",
+  // …and every @rx-controls/forms-* package the app uses
+],
+```
+
+Found in a real app, where the dev server's SSR logged the duplicate-engine
+warning against a lockfile holding one copy of each.
+
 ## Incremental migration
 
 Legacy and migrated components can share the same control:

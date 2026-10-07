@@ -25,6 +25,14 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  * **Behaviour never hangs on a theme class.** Hiding, collapsing and the like
  * work with every slot set to `""`; a theme only styles.
  *
+ * **An app's element selectors outrank a slot's class.** A slot is one class
+ * on the element, so an app-wide rule on the element type wins against it —
+ * `input[type=radio]` in a global stylesheet, and outright under Tailwind's
+ * `important: "#app"`, which makes that rule `#app input[type=radio]`
+ * (1,1,1) against the theme's `#app .w-[13px]` (1,1,0). Where an app styles
+ * native controls globally, mark the slot's utilities important (`!w-[13px]`)
+ * or give the theme a wrapper class to scope them under.
+ *
  * @group Theming
  */
 export interface HtmlTheme {
@@ -296,7 +304,13 @@ export interface HtmlTheme {
     className: string;
     /** Every button's text. */
     textClassName: string;
-    /** Added by variant, on top of the two above. */
+    /**
+     * Around every button's icon — or the busy spinner standing in for it —
+     * so an icon is sized and spaced with the button, whatever element the
+     * author's icon is.
+     */
+    iconClassName: string;
+    /** Added by variant, on top of the three above. */
     variants: Record<
       ActionVariant,
       {
@@ -304,6 +318,8 @@ export interface HtmlTheme {
         className: string;
         /** Added to its text. */
         textClassName: string;
+        /** Added around its icon. */
+        iconClassName: string;
       }
     >;
     /** Shown while an asynchronous handler runs. */
@@ -498,10 +514,11 @@ export const defaultHtmlTheme: HtmlTheme = {
   action: {
     className: "rxf-btn",
     textClassName: "",
+    iconClassName: "rxf-btn-icon",
     variants: {
-      primary: { className: "rxf-btn--primary", textClassName: "" },
-      secondary: { className: "rxf-btn--secondary", textClassName: "" },
-      link: { className: "rxf-btn--link", textClassName: "" },
+      primary: { className: "rxf-btn--primary", textClassName: "", iconClassName: "" },
+      secondary: { className: "rxf-btn--secondary", textClassName: "", iconClassName: "" },
+      link: { className: "rxf-btn--link", textClassName: "", iconClassName: "" },
     },
     busy: <span className="rxf-spinner" />,
   },
@@ -682,19 +699,23 @@ export const tailwindHtmlTheme: HtmlTheme = {
     className:
       "rxf-btn inline-flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm [font:inherit] disabled:cursor-not-allowed disabled:opacity-75",
     textClassName: "",
+    iconClassName: "rxf-btn-icon inline-flex items-center",
     variants: {
       primary: {
         className: "rxf-btn--primary bg-blue-600 text-white hover:bg-blue-700",
         textClassName: "",
+        iconClassName: "",
       },
       secondary: {
         className:
           "rxf-btn--secondary border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
         textClassName: "",
+        iconClassName: "",
       },
       link: {
         className: "rxf-btn--link bg-transparent px-0 text-blue-600 underline",
         textClassName: "",
+        iconClassName: "",
       },
     },
     busy: (

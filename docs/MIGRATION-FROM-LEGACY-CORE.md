@@ -259,6 +259,23 @@ both, so there is no big-bang cutover. While both are in the tree:
 
 Component-by-component in leaf-first order works well, since a leaf's reads are its own.
 
+**A migrated component needs `@rx-controls/react` as a direct dependency.** v5 depends on it, but
+re-exports only the legacy surface — not `useReactive` — so a component written against it imports
+it from `@rx-controls/react` itself, as one written against Forms v2 does. Use the range v5 itself
+declares, so the package manager keeps one copy; see the compat README on duplicate installs.
+
+**A control under a nullable parent is `T | null | undefined`.** Navigating
+`data.fields.details.fields.userId`, where `details` is optional, gives a
+`Control<string | null | undefined>`: the parent may be absent, so the child's value may be too. A
+component typed `Control<string | null>` refuses it. Every server DTO with an optional child hits
+this — type the prop to admit `undefined`, or pass the field from where the parent is known to
+exist:
+
+```tsx
+function UserIdField({ field }: { field: Control<string | null | undefined> }) { … }
+<UserIdField field={data.fields.details.fields.userId} />
+```
+
 ## When you are done
 
 1. Remove the SWC plugin (`@astroapps/swc-controls-plugin`) from your build config. Nothing injects

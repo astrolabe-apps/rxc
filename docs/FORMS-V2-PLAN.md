@@ -582,10 +582,10 @@ runs before anything that touches the loader lands.
   outside in, each after the one above has committed. html draws a native `<details>`; MUI its
   Accordion; Ant a one-panel Collapse told twice to keep its content; Fluent from parts, since
   its AccordionPanel unmounts a closed panel.
-- **Icon classes on actions (T2).** html's theme gains `action.iconClassName` and a per-variant
+- **Icon classes on actions (T2). ✅** html's theme gains `action.iconClassName` and a per-variant
   one, on a wrapper around the icon (or the busy spinner).
 - **`onClick: () => unknown` (G7). ✅** The boundary only needs to know when it settles.
-- **Docs.** Theme classes against an app's element CSS (T1); `transpilePackages` listing the
+- **Docs. ✅** Theme classes against an app's element CSS (T1); `transpilePackages` listing the
   engine packages under Next.js, in the compat README and in the duplicate-engine warning's
   text; `@rx-controls/react` as a direct dependency of a compat app writing v2 components; a
   compat control under a nullable parent typed `T | null | undefined`.

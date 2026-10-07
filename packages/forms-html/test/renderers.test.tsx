@@ -385,6 +385,33 @@ describe("Action", () => {
     expect($("[data-icon]")).not.toBeNull();
   });
 
+  it("wraps the icon, and the busy spinner in its place, in the theme's icon classes", async () => {
+    let resolve!: () => void;
+    mount(
+      <>
+        <Action actionId="p" text="P" variant="primary" icon={<i data-icon="p" />} onClick={() => new Promise<void>((r) => (resolve = r))} />
+        <Action actionId="l" text="L" variant="link" icon={<i data-icon="l" />} />
+        <Action actionId="none" text="No icon" />
+      </>,
+      {
+        theme: {
+          action: {
+            iconClassName: "icon",
+            variants: { primary: { iconClassName: "icon-24" }, link: { iconClassName: "icon-18" } },
+          },
+        },
+      },
+    );
+    const wrapper = (sel: string) => $(sel)!.parentElement!.className;
+    expect([wrapper('[data-icon="p"]'), wrapper('[data-icon="l"]')]).toEqual(["icon icon-24", "icon icon-18"]);
+    // No icon, no wrapper.
+    expect($$("button")[2]!.querySelector(".icon")).toBeNull();
+    act(() => ($$("button")[0] as HTMLButtonElement).click());
+    expect(wrapper(".rxf-spinner")).toBe("icon icon-24");
+    await act(async () => resolve());
+    await flush();
+  });
+
   it("draws the icon alone for iconPlacement replace", () => {
     mount(<Action actionId="x" text="Hidden text" icon={<i data-icon />} iconPlacement="replace" />);
     expect($("button")!.textContent).toBe("");

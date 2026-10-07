@@ -630,7 +630,13 @@ function HtmlTabs(p: TabsRenderProps) {
 function HtmlAction(p: ActionRenderProps) {
   const { displayShell, action: t } = useHtmlTheme();
   const variant = t.variants[p.variant];
-  const busy = p.busy ? t.busy : p.icon;
+  const shown = p.busy ? t.busy : p.icon;
+  // The icon in a wrapper the theme reaches, whatever element it is.
+  const busy = !noContent(shown) && (
+    <span className={join(t.iconClassName, variant.iconClassName) || undefined}>
+      {shown}
+    </span>
+  );
   return (
     <DisplayShell
       shellClassName={p.shellClassName}

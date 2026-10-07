@@ -379,8 +379,11 @@ export function getCompatPatchInfo(): {
 const FIX =
   `Force a single copy with pnpm.overrides (or globalOverrides in a Rush ` +
   `repo) pinning "@react-typed-forms/core", "@rx-controls/core" and ` +
-  `"@rx-controls/react" to one version each, then reinstall. See the ` +
-  `@react-typed-forms/core README, "Why three packages and not one bundle".`;
+  `"@rx-controls/react" to one version each, then reinstall. If the ` +
+  `lockfile already holds one version of each, the copies are one file ` +
+  `loaded twice by a bundler: under Next.js, list those packages in ` +
+  `transpilePackages beside the workspace packages that import them. See ` +
+  `the @react-typed-forms/core README, "Why three packages and not one bundle".`;
 
 /**
  * Reported however the process is built — not behind `IS_DEV`.
