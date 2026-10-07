@@ -669,6 +669,36 @@ describe("expressions", () => {
     expect(rc.getValue(data).vet).toBeUndefined();
   });
 
+  it("re-runs a jsonata expression over a key the data does not have yet", async () => {
+    // jsonata ≥ 2.2 asks hasOwnProperty before it reads, so the tracked value
+    // has to track existence checks or a missing key is never subscribed.
+    const { data } = h.load(
+      [
+        {
+          type: "Data",
+          field: "docs",
+          children: [{ type: "Data", field: "other", title: "Other" }],
+          dynamic: [{ type: "Visible", expr: { type: "Jsonata", expression: "docs.attend != null" } }],
+        },
+      ],
+      [
+        {
+          field: "docs",
+          type: "Compound",
+          children: [{ field: "attend", type: "Bool" }, str("other")],
+        },
+      ],
+      { docs: { other: "x" } as { other: string; attend?: boolean } },
+    );
+    await flush();
+    // A hidden group stays mounted; its region carries `hidden`.
+    const hidden = () => $(".rxf-contents").hasAttribute("hidden");
+    expect(hidden()).toBe(true);
+    act(() => h.ctx.update((wc) => wc.setValue(data.fields.docs.fields.attend, true)));
+    await flush();
+    expect(hidden()).toBe(false);
+  });
+
   it("reads Disabled, Label and DefaultValue", async () => {
     const { data } = h.load(
       [

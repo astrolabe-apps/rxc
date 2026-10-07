@@ -28,32 +28,86 @@ function createValueRxProxy<V>(control: Control<V>, rc: ReadContext): V {
     return value;
   }
   // Object or array — track Structure (for null transitions / array length),
-  // return a proxy that recurses into child controls
-  if (Array.isArray(value)) {
+  // return a proxy that recurses into child controls.
+  //
+  // Existence and enumeration checks (`in`, `hasOwnProperty`, `Object.keys`)
+  // track exactly as a read does: jsonata ≥ 2.2 asks `hasOwnProperty` before
+  // it reads, so with only a `get` trap a key missing at evaluation was never
+  // tracked and adding it never re-ran the expression. Those traps answer
+  // from the live value; the snapshot target only satisfies the Proxy
+  // invariants (every key of a plain object or array is configurable, and an
+  // array's `length` exists on both).
+  const isArray = Array.isArray(value);
+  const live = (): object => {
+    const v = control.valueNow as unknown;
+    // A value that has since changed shape cannot be answered from without
+    // breaking the invariants; the snapshot is the best answer left.
+    return v != null && typeof v === "object" && Array.isArray(v) === isArray
+      ? v
+      : (value as object);
+  };
+  if (isArray) {
     const elements = rc.getElements(control as unknown as Control<unknown[]>);
+    const element = (p: string | symbol): Control<unknown> | undefined => {
+      if (typeof p !== "string") return undefined;
+      const idx = Number(p);
+      return Number.isInteger(idx) && idx >= 0 && idx < elements.length
+        ? elements[idx]
+        : undefined;
+    };
     return new Proxy(value, {
       get(target, p, receiver) {
         if (p === restoreControlSymbol) return control;
         if (p === "length") return elements.length;
-        if (typeof p === "symbol" || typeof p !== "string")
-          return Reflect.get(target, p, receiver);
-        const idx = Number(p);
-        if (Number.isInteger(idx) && idx >= 0 && idx < elements.length) {
-          return createValueRxProxy(elements[idx], rc);
-        }
+        const el = element(p);
+        if (el) return createValueRxProxy(el, rc);
         return Reflect.get(target, p, receiver);
+      },
+      has(target, p) {
+        const el = element(p);
+        if (el) createValueRxProxy(el, rc);
+        return p in live();
+      },
+      getOwnPropertyDescriptor(target, p) {
+        const el = element(p);
+        if (el) createValueRxProxy(el, rc);
+        return Reflect.getOwnPropertyDescriptor(live(), p);
+      },
+      // An array's keys follow its elements: the Structure tracked above.
+      ownKeys() {
+        return Reflect.ownKeys(live());
       },
     }) as V;
   }
   // Plain object — proxy field access through control.fields
   rc.isNull(control); // track Structure for null transitions
+  const field = (p: string | symbol): Control<unknown> | undefined =>
+    typeof p === "symbol"
+      ? undefined
+      : (control.fields as Record<string, Control<any>>)[p];
   return new Proxy(value as object, {
     get(target, p, receiver) {
       if (p === restoreControlSymbol) return control;
-      if (typeof p === "symbol") return Reflect.get(target, p, receiver);
-      const child = (control.fields as Record<string, Control<any>>)[p];
+      const child = field(p);
       if (child) return createValueRxProxy(child, rc);
       return Reflect.get(target, p, receiver);
+    },
+    has(target, p) {
+      const child = field(p);
+      if (child) createValueRxProxy(child, rc);
+      return p in live();
+    },
+    getOwnPropertyDescriptor(target, p) {
+      const child = field(p);
+      if (child) createValueRxProxy(child, rc);
+      return Reflect.getOwnPropertyDescriptor(live(), p);
+    },
+    ownKeys() {
+      // Adding a key notifies the object's Value and never its Structure, so
+      // enumerating one subscribes to the whole value — coarse, but
+      // `Object.keys` / jsonata's `$keys()` stay correct.
+      rc.getValue(control);
+      return Reflect.ownKeys(live());
     },
   }) as V;
 }

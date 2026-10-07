@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import jsonata from "jsonata";
 import {
   ControlChange,
   SubscriptionTracker,
@@ -124,5 +125,109 @@ describe("trackedValue", () => {
     c.fields.pets.elements[0].fields.kind.value = "hamster";
     expect(notified).toBe(1);
     tracker.cleanup();
+  });
+
+  describe("existence checks track like reads (jsonata ≥ 2.2)", () => {
+    interface Docs {
+      docs: { other: number; attend?: boolean };
+    }
+    // No `attend` key at all — not `attend: null`, which always worked.
+    const missing = () => newControl<Docs>({ docs: { other: 1 } });
+
+    function subscribed(check: (docs: Docs["docs"]) => boolean) {
+      const c = missing();
+      let notified = 0;
+      const tracker = new SubscriptionTracker(() => notified++);
+      const answer = check(trackedValue(c, tracker.collectUsage).docs);
+      tracker.update();
+      return { c, answer, notified: () => notified, tracker };
+    }
+
+    it("hasOwnProperty on a missing key tracks the child", () => {
+      const { reads, tracker } = recording();
+      const c = missing();
+      const docs = trackedValue(c, tracker).docs;
+      expect(Object.prototype.hasOwnProperty.call(docs, "attend")).toBe(false);
+      expect(reads.some(([ctl]) => ctl === c.fields.docs.fields.attend)).toBe(
+        true,
+      );
+
+      const s = subscribed((d) =>
+        Object.prototype.hasOwnProperty.call(d, "attend"),
+      );
+      expect(s.answer).toBe(false);
+      s.c.fields.docs.fields.attend.value = true;
+      expect(s.notified()).toBe(1);
+      s.tracker.cleanup();
+    });
+
+    it("`in` on a missing key tracks the child", () => {
+      const s = subscribed((d) => "attend" in d);
+      expect(s.answer).toBe(false);
+      s.c.fields.docs.fields.attend.value = true;
+      expect(s.notified()).toBe(1);
+      s.tracker.cleanup();
+    });
+
+    it("answers from the live value once the key exists", () => {
+      const c = missing();
+      const docs = trackedValue(c).docs;
+      c.fields.docs.fields.attend.value = true;
+      expect("attend" in docs).toBe(true);
+      expect(Object.keys(docs)).toEqual(["other", "attend"]);
+      expect(Object.getOwnPropertyDescriptor(docs, "attend")?.value).toBe(
+        true,
+      );
+      expect({ ...docs }).toEqual({ other: 1, attend: true });
+    });
+
+    it("enumerating an object's keys re-runs when a key is added", () => {
+      const s = subscribed((d) => Object.keys(d).length === 2);
+      expect(s.answer).toBe(false);
+      s.c.fields.docs.fields.attend.value = true;
+      expect(s.notified()).toBe(1);
+      s.tracker.cleanup();
+    });
+
+    it("re-runs a jsonata 2.2 expression when the key is added", async () => {
+      const c = missing();
+      const expr = jsonata("docs.attend != null");
+      const results: unknown[] = [];
+      let rerun: Promise<void> | undefined;
+      const tracker = new SubscriptionTracker(() => (rerun = evaluate()));
+      // jsonata reads lazily, so the explicit tracker (not an ambient window)
+      // collects for the whole evaluation — @astroapps/forms-core's shape.
+      const evaluate = async () => {
+        results.push(
+          await expr.evaluate(trackedValue(c, tracker.collectUsage)),
+        );
+        tracker.update();
+      };
+      await evaluate();
+      expect(results).toEqual([false]);
+      c.fields.docs.fields.attend.value = true;
+      await rerun;
+      expect(results).toEqual([false, true]);
+      tracker.cleanup();
+    });
+
+    it("arrays: index existence tracks the element, length and methods unchanged", () => {
+      const c = newControl<{ kind: string }[]>([{ kind: "cat" }]);
+      const { tracker, reads } = recording();
+      const v = trackedValue(c, tracker);
+      expect(0 in v).toBe(true);
+      expect(1 in v).toBe(false);
+      expect("length" in v).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(v, 0)).toBe(true);
+      expect(reads.some(([ctl]) => ctl === c.elements[0])).toBe(true);
+      expect(Object.keys(v)).toEqual(["0"]);
+      expect(Array.isArray(v)).toBe(true);
+      expect(v.length).toBe(1);
+      expect(v.map((p) => p.kind)).toEqual(["cat"]);
+      c.value = [{ kind: "cat" }, { kind: "dog" }];
+      expect(1 in v).toBe(true);
+      expect(Object.keys(v)).toEqual(["0", "1"]);
+      expect(unsafeRestoreControl(v)).toBe(c);
+    });
   });
 });

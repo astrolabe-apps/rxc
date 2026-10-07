@@ -32,7 +32,7 @@
     "@rx-controls/react": "workspace:^",
     "@rx-controls/forms-schema": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",
-    "jsonata": "^2.1.0"
+    "jsonata": "^2.2.0"
   },
   "peerDependencies": {
     "react": "^19"

@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { ControlChange } from "../src/types";
-import { untrackedRead, TrackingReadContext } from "../src/readContextImpl";
+import {
+  untrackedRead,
+  TrackingReadContext,
+  SubscriptionReconciler,
+} from "../src/readContextImpl";
 import { makeCtx } from "./index";
 
 const rc = untrackedRead;
@@ -126,5 +130,88 @@ describe("getTrackedValue", () => {
 
     const ageControl = c.fields.age;
     expect(trc.tracked.has(ageControl as any)).toBe(false);
+  });
+
+  // ── Existence checks (jsonata ≥ 2.2 asks hasOwnProperty before reading) ──
+
+  describe("existence checks track like reads", () => {
+    interface Docs {
+      docs: { other: number; attend?: boolean };
+    }
+
+    /** Run `check` over a tracked value whose `docs` has no `attend` key at
+     * all (not `attend: null`, which always worked), subscribe to what it
+     * touched, and count notifications. */
+    function subscribed(check: (docs: Docs["docs"]) => boolean) {
+      const ctx = makeCtx();
+      const c = ctx.newControl<Docs>({ docs: { other: 1 } });
+      const trc = new TrackingReadContext();
+      const answer = check(trc.getTrackedValue(c).docs);
+      let notified = 0;
+      const reconciler = new SubscriptionReconciler();
+      reconciler.setListener(() => notified++);
+      reconciler.reconcile(trc.tracked);
+      const attend = () =>
+        ctx.update((wc) => wc.setValue(c.fields.docs.fields.attend, true));
+      return { c, trc, answer, attend, notified: () => notified };
+    }
+
+    it("hasOwnProperty on a missing key tracks the child", () => {
+      const s = subscribed((d) =>
+        Object.prototype.hasOwnProperty.call(d, "attend"),
+      );
+      expect(s.answer).toBe(false);
+      expect(s.trc.tracked.has(s.c.fields.docs.fields.attend as any)).toBe(
+        true,
+      );
+      s.attend();
+      expect(s.notified()).toBe(1);
+    });
+
+    it("`in` on a missing key tracks the child", () => {
+      const s = subscribed((d) => "attend" in d);
+      expect(s.answer).toBe(false);
+      s.attend();
+      expect(s.notified()).toBe(1);
+    });
+
+    it("enumerating an object's keys re-runs when a key is added", () => {
+      const s = subscribed((d) => Object.keys(d).length === 2);
+      expect(s.answer).toBe(false);
+      s.attend();
+      expect(s.notified()).toBe(1);
+    });
+
+    it("answers from the live value once the key exists", () => {
+      const ctx = makeCtx();
+      const c = ctx.newControl<Docs>({ docs: { other: 1 } });
+      const docs = rc.getTrackedValue(c).docs;
+      ctx.update((wc) => wc.setValue(c.fields.docs.fields.attend, true));
+      expect("attend" in docs).toBe(true);
+      expect(Object.keys(docs)).toEqual(["other", "attend"]);
+      expect(Object.getOwnPropertyDescriptor(docs, "attend")?.value).toBe(
+        true,
+      );
+      expect({ ...docs }).toEqual({ other: 1, attend: true });
+    });
+
+    it("arrays: index existence tracks the element; length and methods unchanged", () => {
+      const ctx = makeCtx();
+      const c = ctx.newControl([{ kind: "cat" }]);
+      const trc = new TrackingReadContext();
+      const v = trc.getTrackedValue(c);
+      expect(0 in v).toBe(true);
+      expect(1 in v).toBe(false);
+      expect("length" in v).toBe(true);
+      expect(Object.prototype.hasOwnProperty.call(v, 0)).toBe(true);
+      expect(trc.tracked.has(c.elementsNow[0] as any)).toBe(true);
+      expect(Object.keys(v)).toEqual(["0"]);
+      expect(Array.isArray(v)).toBe(true);
+      expect(v.length).toBe(1);
+      expect(v.map((p) => p.kind)).toEqual(["cat"]);
+      ctx.update((wc) => wc.setValue(c, [{ kind: "cat" }, { kind: "dog" }]));
+      expect(1 in v).toBe(true);
+      expect(Object.keys(v)).toEqual(["0", "1"]);
+    });
   });
 });
