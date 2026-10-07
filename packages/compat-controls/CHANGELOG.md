@@ -1,6 +1,13 @@
 # Change Log - @react-typed-forms/core
 
-This log was last generated on Wed, 07 Oct 2026 07:01:06 GMT and should not be manually modified.
+This log was last generated on Wed, 07 Oct 2026 22:13:31 GMT and should not be manually modified.
+
+## 5.1.4
+Wed, 07 Oct 2026 22:13:31 GMT
+
+### Patches
+
+- A child control created after its parent was touched or disabled non-recursively (setTouched(true, true)) is no longer born touched or disabled — it inherits only after a recursive set, as if it had existed at the time. Fixes fields and collection rows on unreached wizard pages showing "Please enter a value" in @astroapps/forms-core.
 
 ## 5.1.3
 Wed, 07 Oct 2026 07:01:06 GMT
