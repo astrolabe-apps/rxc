@@ -401,7 +401,9 @@ uses today:
 ServiceTas work continues underneath on the burndown list — `DataGrid` / `Pager` /
 `ColumnOptions`, the `Accordion` adornment, host adornments (`Spotlight`), the help popover as a
 shell override — so the JSON path advances while HVAMS sets the pace. The gates from phase 3 keep
-it from sliding backwards regardless.
+it from sliding backwards regardless. A code-first ServiceTas trial (the MAST EOI wizard,
+[`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md))
+feeds the same list from the JSX side.
 
 *Exit:* HVAMS ships a form on v2.
 
