@@ -513,9 +513,9 @@ describe("Disclosure", () => {
     const focused: string[] = [];
     // The test renderer's input is the widget's own element; record focus.
     $("#deep")!.addEventListener("focus", () => focused.push("deep"));
-    dom.ctx.update((wc) => wc.setTouched(c, true));
     // The field publishes no focus target in the test renderer, so give it one.
-    dom.ctx.update(() => void (c.meta.element = $("#deep")));
+    c.meta.element = $("#deep");
+    touch(c);
     await act(async () => void root.focusInvalid());
     await flush();
     const open = $$("[data-disclosure]").map((d) => d.hasAttribute("data-open"));
