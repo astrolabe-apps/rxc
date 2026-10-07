@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/forms-antd",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "The Forms v2 Ant Design implementation: every registry slot drawn with antd, whose chrome is runtime theme tokens rather than classes.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",

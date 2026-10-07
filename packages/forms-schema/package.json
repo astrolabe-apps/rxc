@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/forms-schema",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "The canonical ControlDefinition and SchemaField JSON types, builders and self-describing schemas — the format the C# server (Astrolabe.Schemas) emits, byte for byte. No React.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",
