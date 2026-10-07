@@ -1,0 +1,11 @@
+{
+  "changes": [
+    {
+      "comment": "A child created after its parent was touched or disabled with notChildren is no longer born touched or disabled. Children inherit the flag only when it was last set recursively (and pass that on to their own later children); a clear, recursive or not, stops later children inheriting. Previously the flags a lazy child started with depended on when it was first accessed, so a field or collection row first created after setTouched(true, true) on its compound showed its error early.",
+      "type": "patch",
+      "packageName": "@rx-controls/core"
+    }
+  ],
+  "packageName": "@rx-controls/core",
+  "email": "doolse@gmail.com"
+}

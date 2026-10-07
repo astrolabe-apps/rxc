@@ -33,6 +33,17 @@ export enum ControlFlags {
    * downward sync writes the stale copy back — silently reverting the write.
    */
   DerivedValue = 16,
+  /**
+   * Touched was last set on this control *recursively*, so a child created
+   * from here on is born touched (and carries this bit on, so its own later
+   * children are too). A `notChildren` touch leaves it alone; clearing Touched
+   * — recursively or not — clears it, so a child created after any untouch
+   * starts untouched. Lazy creation stays invisible: a child gets the flags it
+   * would have had if it had existed when the flag was set.
+   */
+  ChildrenTouched = 32,
+  /** {@link ControlFlags.ChildrenTouched}, for Disabled. */
+  ChildrenDisabled = 64,
 }
 
 export interface ParentLink {
@@ -247,9 +258,11 @@ export class ControlImpl<V = unknown> implements Control<V> {
     notChildren?: boolean,
   ): void {
     if (touched) {
-      this._flags |= ControlFlags.Touched;
+      this._flags |= notChildren
+        ? ControlFlags.Touched
+        : ControlFlags.Touched | ControlFlags.ChildrenTouched;
     } else {
-      this._flags &= ~ControlFlags.Touched;
+      this._flags &= ~(ControlFlags.Touched | ControlFlags.ChildrenTouched);
     }
     notify(this);
     if (!notChildren) {
@@ -263,9 +276,11 @@ export class ControlImpl<V = unknown> implements Control<V> {
     notChildren?: boolean,
   ): void {
     if (disabled) {
-      this._flags |= ControlFlags.Disabled;
+      this._flags |= notChildren
+        ? ControlFlags.Disabled
+        : ControlFlags.Disabled | ControlFlags.ChildrenDisabled;
     } else {
-      this._flags &= ~ControlFlags.Disabled;
+      this._flags &= ~(ControlFlags.Disabled | ControlFlags.ChildrenDisabled);
     }
     notify(this);
     if (!notChildren) {
@@ -336,6 +351,16 @@ export class ControlImpl<V = unknown> implements Control<V> {
 
   // ── Lazy creation ─────────────────────────────────────────────
 
+  /** The flags a child created now starts with — see {@link ControlFlags.ChildrenTouched}. */
+  inheritedFlags(): ControlFlags {
+    let flags = ControlFlags.None;
+    if (this._flags & ControlFlags.ChildrenTouched)
+      flags |= ControlFlags.Touched | ControlFlags.ChildrenTouched;
+    if (this._flags & ControlFlags.ChildrenDisabled)
+      flags |= ControlFlags.Disabled | ControlFlags.ChildrenDisabled;
+    return flags;
+  }
+
   getField(p: string): ControlImpl {
     this._fields ??= Object.create(null);
     if (Object.hasOwn(this._fields!, p)) {
@@ -343,7 +368,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
     }
     const v = getOwn(this._value, p);
     const iv = getOwn(this._initialValue, p);
-    const flags = this._flags & (ControlFlags.Disabled | ControlFlags.Touched);
+    const flags = this.inheritedFlags();
     const child = this._ctx.createChild(v, iv, flags, p);
     child._parents = [{ control: this, key: p }];
     this._fields![p] = child;
@@ -354,8 +379,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
     if (!this._elems) {
       const v = (this._value as unknown[] | null) ?? [];
       const iv = (this._initialValue as unknown[] | null) ?? [];
-      const flags =
-        this._flags & (ControlFlags.Disabled | ControlFlags.Touched);
+      const flags = this.inheritedFlags();
       if (Array.isArray(v)) {
         this._elems = v.map((x, i) => {
           const child = this._ctx.createChild(x, iv[i], flags);
@@ -383,7 +407,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
     }
     const origLength = existing.length;
     const iv = (this._initialValue as unknown[] | null) ?? [];
-    const flags = this._flags & (ControlFlags.Disabled | ControlFlags.Touched);
+    const flags = this.inheritedFlags();
     const newElems = v.map((x, i) => {
       if (i < origLength) {
         const child = existing[i];
@@ -414,7 +438,7 @@ export class ControlImpl<V = unknown> implements Control<V> {
     }
     const origLength = existing.length;
     const v = (this._value as unknown[] | null) ?? [];
-    const flags = this._flags & (ControlFlags.Disabled | ControlFlags.Touched);
+    const flags = this.inheritedFlags();
     const newElems = iv.map((x, i) => {
       if (i < origLength) {
         const child = existing[i];
