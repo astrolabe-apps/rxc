@@ -67,12 +67,31 @@ export type TextFieldRenderProps = FieldRenderProps<string | undefined | null> &
   TextFieldExtra;
 
 /**
+ * {@link CheckboxField}'s own prop.
+ *
+ * @group Authoring
+ */
+export interface CheckboxExtra {
+  /**
+   * Which side of the control the label sits. `after` (the default): the
+   * control, then its label, then any `labelEnd` help — a ticked box with
+   * words beside it. `before`: the label, its help, then the control — a
+   * settings row whose switch sits at the end. The order is the drawn order
+   * and the focus order both, so a theme never has to reorder one against
+   * the other.
+   */
+  labelPosition?: "before" | "after";
+}
+
+/**
  * What the `checkbox` slot receives. A checkbox labels itself: it takes `label`
- * but may place it after the control, through the shell's `labelPosition`.
+ * and places it on the side `labelPosition` says, through the shell's own
+ * `labelPosition`.
  *
  * @group Implementations
  */
-export type CheckboxRenderProps = FieldRenderProps<boolean | undefined | null>;
+export type CheckboxRenderProps = FieldRenderProps<boolean | undefined | null> &
+  CheckboxExtra;
 
 /**
  * One choice. `name` / `value` rather than `label` / `id`, because it is the

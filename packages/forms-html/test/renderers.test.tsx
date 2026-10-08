@@ -7,6 +7,7 @@ import {
   CheckboxField,
   Contents,
   Dialog,
+  Disclosure,
   DisplayOnlyField,
   Form,
   FormProvider,
@@ -86,7 +87,8 @@ describe("TextField", () => {
     mount(
       <TextField field={dom.ctx.newControl("")} id="f" label="Name" helpText="As on your licence" helpPlacement="labelEnd" />,
     );
-    const button = $<HTMLButtonElement>('button[aria-label="Help"]')!;
+    // Named for its field, so two on a page are told apart.
+    const button = $<HTMLButtonElement>('button[aria-label="Help: Name"]')!;
     const help = $("#f-help")!;
     // Collapsed: clipped, still there to describe the input.
     expect([button.getAttribute("aria-expanded"), help.style.clipPath]).toEqual(["false", "inset(50%)"]);
@@ -191,6 +193,44 @@ describe("the options widgets", () => {
     expect(label.querySelector("input")).not.toBeNull();
     act(() => $<HTMLInputElement>("input")!.click());
     expect(untrackedRead.getValue(c)).toBe(true);
+  });
+
+  it("CheckboxField draws labelPosition before as label, help, then the control, in a row", () => {
+    mount(
+      <CheckboxField
+        field={dom.ctx.newControl<boolean | undefined>(false)}
+        id="uvi"
+        label="Commercial vessel"
+        helpText="Its UVI"
+        helpPlacement="labelEnd"
+        labelPosition="before"
+      />,
+    );
+    const order = $$("label, button, input").map((e) => e.tagName.toLowerCase());
+    // The drawn order is the focus order: no theme has to reverse it.
+    expect([order, $("label")!.getAttribute("for"), !!$(".rxf-shell--horizontal")]).toEqual([
+      ["label", "button", "input"],
+      "uvi",
+      true,
+    ]);
+  });
+});
+
+describe("Disclosure", () => {
+  it("draws the theme's icon before its title, marked open while open", () => {
+    mount(
+      <Disclosure title="How to find this">
+        <TextDisplay text="Inside" />
+      </Disclosure>,
+      { theme: tailwindHtmlTheme },
+    );
+    const icon = () => $("summary > .rxf-disclosure-icon")!;
+    expect([icon().getAttribute("aria-hidden"), icon().hasAttribute("data-open")]).toEqual(["true", false]);
+    act(() => $("summary")!.click());
+    expect(icon().hasAttribute("data-open")).toBe(true);
+    // The default theme keeps the browser's own marker: no icon of its own.
+    mount(<Disclosure title="Plain">{null}</Disclosure>);
+    expect($(".rxf-disclosure-icon")).toBeNull();
   });
 });
 

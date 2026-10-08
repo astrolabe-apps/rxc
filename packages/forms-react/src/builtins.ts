@@ -19,6 +19,7 @@ import type {
 import type { FieldProps } from "./field.js";
 import type { GroupProps } from "./group.js";
 import type {
+  CheckboxExtra,
   CheckListExtra,
   CheckListValue,
   DisplayOnlyExtra,
@@ -77,8 +78,10 @@ export const TextField: <T extends string | undefined | null>(
  * @group Authoring
  */
 export const CheckboxField: <T extends boolean | undefined | null>(
-  props: FieldProps<T>,
-) => Rendered = fieldRenderer<boolean | undefined | null>({ key: "checkbox" }) as never;
+  props: FieldProps<T> & CheckboxExtra,
+) => Rendered = fieldRenderer<boolean | undefined | null, CheckboxExtra>({
+  key: "checkbox",
+}) as never;
 
 /**
  * A choice from a list.

@@ -87,6 +87,7 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  helpButtonName,
   type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
@@ -131,7 +132,11 @@ function MuiFieldShell(p: FieldShellProps) {
   const notch = framed && !legend && !p.hideLabel && !labelEnd ? p.label : null;
   const helpButton = labelEnd && (
     <Tooltip title={p.helpText} describeChild>
-      <IconButton size="small" aria-label="Help" sx={{ p: 0.25, fontSize: "1rem" }}>
+      <IconButton
+        size="small"
+        aria-label={helpButtonName("Help", p.label)}
+        sx={{ p: 0.25, fontSize: "1rem" }}
+      >
         <span aria-hidden="true">ⓘ</span>
       </IconButton>
     </Tooltip>
@@ -153,6 +158,12 @@ function MuiFieldShell(p: FieldShellProps) {
         required={p.required}
         disabled={p.disabled}
         className={mergeClass(undefined, p.className)}
+        // Label beside the control — a settings row, its control at the end.
+        sx={
+          p.orientation === "horizontal"
+            ? { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: 1 }
+            : undefined
+        }
       >
         {hasLabel && p.hideLabel ? (
           // Named, not drawn: a plain label, visually hidden, never wrapping.
@@ -488,7 +499,8 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
       id={p.id}
       label={p.label}
       hideLabel={p.hideLabel}
-      labelPosition="after"
+      labelPosition={p.labelPosition === "before" ? "before" : "after"}
+      orientation={p.labelPosition === "before" ? "horizontal" : undefined}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}

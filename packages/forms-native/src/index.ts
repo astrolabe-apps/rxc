@@ -1,4 +1,4 @@
-export { nativeRenderers, textOf } from "./native.js";
+export { nativeRenderers } from "./native.js";
 export {
   defaultNativeTheme,
   NativeThemeProvider,

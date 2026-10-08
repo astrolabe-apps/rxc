@@ -772,7 +772,7 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   forms-react; a `richText` registry slot in all five (`RichTextDom` in `forms-html/shared` with
   each library's own link — MUI's `Link`, Ant's `Typography.Link`, Fluent's `Link` — and native's
   nested `Text`, a link through `Linking`, an image sized from itself when the markup gives no
-  size, and `textOf` reading a `RichText`'s words); `richText` classes in the html and native
+  size, and `plainText` — native's `textOf`, now in forms-react — reading a `RichText`'s words); `richText` classes in the html and native
   themes; `LoaderOptions.displayText` (`title` / `help`) in forms-json, which the stand-in host
   sets — and its own `HelpText` adornment draws through `RichText` too. Parity ran every corpus
   form through it with nothing on the console, so no ServiceTas markup falls outside the subset.
@@ -824,13 +824,24 @@ the page title on a phone).
 - `WizardPage.title` optional under `navigation="none"`, where nothing shows it; a built-in
   strip numbers an untitled step.
 
-**`labelEnd` help, finished (N6, N7, N11).**
+**`labelEnd` help, finished (N6, N7, N11). ✅**
 - On a trailing-label widget (a checkbox), html draws the label text with `htmlFor` beside, then
   the help button, then the control — not the button after a label that wraps the control, whose
   visual order a theme then had to reverse against the focus order (WCAG 2.4.3). MUI, Ant and
   Fluent checked for the same. (`forms-native` already draws control, label, button.)
 - The help button is named for its field ("Help: Commercial vessel"), as `forms-native`'s is.
 - `disclosure.icon` in html's theme (a node, turned while open by `data-open`), as native has.
+- *Landed, N6 decided differently:* rather than html alone reordering a trailing label, a
+  checkbox says which side its label sits — `CheckboxField.labelPosition: "before" | "after"`,
+  default `after` — and every implementation draws that order as the document order: `after`
+  control, words, help (as MUI, Fluent and native already did); `before` words, help, then the
+  control at the end of a horizontal row (the settings row MAST wanted), so no theme reorders
+  against focus. MUI's and native's shells learned the horizontal row; Ant draws its own label
+  row and the control on one line when the help is at the label's end. N7: every help button is
+  named "Help: ‹label›" through `helpButtonName`, the label's words from `plainText` (native's
+  `textOf`, moved into forms-react, `RichText`-aware). N11: html's `disclosure.icon` and
+  `iconClassName`, the wrapper `data-open` while open; the Tailwind theme hides the browser's
+  marker and turns a chevron, the default keeps the browser's.
 
 **`forms-native` published.** Into the `forms-v2-alpha` policy (`shouldPublish`, lock-step) so it
 ships with the others; its README-level doc (NativeWind setup: `jsxImportSource`, the Tailwind

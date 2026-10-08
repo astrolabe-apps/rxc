@@ -50,6 +50,7 @@ import {
   warnUnknownVariant,
   type RichTextRenderProps,
   type ImageDisplayRenderProps,
+  helpButtonName,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -128,7 +129,7 @@ function HtmlFieldShell(p: FieldShellProps) {
     <button
       type="button"
       className={t.helpButton.className}
-      aria-label={t.helpButton.text}
+      aria-label={helpButtonName(t.helpButton.text, p.label)}
       aria-expanded={helpOpen}
       aria-controls={fieldHelpId(p.id)}
       onClick={() => setHelpOpen((o) => !o)}
@@ -421,7 +422,8 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       id={p.id}
       label={p.label}
       hideLabel={p.hideLabel}
-      labelPosition="after"
+      labelPosition={p.labelPosition === "before" ? "before" : "after"}
+      orientation={p.labelPosition === "before" ? "horizontal" : undefined}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -929,6 +931,7 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
         if (e.currentTarget.open !== p.open) p.setOpen(e.currentTarget.open);
       }}
       data-invalid={p.invalid ? "" : undefined}
+      data-open={p.open ? "" : undefined}
       style={p.hidden ? { display: "none" } : undefined}
     >
       <summary
@@ -938,6 +941,11 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
           p.setOpen(!p.open);
         }}
       >
+        {t.icon != null && (
+          <span className={t.iconClassName || undefined} data-open={p.open ? "" : undefined} aria-hidden="true">
+            {t.icon}
+          </span>
+        )}
         {p.title}
         {p.invalid && (
           <span className={t.invalidMarker} aria-hidden="true">

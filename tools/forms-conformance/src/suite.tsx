@@ -505,13 +505,60 @@ export function describeConformance(impl: Implementation): void {
         const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace("Checkbox", "Check");
         // The name stays exactly the label, and the help is still read with it.
         expect([kind, read().map((r) => [r.name, r.description])]).toEqual([kind, [[label, "Help words"]]]);
-        // One button for it, named for help, outside every label element.
+        // One button for it, named for help with the field's own words — two
+        // on a page are told apart — outside every label element.
         const buttons = [...document.querySelectorAll('button, [role="button"]')].filter((b) =>
           b.getAttribute("aria-label")?.startsWith("Help"),
         );
-        expect([kind, buttons.length, buttons.some((b) => b.closest("label"))]).toEqual([kind, 1, false]);
+        expect([
+          kind,
+          buttons.map((b) => b.getAttribute("aria-label")),
+          buttons.some((b) => b.closest("label")),
+        ]).toEqual([kind, [`Help: ${label}`], false]);
         act(() => root.render(null));
       }
+    });
+
+    it("draws a checkbox's label on the side it names, help after the label, in the order it is read", () => {
+      const order = (id: string) => {
+        const control = byId(id)!;
+        // The label's words, not its element: a label that wraps the control
+        // (html's, MUI's) begins before it while its words come after.
+        const labelEl = document.getElementById(`${id}-label`)!;
+        const label = [labelEl, ...labelEl.querySelectorAll("*")]
+          .filter((e) => e.textContent?.trim() === "Commercial vessel")
+          .pop()!;
+        const help = [...document.querySelectorAll('button, [role="button"]')].find((b) =>
+          b.getAttribute("aria-label")?.startsWith("Help"),
+        )!;
+        // Sorted by document order — the order focus and a screen reader take.
+        return (
+          [
+            ["control", control],
+            ["label", label],
+            ["help", help],
+          ] as [string, Element][]
+        )
+          .sort(([, a], [, b]) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
+          .map(([n]) => n);
+      };
+      const box = (side?: "before" | "after") => (
+        <CheckboxField
+          field={ctx.newControl<boolean | undefined>(false)}
+          id="box"
+          label="Commercial vessel"
+          helpText="Its UVI"
+          helpPlacement="labelEnd"
+          labelPosition={side}
+        />
+      );
+      mount(box());
+      expect(order("box")).toEqual(["control", "label", "help"]);
+      act(() => root.render(null));
+      mount(box("before"));
+      expect(order("box")).toEqual(["label", "help", "control"]);
+      // Either side, the label still names it.
+      expect(read().map((r) => r.name)).toEqual(["Commercial vessel"]);
     });
 
     it("draws a display-only field's and a select's icons either side of the value", () => {

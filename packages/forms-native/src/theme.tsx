@@ -60,6 +60,11 @@ export interface NativeTheme {
     afterRow: string;
     /** `labelEnd` help: the label and its button side by side. */
     labelRow: string;
+    /**
+     * A label beside its control (`orientation: "horizontal"` — a checkbox
+     * with `labelPosition: "before"`): the row, the control at its end.
+     */
+    horizontal: string;
     /** The button that shows `labelEnd` help. */
     helpButton: {
       /** Its element. */
@@ -342,6 +347,7 @@ export const defaultNativeTheme: NativeTheme = {
     requiredNote: "Required",
     afterRow: "flex-row items-center gap-2",
     labelRow: "flex-row items-center gap-1",
+    horizontal: "flex-row items-center justify-between gap-2",
     helpButton: { className: "px-1", icon: "ⓘ", text: "Help" },
   },
   frame: {

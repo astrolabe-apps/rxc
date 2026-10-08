@@ -1,13 +1,11 @@
 import {
   Children,
   createContext,
-  isValidElement,
   useContext,
   useEffect,
   useId,
   useRef,
   useState,
-  type ReactElement,
   type ReactNode,
 } from "react";
 import {
@@ -68,12 +66,10 @@ import {
   type WizardRenderProps,
   warnUnknownVariant,
   drawRichText,
-  parseRichText,
-  RichText,
-  richTextWords,
+  helpButtonName,
+  plainText,
   type ImageDisplayRenderProps,
   type ImageFit,
-  type RichTextProps,
   type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import { twMerge } from "tailwind-merge";
@@ -87,25 +83,6 @@ import { useNativeTheme } from "./theme.js";
 // (react-native-web) honours the `aria-*` props by id and drops the hint.
 // An app on both targets needs both, so the implementation sets both and
 // each platform ignores the other's.
-
-/**
- * The plain text of a node — what a native name or hint can carry. A
- * `RichText` gives its words, an image in it its `alt`.
- */
-export function textOf(node: ReactNode): string {
-  if (node == null || typeof node === "boolean") return "";
-  if (typeof node === "string" || typeof node === "number") return String(node);
-  if (Array.isArray(node)) return node.map(textOf).join("");
-  if (isValidElement(node) && node.type === RichText)
-    return richTextWords(parseRichText((node.props as RichTextProps).html));
-  if (isValidElement(node))
-    return Children.toArray(
-      (node as ReactElement<{ children?: ReactNode }>).props.children,
-    )
-      .map(textOf)
-      .join("");
-  return "";
-}
 
 /**
  * Props React Native's types do not declare, which react-native-web passes to
@@ -159,12 +136,12 @@ function fieldA11y(
 ) {
   const required = requiredWords !== undefined && p.required;
   const hint =
-    [required && requiredWords, textOf(p.error ?? p.helpText), textOf(count)]
+    [required && requiredWords, plainText(p.error ?? p.helpText), plainText(count)]
       .filter(Boolean)
       .join(". ") || undefined;
   const web = describedBy({ ...p, count });
   return {
-    "aria-label": textOf(p.label) || undefined,
+    "aria-label": plainText(p.label) || undefined,
     accessibilityHint: hint,
     ...webOnly({
       "aria-describedby": required
@@ -227,7 +204,7 @@ function NativeFieldShell(p: FieldShellProps) {
   const helpButton = labelEnd && (
     <Pressable
       role="button"
-      aria-label={[t.helpButton.text, textOf(p.label)].filter(Boolean).join(": ")}
+      aria-label={helpButtonName(t.helpButton.text, p.label)}
       aria-expanded={helpOpen}
       onPress={() => setHelpOpen((o) => !o)}
       className={t.helpButton.className}
@@ -244,6 +221,20 @@ function NativeFieldShell(p: FieldShellProps) {
           {p.children}
           {label}
           {helpButton}
+        </View>
+      ) : p.orientation === "horizontal" ? (
+        // A leading label beside its control: the words, any help, then the
+        // control at the row's end — read in the order it is seen.
+        <View className={t.horizontal}>
+          {label && helpButton ? (
+            <View className={t.labelRow}>
+              {label}
+              {helpButton}
+            </View>
+          ) : (
+            label || helpButton
+          )}
+          {p.children}
         </View>
       ) : (
         <>
@@ -433,7 +424,8 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
       id={p.id}
       label={p.label}
       hideLabel={p.hideLabel}
-      labelPosition="after"
+      labelPosition={p.labelPosition === "before" ? "before" : "after"}
+      orientation={p.labelPosition === "before" ? "horizontal" : undefined}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}
@@ -528,7 +520,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
                 ref={i === 0 ? (ctl.elementRef as never) : undefined}
                 role="radio"
                 aria-checked={selected}
-                aria-label={textOf(o.name)}
+                aria-label={plainText(o.name)}
                 disabled={locked || o.disabled}
                 onPress={() => {
                   ctl.setFromString(String(o.value));
@@ -592,7 +584,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
               ref={i === 0 ? (ctl.elementRef as never) : undefined}
               role="checkbox"
               aria-checked={on}
-              aria-label={textOf(o.name)}
+              aria-label={plainText(o.name)}
               disabled={locked || o.disabled}
               onPress={() => {
                 ctl.setSelected(o, !on);
@@ -696,7 +688,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
         <Modal transparent visible animationType="slide" onRequestClose={close}>
           <Pressable className={t.backdrop} onPress={close} aria-label="Close">
             <View className={t.sheet}>
-              <ScrollView role="list" aria-label={textOf(p.label) || undefined}>
+              <ScrollView role="list" aria-label={plainText(p.label) || undefined}>
                 {choices.map((c) => {
                   const selected = c.value === ctl.stringValue;
                   return (
@@ -852,7 +844,7 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
   const live = liveRegion(p.announce, p.tone);
   // An announced display hidden, or with nothing to say, keeps only its
   // live region — the same element, so content arriving in it is announced.
-  if (p.regionOnly || (p.announce && textOf(content) === ""))
+  if (p.regionOnly || (p.announce && plainText(content) === ""))
     return rendered(<View {...live} />);
   const text = (
     <Text
@@ -1134,7 +1126,7 @@ function NativeAction(p: ActionRenderProps) {
       role="button"
       disabled={p.disabled}
       accessibilityState={{ busy: !!p.busy, disabled: !!p.disabled }}
-      aria-label={textOf(p.children ?? p.text) || undefined}
+      aria-label={plainText(p.children ?? p.text) || undefined}
       onPress={() => p.onClick()}
       className={mergeClass(cx(t.className, variant.className, p.disabled && t.disabled), p.className)}
     >

@@ -63,6 +63,7 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  helpButtonName,
   type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
@@ -116,13 +117,18 @@ function AntFieldShell(p: FieldShellProps) {
       <Button
         type="text"
         size="small"
-        aria-label="Help"
+        aria-label={helpButtonName("Help", p.label)}
         icon={<span aria-hidden="true">ⓘ</span>}
         style={{ color: token.colorTextDescription }}
       />
     </AntTooltip>
   );
   const ownLabel = labelEnd && p.labelPosition !== "after" && p.label != null && !p.hideLabel;
+  // A label beside its control (a checkbox's `labelPosition: "before"`) when
+  // the shell draws the label row itself: the row and the control on one
+  // line, the control at its end — Form.Item's own horizontal layout only
+  // reaches its own label.
+  const beside = ownLabel && p.orientation === "horizontal";
   return (
     <Form.Item
       layout={p.orientation === "horizontal" ? "horizontal" : "vertical"}
@@ -176,7 +182,7 @@ function AntFieldShell(p: FieldShellProps) {
           {p.helpText}
         </span>
       )}
-      {ownLabel && (
+      {ownLabel && !beside && (
         <Flex align="center" gap={token.marginXXS} style={{ paddingBottom: token.paddingXS }}>
           {p.labelAs === "legend" ? (
             <div id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
@@ -236,6 +242,17 @@ function AntFieldShell(p: FieldShellProps) {
             )}
           </label>
           {helpButton}
+        </Flex>
+      ) : beside ? (
+        <Flex align="center" justify="space-between" gap={token.marginXS}>
+          <Flex align="center" gap={token.marginXXS}>
+            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
+              {marker}
+              {p.label}
+            </label>
+            {helpButton}
+          </Flex>
+          {p.children}
         </Flex>
       ) : (
         <>
@@ -479,7 +496,8 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       id={p.id}
       label={p.label}
       hideLabel={p.hideLabel}
-      labelPosition="after"
+      labelPosition={p.labelPosition === "before" ? "before" : "after"}
+      orientation={p.labelPosition === "before" ? "horizontal" : undefined}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}

@@ -84,6 +84,7 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  helpButtonName,
   type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
@@ -145,7 +146,7 @@ function FluentFieldShell(p: FieldShellProps) {
   // popover shows the help; for assistive technology the help is also
   // rendered visually hidden under its id, as the control's description.
   const labelEnd = labelEndHelp(p);
-  const infoButton = labelEnd && <InfoButton info={{ children: p.helpText }} aria-label="Help" />;
+  const infoButton = labelEnd && <InfoButton info={{ children: p.helpText }} aria-label={helpButtonName("Help", p.label)} />;
   return (
     <Field
       orientation={p.orientation}
@@ -170,7 +171,7 @@ function FluentFieldShell(p: FieldShellProps) {
                       required={p.required}
                       disabled={p.disabled}
                       info={{ children: p.helpText }}
-                      infoButton={{ "aria-label": "Help" }}
+                      infoButton={{ "aria-label": helpButtonName("Help", p.label) }}
                     >
                       {labelText}
                     </InfoLabel>
@@ -491,7 +492,8 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       id={p.id}
       label={p.label}
       hideLabel={p.hideLabel}
-      labelPosition="after"
+      labelPosition={p.labelPosition === "before" ? "before" : "after"}
+      orientation={p.labelPosition === "before" ? "horizontal" : undefined}
       surface="custom"
       required={p.required}
       disabled={ctl.state.disabled}

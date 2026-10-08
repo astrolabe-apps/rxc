@@ -416,6 +416,17 @@ export interface HtmlTheme {
     className: string;
     /** The `<summary>` — the toggle. */
     summary: string;
+    /**
+     * What the toggle shows before its title — a chevron, an icon component
+     * — in place of the browser's own marker, which `summary` should then
+     * hide. `null` keeps the browser's marker.
+     */
+    icon: ReactNode;
+    /**
+     * Around `icon`, `aria-hidden`. Marked `data-open` while open, so the
+     * theme turns it.
+     */
+    iconClassName: string;
     /** Around the content. */
     content: string;
     /** On the toggle while a touched field inside shows an error. */
@@ -631,6 +642,8 @@ export const defaultHtmlTheme: HtmlTheme = {
   disclosure: {
     className: "rxf-disclosure",
     summary: "rxf-disclosure-summary",
+    icon: null,
+    iconClassName: "rxf-disclosure-icon",
     content: "rxf-disclosure-content",
     invalidMarker: "rxf-disclosure-dot",
   },
@@ -851,7 +864,12 @@ export const tailwindHtmlTheme: HtmlTheme = {
   },
   disclosure: {
     className: "rxf-disclosure",
-    summary: "rxf-disclosure-summary cursor-pointer select-none font-medium text-gray-700",
+    // The browser's marker hidden: the theme draws its own, turned when open.
+    summary:
+      "rxf-disclosure-summary flex cursor-pointer list-none items-center gap-1.5 select-none font-medium text-gray-700 [&::-webkit-details-marker]:hidden",
+    icon: "\u25B8",
+    iconClassName:
+      "rxf-disclosure-icon inline-block transition-transform duration-150 data-[open]:rotate-90",
     content: "rxf-disclosure-content mt-2",
     invalidMarker: "rxf-disclosure-dot ml-1 text-[9px] text-red-600",
   },

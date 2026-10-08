@@ -1,4 +1,4 @@
-import { Fragment, useMemo, type ReactNode } from "react";
+import { Children, Fragment, isValidElement, useMemo, type ReactElement, type ReactNode } from "react";
 import { useRenderersIfAny } from "./registry.js";
 
 /**
@@ -363,4 +363,34 @@ export function drawRichText(nodes: RichNode[], parts: RichTextParts): ReactNode
         return parts[n.kind](drawRichText(n.children, parts), key);
     }
   });
+}
+
+/**
+ * The words of a node — what a name that must be a string can carry: a
+ * native accessible name, a button's `aria-label` built from a field's
+ * label. A {@link RichText} gives its words, an image in it its `alt`.
+ *
+ * @group Implementations
+ */
+export function plainText(node: ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(plainText).join("");
+  if (!isValidElement(node)) return "";
+  if (node.type === RichText) return richTextWords(parseRichText((node.props as RichTextProps).html));
+  return Children.toArray((node as ReactElement<{ children?: ReactNode }>).props.children)
+    .map(plainText)
+    .join("");
+}
+
+/**
+ * A `labelEnd` help button's name: the implementation's word for help and
+ * the field's label — "Help: Commercial vessel" — so two on a page are told
+ * apart. The word alone for a field with no label.
+ *
+ * @group Implementations
+ */
+export function helpButtonName(help: string, label: ReactNode): string {
+  const words = plainText(label).trim();
+  return words ? `${help}: ${words}` : help;
 }

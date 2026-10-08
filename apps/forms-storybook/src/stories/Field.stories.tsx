@@ -244,3 +244,32 @@ function HelpAtLabelEnd(): Rendered {
  * against the default below. Either way it is the input's description.
  */
 export const HelpPlacement: Story = { render: () => <HelpAtLabelEnd /> };
+
+function CheckboxSides() {
+  const { rendered } = useReactive();
+  const data = useControl({ agree: false, commercial: false });
+  return rendered(
+    <Contents>
+      <CheckboxField
+        field={data.fields.agree}
+        label="I agree to the terms"
+        helpText="You can read them on the website."
+        helpPlacement="labelEnd"
+      />
+      <CheckboxField
+        field={data.fields.commercial}
+        label="Commercial vessel"
+        helpText="Used for hire or reward."
+        helpPlacement="labelEnd"
+        labelPosition="before"
+      />
+    </Contents>,
+  );
+}
+
+/**
+ * A checkbox's `labelPosition`: `after` (the default) — box, words, help —
+ * or `before` — words, help, then the control at the row's end. Either way
+ * the order drawn is the order focus takes.
+ */
+export const CheckboxLabelSide: Story = { render: () => <CheckboxSides /> };
