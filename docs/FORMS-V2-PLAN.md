@@ -869,6 +869,11 @@ into theme variants and its seam down to icons and image sources; and one MAST p
 source rendering under `forms-native` in `apps/native-dev`, with only a `platform.native.tsx`
 beside it.
 
+**Published** as `0.1.0-alpha.6` on 2026-10-09, all eight in lock step, `forms-native`'s first
+release, with `@rx-controls/react` 1.1.5 (the React Native commit-effect fix `forms-native`
+needs) and compat 5.1.5. The MAST re-run starts from
+[`FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md).
+
 ### Later, not blocked on any of this
 
 - **The designer** (goal 7). Needs definitions exposed as live values; reimplemented against the
