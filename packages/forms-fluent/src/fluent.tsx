@@ -928,7 +928,7 @@ function FluentWizard(p: WizardRenderProps) {
                 }
                 onClick={() => p.goTo(n)}
               >
-                {step + 1}. {i.title}
+                {step + 1}{i.title != null && <>. {i.title}</>}
               </Button>
             </li>
           ))}

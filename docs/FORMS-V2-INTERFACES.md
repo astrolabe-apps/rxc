@@ -764,7 +764,7 @@ interface ValidationScope {
   pending(rc): boolean;
   settled(): Promise<void>;
   touchAll(): void;
-  check(): Promise<boolean>;             // settle → touch if invalid → valid?
+  check(options?: { focus?: boolean }): Promise<boolean>;  // settle → touch + focus the first in error if invalid → valid?
 }
 function useValidation(): ValidationScope;      // the nearest, from inside; throws outside a <Form>
 function useFormValidation(validationKey?: string): ValidationScope;  // the owner's: <Form validation={…}>

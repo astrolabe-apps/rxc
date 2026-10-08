@@ -26,6 +26,19 @@ export type ValidationScopeKind =
   | "disclosure";
 
 /**
+ * How {@link ValidationScope.check} behaves on a refusal.
+ *
+ * @group Authoring
+ */
+export interface CheckOptions {
+  /**
+   * Move focus to the first field showing an error, revealing the
+   * containers that hide it. Default `true`.
+   */
+  focus?: boolean;
+}
+
+/**
  * One region's validity: a form, a section, a tab, a wizard page, a dialog.
  * The scopes form a tree — {@link Form} owns the root, and every container
  * that makes a scope attaches it under the one it sits in — so an author can
@@ -90,15 +103,20 @@ export interface ValidationScope {
   touchAll(): void;
   /**
    * The gate: wait for pending validators, and if anything inside is invalid,
-   * touch everything so the errors show. Resolves to whether it was valid. A
+   * touch everything so the errors show, and move focus to the first field
+   * showing one ({@link ValidationScope.focusInvalid}) — so the user is taken
+   * to what to fix, even inside a closed disclosure or on another tab.
+   * `{ focus: false }` only touches. Resolves to whether it was valid. A
    * form's submit is `root.check()`; a wizard's Next is its page's.
    */
-  check(): Promise<boolean>;
+  check(options?: CheckOptions): Promise<boolean>;
   /**
    * Move focus to the first field inside that is showing an error — first in
-   * document order where the widgets are DOM elements. Reaches a field
-   * through the element its widget publishes (`control.meta.element`).
-   * Returns whether there was one. A refused `<Form onSubmit>` calls it.
+   * document order where the widgets are DOM elements — revealing each
+   * container that hides it on the way: a closed disclosure opens, an
+   * inactive tab becomes the active one. Reaches a field through the element
+   * its widget publishes (`control.meta.element`). Returns whether there was
+   * one. A refused {@link ValidationScope.check} calls it.
    */
   focusInvalid(): boolean;
 }

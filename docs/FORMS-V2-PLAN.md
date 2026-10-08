@@ -734,42 +734,56 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   what it looks like. html and native resolve it from theme maps (`text.variants[v]`,
   `contents.variants[v]`, `action.variants[v]` — the html `action.variants` record opens up); an
   unknown variant draws the base look, and design mode or a dev warning says so.
-- *To decide:* how MUI, Ant and Fluent resolve a variant — they have no class theme. Recommended:
-  each implementation's own theme option (`muiRenderers({ variants })`, or a context like
-  `HtmlThemeProvider`) mapping a variant to its library's props or `sx` / style.
+- *Decided:* MUI, Ant and Fluent, which have no class theme, each resolve a variant through a
+  theme context of their own, like `HtmlThemeProvider` and nesting the same way, mapping a
+  variant to the library's props or `sx` / style. Not a `muiRenderers({ variants })` option,
+  which would fix the looks per renderer set.
 - N10's two links are then two action variants; nothing link-specific is needed.
 
 **Rich text (N9).** Words inside a sentence or a label that are emphasised.
-- *To decide:* a contract inline (`<Strong>`, perhaps `<Em>`) usable inside any `text` / `label`
-  node, which each implementation draws (html `<strong>` with a theme class, native a nested
-  `Text`, the libraries their own); or rich text as segments (`text: ["Is ", strong(name), "…"]`).
-  Recommended: the inline component — it reads as JSX, nests in a derived label, and native's
-  nested `Text` is exactly its shape. Either way `textOf` (native's names) keeps its words.
+- *Decided:* an HTML subset, parsed rather than injected. `<RichText html="…">` is a contract
+  component usable inside any `text` / `label` node; forms-react parses a fixed inline subset
+  (`b` / `strong`, `i` / `em`, `sup` / `sub`, `a`, `br`, entities — tolerating a missing `;` — and
+  `img`) into segments with no dependency, and every implementation draws the segments through a
+  renderer slot, the web included, so the subset is the same on every platform by construction.
+  A tag outside it keeps its text, with a dev warning. An `html` tagged template escapes what is
+  interpolated (`` html`Is <b>${name}</b>…` ``), so data never becomes markup. An app wanting
+  arbitrary HTML replaces the slot; `HtmlDisplay` stays as it is for block HTML. `textOf` keeps
+  the words for native names. HTML rather than `<Strong>` or Markdown because the JSON side
+  already speaks it: legacy let a renderer draw titles and help as HTML, and ServiceTas took
+  that up (6 titles with `<sup>`, 12 help texts with `<a>` and `<img>`).
+- **On the JSON path it is the host's choice, never the loader's default.** A new host extension
+  turns a definition's display text (`title`, help) into a node, defaulting to the plain
+  string; ServiceTas's host — and the corpus's stand-in host — return `<RichText html>`.
 
 **An image display (N8).** `ImageDisplay` (`source`, `alt`, `width` / `height`, `fit`) — html
 `<img>`, native `Image`, the libraries their own.
-- *To decide:* how a source names an asset across platforms (a URL on the web, a bundled
-  `require` on native). Recommended: `source` is whatever the implementation's image takes
-  (string or the platform's asset object), so a seam module supplies it per platform, as icons
-  are supplied — the contract does not invent an asset registry.
+- *Decided:* `source` is a URL string everywhere (forms-native wraps it as `{ uri }`) or the
+  platform's own asset object. A bundled native asset comes from a `platform.native.tsx` seam,
+  which Metro picks over `platform.tsx` by itself, so there is no detection code and no asset
+  registry in the contract.
 
 **A group's own heading (N3).** Content before a group's title ("Step 1 of 2", an image above
 the page title on a phone).
-- *To decide:* `GroupProps.header` drawn before the title, or a `TextDisplay heading="group"` that
-  is its group's own title — the level a title there takes, with content free to precede it.
-  Recommended: `heading="group"`, which keeps one way to write a heading and lets layout order it.
+- *Decided:* `TextDisplay heading="group"`, its group's own title — the level a title there
+  takes, with content free to precede it. One way to write a heading, and layout orders it.
 
-**Checks that move nothing, and focus (N4, N5, the tabs reveal).**
+**Checks that move nothing, and focus (N4, N5, the tabs reveal). ✅**
 - `WizardController.check()`: the page's check without moving, for a page whose next page a
-  server decides. `next()` stays check-and-move.
+  server decides. `next()` stays check-and-move — and moves only from the page it checked, so a
+  page the user left while its validators settled stays where they took it.
 - A refused check focuses the first field in error by default — `ValidationScope.check({ focus })`,
-  `true` unless an author opts out — as a refused `<Form onSubmit>` already does. The wizard's own
-  `next()` follows.
+  `true` unless an author opts out — as a refused `<Form onSubmit>` already did (its
+  `focusInvalid` is now that option). The wizard's own `next()` follows.
 - **Tabs reveal** their tab before a field on it takes focus, as a disclosure opens: the same
   `reveal` on each tab's validation scope (`setActive`, then focus once committed). Found on a
   device, where a refused submit focused a field on an inactive tab and the keyboard rose for a
-  field nobody could see; the web has the same hole (focus on a hidden field does nothing).
-- `WizardPage.title` optional under `navigation="none"`, where nothing shows it.
+  field nobody could see; the web has the same hole (focus on a hidden field does nothing). The
+  conformance case found that **Ant shows a tab pane a commit late** — rc-motion lifts its
+  `display: none` from a state update in its own layout effect — so a reveal hands focus on a
+  commit after the switch's (both before paint), which covers any library that does the same.
+- `WizardPage.title` optional under `navigation="none"`, where nothing shows it; a built-in
+  strip numbers an untitled step.
 
 **`labelEnd` help, finished (N6, N7, N11).**
 - On a trailing-label widget (a checkbox), html draws the label text with `htmlFor` beside, then

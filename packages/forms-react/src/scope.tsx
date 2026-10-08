@@ -218,10 +218,7 @@ export function Form({
   handler.current = onSubmit;
   const hasSubmit = onSubmit !== undefined;
   const submit = useCallback(async () => {
-    if (!(await validation.check())) {
-      if (focusInvalid) validation.focusInvalid();
-      return;
-    }
+    if (!(await validation.check({ focus: focusInvalid }))) return;
     await handler.current?.();
   }, [validation, focusInvalid]);
   const {

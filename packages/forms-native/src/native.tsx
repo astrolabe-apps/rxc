@@ -1030,7 +1030,7 @@ function NativeWizard(p: WizardRenderProps) {
                 className={cx(t.step, n === p.index && t.active)}
               >
                 <Text className={t.stepText}>
-                  {step + 1}. {i.title}
+                  {step + 1}{i.title != null && <>. {i.title}</>}
                 </Text>
               </Pressable>
             ))}

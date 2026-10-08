@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type ComponentType,
   type ReactNode,
 } from "react";
@@ -27,7 +28,58 @@ import {
   ValidationScopeProvider,
   type ValidationScopeImpl,
 } from "./validationScope.js";
+import type { CheckOptions } from "./validation.js";
 import { boundaryName, resolveImpl } from "./boundaryParts.js";
+
+/** `useLayoutEffect` on the client (a DOM, or React Native), `useEffect` on the server. */
+const useCommitEffect =
+  typeof document !== "undefined" ||
+  // React Native has layout effects but no `document`; it identifies itself here.
+  (typeof navigator !== "undefined" && navigator.product === "ReactNative")
+    ? useLayoutEffect
+    : useEffect;
+
+/**
+ * Give each scope the `reveal` a refused check uses before it focuses a field
+ * inside: `shown(key)` — its content is in sight already, or can't be brought
+ * into it; `show(key)` — bring it into sight, which moves `committed`. The
+ * focus is handed on a commit after that move's, so it lands on content that
+ * is on screen even where the library shows it from a commit-phase update of
+ * its own — Ant's tab panes, through rc-motion, are still `display: none`
+ * when the switch itself commits. Both commits are before paint.
+ */
+function useReveals(
+  scopes: Map<string, ValidationScopeImpl>,
+  shown: (key: string) => boolean,
+  show: (key: string) => void,
+  committed: unknown,
+) {
+  const pending = useRef<(() => void) | undefined>(undefined);
+  const latest = useRef({ shown, show });
+  latest.current = { shown, show };
+  useEffect(() => {
+    for (const [k, s] of scopes)
+      s.reveal = (then) => {
+        if (latest.current.shown(k)) return false;
+        pending.current = then;
+        latest.current.show(k);
+        return true;
+      };
+    return () => {
+      for (const s of scopes.values()) s.reveal = undefined;
+    };
+  }, [scopes]);
+  const [settled, settle] = useState(0);
+  useCommitEffect(() => {
+    if (pending.current) settle((n) => n + 1);
+  }, [committed]);
+  useCommitEffect(() => {
+    const then = pending.current;
+    if (!then) return;
+    pending.current = undefined;
+    then();
+  }, [settled]);
+}
 
 /**
  * One panel's content: its scope — `rendered` when shown, `silent` when not,
@@ -276,6 +328,14 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
     useEffect(() => {
       if (activeKey !== stored) update((wc) => wc.setValue(active, activeKey));
     }, [activeKey, stored, active, update]);
+    // A refused check focusing a field on another tab switches to it first.
+    // A hidden tab cannot be shown, and in design mode every panel is.
+    useReveals(
+      scopes,
+      (k) => stacked || k === activeKey || hiddenAt[keys.indexOf(k)] === true,
+      (k) => update((wc) => wc.setValue(active, k)),
+      activeKey,
+    );
 
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const renderProps: TabsRenderProps = {
@@ -310,8 +370,12 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
 export interface WizardPage {
   /** Stable identity. */
   key: string;
-  /** The step's label. */
-  title: ReactNode;
+  /**
+   * The step's label, in the step strip. Optional under
+   * {@link WizardProps.navigation} `none`, where nothing draws it; without
+   * one, a built-in strip numbers the step.
+   */
+  title?: ReactNode;
   /**
    * Hide the page: out of the step sequence — Next and Back skip it — and
    * `hidden` like a hidden group's content, mounted but not validating, with
@@ -370,8 +434,8 @@ export interface WizardProps {
 export interface WizardRenderItem {
   /** Stable identity. */
   key: string;
-  /** The step's label. */
-  title: ReactNode;
+  /** The step's label. Absent, number the step. */
+  title?: ReactNode;
   /** The page, already scoped. Render it always, hidden when not active. */
   content: ReactNode;
   /** The current page — or every shown page, in design mode. */
@@ -447,9 +511,18 @@ export interface WizardController {
   /** There is a shown page after this one. */
   canNext: boolean;
   /**
-   * What the built-in Next does: the page's {@link ValidationScope.check} —
-   * its asynchronous validators awaited, its fields touched if a rule fails
-   * — then the next shown page if it passed. Resolves to whether it passed,
+   * The current page's {@link ValidationScope.check}, without moving: its
+   * asynchronous validators awaited, and on a refusal its fields touched and
+   * the first in error focused. For a page whose next page a server call
+   * decides — check, call, then {@link WizardController.goTo} where the
+   * answer says.
+   */
+  check(options?: CheckOptions): Promise<boolean>;
+  /**
+   * What the built-in Next does: the page's {@link WizardController.check} —
+   * its asynchronous validators awaited, and if a rule fails its fields
+   * touched and the first in error focused — then the next shown page if it
+   * passed. Resolves to whether it passed,
    * so an action can go on to its server call only then.
    */
   next(): Promise<boolean>;
@@ -548,17 +621,32 @@ export function wizardRenderer(
     );
 
     // The page's gate — the same `check()` a form's submit is.
-    const checkedNext = async () => {
+    const checkPage = async (options?: CheckOptions) => {
       const current = items[index];
-      if (!current) return false;
-      const passed = await scopes.get(current.key)!.check();
-      if (passed) goTo(after(index));
+      return current ? scopes.get(current.key)!.check(options) : false;
+    };
+    const checkedNext = async () => {
+      const checked = index;
+      const passed = await checkPage();
+      // Only from the page that was checked: one moved away from while its
+      // validators settled stays where the user took it.
+      if (passed && latest.current.index === checked)
+        latest.current.goTo(latest.current.after());
       return passed;
     };
     // The controller's methods read the latest render's, so one captured
     // before an await still moves from where the wizard is now.
-    const latest = useRef({ checkedNext, goTo, back: () => goTo(before(index)), keys });
-    latest.current = { checkedNext, goTo, back: () => goTo(before(index)), keys };
+    const current = {
+      index,
+      checkPage,
+      checkedNext,
+      goTo,
+      after: () => after(index),
+      back: () => goTo(before(index)),
+      keys,
+    };
+    const latest = useRef(current);
+    latest.current = current;
     const pageKey = keys[index];
     const canBack = before(index) !== undefined;
     const canNext = after(index) !== undefined;
@@ -567,6 +655,7 @@ export function wizardRenderer(
         page: pageKey,
         canBack,
         canNext,
+        check: (options) => latest.current.checkPage(options),
         next: () => latest.current.checkedNext(),
         back: () => latest.current.back(),
         goTo: (key) => {
@@ -806,14 +895,6 @@ export type DisclosureImplSource =
   | ComponentType<DisclosureRenderProps>
   | RegistrySlot;
 
-/** `useLayoutEffect` on the client (a DOM, or React Native), `useEffect` on the server. */
-const useCommitEffect =
-  typeof document !== "undefined" ||
-  // React Native has layout effects but no `document`; it identifies itself here.
-  (typeof navigator !== "undefined" && navigator.product === "ReactNative")
-    ? useLayoutEffect
-    : useEffect;
-
 /**
  * Build a disclosure component.
  *
@@ -851,28 +932,13 @@ export function disclosureRenderer(
       lockedHere(scope, rc),
     );
     const setOpen = (v: boolean) => update((wc) => wc.setValue(openControl, v));
-    // A refused submit focusing a field inside: open first, and hand the
-    // focus on once the opened content has committed.
-    const pendingReveal = useRef<(() => void) | undefined>(undefined);
-    const latest = useRef({ open, setOpen });
-    latest.current = { open, setOpen };
-    useEffect(() => {
-      validation.reveal = (then) => {
-        if (latest.current.open) return false;
-        pendingReveal.current = then;
-        latest.current.setOpen(true);
-        return true;
-      };
-      return () => {
-        validation.reveal = undefined;
-      };
-    }, [validation]);
-    useCommitEffect(() => {
-      if (!open || !pendingReveal.current) return;
-      const then = pendingReveal.current;
-      pendingReveal.current = undefined;
-      then();
-    }, [open]);
+    // A refused check focusing a field inside opens it first.
+    useReveals(
+      useMemo(() => new Map([["", validation]]), [validation]),
+      () => open,
+      () => setOpen(true),
+      open,
+    );
 
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const renderProps: DisclosureRenderProps = {

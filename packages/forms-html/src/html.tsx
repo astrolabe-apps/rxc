@@ -854,7 +854,7 @@ function HtmlWizard(p: WizardRenderProps) {
                 data-invalid={i.invalid ? "" : undefined}
               >
                 <button type="button" onClick={() => p.goTo(n)}>
-                  {step + 1}. {i.title}
+                  {step + 1}{i.title != null && <>. {i.title}</>}
                 </button>
               </li>
             ))}

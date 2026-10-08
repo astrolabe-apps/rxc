@@ -865,7 +865,8 @@ export function describeConformance(impl: Implementation): void {
       );
       click(buttonNamed("Next")!);
       await flush();
-      expect(rc.getValue(page)).toBe(0);
+      // Refused: it stays, and takes the user to what to fix.
+      expect([rc.getValue(page), document.activeElement?.id]).toEqual([0, "w"]);
       set(name, "ok");
       click(buttonNamed("Next")!);
       await flush();
@@ -1032,12 +1033,14 @@ export function describeConformance(impl: Implementation): void {
           ? (t.parentElement as HTMLDetailsElement).open
           : t.getAttribute("aria-expanded") === "true";
       };
-      // Closed: the field is there, and still refuses the form.
-      expect([expanded(), !!byId("where"), await act(() => validation.check())]).toEqual([
-        false,
-        true,
-        false,
-      ]);
+      // Closed: the field is there, and still refuses the form — a check
+      // that only touches leaves it closed.
+      expect([
+        expanded(),
+        !!byId("where"),
+        await act(() => validation.check({ focus: false })),
+        expanded(),
+      ]).toEqual([false, true, false, false]);
       // The toggle opens and closes it, the field the same node throughout.
       const input = byId("where");
       click(toggle());
@@ -1049,6 +1052,49 @@ export function describeConformance(impl: Implementation): void {
       await flush();
       await flush();
       expect([expanded(), document.activeElement?.id]).toEqual([true, "where"]);
+    });
+
+    it("switches to the tab holding the first field in error before focusing it", async () => {
+      const second = ctx.newControl("");
+      function Submitting() {
+        validation = useFormValidation();
+        return (
+          <Form validation={validation} onSubmit={() => {}}>
+            <Tabs
+              items={[
+                { key: "one", title: "First", children: <TextField field={ctx.newControl("x")} id="t1" label="One" /> },
+                { key: "two", title: "Second", children: <TextField field={second} id="t2" label="Two" required /> },
+              ]}
+            />
+            <Action actionId="save" text="Save" submit variant="primary" />
+          </Form>
+        );
+      }
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {(impl.wrap ?? ((t: ReactNode) => t))(
+              <FormProvider renderers={impl.renderers}>
+                <Submitting />
+              </FormProvider>,
+            )}
+          </ControlContextProvider>,
+        ),
+      );
+      // Focus has to land on a field that is on screen: the switch first.
+      const seen: boolean[] = [];
+      byId("t2")!.addEventListener("focus", () => seen.push(onScreen(byId("t2"))));
+      click(buttonNamed("Save")!);
+      await flush();
+      await flush();
+      const selected = [...document.querySelectorAll('[role="tab"]')].find(
+        (t) => t.getAttribute("aria-selected") === "true",
+      );
+      expect([selected?.textContent?.includes("Second"), document.activeElement?.id, seen]).toEqual([
+        true,
+        "t2",
+        [true],
+      ]);
     });
 
     it("focuses the first field in error, in document order, when a submit is refused", async () => {

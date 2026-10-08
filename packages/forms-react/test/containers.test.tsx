@@ -145,6 +145,53 @@ describe("Tabs", () => {
   });
 });
 
+describe("Tabs: a refused check", () => {
+  it("switches to the tab holding the first field in error, then focuses it", async () => {
+    const b = dom.ctx.newControl("");
+    mount(
+      <Tabs
+        items={[
+          { key: "one", title: "One", children: <TextField field={dom.ctx.newControl("x")} id="a" /> },
+          { key: "two", title: "Two", children: <TextField field={b} id="b" required /> },
+        ]}
+      />,
+    );
+    // Whether the panel was on screen when focus arrived: the switch has
+    // to have committed first.
+    const seen: boolean[] = [];
+    $("#b")!.addEventListener("focus", () =>
+      seen.push(!$('[data-panel="two"]')!.hidden),
+    );
+    b.meta.element = $("#b");
+    expect(await act(() => root.check())).toBe(false);
+    await flush();
+    expect([$("[data-tab][data-active]")!.getAttribute("data-tab"), seen]).toEqual([
+      "two",
+      [true],
+    ]);
+  });
+
+  it("only touches with { focus: false }, leaving the tab and focus where they are", async () => {
+    const b = dom.ctx.newControl("");
+    mount(
+      <Tabs
+        items={[
+          { key: "one", title: "One", children: <TextField field={dom.ctx.newControl("x")} id="a" /> },
+          { key: "two", title: "Two", children: <TextField field={b} id="b" required /> },
+        ]}
+      />,
+    );
+    b.meta.element = $("#b");
+    expect(await act(() => root.check({ focus: false }))).toBe(false);
+    await flush();
+    expect([
+      rc.isTouched(b),
+      $("[data-tab][data-active]")!.getAttribute("data-tab"),
+      document.activeElement?.id,
+    ]).toEqual([true, "one", ""]);
+  });
+});
+
 describe("Tabs: a hidden item", () => {
   function Strip({
     a,
@@ -431,6 +478,68 @@ describe("Wizard: useWizard", () => {
     expect(rc.getValue(page)).toBe(1);
     // The render-time facts follow too, on the current controller.
     expect([wizard.page, wizard.canBack, wizard.canNext]).toEqual(["b", true, true]);
+  });
+
+  it("checks the page without moving, focusing the first field in error", async () => {
+    const page = dom.ctx.newControl<number | undefined>(0);
+    const name = dom.ctx.newControl("");
+    mount(
+      <Wizard
+        navigation="none"
+        page={page}
+        items={[
+          { key: "a", children: <><Grab /><TextField field={name} id="w" required /></> },
+          { key: "b", children: null },
+        ]}
+      />,
+    );
+    name.meta.element = $("#w");
+    expect(await act(() => wizard.check())).toBe(false);
+    expect([rc.isTouched(name), document.activeElement?.id, rc.getValue(page)]).toEqual([
+      true,
+      "w",
+      0,
+    ]);
+    set(name, "Ada");
+    expect(await act(() => wizard.check())).toBe(true);
+    expect(rc.getValue(page)).toBe(0);
+  });
+
+  it("does not move on from a page left while its check was settling", async () => {
+    const page = dom.ctx.newControl<number | undefined>(0);
+    mount(
+      <Wizard
+        page={page}
+        items={[
+          {
+            key: "a",
+            title: "A",
+            children: (
+              <>
+                <Grab />
+                <TextField
+                  field={dom.ctx.newControl("x")}
+                  id="slow"
+                  validate={{
+                    slow: async () => {
+                      await new Promise((r) => setTimeout(r, 20));
+                      return null;
+                    },
+                  }}
+                />
+              </>
+            ),
+          },
+          { key: "b", title: "B", children: null },
+          { key: "c", title: "C", children: null },
+        ]}
+      />,
+    );
+    const next = wizard.next();
+    // The user goes elsewhere while the page's validator is still out.
+    act(() => wizard.goTo("c"));
+    expect(await act(() => next)).toBe(true);
+    expect(rc.getValue(page)).toBe(2);
   });
 
   it("goes to a page by key, and not to a hidden or unknown one", () => {

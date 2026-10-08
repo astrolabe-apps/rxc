@@ -68,9 +68,9 @@ export interface ValidationScopeImpl extends ValidationScope {
    */
   invalidPaths(): { target: FocusTarget; path: ValidationScopeImpl[] }[];
   /**
-   * Set by a container whose closed content cannot take focus — a
-   * disclosure. Asked to show its content before a refused submit focuses a
-   * field inside: returns `false` when it already shows (go on at once), or
+   * Set by a container whose content can be out of sight — a disclosure, a
+   * tab. Asked to show its content before a refused check focuses a field
+   * inside: returns `false` when it already shows (go on at once), or
    * opens and returns `true`, promising to call `then` once the opened
    * content has committed.
    */
@@ -222,10 +222,13 @@ export function createValidationScope(
       step(0);
       return true;
     },
-    check: async () => {
+    check: async ({ focus = true } = {}) => {
       await scope.settled();
       const valid = untrackedRead.isValid(group);
-      if (!valid) scope.touchAll();
+      if (!valid) {
+        scope.touchAll();
+        if (focus) scope.focusInvalid();
+      }
       return valid;
     },
     beginPending: () => {
