@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { untrackedRead as rc } from "@rx-controls/core";
 import type { SchemaField } from "@rx-controls/forms-schema";
-import { Contents, TextField } from "@rx-controls/forms-react";
+import { Contents, RichText, TextField } from "@rx-controls/forms-react";
 import {
   defaultTranslators,
   LoaderStrictError,
@@ -110,6 +110,38 @@ describe("TextField", () => {
     expect(warnings).toEqual([]);
     expect(text()).not.toContain("Address section");
     expect(text()).toContain("Street");
+  });
+});
+
+describe("display text", () => {
+  const defs = [
+    {
+      type: "Data",
+      field: "size",
+      title: "Is your fire larger than 1m<sup>3</sup>?",
+      adornments: [{ type: "HelpText", helpText: 'See <a href="https://x.test/g">the guide</a>' }],
+    },
+  ];
+  it("leaves a title and help text as plain strings by default", () => {
+    h.load(defs, [str("size")], { size: "" });
+    expect([$("sup"), text().includes("1m<sup>3</sup>")]).toEqual([null, true]);
+  });
+
+  it("hands them to the host's displayText, which can draw them as rich text", () => {
+    const where: string[] = [];
+    const { warnings } = h.load(defs, [str("size")], { size: "" }, {
+      displayText: (s, w) => {
+        where.push(w);
+        return <RichText html={s} />;
+      },
+    });
+    expect(warnings).toEqual([]);
+    expect([
+      $("sup")?.textContent,
+      $("a")?.getAttribute("href"),
+      text().includes("<sup>"),
+      [...new Set(where)].sort(),
+    ]).toEqual(["3", "https://x.test/g", false, ["help", "title"]]);
   });
 });
 

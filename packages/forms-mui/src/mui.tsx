@@ -37,6 +37,7 @@ import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Stepper from "@mui/material/Stepper";
 import Typography from "@mui/material/Typography";
+import MuiLink from "@mui/material/Link";
 import MuiTooltip from "@mui/material/Tooltip";
 import MuiDialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -85,9 +86,11 @@ import {
   type TextFieldRenderProps,
   combineClass,
   warnUnknownVariant,
+  type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
+  RichTextDom,
   type GroupVariantStyle,
   Inline,
   ElementsList,
@@ -627,6 +630,20 @@ function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefin
   return { wrapper: at(look.wrapper), title: at(look.title), body: at(look.body) };
 }
 
+/** Rich text as DOM, its links MUI's own. */
+function MuiRichText(p: RichTextRenderProps) {
+  return (
+    <RichTextDom
+      {...p}
+      link={(n, ch, k) => (
+        <MuiLink key={k} href={n.href} target={n.target} rel={n.target === "_blank" ? "noopener noreferrer" : undefined}>
+          {ch}
+        </MuiLink>
+      )}
+    />
+  );
+}
+
 function MuiInline(p: GroupRenderProps) {
   return <Inline {...p} variantStyle={useGroupStyle(p.variant)} />;
 }
@@ -1074,6 +1091,7 @@ export const muiRenderers: FormRenderers = {
   text: MuiText,
   html: MuiHtml,
   icon: MuiIcon,
+  richText: MuiRichText,
   action: MuiAction,
   contents: MuiContents,
   inline: MuiInline,

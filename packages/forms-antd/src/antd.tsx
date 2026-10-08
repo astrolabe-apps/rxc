@@ -62,9 +62,11 @@ import {
   type TextFieldRenderProps,
   combineClass,
   warnUnknownVariant,
+  type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
+  RichTextDom,
   type GroupVariantStyle,
   Inline,
   ElementsList,
@@ -673,6 +675,20 @@ function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefin
   };
 }
 
+/** Rich text as DOM, its links Ant's own. */
+function AntRichText(p: RichTextRenderProps) {
+  return (
+    <RichTextDom
+      {...p}
+      link={(n, ch, k) => (
+        <Typography.Link key={k} href={n.href} target={n.target} rel={n.target === "_blank" ? "noopener noreferrer" : undefined}>
+          {ch}
+        </Typography.Link>
+      )}
+    />
+  );
+}
+
 function AntInline(p: GroupRenderProps) {
   return <Inline {...p} variantStyle={useGroupStyle(p.variant)} />;
 }
@@ -1074,6 +1090,7 @@ export const antdRenderers: FormRenderers = {
   text: AntText,
   html: AntHtml,
   icon: AntIcon,
+  richText: AntRichText,
   action: AntAction,
   contents: AntContents,
   inline: AntInline,

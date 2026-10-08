@@ -3,6 +3,7 @@ import {
   createContext,
   isValidElement,
   useContext,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -11,6 +12,8 @@ import {
 } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -63,6 +66,13 @@ import {
   type Tone,
   type WizardRenderProps,
   warnUnknownVariant,
+  drawRichText,
+  parseRichText,
+  RichText,
+  richTextWords,
+  type RichNode,
+  type RichTextProps,
+  type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import { twMerge } from "tailwind-merge";
 import { useNativeTheme } from "./theme.js";
@@ -76,11 +86,16 @@ import { useNativeTheme } from "./theme.js";
 // An app on both targets needs both, so the implementation sets both and
 // each platform ignores the other's.
 
-/** The plain text of a node — what a native name or hint can carry. */
+/**
+ * The plain text of a node — what a native name or hint can carry. A
+ * `RichText` gives its words, an image in it its `alt`.
+ */
 export function textOf(node: ReactNode): string {
   if (node == null || typeof node === "boolean") return "";
   if (typeof node === "string" || typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(textOf).join("");
+  if (isValidElement(node) && node.type === RichText)
+    return richTextWords(parseRichText((node.props as RichTextProps).html));
   if (isValidElement(node))
     return Children.toArray(
       (node as ReactElement<{ children?: ReactNode }>).props.children,
@@ -935,6 +950,89 @@ function NativeHtml(p: HtmlDisplayRenderProps): Rendered {
   );
 }
 
+/**
+ * An image inside text. React Native draws none without a size, so a missing
+ * one is read from the image itself, the given width keeping its proportions.
+ */
+function RichImage({ node, className }: { node: Extract<RichNode, { kind: "image" }>; className?: string }) {
+  const [natural, setNatural] = useState<{ width: number; height: number }>();
+  const sized = node.width !== undefined && node.height !== undefined;
+  useEffect(() => {
+    if (sized) return;
+    let live = true;
+    Image.getSize(
+      node.src,
+      (width, height) => live && setNatural({ width, height }),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [node.src, sized]);
+  const width = node.width ?? natural?.width;
+  const height =
+    node.height ??
+    (natural && width !== undefined ? (natural.height * width) / natural.width : undefined);
+  return (
+    <Image
+      source={{ uri: node.src }}
+      alt={node.alt}
+      aria-label={node.alt || undefined}
+      accessibilityIgnoresInvertColors
+      className={className}
+      style={{ width: width ?? 0, height: height ?? 0 }}
+      resizeMode="contain"
+    />
+  );
+}
+
+/**
+ * Rich text as nested `Text`, which inherits what it sits in: emphasis by
+ * class, a link pressed open through `Linking`, a break a newline.
+ */
+function NativeRichText({ nodes }: RichTextRenderProps) {
+  const t = useNativeTheme().richText;
+  return (
+    <Text>
+      {drawRichText(nodes, {
+        strong: (ch, k) => (
+          <Text key={k} className={t.strong}>
+            {ch}
+          </Text>
+        ),
+        em: (ch, k) => (
+          <Text key={k} className={t.em}>
+            {ch}
+          </Text>
+        ),
+        sup: (ch, k) => (
+          <Text key={k} className={t.sup}>
+            {ch}
+          </Text>
+        ),
+        sub: (ch, k) => (
+          <Text key={k} className={t.sub}>
+            {ch}
+          </Text>
+        ),
+        link: (n, ch, k) => (
+          <Text
+            key={k}
+            role="link"
+            className={t.link}
+            onPress={() => void Linking.openURL(n.href)}
+            {...webOnly({ href: n.href, hrefAttrs: n.target ? { target: n.target, rel: "noopener noreferrer" } : undefined })}
+          >
+            {ch}
+          </Text>
+        ),
+        break: (k) => <Text key={k}>{"\n"}</Text>,
+        image: (n, k) => <RichImage key={k} node={n} className={t.image} />,
+      })}
+    </Text>
+  );
+}
+
 function NativeAction(p: ActionRenderProps) {
   const t = useNativeTheme().action;
   // A role the theme does not name draws as the default emphasis.
@@ -1229,6 +1327,7 @@ export const nativeRenderers: FormRenderers = {
   text: NativeText,
   html: NativeHtml,
   icon: NativeIcon,
+  richText: NativeRichText,
   contents: NativeContents,
   inline: NativeInline,
   tabs: NativeTabs,

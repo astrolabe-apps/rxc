@@ -25,6 +25,7 @@ import {
   HtmlDisplay,
   InlineGroup,
   RadioField,
+  RichText,
   SelectField,
   Tabs,
   TextDisplay,
@@ -1198,6 +1199,34 @@ export function describeConformance(impl: Implementation): void {
       mount(impl.looks(ui));
       click(buttonNamed("Unknown button")!);
       expect([logged.splice(0), clicked.mock.calls.length]).toEqual([[], 1]);
+    });
+
+    it("draws rich text in a label, a help text and a display, naming and describing by its words", () => {
+      mount(
+        <>
+          <TextField
+            field={ctx.newControl("")}
+            id="rich"
+            label={<RichText html="Is <b>UBER</b> over 1m<sup>3</sup>?" />}
+            helpText={<RichText html={'See <a href="https://example.test/guide" target="_blank">the guide</a>'} />}
+          />
+          <TextDisplay
+            text={<RichText html={'<i>Card</i>:<br><img src="https://example.test/card.png" alt="Licence card" width="260" height="160">'} />}
+          />
+        </>,
+      );
+      expect(read()).toEqual([
+        { name: "Is UBER over 1m3?", description: "See the guide", invalid: false, required: false },
+      ]);
+      // Emphasis and the superscript each an element of their own.
+      const holder = (words: string) =>
+        [...container.querySelectorAll("*")].filter((e) => e.textContent === words).pop();
+      expect([!!holder("UBER"), !!holder("3"), !!holder("Card")]).toEqual([true, true, true]);
+      // A real link, going where the markup said.
+      const link = holder("the guide")!.closest("a");
+      expect(link?.getAttribute("href")).toBe("https://example.test/guide");
+      // The image, named by its alt.
+      expect(container.querySelector('[alt="Licence card"], [aria-label="Licence card"]')).not.toBeNull();
     });
 
     it("runs an action, and locks it while an async handler is busy", async () => {

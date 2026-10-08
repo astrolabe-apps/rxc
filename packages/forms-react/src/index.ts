@@ -37,6 +37,7 @@ export * from "./validation.js";
 export * from "./collection.js";
 export * from "./group.js";
 export * from "./display.js";
+export * from "./richText.js";
 export * from "./action.js";
 export * from "./containers.js";
 export * from "./primitives.js";

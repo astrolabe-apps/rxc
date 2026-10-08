@@ -8,6 +8,7 @@ import {
   Contents,
   combineClass,
   getProp,
+  RichText,
   Section,
   type ClassValue,
   type FormProp,
@@ -207,12 +208,15 @@ function HelpWithLabel({
     <span className="demo-help-labelled">
       {label && <b>{label}</b>}
       {label && text && " "}
-      {text}
+      {/* ServiceTas writes markup in its help: links, an image. */}
+      {text && <RichText html={text} />}
     </span>
   );
 }
 
 export const standInHost: LoaderOptions = {
+  // ServiceTas took up legacy's html titles (`1m<sup>3</sup>`).
+  displayText: (text) => <RichText html={text} />,
   translators: [
     switchTranslator,
     textInputTranslator,

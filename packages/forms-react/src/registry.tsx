@@ -19,6 +19,7 @@ import type {
   TextDisplayRenderProps,
 } from "./display.js";
 import type { GroupRenderProps } from "./group.js";
+import type { RichTextRenderProps } from "./richText.js";
 import type {
   FieldShellProps,
   InputFrameProps,
@@ -67,6 +68,11 @@ export interface FormRenderers {
   html: ComponentType<HtmlDisplayRenderProps>;
   /** {@link IconDisplay}. */
   icon: ComponentType<IconDisplayRenderProps>;
+  /**
+   * {@link RichText}: parsed inline markup, drawn wherever a node goes — a
+   * label, a help text, a display's text. {@link drawRichText} walks it.
+   */
+  richText: ComponentType<RichTextRenderProps>;
   /** {@link Contents} and {@link Section}: the standard group. */
   contents: ComponentType<GroupRenderProps>;
   /** {@link InlineGroup}: a bare inline element whose children are prose. */

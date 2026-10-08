@@ -204,6 +204,21 @@ export interface NativeTheme {
     /** Its element. */
     className: string;
   };
+  /** Rich text (`RichText`): nested `Text`, inheriting what it sits in. */
+  richText: {
+    /** `b` / `strong`. */
+    strong: string;
+    /** `i` / `em`. */
+    em: string;
+    /** `sup`: smaller; native text has no raised baseline. */
+    sup: string;
+    /** `sub`. */
+    sub: string;
+    /** `a`. */
+    link: string;
+    /** `img`. */
+    image: string;
+  };
   /** The html display: its markup's text. */
   html: {
     /** Its element. */
@@ -390,6 +405,14 @@ export const defaultNativeTheme: NativeTheme = {
     variants: {},
   },
   icon: { className: "text-xl" },
+  richText: {
+    strong: "font-bold",
+    em: "italic",
+    sup: "text-xs",
+    sub: "text-xs",
+    link: "text-blue-600 underline",
+    image: "",
+  },
   html: { className: "text-base text-gray-800" },
   action: {
     className: "flex-row items-center justify-center gap-2 rounded-md px-4 py-2",

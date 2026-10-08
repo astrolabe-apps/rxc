@@ -753,7 +753,7 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   `px-3` by stylesheet order — so the padding moved into the variants, and the theme docs say
   to leave out of a base slot what a variant changes.
 
-**Rich text (N9).** Words inside a sentence or a label that are emphasised.
+**Rich text (N9). ✅** Words inside a sentence or a label that are emphasised.
 - *Decided:* an HTML subset, parsed rather than injected. `<RichText html="…">` is a contract
   component usable inside any `text` / `label` node; forms-react parses a fixed inline subset
   (`b` / `strong`, `i` / `em`, `sup` / `sub`, `a`, `br`, entities — tolerating a missing `;` — and
@@ -768,6 +768,14 @@ behaviour (under each implementation's declared `limits`) and a story where it i
 - **On the JSON path it is the host's choice, never the loader's default.** A new host extension
   turns a definition's display text (`title`, help) into a node, defaulting to the plain
   string; ServiceTas's host — and the corpus's stand-in host — return `<RichText html>`.
+- *Landed:* `RichText`, `html`, `parseRichText` / `RichNode`, `richTextWords` and `drawRichText` in
+  forms-react; a `richText` registry slot in all five (`RichTextDom` in `forms-html/shared` with
+  each library's own link — MUI's `Link`, Ant's `Typography.Link`, Fluent's `Link` — and native's
+  nested `Text`, a link through `Linking`, an image sized from itself when the markup gives no
+  size, and `textOf` reading a `RichText`'s words); `richText` classes in the html and native
+  themes; `LoaderOptions.displayText` (`title` / `help`) in forms-json, which the stand-in host
+  sets — and its own `HelpText` adornment draws through `RichText` too. Parity ran every corpus
+  form through it with nothing on the console, so no ServiceTas markup falls outside the subset.
 
 **An image display (N8).** `ImageDisplay` (`source`, `alt`, `width` / `height`, `fit`) — html
 `<img>`, native `Image`, the libraries their own.

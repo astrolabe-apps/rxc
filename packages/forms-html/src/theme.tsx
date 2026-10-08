@@ -306,6 +306,21 @@ export interface HtmlTheme {
      */
     variants: Record<string, string>;
   };
+  /** Rich text (`RichText`): the inline elements its markup draws. */
+  richText: {
+    /** `<strong>`, for `b` and `strong`. */
+    strong: string;
+    /** `<em>`, for `i` and `em`. */
+    em: string;
+    /** `<sup>`. */
+    sup: string;
+    /** `<sub>`. */
+    sub: string;
+    /** `<a>`. */
+    link: string;
+    /** `<img>`. */
+    image: string;
+  };
   /** The HTML display. */
   html: {
     /** Its element. */
@@ -559,6 +574,14 @@ export const defaultHtmlTheme: HtmlTheme = {
     },
     variants: {},
   },
+  richText: {
+    strong: "rxf-strong",
+    em: "rxf-em",
+    sup: "rxf-sup",
+    sub: "rxf-sub",
+    link: "rxf-link",
+    image: "rxf-rich-image",
+  },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
   action: {
@@ -743,6 +766,15 @@ export const tailwindHtmlTheme: HtmlTheme = {
       },
     },
     variants: {},
+  },
+  richText: {
+    strong: "rxf-strong font-bold",
+    em: "rxf-em italic",
+    sup: "rxf-sup",
+    sub: "rxf-sub",
+    link: "rxf-link text-blue-600 underline",
+    // Inline in the words, never wider than what holds them.
+    image: "rxf-rich-image inline-block max-w-full",
   },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },

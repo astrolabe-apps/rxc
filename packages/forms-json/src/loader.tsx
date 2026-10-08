@@ -7,6 +7,7 @@ import type {
   AdornmentTranslator,
   DisplayTranslator,
   IconTranslator,
+  DisplayTextTranslator,
   Translator,
 } from "./translator.js";
 import { translateForm as translateTree } from "./translate.js";
@@ -95,6 +96,8 @@ export interface LoaderOptions {
   displays?: Record<string, DisplayTranslator>;
   /** Draws every icon the format names. */
   icon?: IconTranslator;
+  /** What a label's and a help text's string becomes. Default: the string. */
+  displayText?: DisplayTextTranslator;
   /** What to render for a definition no translator matched. Default: a placeholder naming it. */
   onUnsupported?: (def: ControlDefinition) => ReactNode;
   /** Pairs each button's id and payload with host code. */

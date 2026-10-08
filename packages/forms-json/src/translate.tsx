@@ -74,6 +74,7 @@ import type { LoaderOptions, LoaderWarning } from "./loader.js";
 import type {
   CompoundCycleProps,
   IconTranslator,
+  DisplayTextTranslator,
   RetranslateRebuild,
   TranslateArgs,
   Translator,
@@ -685,7 +686,10 @@ function buildProps(
   seen: Set<string>,
   hostAdornments: Set<string>,
   icon: IconTranslator,
+  displayText: DisplayTextTranslator | undefined,
 ): FieldProps<any> {
+  const asText = (v: unknown, where: "title" | "help"): ReactNode =>
+    displayText && typeof v === "string" ? displayText(v, where) : (v as ReactNode);
   const schema = ref?.schema;
   // A reference that walks off the data binds a detached control, so the
   // widget renders and edits nothing rather than editing the scope's object.
@@ -805,7 +809,7 @@ function buildProps(
     : def.adornments?.find((a) => a.type === "HelpText");
   const helpText =
     def.type === "Data" && typeof help?.helpText === "string"
-      ? help.helpText
+      ? asText(help.helpText, "help")
       : undefined;
   const helpPlacement =
     helpText !== undefined && help?.placement === "LabelEnd"
@@ -847,8 +851,8 @@ function buildProps(
       !labelled || (hideTitle && !hideLabel)
         ? undefined
         : labelProp
-          ? (rc) => getProp(rc, labelProp) as ReactNode
-          : (def.title ?? schema?.displayName ?? undefined),
+          ? (rc) => asText(getProp(rc, labelProp), "title")
+          : asText(def.title ?? schema?.displayName ?? undefined, "title"),
     hideLabel: hideLabel || undefined,
     required: def.required ?? undefined,
     requiredMessage: def.requiredErrorText ?? undefined,
@@ -1415,7 +1419,17 @@ export function translate(
       subject: def.field,
       detail: `no schema field named "${def.field}"`,
     });
-  let props = buildProps(ctx, scope, def, ref, at, seen, hostAdornments, icon);
+  let props = buildProps(
+    ctx,
+    scope,
+    def,
+    ref,
+    at,
+    seen,
+    hostAdornments,
+    icon,
+    opts.displayText,
+  );
 
   // The host's adornments, both phases. An entry that declines both — or
   // has neither — leaves the adornment dropped, and that is reported like

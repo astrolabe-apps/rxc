@@ -14,6 +14,8 @@ import {
   type GroupRenderProps,
   type TextDisplayRenderProps,
   type TextFieldRenderProps,
+  type RichTextRenderProps,
+  drawRichText,
 } from "../src/index";
 
 /**
@@ -53,6 +55,26 @@ function TextField(p: TextFieldRenderProps): Rendered {
       />
       {p.error && <span data-error>{p.error}</span>}
     </label>,
+  );
+}
+
+function Rich({ nodes }: RichTextRenderProps) {
+  return (
+    <span data-rich>
+      {drawRichText(nodes, {
+        strong: (c, k) => <b key={k}>{c}</b>,
+        em: (c, k) => <i key={k}>{c}</i>,
+        sup: (c, k) => <sup key={k}>{c}</sup>,
+        sub: (c, k) => <sub key={k}>{c}</sub>,
+        link: (n, c, k) => (
+          <a key={k} href={n.href} target={n.target}>
+            {c}
+          </a>
+        ),
+        break: (k) => <br key={k} />,
+        image: (n, k) => <img key={k} src={n.src} alt={n.alt} width={n.width} />,
+      })}
+    </span>
   );
 }
 
@@ -217,6 +239,7 @@ export const testRenderers: FormRenderers = {
   text: Text,
   html: Plain,
   icon: Plain,
+  richText: Rich,
   contents: Contents,
   inline: Contents,
   tabs: Tabs,

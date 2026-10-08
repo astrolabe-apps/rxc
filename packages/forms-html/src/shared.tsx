@@ -31,6 +31,9 @@ import {
   type Tone,
   type VisibilityProps,
   warnUnknownVariant,
+  drawRichText,
+  type RichTextParts,
+  type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import {
   defaultHtmlTheme,
@@ -585,4 +588,71 @@ export function createVariantsContext<V extends object>(
   }
   Provider.displayName = name;
   return { Provider, useVariants: () => useContext(Ctx) };
+}
+
+/**
+ * Rich text as DOM: `strong`, `em`, `sup`, `sub`, `a`, `br` and `img`, each
+ * with its class. A library implementation passes its own `link` (MUI's
+ * `Link`, Ant's `Typography.Link`) and keeps the rest; a link that opens
+ * elsewhere gets `rel="noopener noreferrer"`.
+ */
+export function RichTextDom({
+  nodes,
+  classes = defaultHtmlTheme.richText,
+  link,
+}: RichTextRenderProps & {
+  classes?: HtmlTheme["richText"];
+  link?: RichTextParts["link"];
+}) {
+  const c = (s: string) => s || undefined;
+  return (
+    <>
+      {drawRichText(nodes, {
+        strong: (ch, k) => (
+          <strong key={k} className={c(classes.strong)}>
+            {ch}
+          </strong>
+        ),
+        em: (ch, k) => (
+          <em key={k} className={c(classes.em)}>
+            {ch}
+          </em>
+        ),
+        sup: (ch, k) => (
+          <sup key={k} className={c(classes.sup)}>
+            {ch}
+          </sup>
+        ),
+        sub: (ch, k) => (
+          <sub key={k} className={c(classes.sub)}>
+            {ch}
+          </sub>
+        ),
+        link:
+          link ??
+          ((n, ch, k) => (
+            <a
+              key={k}
+              href={n.href}
+              target={n.target}
+              rel={n.target === "_blank" ? "noopener noreferrer" : undefined}
+              className={c(classes.link)}
+            >
+              {ch}
+            </a>
+          )),
+        break: (k) => <br key={k} />,
+        image: (n, k) => (
+          <img
+            key={k}
+            src={n.src}
+            alt={n.alt}
+            width={n.width}
+            height={n.height}
+            className={c(classes.image)}
+          />
+        ),
+      })}
+    </>
+  );
 }

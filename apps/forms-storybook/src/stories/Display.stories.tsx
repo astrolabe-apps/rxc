@@ -7,6 +7,7 @@ import {
   DisplayOnlyField,
   HtmlDisplay,
   IconDisplay,
+  RichText,
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
@@ -41,6 +42,28 @@ export const Heading: Story = {
     </Contents>
   ),
 };
+
+/**
+ * `RichText`: inline markup parsed into a fixed subset — emphasis, a
+ * superscript, a link, an image — and drawn by the implementation, so it looks
+ * the same everywhere. Anywhere a node goes: here a label and its help.
+ */
+function RichLabels() {
+  const size = useControl("");
+  return (
+    <Contents>
+      <TextField
+        field={size}
+        label={<RichText html="Is <b>UBER</b> larger than 1m<sup>3</sup>?" />}
+        helpText={
+          <RichText html={'Measured as in <a href="https://example.test/guide" target="_blank">the guide</a>.'} />
+        }
+      />
+      <TextDisplay text={<RichText html="<i>Emphasis</i>, <b>strength</b> &amp; H<sub>2</sub>O." />} />
+    </Contents>
+  );
+}
+export const Rich: Story = { render: () => <RichLabels /> };
 
 export const Html: Story = {
   render: () => (

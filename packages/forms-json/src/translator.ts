@@ -200,6 +200,23 @@ export type IconTranslator = (
 ) => ReactNode;
 
 /**
+ * What a definition's display text becomes: its `title` where that is a
+ * field's or a group's label (static, or from a `Label` expression), and a
+ * `HelpText` adornment's text. The default is the string as it is — plain
+ * text, as the format means it.
+ *
+ * Legacy let a renderer draw these as HTML, and a host that took that up
+ * (ServiceTas, with `<sup>` in titles and links in help) opts in here:
+ *
+ * ```tsx
+ * displayText: (text) => <RichText html={text} />
+ * ```
+ *
+ * @group Hosts
+ */
+export type DisplayTextTranslator = (text: string, where: "title" | "help") => ReactNode;
+
+/**
  * The loader's own translators, in match order: every render type, group kind
  * and display the canonical format defines. A host prepends its own.
  *

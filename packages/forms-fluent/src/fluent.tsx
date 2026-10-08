@@ -39,6 +39,7 @@ import {
   useIsSSR,
   useThemeClassName,
   webLightTheme,
+  Link as FluentLink,
 } from "@fluentui/react-components";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
@@ -82,9 +83,11 @@ import {
   type TextFieldRenderProps,
   combineClass,
   warnUnknownVariant,
+  type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
+  RichTextDom,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -767,6 +770,20 @@ function FluentAction(p: ActionRenderProps) {
  * for a form section rather than by the outline's level — the top level takes
  * `subtitle1`, anything deeper `subtitle2`.
  */
+/** Rich text as DOM, its links Fluent's own. */
+function FluentRichText(p: RichTextRenderProps) {
+  return (
+    <RichTextDom
+      {...p}
+      link={(n, ch, k) => (
+        <FluentLink key={k} inline href={n.href} target={n.target} rel={n.target === "_blank" ? "noopener noreferrer" : undefined}>
+          {ch}
+        </FluentLink>
+      )}
+    />
+  );
+}
+
 function FluentInline(p: GroupRenderProps) {
   const group = useFluentVariants().group;
   return <Inline {...p} variantStyle={p.variant === undefined ? undefined : group?.[p.variant]} />;
@@ -1131,6 +1148,7 @@ export const fluentRenderers: FormRenderers = {
   text: FluentText,
   html: FluentHtml,
   icon: FluentIcon,
+  richText: FluentRichText,
   action: FluentAction,
   contents: FluentContents,
   inline: FluentInline,

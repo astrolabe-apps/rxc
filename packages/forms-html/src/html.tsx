@@ -48,6 +48,7 @@ import {
   type CollectionRenderProps,
   combineClass,
   warnUnknownVariant,
+  type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -64,6 +65,7 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  RichTextDom,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -1011,6 +1013,9 @@ function join(...cs: (string | undefined)[]): string | undefined {
 
 // The shared pieces take their classes as a parameter; the html set passes
 // the theme's, and the other three implementations keep the defaults.
+function HtmlRichText(p: RichTextRenderProps) {
+  return <RichTextDom {...p} classes={useHtmlTheme().richText} />;
+}
 function HtmlContents(p: GroupRenderProps) {
   return <ContentsRegion {...p} classes={useHtmlTheme().contents} />;
 }
@@ -1055,6 +1060,7 @@ export const htmlRenderers: FormRenderers = {
   text: HtmlText,
   html: HtmlHtml,
   icon: HtmlIcon,
+  richText: HtmlRichText,
   action: HtmlAction,
   contents: HtmlContents,
   inline: HtmlInline,
