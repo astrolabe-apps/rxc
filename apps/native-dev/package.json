@@ -1,0 +1,35 @@
+{
+  "name": "rxc-native-dev",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The forms-native playground: an Expo 57 app (React Native 0.86, React 19.2 \u2014 the repo's), running Forms v2 under forms-native in Expo Go.",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "dev": "expo start --go --localhost",
+    "android": "expo start --go --localhost --android"
+  },
+  "dependencies": {
+    "@react-typed-forms/core": "workspace:^",
+    "@rx-controls/core": "workspace:^",
+    "@rx-controls/forms-native": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/react": "workspace:^",
+    "expo": "~57.0.27",
+    "expo-status-bar": "~57.0.1",
+    "nativewind": "~4.2.3",
+    "react": "~19.2.0",
+    "react-native": "0.86.3",
+    "react-native-css-interop": "0.2.7",
+    "react-native-reanimated": "~4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-worklets": "0.10.1",
+    "tailwindcss": "~3.4.17"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@react-native/metro-config": "0.86.3",
+    "@types/react": "~19.2.0",
+    "typescript": "~5.8.0"
+  }
+}

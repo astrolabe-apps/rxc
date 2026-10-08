@@ -79,6 +79,11 @@ function NativeFieldShell(p: FieldShellProps) {
         <Text
           id={fieldLabelId(p.id)}
           className={mergeClass(t.label, p.labelClassName)}
+          // Native: the control carries the name, and a nested Text merges
+          // into this one, so the marker would be read with it ("Name star").
+          // The web's aria-labelledby still names the control by this element.
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
         >
           {p.label}
           {p.required && (
@@ -305,13 +310,24 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
 function NativeAction(p: ActionRenderProps) {
   const t = useNativeTheme().action;
   const variant = t.variants[p.variant];
-  const icon = p.busy ? <ActivityIndicator size="small" /> : p.icon;
+  // The spinner is decoration: on Android a spinner inside a button gave the
+  // button its own "busy" description, which then outlived the spinner and
+  // replaced the button's name. The disabled state says it cannot be pressed.
+  const icon = p.busy ? (
+    <ActivityIndicator
+      size="small"
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
+    />
+  ) : (
+    p.icon
+  );
   return (
     <Pressable
       role="button"
       disabled={p.disabled}
-      aria-disabled={p.disabled || undefined}
-      aria-busy={p.busy || undefined}
+      accessibilityState={{ busy: !!p.busy, disabled: !!p.disabled }}
+      aria-label={textOf(p.children ?? p.text) || undefined}
       onPress={() => p.onClick()}
       className={mergeClass(cx(t.className, variant.className, p.disabled && t.disabled), p.className)}
     >

@@ -68,6 +68,11 @@
       "shouldPublish": false
     },
     {
+      "packageName": "rxc-native-dev",
+      "projectFolder": "apps/native-dev",
+      "shouldPublish": false
+    },
+    {
       "packageName": "@react-typed-forms/core",
       "projectFolder": "packages/compat-controls",
       "versionPolicyName": "stable",

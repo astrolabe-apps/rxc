@@ -619,11 +619,14 @@ The MAST trial's platform inventory
 is its first input: the boundaries a real form uses, and what its component layer still leans on
 the web for.
 
-**Its library stack is the ServiceTas app's** (`ServiceTasAPI/NewClientApp/servicetas-rn`): Expo
-54, React Native 0.81.5, React 19.1.0, NativeWind 4.2 on Tailwind 3.4, `@rn-primitives` for the
-composite widgets (as legacy `@react-typed-forms/schemas-rn` uses them), `react-native-render-html`
-and Font Awesome's React Native icons. It declares `react-native >=0.81.5`. Moving the app to Expo
-55 (React Native 0.83, React 19.2 — one React with this repo) is open if the split costs anything.
+**Its library stack is Expo 57's** — React Native 0.86.3 on the repo's own React 19.2 (React
+Native 0.86 asks for `^19.2.3`, and its renderer has no exact-version check), so there is one React
+across the repo — with the ServiceTas app's choices for the rest: NativeWind 4.2 on Tailwind 3.4,
+`@rn-primitives` for the composite widgets (as legacy `@react-typed-forms/schemas-rn` uses them),
+`react-native-render-html` and Font Awesome's React Native icons. It declares `react-native >=0.86`;
+the ServiceTas app (`servicetas-rn`, Expo 54 / React Native 0.81 / React 19.1) upgrades to Expo 57
+to use it, decided. The first plan — React Native 0.81 to match the app as it stands — split React
+in two (0.81 pins 19.1) and needed a Metro workaround to keep one copy in a bundle.
 
 **The spike** (`packages/forms-native`, private, outside the alpha policy) found:
 
@@ -666,6 +669,24 @@ and Font Awesome's React Native icons. It declares `react-native >=0.81.5`. Movi
 Drawn so far: the text field (shell, frame, input), groups, text displays (headings, live
 regions), actions and the form. The shared suite, opt-in while slots are stubbed (`rushx
 conformance`), passes 15 of 40.
+
+**On a device** (`apps/native-dev`, Expo Go 57 on an Android 15 emulator): one React (19.2.8) and
+one engine copy; NativeWind's classes applied (labels, the required marker, the frame and its
+invalid state, help, the count, the button); a refused check marks the field and shows its error
+in place of the help, a valid one passes; Android's accessibility tree names each input by its
+label ("Name", not "Name *"). It found one real bug: **a spinner inside a button gave the button
+the description "busy", which outlived the spinner and replaced the button's name** — a settled
+button was announced as "busy". The spinner is now hidden from accessibility (the button's busy
+and disabled states say it); checked by putting the busy state back with the spinner hidden.
+Still to check by ear, with TalkBack: the descriptions (`accessibilityHint`, which
+`uiautomator` does not show) and the visible label hidden from it. Not yet styled on native: a
+display's tone.
+
+Running the ServiceTas app itself for this was abandoned: it fetches its configuration from the
+API before rendering, its routes import native modules Expo Go does not have (Mapbox), and its
+Babel tracking plugin's `exclude: ["**/.pnpm/**"]` does not match under a path with a dot
+directory in it (glob `**` skips them) — in a worktree under `.claude/` it transformed React
+Native itself.
 
 *Exit:* the shared suite green under it, and a real form's unchanged source rendering on a device.
 
