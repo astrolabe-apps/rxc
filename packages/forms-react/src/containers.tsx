@@ -29,7 +29,7 @@ import {
 } from "./validationScope.js";
 import type { CheckOptions } from "./validation.js";
 import { boundaryName, resolveImpl } from "./boundaryParts.js";
-import { useCommitEffect } from "./commitEffect.js";
+import { afterMount, useCommitEffect } from "./commitEffect.js";
 
 /**
  * Give each scope the `reveal` a refused check uses before it focuses a field
@@ -69,7 +69,7 @@ function useReveals(
     const then = pending.current;
     if (!then) return;
     pending.current = undefined;
-    then();
+    afterMount(then);
   }, [settled]);
 }
 

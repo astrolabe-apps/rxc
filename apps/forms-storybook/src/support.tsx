@@ -24,6 +24,7 @@ import {
 import { muiRenderers } from "@rx-controls/forms-mui";
 import { antdRenderers } from "@rx-controls/forms-antd";
 import { fluentRenderers } from "@rx-controls/forms-fluent";
+import { nativeRenderers } from "@rx-controls/forms-native";
 
 /**
  * The implementations a story can be drawn with — every story is one per
@@ -34,6 +35,10 @@ export const implementations: Record<string, FormRenderers> = {
   mui: muiRenderers,
   antd: antdRenderers,
   fluent: fluentRenderers,
+  // React Native's components through react-native-web — see `nativeWeb`
+  // in vitest.config.ts and .storybook/main.ts. Its look needs the app's
+  // NativeWind build, so here it is the contract and the structure.
+  native: nativeRenderers,
 };
 
 /** The html implementation's two shipped themes. */

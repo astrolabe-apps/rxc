@@ -14,12 +14,7 @@ export type RichNode =
       /** The words. */
       text: string;
     }
-  | {
-      /** Emphasis: `strong` (`<b>`, `<strong>`), `em` (`<i>`, `<em>`), or a raised or lowered run. */
-      kind: "strong" | "em" | "sup" | "sub";
-      /** What it wraps. */
-      children: RichNode[];
-    }
+  | RichRun
   | {
       /** A link. */
       kind: "link";
@@ -318,6 +313,19 @@ export interface RichTextRenderProps {
 }
 
 /**
+ * A run of emphasis, a superscript or a subscript: one {@link RichNode}, as
+ * {@link RichTextParts} hands it over.
+ *
+ * @group Implementations
+ */
+export interface RichRun {
+  /** Emphasis: `strong` (`<b>`, `<strong>`), `em` (`<i>`, `<em>`), or a raised or lowered run. */
+  kind: "strong" | "em" | "sup" | "sub";
+  /** What it wraps. */
+  children: RichNode[];
+}
+
+/**
  * How an implementation draws each kind of node, for {@link drawRichText}.
  * `children` is the node's own content, already drawn.
  *
@@ -326,14 +334,14 @@ export interface RichTextRenderProps {
 export interface RichTextParts {
   /** Plain words. Default: the string. */
   text?: (text: string, key: number) => ReactNode;
-  /** Emphasis, raised and lowered runs. */
-  strong: (children: ReactNode, key: number) => ReactNode;
+  /** Strong emphasis. `node` is the parsed node, for a part that needs its words. */
+  strong: (children: ReactNode, key: number, node: RichRun) => ReactNode;
   /** Emphasis. */
-  em: (children: ReactNode, key: number) => ReactNode;
+  em: (children: ReactNode, key: number, node: RichRun) => ReactNode;
   /** A superscript. */
-  sup: (children: ReactNode, key: number) => ReactNode;
+  sup: (children: ReactNode, key: number, node: RichRun) => ReactNode;
   /** A subscript. */
-  sub: (children: ReactNode, key: number) => ReactNode;
+  sub: (children: ReactNode, key: number, node: RichRun) => ReactNode;
   /** A link. */
   link: (node: Extract<RichNode, { kind: "link" }>, children: ReactNode, key: number) => ReactNode;
   /** A line break. */
@@ -360,7 +368,7 @@ export function drawRichText(nodes: RichNode[], parts: RichTextParts): ReactNode
       case "link":
         return parts.link(n, drawRichText(n.children, parts), key);
       default:
-        return parts[n.kind](drawRichText(n.children, parts), key);
+        return parts[n.kind](drawRichText(n.children, parts), key, n);
     }
   });
 }

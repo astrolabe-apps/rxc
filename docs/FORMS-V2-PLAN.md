@@ -843,11 +843,22 @@ the page title on a phone).
   `iconClassName`, the wrapper `data-open` while open; the Tailwind theme hides the browser's
   marker and turns a chevron, the default keeps the browser's.
 
-**`forms-native` published.** Into the `forms-v2-alpha` policy (`shouldPublish`, lock-step) so it
+**`forms-native` published.** ✅ (all but the publish itself, which waits on the `alpha.6` release) Into the `forms-v2-alpha` policy (`shouldPublish`, lock-step) so it
 ships with the others; its README-level doc (NativeWind setup: `jsxImportSource`, the Tailwind
 `content` entry, `NativeThemeProvider`); its stories — `apps/native-dev` grows a screen per story
 kind, and the storybook smoke test gains a native column through react-native-web if it fits.
 `rush docs` covers it.
+- *Landed:* in the `forms-v2-alpha` policy (`shouldPublish`, lock-step — the publish dry run lists
+  it, at its first version, beside the others' next); `private` dropped; a README for the setup;
+  `rush docs` over it. `apps/native-dev` has a screen per story kind, checked on the Android
+  emulator, which found two things the web suites could not: **a revealed tab took no focus** —
+  React Native mounts a commit on its UI thread after the commit, so the focus the reveal sent
+  reached a view not yet shown; it is now sent a frame later on React Native (`afterMount`) — and
+  `<sup>` / `<sub>`, which nested `Text` cannot raise, draw as Unicode super- and subscripts
+  where every character has one (`1m³`, `H₂O`). The Storybook gained a native column through
+  react-native-web (the UI unstyled; the smoke test 306), which found a third: **a string icon
+  (`startIcon="@"`) was a bare text node in a `View`**, which React Native rejects — the frame's
+  edges, a display-only field's icons and an action's icon now wrap text.
 
 **Alongside, outside this repo:** ServiceTas's `servicetas-rn` and `@react-typed-forms/schemas-rn`
 move to Expo 57 (React Native 0.86, React 19.2) — the prompt for that work was written for this

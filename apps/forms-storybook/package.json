@@ -20,11 +20,13 @@
     "@rx-controls/forms-fluent": "workspace:^",
     "@rx-controls/forms-html": "workspace:^",
     "@rx-controls/forms-mui": "workspace:^",
+    "@rx-controls/forms-native": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",
     "@rx-controls/react": "workspace:^",
     "antd": "^6.6.4",
     "react": "~19.2.0",
     "react-dom": "~19.2.0",
+    "react-native-web": "~0.21.0",
     "rxc-forms-conformance": "workspace:^"
   },
   "devDependencies": {
@@ -36,7 +38,9 @@
     "@types/react-dom": "~19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
     "happy-dom": "~15.11.0",
+    "nativewind": "~4.2.3",
     "postcss": "~8.5.0",
+    "react-native": "0.86.3",
     "storybook": "^10.6.1",
     "tailwindcss": "~4.1.0",
     "typescript": "~5.8.0",

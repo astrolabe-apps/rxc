@@ -1,181 +1,60 @@
-import React from "react";
-import { Platform, ScrollView, Text } from "react-native";
+import { useState, type ComponentType } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import {
-  ControlContextProvider,
-  getCompatContext,
-  getCompatPatchInfo,
-} from "@react-typed-forms/core";
-import { useControl, useReactive, type Rendered } from "@rx-controls/react";
-import {
-  Action,
-  CheckboxField,
-  CheckListField,
-  Contents,
-  Dialog,
-  Disclosure,
-  DisplayOnlyField,
-  Form,
-  FormProvider,
-  InlineGroup,
-  RadioField,
-  SelectField,
-  Tabs,
-  TextDisplay,
-  TextField,
-  useFormValidation,
-} from "@rx-controls/forms-react";
-import { NativeThemeProvider, nativeRenderers } from "@rx-controls/forms-native";
-
-const states = [
-  { name: "Tasmania", value: "TAS" },
-  { name: "Victoria", value: "VIC" },
-  { name: "New South Wales", value: "NSW" },
-];
-const yesNo = [
-  { name: "Yes", value: true },
-  { name: "No", value: false },
-];
-const reasons = [
-  { name: "Recreation", value: "rec" },
-  { name: "Commercial", value: "com" },
-  { name: "Other", value: "other" },
-];
+import { ControlContextProvider, getCompatContext } from "@react-typed-forms/core";
+import { FormProvider } from "@rx-controls/forms-react";
+import { nativeRenderers } from "@rx-controls/forms-native";
+import { KitchenSink } from "./screens/KitchenSink";
+import { Fields } from "./screens/Fields";
+import { Options } from "./screens/Options";
+import { Displays } from "./screens/Displays";
+import { Looks } from "./screens/Looks";
+import { Containers } from "./screens/Containers";
+import { Collection } from "./screens/Collection";
 
 /**
- * forms-native's playground: a Forms v2 form under the React Native
- * implementation, every widget kind, inside the compat engine's context as a
- * ServiceTas app has it.
+ * A screen per story kind, as the Storybook has them — the same contract,
+ * drawn by forms-native. No navigation library: a row of chips picks one.
  */
-function Playground(): Rendered {
-  const { rc, rendered, update } = useReactive();
-  const data = useControl({
-    name: "",
-    email: "",
-    state: undefined as string | undefined,
-    hasLicence: undefined as boolean | undefined,
-    licence: "",
-    uvi: false,
-    reasons: [] as string[],
-    phone: "",
-  });
-  const address = useControl("12 Main St, Hobart");
-  const dialogOpen = useControl(false);
-  const result = useControl<string | undefined>(undefined);
-  const validation = useFormValidation();
-  const f = data.fields;
-  const info = getCompatPatchInfo();
-  return rendered(
-    <FormProvider renderers={nativeRenderers}>
-      {/* Checkboxes as on/off settings: the theme's switch. */}
-      <NativeThemeProvider theme={{ checkbox: { control: "switch" } }}>
-        <ScrollView contentContainerClassName="gap-5 p-4 pt-16 pb-24">
-          <Form
-            validation={validation}
-            onSubmit={() => update((wc) => wc.setValue(result, "Submitted"))}
-          >
-            <TextDisplay text="Forms v2 on React Native" heading />
-            <TextDisplay
-              text={`React ${React.version} · ${Platform.OS} · engine copies ${info.engineCopies}`}
-            />
-            <Tabs
-              items={[
-                {
-                  key: "you",
-                  title: "You",
-                  children: (
-                    <Contents title="Your details">
-                      <TextField
-                        field={f.name}
-                        label="Name"
-                        required
-                        helpText="As it appears on your licence."
-                      />
-                      <TextField field={f.email} label="Email" inputMode="email" />
-                      <SelectField field={f.state} label="State" options={states} required />
-                      <DisplayOnlyField
-                        field={address}
-                        label="Postal address"
-                        startIcon={<Text>{"•"}</Text>}
-                      />
-                    </Contents>
-                  ),
-                },
-                {
-                  key: "licence",
-                  title: "Licence",
-                  children: (
-                    <Contents title="Your licence">
-                      <RadioField
-                        field={f.hasLicence}
-                        label="Do you hold a licence?"
-                        options={yesNo}
-                        required
-                      >
-                        {(o, selected) =>
-                          o.value === true && selected ? (
-                            <TextField field={f.licence} label="Licence number" required />
-                          ) : null
-                        }
-                      </RadioField>
-                      <CheckboxField
-                        field={f.uvi}
-                        label="Commercial vessel"
-                        helpText="A Unique Vessel Identifier is issued by AMSA."
-                        helpPlacement="labelEnd"
-                      />
-                      <CheckListField
-                        field={f.reasons}
-                        label="Why do you need it?"
-                        options={reasons}
-                        required
-                      />
-                      <Disclosure title="Need a callback?">
-                        <TextField field={f.phone} label="Phone" inputMode="tel" required />
-                      </Disclosure>
-                    </Contents>
-                  ),
-                },
-              ]}
-            />
-            <InlineGroup>
-              <TextDisplay text="Read the" />
-              <Action
-                actionId="terms"
-                text="terms"
-                variant="link"
-                onClick={() => update((wc) => wc.setValue(dialogOpen, true))}
-              />
-              <TextDisplay text="before you submit." />
-            </InlineGroup>
-            <Dialog
-              open={dialogOpen}
-              onClose={() => update((wc) => wc.setValue(dialogOpen, false))}
-              title="Terms"
-            >
-              <TextDisplay text="Your details are used only to process this request." />
-            </Dialog>
-            <Action actionId="submit" text="Submit" variant="primary" submit />
-            <TextDisplay
-              text={(r) => r.getValue(result)}
-              announce
-              tone="success"
-            />
-          </Form>
-          <Text selectable className="font-mono text-xs text-gray-500">
-            {JSON.stringify(rc.getValue(data))}
-          </Text>
-        </ScrollView>
-      </NativeThemeProvider>
-      <StatusBar style="dark" />
-    </FormProvider>,
-  );
-}
+const screens: [string, ComponentType][] = [
+  ["Kitchen sink", KitchenSink],
+  ["Fields", Fields],
+  ["Options", Options],
+  ["Displays", Displays],
+  ["Looks", Looks],
+  ["Containers", Containers],
+  ["Collection", Collection],
+];
 
 export function App() {
+  const [at, setAt] = useState(0);
+  const Screen = screens[at]![1];
   return (
     <ControlContextProvider value={getCompatContext()}>
-      <Playground />
+      <FormProvider renderers={nativeRenderers}>
+        <View className="flex-1 bg-white pt-12">
+          <ScrollView
+            horizontal
+            className="max-h-12 grow-0 border-b border-gray-200"
+            contentContainerClassName="items-center gap-2 px-3"
+          >
+            {screens.map(([name], i) => (
+              <Pressable
+                key={name}
+                role="tab"
+                aria-selected={i === at}
+                onPress={() => setAt(i)}
+                className={`rounded-full px-3 py-1 ${i === at ? "bg-blue-600" : "bg-gray-100"}`}
+              >
+                <Text className={i === at ? "text-white" : "text-gray-800"}>{name}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {/* Keyed, so a screen starts fresh each time it is picked. */}
+          <Screen key={at} />
+        </View>
+        <StatusBar style="dark" />
+      </FormProvider>
     </ControlContextProvider>
   );
 }

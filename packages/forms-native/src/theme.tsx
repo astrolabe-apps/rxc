@@ -20,6 +20,18 @@ import type { Tone } from "@rx-controls/forms-react";
  *
  * The app's Tailwind `content` must include this package's built files
  * (`node_modules/@rx-controls/forms-native/lib/**
+ * What a group variant adds, per element. Any slot may be left out.
+ */
+export interface GroupVariantClasses {
+  /** Added to the wrapper around title and body. */
+  className?: string;
+  /** Added to the title. */
+  title?: string;
+  /** Added to the body. */
+  body?: string;
+}
+
+/**
  * What an action variant adds. Either slot may be left out.
  */
 export interface ActionVariantClasses {
@@ -172,7 +184,7 @@ export interface NativeTheme {
      * above (merged, so a variant's utility wins over the base's). A name not
      * here draws the base look, with a warning in development.
      */
-    variants: Record<string, { className?: string; title?: string; body?: string }>;
+    variants: Record<string, GroupVariantClasses>;
   };
   /** An inline group: prose. */
   inline: {
@@ -215,7 +227,11 @@ export interface NativeTheme {
     strong: string;
     /** `i` / `em`. */
     em: string;
-    /** `sup`: smaller; native text has no raised baseline. */
+    /**
+     * `sup`. Digits and signs are drawn as Unicode superscripts, raised in
+     * every font; anything else just takes this class — native text has no
+     * baseline shift.
+     */
     sup: string;
     /** `sub`. */
     sub: string;
@@ -426,8 +442,8 @@ export const defaultNativeTheme: NativeTheme = {
   richText: {
     strong: "font-bold",
     em: "italic",
-    sup: "text-xs",
-    sub: "text-xs",
+    sup: "",
+    sub: "",
     link: "text-blue-600 underline",
     image: "",
   },
@@ -480,9 +496,14 @@ export const defaultNativeTheme: NativeTheme = {
   elements: { className: "gap-2" },
 };
 
-type Leaf = string | number | boolean | null | undefined | ReactElement;
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends Leaf ? T[K] : DeepPartial<T[K]>;
+/**
+ * Every property optional, recursively — except nodes and other leaves,
+ * which are replaced whole.
+ */
+export type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends string | number | boolean | null | undefined | ReactElement
+    ? T[K]
+    : DeepPartial<T[K]>;
 };
 
 /**

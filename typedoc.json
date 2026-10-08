@@ -9,7 +9,8 @@
     "packages/forms-html",
     "packages/forms-mui",
     "packages/forms-antd",
-    "packages/forms-fluent"
+    "packages/forms-fluent",
+    "packages/forms-native"
   ],
   "packageOptions": {
     "entryPoints": [

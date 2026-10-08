@@ -65,7 +65,8 @@
     {
       "packageName": "@rx-controls/forms-native",
       "projectFolder": "packages/forms-native",
-      "shouldPublish": false
+      "versionPolicyName": "forms-v2-alpha",
+      "shouldPublish": true
     },
     {
       "packageName": "rxc-native-dev",

@@ -1309,13 +1309,20 @@ export function describeConformance(impl: Implementation): void {
           />
         </>,
       );
-      expect(read()).toEqual([
+      // A superscript drawn as its Unicode character names the same.
+      expect(read().map((r) => ({ ...r, name: r.name.replace("\u00b3", "3") }))).toEqual([
         { name: "Is UBER over 1m3?", description: "See the guide", invalid: false, required: false },
       ]);
       // Emphasis and the superscript each an element of their own.
       const holder = (words: string) =>
         [...container.querySelectorAll("*")].filter((e) => e.textContent === words).pop();
-      expect([!!holder("UBER"), !!holder("3"), !!holder("Card")]).toEqual([true, true, true]);
+      // A platform with no raised baseline may draw the superscript as its
+      // Unicode character, still an element of its own.
+      expect([!!holder("UBER"), !!(holder("3") ?? holder("\u00b3")), !!holder("Card")]).toEqual([
+        true,
+        true,
+        true,
+      ]);
       // A real link, going where the markup said.
       const link = holder("the guide")!.closest("a");
       expect(link?.getAttribute("href")).toBe("https://example.test/guide");

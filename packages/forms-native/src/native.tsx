@@ -68,6 +68,7 @@ import {
   drawRichText,
   helpButtonName,
   plainText,
+  richTextWords,
   type ImageDisplayRenderProps,
   type ImageFit,
   type RichTextRenderProps,
@@ -306,7 +307,8 @@ function NativeInputFrame(p: InputFrameProps) {
         p.className,
       )}
     >
-      {p.start !== undefined && edge(p.start)}
+      {/* An icon given as a string ("@") must be in a Text on native. */}
+      {p.start !== undefined && wrapText(edge(p.start))}
       {p.render(
         {
           id: p.id,
@@ -322,7 +324,7 @@ function NativeInputFrame(p: InputFrameProps) {
         },
         state,
       )}
-      {p.end !== undefined && edge(p.end)}
+      {p.end !== undefined && wrapText(edge(p.end))}
     </View>
   );
 }
@@ -720,8 +722,8 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const t = useNativeTheme().displayOnly;
-  const start = p.startIcon != null && <View className={t.icon}>{p.startIcon}</View>;
-  const end = p.endIcon != null && <View className={t.icon}>{p.endIcon}</View>;
+  const start = p.startIcon != null && <View className={t.icon}>{wrapText(p.startIcon)}</View>;
+  const end = p.endIcon != null && <View className={t.icon}>{wrapText(p.endIcon)}</View>;
   // Inline: the value in prose — no shell, no label.
   if (p.inline)
     return ctl.rendered(
@@ -1044,6 +1046,32 @@ function NativeImage(p: ImageDisplayRenderProps): Rendered {
   );
 }
 
+const SUPER: Record<string, string> = {
+  "0": "\u2070", "1": "\u00b9", "2": "\u00b2", "3": "\u00b3", "4": "\u2074",
+  "5": "\u2075", "6": "\u2076", "7": "\u2077", "8": "\u2078", "9": "\u2079",
+  "+": "\u207a", "-": "\u207b", "=": "\u207c", "(": "\u207d", ")": "\u207e",
+};
+const SUB: Record<string, string> = {
+  "0": "\u2080", "1": "\u2081", "2": "\u2082", "3": "\u2083", "4": "\u2084",
+  "5": "\u2085", "6": "\u2086", "7": "\u2087", "8": "\u2088", "9": "\u2089",
+  "+": "\u208a", "-": "\u208b", "=": "\u208c", "(": "\u208d", ")": "\u208e",
+};
+
+/**
+ * A raised or lowered run's words as the Unicode characters that are raised
+ * or lowered in every font — `m³`, `H₂O` — when each has one. Nested `Text`
+ * has no baseline shift, so this is what draws a superscript as one.
+ */
+function shifted(words: string, map: Record<string, string>): string | undefined {
+  let out = "";
+  for (const c of words) {
+    const m = map[c];
+    if (m === undefined) return undefined;
+    out += m;
+  }
+  return out || undefined;
+}
+
 /**
  * Rich text as nested `Text`, which inherits what it sits in: emphasis by
  * class, a link pressed open through `Linking`, a break a newline.
@@ -1063,14 +1091,14 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
             {ch}
           </Text>
         ),
-        sup: (ch, k) => (
+        sup: (ch, k, n) => (
           <Text key={k} className={t.sup}>
-            {ch}
+            {shifted(richTextWords(n.children), SUPER) ?? ch}
           </Text>
         ),
-        sub: (ch, k) => (
+        sub: (ch, k, n) => (
           <Text key={k} className={t.sub}>
-            {ch}
+            {shifted(richTextWords(n.children), SUB) ?? ch}
           </Text>
         ),
         link: (n, ch, k) => (
@@ -1120,7 +1148,7 @@ function NativeAction(p: ActionRenderProps) {
   ) : (
     p.icon
   );
-  const icon = shown != null && shown !== false && <View className={t.iconClassName}>{shown}</View>;
+  const icon = shown != null && shown !== false && <View className={t.iconClassName}>{wrapText(shown)}</View>;
   return (
     <Pressable
       role="button"

@@ -6,6 +6,7 @@ import { MuiVariantsProvider, type MuiVariants } from "@rx-controls/forms-mui";
 import { AntdVariantsProvider, type AntdVariants } from "@rx-controls/forms-antd";
 import { FluentVariantsProvider, type FluentVariants } from "@rx-controls/forms-fluent";
 import { tokens } from "@fluentui/react-components";
+import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import type { ScopeArgs } from "../support";
 
 /*
@@ -101,12 +102,36 @@ const fluent: FluentVariants = {
   image: { rounded: { borderRadius: tokens.borderRadiusXLarge } },
 };
 
+const native: PartialNativeTheme = {
+  text: {
+    variants: {
+      lead: "text-lg font-semibold",
+      tag: "self-start rounded bg-blue-100 px-2 py-0.5 text-sm font-bold text-blue-800",
+    },
+  },
+  contents: {
+    variants: {
+      card: { className: "rounded-lg bg-gray-100 p-4" },
+      callout: { className: "border-l-4 border-green-600 pl-4", title: "text-green-800" },
+    },
+  },
+  action: {
+    variants: {
+      quiet: { className: "border-0 bg-transparent px-0", textClassName: "text-blue-700" },
+      inlineLink: { className: "border-0 bg-transparent p-0", textClassName: "text-blue-700 underline" },
+    },
+  },
+  image: { variants: { rounded: "rounded-xl" } },
+};
+
 function Looks({ children }: { children: ReactNode }) {
   return (
     <HtmlThemeProvider theme={html}>
       <MuiVariantsProvider variants={mui}>
         <AntdVariantsProvider variants={antd}>
-          <FluentVariantsProvider variants={fluent}>{children}</FluentVariantsProvider>
+          <FluentVariantsProvider variants={fluent}>
+            <NativeThemeProvider theme={native}>{children}</NativeThemeProvider>
+          </FluentVariantsProvider>
         </AntdVariantsProvider>
       </MuiVariantsProvider>
     </HtmlThemeProvider>
