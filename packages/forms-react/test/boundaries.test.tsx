@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, type ReactNode } from "react";
 import { untrackedRead, type Control } from "@rx-controls/core";
 import { useReactive, type Rendered } from "@rx-controls/react";
@@ -17,6 +17,7 @@ import {
   SelectField,
   TextField,
   useFormValidation,
+  warnUnknownVariant,
   type ActionRenderProps,
   type FieldRenderProps,
   type TextDisplayExtra,
@@ -484,6 +485,32 @@ describe("an options field's value follows its options", () => {
     expect(rc.getValue(num)).toBe(1);
     expect(rc.getValue(locked)).toBe("gone");
     expect(rc.getValue(hidden)).toBe("gone");
+  });
+});
+
+describe("named looks", () => {
+  it("hands a group its variant resolved, following the data", () => {
+    const callout = dom.ctx.newControl(false);
+    mount(
+      <Group variant={(rc) => (rc.getValue(callout) ? "callout" : "card")}>
+        <p />
+      </Group>,
+    );
+    expect($("[data-group]")!.getAttribute("data-variant")).toBe("card");
+    set(callout, true);
+    expect($("[data-group]")!.getAttribute("data-variant")).toBe("callout");
+  });
+
+  it("warns of an unknown variant once per kind and name", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    warnUnknownVariant("text", "nope");
+    warnUnknownVariant("text", "nope");
+    warnUnknownVariant("group", "nope");
+    expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
+      expect.stringContaining('text variant "nope"'),
+      expect.stringContaining('group variant "nope"'),
+    ]);
+    warn.mockRestore();
   });
 });
 

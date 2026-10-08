@@ -7,7 +7,10 @@
  * API: no semver promise, and not in the generated reference.
  */
 import {
+  createContext,
+  useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -27,8 +30,14 @@ import {
   type FlexLayout,
   type Tone,
   type VisibilityProps,
+  warnUnknownVariant,
 } from "@rx-controls/forms-react";
-import { defaultHtmlTheme, useHtmlTheme, type HtmlTheme } from "./theme.js";
+import {
+  defaultHtmlTheme,
+  useHtmlTheme,
+  type GroupVariantClasses,
+  type HtmlTheme,
+} from "./theme.js";
 
 /**
  * A `visibility` slot that mounts and unmounts at once, with no transition.
@@ -98,6 +107,42 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
   );
 }
 
+/**
+ * A group variant as styles, per element — what an implementation whose looks
+ * are runtime tokens (MUI, Ant, Fluent) resolves a variant to.
+ */
+export interface GroupVariantStyle {
+  /** On the wrapper around title and body. */
+  wrapper?: CSSProperties;
+  /** On the title. */
+  title?: CSSProperties;
+  /** On the body. */
+  body?: CSSProperties;
+}
+
+/** Two styles, the second over the first; `undefined` when neither. */
+function withStyle(
+  a: CSSProperties | undefined,
+  b: CSSProperties | undefined,
+): CSSProperties | undefined {
+  return a && b ? { ...a, ...b } : (a ?? b);
+}
+
+/**
+ * A group's variant, as the theme's classes or the implementation's styles —
+ * reported once in development when neither names it.
+ */
+function useGroupVariant(
+  variant: string | undefined,
+  variants: Record<string, GroupVariantClasses>,
+  style: GroupVariantStyle | undefined,
+): { classes?: GroupVariantClasses; style?: GroupVariantStyle } {
+  if (variant === undefined) return {};
+  const classes = variants[variant];
+  if (!classes && !style) warnUnknownVariant("group", variant);
+  return { classes, style };
+}
+
 /** Join class names, skipping the empty and the false. */
 function cat(...cs: (string | false | undefined)[]): string {
   return cs.filter(Boolean).join(" ");
@@ -127,11 +172,19 @@ export function ContentsRegion({
   headingLevel,
   children,
   kind,
+  variant,
   classes = defaultHtmlTheme.contents,
   titleStyle,
   layoutStyle,
+  variantStyle,
 }: GroupRenderProps & {
   classes?: HtmlTheme["contents"];
+  /**
+   * The variant's look as styles, for an implementation whose looks are
+   * runtime tokens rather than classes — passed only when it names this
+   * variant, so a variant neither it nor `classes.variants` knows is reported.
+   */
+  variantStyle?: GroupVariantStyle;
   /** The title's typography, for an implementation whose styles are runtime tokens. */
   titleStyle?: CSSProperties;
   /**
@@ -142,6 +195,7 @@ export function ContentsRegion({
   layoutStyle?: CSSProperties;
 }) {
   const section = kind === "section";
+  const look = useGroupVariant(variant, classes.variants, variantStyle);
   // The author's className is the body's layout: the theme's default only
   // when there is none.
   const ownLayout = className === undefined;
@@ -155,10 +209,10 @@ export function ContentsRegion({
       role="heading"
       aria-level={headingLevel}
       className={mergeClass(
-        cat(classes.title, section && classes.section.title),
+        cat(classes.title, section && classes.section.title, look.classes?.title),
         combineClass(labelClassName, labelTextClassName),
       )}
-      style={titleStyle}
+      style={titleStyle || look.style?.title ? { ...titleStyle, ...look.style?.title } : undefined}
     >
       {title}
     </div>
@@ -174,16 +228,18 @@ export function ContentsRegion({
               classes.body,
               section && classes.section.body,
               ownLayout && classes.layout,
+              look.classes?.body,
             ),
         className,
       )}
-      style={
+      style={withStyle(
         layout
           ? flexStyle(layout, classes.flexGap)
           : ownLayout
             ? layoutStyle
-            : undefined
-      }
+            : undefined,
+        look.style?.body,
+      )}
     >
       {children}
     </div>
@@ -200,16 +256,21 @@ export function ContentsRegion({
           section && classes.section.wrapper,
           mode === "collapse" && classes.collapse,
           hidden && mode === "class" && classes.hidden,
+          look.classes?.wrapper,
         ),
         shellClassName,
       )}
+      data-variant={variant}
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
       // The one hide that needs no CSS. The style too, because a `display`
       // from the wrapper's classes beats the attribute without preflight.
       hidden={(hidden && mode === "attribute") || undefined}
-      style={hidden && mode === "attribute" ? { display: "none" } : undefined}
+      style={withStyle(
+        look.style?.wrapper,
+        hidden && mode === "attribute" ? { display: "none" } : undefined,
+      )}
     >
       {mode === "collapse" ? (
         <div className={classes.inner}>
@@ -269,11 +330,20 @@ export function Inline({
   labelTextClassName,
   hidden,
   children,
+  variant,
   classes = defaultHtmlTheme.inline,
-}: GroupRenderProps & { classes?: HtmlTheme["inline"] }) {
+  variantStyle,
+}: GroupRenderProps & {
+  classes?: HtmlTheme["inline"];
+  /** As {@link ContentsRegion}'s. */
+  variantStyle?: GroupVariantStyle;
+}) {
+  const look = useGroupVariant(variant, classes.variants, variantStyle);
   return (
     <span
-      className={mergeClass(classes.wrapper, shellClassName)}
+      className={mergeClass(cat(classes.wrapper, look.classes?.wrapper), shellClassName)}
+      style={look.style?.wrapper}
+      data-variant={variant}
       data-hidden={hidden ? "" : undefined}
       inert={hidden || undefined}
       hidden={hidden || undefined}
@@ -281,9 +351,10 @@ export function Inline({
       {title !== undefined && title !== null && (
         <span
           className={mergeClass(
-            classes.title,
+            cat(classes.title, look.classes?.title),
             combineClass(labelClassName, labelTextClassName),
           )}
+          style={look.style?.title}
         >
           {title}{" "}
         </span>
@@ -485,4 +556,33 @@ export function onFocusLeave(
   return (e) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) leave();
   };
+}
+
+/**
+ * A nesting context of named looks, for an implementation whose looks are
+ * its library's props rather than classes (MUI, Ant, Fluent): one record of
+ * variants per kind — `text`, `group`, `action` — and a provider that merges
+ * a region's over the enclosing one's, a variant given replacing the one of
+ * that name above it.
+ */
+export function createVariantsContext<V extends object>(
+  name: string,
+): {
+  Provider: (props: { variants: V; children: ReactNode }) => ReactNode;
+  useVariants: () => V;
+} {
+  const Ctx = createContext<V>({} as V);
+  function Provider({ variants, children }: { variants: V; children: ReactNode }) {
+    const parent = useContext(Ctx);
+    const merged = useMemo(() => {
+      const above = parent as Record<string, object | undefined>;
+      const out: Record<string, object | undefined> = { ...above };
+      for (const [k, v] of Object.entries(variants) as [string, object | undefined][])
+        if (v) out[k] = { ...(above[k] ?? {}), ...v };
+      return out as V;
+    }, [parent, variants]);
+    return <Ctx.Provider value={merged}>{children}</Ctx.Provider>;
+  }
+  Provider.displayName = name;
+  return { Provider, useVariants: () => useContext(Ctx) };
 }

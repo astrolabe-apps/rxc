@@ -62,6 +62,7 @@ import {
   type TextFieldRenderProps,
   type Tone,
   type WizardRenderProps,
+  warnUnknownVariant,
 } from "@rx-controls/forms-react";
 import { twMerge } from "tailwind-merge";
 import { useNativeTheme } from "./theme.js";
@@ -766,23 +767,30 @@ function wrapText(children: ReactNode, className?: string): ReactNode {
 
 function NativeContents(p: GroupRenderProps) {
   const { contents: t, text } = useNativeTheme();
+  const look = p.variant === undefined ? undefined : t.variants[p.variant];
+  if (p.variant !== undefined && !look) warnUnknownVariant("group", p.variant);
   return (
     // Hiding is a style, not a class: it must work with no stylesheet.
     <View
-      className={mergeClass(t.className, p.shellClassName)}
+      className={mergeClass(cx(t.className, look?.className), p.shellClassName)}
       style={p.hidden ? { display: "none" } : undefined}
     >
       {p.title !== undefined && p.title !== null && (
         <Text
           role="heading"
           aria-level={p.headingLevel}
-          className={mergeClass(t.title, p.labelClassName)}
+          className={mergeClass(cx(t.title, look?.title), p.labelClassName)}
         >
           {p.title}
         </Text>
       )}
       {/* The author's className is the body's layout, in place of the theme's. */}
-      <View className={p.className === undefined ? t.body : mergeClass(undefined, p.className)}>
+      <View
+        className={mergeClass(
+          cx(p.className === undefined ? t.body : undefined, look?.body),
+          p.className,
+        )}
+      >
         {wrapText(p.children, text.className)}
       </View>
     </View>
@@ -791,9 +799,11 @@ function NativeContents(p: GroupRenderProps) {
 
 function NativeInline(p: GroupRenderProps) {
   const { inline: t, text } = useNativeTheme();
+  const look = p.variant === undefined ? undefined : t.variants[p.variant];
+  if (p.variant !== undefined && look === undefined) warnUnknownVariant("group", p.variant);
   return (
     <View
-      className={mergeClass(t.className, p.className)}
+      className={mergeClass(cx(t.className, look), p.className)}
       style={p.hidden ? { display: "none" } : undefined}
     >
       {wrapText(p.children, text.className)}
@@ -819,6 +829,9 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
   const t = useNativeTheme().text;
   const content = getProp(rc, p.text) ?? p.children;
   const heading = !p.inline && !!getProp(rc, p.heading);
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : t.variants[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("text", variant);
   const live = liveRegion(p.announce, p.tone);
   // An announced display hidden, or with nothing to say, keeps only its
   // live region — the same element, so content arriving in it is announced.
@@ -838,6 +851,7 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
                 ],
               )
             : t.className,
+          look,
           p.tone && t.tones[p.tone],
         ),
         p.className,
@@ -923,7 +937,12 @@ function NativeHtml(p: HtmlDisplayRenderProps): Rendered {
 
 function NativeAction(p: ActionRenderProps) {
   const t = useNativeTheme().action;
-  const variant = t.variants[p.variant];
+  // A role the theme does not name draws as the default emphasis.
+  let variant = t.variants[p.variant];
+  if (!variant) {
+    warnUnknownVariant("action", p.variant);
+    variant = t.variants.secondary;
+  }
   // The spinner is decoration: on Android a spinner inside a button gave the
   // button its own "busy" description, which then outlived the spinner and
   // replaced the button's name. The busy state says it.

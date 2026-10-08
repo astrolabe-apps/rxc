@@ -84,9 +84,11 @@ import {
   type DisclosureRenderProps,
   type TextFieldRenderProps,
   combineClass,
+  warnUnknownVariant,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
+  type GroupVariantStyle,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -100,6 +102,7 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
+import { useMuiVariants, type MuiStyle } from "./variants.js";
 
 /**
  * The one thing the library survey predicted would need a private channel: MUI's
@@ -553,18 +556,20 @@ function MuiTabs(p: TabsRenderProps) {
   );
 }
 
+/** The three emphases as MUI's own button variants. */
+const emphasis = { primary: "contained", secondary: "outlined", link: "text" } as const;
+
 function MuiAction(p: ActionRenderProps) {
+  const named = useMuiVariants().action?.[p.variant];
+  const builtin = emphasis[p.variant as keyof typeof emphasis];
+  if (!named && !builtin) warnUnknownVariant("action", p.variant);
   return (
     <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
       <Button
-        variant={
-          p.variant === "primary"
-            ? "contained"
-            : p.variant === "link"
-              ? "text"
-              : "outlined"
-        }
+        variant={builtin ?? "outlined"}
         size="small"
+        {...named}
+        data-variant={p.variant}
         className={mergeClass(undefined, p.className)}
         disabled={p.disabled}
         loading={p.busy}
@@ -612,12 +617,27 @@ function useHeadingType(level: number) {
   };
 }
 
+/** A group's variant as styles, each resolved against the MUI theme. */
+function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefined {
+  const theme = useTheme();
+  const group = useMuiVariants().group;
+  const look = variant === undefined ? undefined : group?.[variant];
+  if (!look) return undefined;
+  const at = (s: MuiStyle | undefined) => (typeof s === "function" ? s(theme) : s);
+  return { wrapper: at(look.wrapper), title: at(look.title), body: at(look.body) };
+}
+
+function MuiInline(p: GroupRenderProps) {
+  return <Inline {...p} variantStyle={useGroupStyle(p.variant)} />;
+}
+
 function MuiContents(p: GroupRenderProps) {
   const t = useTheme();
   const heading = useHeadingType(p.headingLevel ?? 2);
   return (
     <ContentsRegion
       {...p}
+      variantStyle={useGroupStyle(p.variant)}
       // The body's default layout: spacing is the container's, as under html,
       // so a display or a nested region is spaced like a field.
       layoutStyle={{
@@ -638,10 +658,19 @@ function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
 function MuiText(p: TextDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const variants = useMuiVariants().text;
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
   const headingType = useHeadingType(p.headingLevel);
+  const variant = getProp(rc, p.variant);
+  const { sx: lookSx, ...look } = (variant === undefined ? undefined : variants?.[variant]) ?? {};
+  if (variant !== undefined && !variants?.[variant]) warnUnknownVariant("text", variant);
+  // The variant's sx over the heading's type, not in place of it.
+  const sx = [
+    heading ? { ...headingType, ...(p.tone ? { color: "inherit" } : {}) } : {},
+    ...(Array.isArray(lookSx) ? lookSx : [lookSx]),
+  ];
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -653,15 +682,12 @@ function MuiText(p: TextDisplayRenderProps) {
     >
       <Typography
         variant="body2"
+        {...look}
         component={p.inline ? "span" : heading ? "div" : "p"}
         className={mergeClass(undefined, p.className)}
-        {...(heading
-          ? {
-              role: "heading",
-              "aria-level": p.headingLevel,
-              sx: { ...headingType, ...(p.tone ? { color: "inherit" } : {}) },
-            }
-          : {})}
+        {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
+        sx={sx}
+        data-variant={variant}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
           {content}
@@ -1050,7 +1076,7 @@ export const muiRenderers: FormRenderers = {
   icon: MuiIcon,
   action: MuiAction,
   contents: MuiContents,
-  inline: Inline,
+  inline: MuiInline,
   wizard: MuiWizard,
   dialog: MuiDialogImpl,
   disclosure: MuiDisclosure,

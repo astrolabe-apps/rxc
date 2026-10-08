@@ -6,7 +6,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { ActionVariant, Tone } from "@rx-controls/forms-react";
+import type { Tone } from "@rx-controls/forms-react";
 
 /**
  * Every class the React Native implementation puts on an element, one slot
@@ -19,7 +19,17 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  * implementation, so it never depends on a variant a platform lacks.
  *
  * The app's Tailwind `content` must include this package's built files
- * (`node_modules/@rx-controls/forms-native/lib/**\/*.js`), or none of these
+ * (`node_modules/@rx-controls/forms-native/lib/**
+ * What an action variant adds. Either slot may be left out.
+ */
+export interface ActionVariantClasses {
+  /** Added to the button. */
+  className?: string;
+  /** Added to its text. */
+  textClassName?: string;
+}
+
+/**\/*.js`), or none of these
  * classes are compiled.
  *
  * @group Theming
@@ -151,11 +161,20 @@ export interface NativeTheme {
     title: string;
     /** The body the children sit in. */
     body: string;
+    /**
+     * Named looks (`GroupProps.variant` — "card", "callout"), each added to
+     * the wrapper, title and body of a group that names it, over the slots
+     * above (merged, so a variant's utility wins over the base's). A name not
+     * here draws the base look, with a warning in development.
+     */
+    variants: Record<string, { className?: string; title?: string; body?: string }>;
   };
   /** An inline group: prose. */
   inline: {
     /** Its element. */
     className: string;
+    /** Named looks for an inline group, added to its element. */
+    variants: Record<string, string>;
   };
   /** The text display. */
   text: {
@@ -173,6 +192,12 @@ export interface NativeTheme {
     };
     /** By tone, on any display's text. */
     tones: Record<Tone, string>;
+    /**
+     * Named looks (`TextDisplay variant` — "lead", "tag"), each merged over
+     * the text's block or heading class, under its tone. A name not here
+     * draws the base look, with a warning in development.
+     */
+    variants: Record<string, string>;
   };
   /** The icon display. */
   icon: {
@@ -194,8 +219,13 @@ export interface NativeTheme {
     iconClassName: string;
     /** Added while disabled. */
     disabled: string;
-    /** Added by variant. */
-    variants: Record<ActionVariant, { className: string; textClassName: string }>;
+    /**
+     * Added by variant: the three emphases every theme draws, and any role a
+     * form names (`ActionVariant`). A name not here draws as `secondary`,
+     * with a warning in development.
+     */
+    variants: Record<"primary" | "secondary" | "link", ActionVariantClasses> &
+      Record<string, ActionVariantClasses>;
   };
   /** The tab strip. */
   tabs: {
@@ -335,8 +365,9 @@ export const defaultNativeTheme: NativeTheme = {
     className: "",
     title: "mb-2 text-base font-bold text-gray-900",
     body: "gap-4",
+    variants: {},
   },
-  inline: { className: "flex-row flex-wrap items-baseline gap-1" },
+  inline: { className: "flex-row flex-wrap items-baseline gap-1", variants: {} },
   text: {
     className: "text-base text-gray-800",
     heading: {
@@ -356,6 +387,7 @@ export const defaultNativeTheme: NativeTheme = {
       info: "text-blue-700",
       success: "text-green-700",
     },
+    variants: {},
   },
   icon: { className: "text-xl" },
   html: { className: "text-base text-gray-800" },

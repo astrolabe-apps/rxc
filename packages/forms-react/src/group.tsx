@@ -56,6 +56,13 @@ export interface GroupProps {
   readOnly?: FormProp<boolean>;
   /** A heading over the content. Absent means none. */
   title?: FormProp<ReactNode>;
+  /**
+   * A named look — "card", "callout", "pill" — that the implementation's
+   * theme resolves for the region: its wrapper, title and body. The form
+   * names a role and never a look. A name the theme does not know draws the
+   * base look, with a warning in development.
+   */
+  variant?: FormProp<string | undefined>;
   /** The body. */
   className?: FormProp<ClassValue>;
   /** The wrapper around title and body. */
@@ -116,6 +123,11 @@ export interface GroupRenderProps {
    * level (html: `role="heading"` and `aria-level`, or an `h1`–`h6`).
    */
   headingLevel: number;
+  /**
+   * A named look for the theme to resolve; the base look when it names none
+   * by this name (see {@link warnUnknownVariant}).
+   */
+  variant?: string;
   /** The body. */
   className?: ClassValue;
   /** The wrapper around title and body. */
@@ -231,6 +243,7 @@ export function groupRenderer<P extends object = {}>(
       kind: options?.inline ? "inline" : options?.scope ? "section" : "contents",
       title,
       headingLevel: bound.headingLevel,
+      variant: getProp(rc, props.variant),
       className: getProp(rc, props.className),
       shellClassName: getProp(rc, props.shellClassName),
       labelClassName: getProp(rc, props.labelClassName),
@@ -272,6 +285,7 @@ const groupContractKeys: ReadonlySet<string> = new Set([
   "disabled",
   "readOnly",
   "title",
+  "variant",
   "className",
   "shellClassName",
   "labelClassName",

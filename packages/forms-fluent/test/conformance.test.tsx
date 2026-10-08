@@ -1,4 +1,14 @@
+import { tokens } from "@fluentui/react-components";
 import { describeConformance } from "rxc-forms-conformance/suite";
-import { fluentRenderers } from "../src/index";
+import { FluentVariantsProvider, fluentRenderers, type FluentVariants } from "../src/index";
 
-describeConformance({ name: "Fluent", renderers: fluentRenderers });
+const variants: FluentVariants = {
+  text: { lead: { size: 400, weight: "semibold" } },
+  group: { card: { wrapper: { padding: tokens.spacingHorizontalL } } },
+  action: { quiet: { appearance: "subtle" } },
+};
+describeConformance({
+  name: "Fluent",
+  renderers: fluentRenderers,
+  looks: (node) => <FluentVariantsProvider variants={variants}>{node}</FluentVariantsProvider>,
+});

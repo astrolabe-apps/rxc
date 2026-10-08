@@ -49,6 +49,12 @@ export interface Implementation {
   /** Providers it needs above the form beyond its own `root` — a theme. */
   wrap?: (node: ReactNode) => ReactNode;
   /**
+   * Its theme naming three looks, around `node`: a text variant `lead`, a
+   * group variant `card` and an action variant `quiet`, each drawn
+   * differently from the base look — however the implementation says looks.
+   */
+  looks: (node: ReactNode) => ReactNode;
+  /**
    * What its platform cannot do, so the suite holds it to what it can
    * instead. None on the web; React Native has all three.
    */
@@ -1134,6 +1140,64 @@ export function describeConformance(impl: Implementation): void {
       click(buttonNamed("Save")!);
       await flush();
       expect(document.activeElement?.id).toBe("top");
+    });
+
+    it("draws a look the theme names, and the base look with one warning for a name it does not", () => {
+      // Unique per run: the warning is once per name, for the whole process.
+      const unknown = "unnamed" + Math.random().toString(36).slice(2);
+      const clicked = vi.fn();
+      const ui = (
+        <>
+          <TextDisplay text="Base words" />
+          <TextDisplay text="Lead words" variant="lead" />
+          <TextDisplay text="Unknown words" variant={unknown} />
+          <Contents title="Base region">
+            <TextDisplay text="in base" />
+          </Contents>
+          <Contents title="Card region" variant="card">
+            <TextDisplay text="in card" />
+          </Contents>
+          <Contents title="Unknown region" variant={unknown}>
+            <TextDisplay text="in unknown" />
+          </Contents>
+          <Action actionId="plain" text="Base button" />
+          <Action actionId="quietly" text="Quiet button" variant="quiet" />
+          <Action actionId="unnamed" text="Unknown button" variant={unknown} onClick={clicked} />
+        </>
+      );
+      mount(impl.looks(ui));
+      // What is drawn around some words: every element's class and style,
+      // from the innermost holding exactly them out to the form. A look is
+      // whatever the implementation styles with; only a difference counts.
+      const look = (words: string) => {
+        const holders = [...container.querySelectorAll("*")].filter(
+          (e) => e.textContent?.trim() === words,
+        );
+        const chain: string[] = [];
+        for (let e: Element | null = holders.pop()!; e && e !== container; e = e.parentElement)
+          chain.push(`${e.getAttribute("class") ?? ""}|${e.getAttribute("style") ?? ""}`);
+        return chain.join(" / ");
+      };
+      expect([
+        look("Lead words") !== look("Base words"),
+        look("Card region") !== look("Base region"),
+        look("Quiet button") !== look("Base button"),
+        look("Unknown words") === look("Base words"),
+        look("Unknown region") === look("Base region"),
+        look("Unknown button") === look("Base button"),
+      ]).toEqual([true, true, true, true, true, true]);
+      // One warning per kind, naming the variant — and none again on the
+      // next render.
+      const warnings = logged.splice(0);
+      expect(
+        ["text", "group", "action"].map(
+          (kind) => warnings.filter((w) => w.includes(`${kind} variant "${unknown}"`)).length,
+        ),
+      ).toEqual([1, 1, 1]);
+      expect(warnings).toHaveLength(3);
+      mount(impl.looks(ui));
+      click(buttonNamed("Unknown button")!);
+      expect([logged.splice(0), clicked.mock.calls.length]).toEqual([[], 1]);
     });
 
     it("runs an action, and locks it while an async handler is busy", async () => {

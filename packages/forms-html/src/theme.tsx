@@ -211,6 +211,14 @@ export interface HtmlTheme {
       /** Added to the body. */
       body: string;
     };
+    /**
+     * Named looks (`GroupProps.variant` — "card", "callout"), each added to
+     * the wrapper, title and body of a `contents` or `section` region that
+     * names it, beside the slots above. A name not here draws the base look,
+     * with a warning in development. The wrapper carries the name as
+     * `data-variant` either way.
+     */
+    variants: Record<string, GroupVariantClasses>;
     /** A body with a `layout`: the flex box. */
     flexBody: string;
     /** Its gap when the layout sets none. */
@@ -222,6 +230,8 @@ export interface HtmlTheme {
     wrapper: string;
     /** Its title. */
     title: string;
+    /** Named looks for an inline group, as `contents.variants` (no body slot). */
+    variants: Record<string, GroupVariantClasses>;
   };
   /** The `visibility` slot. */
   visibility: {
@@ -287,6 +297,14 @@ export interface HtmlTheme {
       /** Beside it, by the heading's level. */
       levels: Record<1 | 2 | 3 | 4 | 5 | 6, string>;
     };
+    /**
+     * Named looks (`TextDisplay variant` — "lead", "tag"), each added to the
+     * text element beside its block, inline or heading class. A colour here
+     * masks a tone, as one on the base slot would. A name not here draws the
+     * base look, with a warning in development; the element carries the name
+     * as `data-variant` either way.
+     */
+    variants: Record<string, string>;
   };
   /** The HTML display. */
   html: {
@@ -310,18 +328,20 @@ export interface HtmlTheme {
      * author's icon is.
      */
     iconClassName: string;
-    /** Added by variant, on top of the three above. */
-    variants: Record<
-      ActionVariant,
-      {
-        /** Added to the button. */
-        className: string;
-        /** Added to its text. */
-        textClassName: string;
-        /** Added around its icon. */
-        iconClassName: string;
-      }
-    >;
+    /**
+     * Added by variant, on top of the three above: the three emphases every
+     * theme draws, and any role a form names (`ActionVariant`). A name not
+     * here draws as `secondary`, with a warning in development; the button
+     * carries the name as `data-variant` either way.
+     *
+     * Added, not merged: two utilities of one kind — a base `px-3` and a
+     * variant's `px-0` — resolve by stylesheet order, not by which slot is
+     * the variant's. Leave out of the base what a variant changes, as the
+     * Tailwind theme does with padding, or mark the variant's `!`. The same
+     * holds for `text.variants` and `contents.variants`.
+     */
+    variants: Record<"primary" | "secondary" | "link", ActionVariantClasses> &
+      Record<string, ActionVariantClasses>;
     /** Shown while an asynchronous handler runs. */
     busy: ReactNode;
   };
@@ -375,6 +395,34 @@ export interface HtmlTheme {
     /** On the toggle while a touched field inside shows an error. */
     invalidMarker: string;
   };
+}
+
+/**
+ * What a group variant adds, per element. Any slot may be left out.
+ *
+ * @group Theming
+ */
+export interface GroupVariantClasses {
+  /** Added to the wrapper around title and body. */
+  wrapper?: string;
+  /** Added to the title. */
+  title?: string;
+  /** Added to the body. */
+  body?: string;
+}
+
+/**
+ * What an action variant adds, per element. Any slot may be left out.
+ *
+ * @group Theming
+ */
+export interface ActionVariantClasses {
+  /** Added to the button. */
+  className?: string;
+  /** Added to its text. */
+  textClassName?: string;
+  /** Added around its icon. */
+  iconClassName?: string;
 }
 
 /**
@@ -473,8 +521,9 @@ export const defaultHtmlTheme: HtmlTheme = {
     },
     flexBody: "rxf-contents-flex",
     flexGap: 16,
+    variants: {},
   },
-  inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
+  inline: { wrapper: "rxf-inline", title: "rxf-group-title", variants: {} },
   visibility: { transitions: true, fade: "rxf-fade" },
   elements: { className: "rxf-elements" },
   displayShell: {
@@ -508,6 +557,7 @@ export const defaultHtmlTheme: HtmlTheme = {
         6: "rxf-heading-6",
       },
     },
+    variants: {},
   },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
@@ -649,9 +699,10 @@ export const tailwindHtmlTheme: HtmlTheme = {
     },
     flexBody: "rxf-contents-flex gap-2",
     flexGap: "0.5rem",
+    variants: {},
   },
   // group.inlineClass
-  inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
+  inline: { wrapper: "rxf-inline", title: "rxf-group-title", variants: {} },
   visibility: {
     transitions: true,
     // Inline in prose, where a block wrapper would break the sentence.
@@ -691,29 +742,32 @@ export const tailwindHtmlTheme: HtmlTheme = {
         6: "rxf-heading-6",
       },
     },
+    variants: {},
   },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
   // action.buttonClass, over the standard palette in place of `primary-500`.
   action: {
     className:
-      "rxf-btn inline-flex items-center gap-1.5 rounded-lg border border-transparent px-3 py-2 text-sm [font:inherit] disabled:cursor-not-allowed disabled:opacity-75",
+      // No padding here: the variants set it, since a variant's `px-0` cannot
+      // beat a base `px-3` (Tailwind resolves the two by stylesheet order).
+      "rxf-btn inline-flex items-center gap-1.5 rounded-lg border border-transparent text-sm [font:inherit] disabled:cursor-not-allowed disabled:opacity-75",
     textClassName: "",
     iconClassName: "rxf-btn-icon inline-flex items-center",
     variants: {
       primary: {
-        className: "rxf-btn--primary bg-blue-600 text-white hover:bg-blue-700",
+        className: "rxf-btn--primary bg-blue-600 px-3 py-2 text-white hover:bg-blue-700",
         textClassName: "",
         iconClassName: "",
       },
       secondary: {
         className:
-          "rxf-btn--secondary border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+          "rxf-btn--secondary border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50",
         textClassName: "",
         iconClassName: "",
       },
       link: {
-        className: "rxf-btn--link bg-transparent px-0 text-blue-600 underline",
+        className: "rxf-btn--link bg-transparent text-blue-600 underline",
         textClassName: "",
         iconClassName: "",
       },

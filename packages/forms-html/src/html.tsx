@@ -47,6 +47,7 @@ import {
   type GroupRenderProps,
   type CollectionRenderProps,
   combineClass,
+  warnUnknownVariant,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -629,7 +630,12 @@ function HtmlTabs(p: TabsRenderProps) {
 
 function HtmlAction(p: ActionRenderProps) {
   const { displayShell, action: t } = useHtmlTheme();
-  const variant = t.variants[p.variant];
+  // A role the theme does not name draws as the default emphasis.
+  let variant = t.variants[p.variant];
+  if (!variant) {
+    warnUnknownVariant("action", p.variant);
+    variant = t.variants.secondary;
+  }
   const shown = p.busy ? t.busy : p.icon;
   // The icon in a wrapper the theme reaches, whatever element it is.
   const busy = !noContent(shown) && (
@@ -649,6 +655,7 @@ function HtmlAction(p: ActionRenderProps) {
         // runs the form's submission and the native one never happens.
         type={p.submit ? "submit" : "button"}
         className={mergeClass(join(t.className, variant.className), p.className)}
+        data-variant={p.variant}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         onClick={(e) => {
@@ -684,6 +691,9 @@ function HtmlText(p: TextDisplayRenderProps) {
   const level = Math.min(Math.max(p.headingLevel, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6;
   const Tag = p.inline ? "span" : heading ? "div" : "p";
   const content = getProp(rc, p.text) ?? p.children;
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : t.variants[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("text", variant);
   // Three slots, three elements: wrapper, element, text.
   return rendered(
     <DisplayShell
@@ -696,13 +706,17 @@ function HtmlText(p: TextDisplayRenderProps) {
     >
       <Tag
         className={mergeClass(
-          p.inline
-            ? t.inline
-            : heading
-              ? `${t.heading.className} ${t.heading.levels[level]}`.trim()
-              : t.className,
+          join(
+            p.inline
+              ? t.inline
+              : heading
+                ? join(t.heading.className, t.heading.levels[level])
+                : t.className,
+            look,
+          ),
           p.className,
         )}
+        data-variant={variant}
         {...(heading ? { role: "heading", "aria-level": level } : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
@@ -991,7 +1005,7 @@ function HtmlDialog(p: DialogRenderProps) {
 }
 
 /** Two own classes on one element; empty slots drop out. */
-function join(...cs: string[]): string | undefined {
+function join(...cs: (string | undefined)[]): string | undefined {
   return cs.filter(Boolean).join(" ") || undefined;
 }
 

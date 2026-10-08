@@ -728,7 +728,7 @@ Every contract item lands in all five implementations, with a conformance case w
 behaviour (under each implementation's declared `limits`) and a story where it is something to see.
 `rushx gates` runs before anything that touches the loader.
 
-**Named looks (N1, N2, N10)** — one mechanism for all three.
+**Named looks (N1, N2, N10) ✅** — one mechanism for all three.
 - `variant?: string` on `TextDisplay`, on groups (`Contents` / `Section`) and on `Action`, beside
   `ActionVariant`'s fixed three. The form names a role ("lead", "card", "tag"); the theme says
   what it looks like. html and native resolve it from theme maps (`text.variants[v]`,
@@ -739,6 +739,19 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   variant to the library's props or `sx` / style. Not a `muiRenderers({ variants })` option,
   which would fix the looks per renderer set.
 - N10's two links are then two action variants; nothing link-specific is needed.
+- *Landed:* `TextDisplay.variant`, `GroupProps.variant` (every group kind) and `ActionVariant`
+  opened to any name (`"primary" | "secondary" | "link" | (string & {})`), each a `FormProp`.
+  html: `text.variants`, `contents.variants` / `inline.variants` (wrapper / title / body) and
+  `action.variants`, **added** to the base slots, with `data-variant` on the element for a
+  hook-only theme; native the same slots, merged by tailwind-merge. MUI / Ant / Fluent:
+  `MuiVariantsProvider` / `AntdVariantsProvider` / `FluentVariantsProvider` (a text or action
+  variant → the library's props plus `sx` / a style, a group's → a style per element; MUI's and
+  Ant's may be functions of the theme or tokens), nesting through one context factory in
+  `forms-html/shared`. An unknown name draws the base look (an action's, `secondary`'s) and
+  `warnUnknownVariant` reports it once per kind and name in development. Found on the way: the
+  Tailwind theme's own `link` variant never lost its padding — its `px-0` lost to the base's
+  `px-3` by stylesheet order — so the padding moved into the variants, and the theme docs say
+  to leave out of a base slot what a variant changes.
 
 **Rich text (N9).** Words inside a sentence or a label that are emphasised.
 - *Decided:* an HTML subset, parsed rather than injected. `<RichText html="…">` is a contract

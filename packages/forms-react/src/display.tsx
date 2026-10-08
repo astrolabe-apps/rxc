@@ -126,6 +126,38 @@ export interface TextDisplayExtra {
    * headings stay an outline as the form is rearranged.
    */
   heading?: FormProp<boolean>;
+  /**
+   * A named look — "lead", "tag", "statLabel" — that the implementation's
+   * theme resolves. The form names a role and never a look, so the same
+   * source draws under every implementation. A name the theme does not know
+   * draws the base look, with a warning in development.
+   */
+  variant?: FormProp<string | undefined>;
+}
+
+declare const process: { env: { NODE_ENV?: string } } | undefined;
+// The literal `process.env.NODE_ENV`, so bundlers fold it (see CLAUDE.md).
+const IS_DEV: boolean =
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+const warned = new Set<string>();
+
+/**
+ * Report a `variant` an implementation's theme does not name, once per kind
+ * and name, in development only. What every implementation calls when it
+ * falls back to the base look, so the message is the same under each.
+ *
+ * @param kind - what carries it: `text`, `group`, `action`
+ * @param variant - the name the form used
+ * @group Implementations
+ */
+export function warnUnknownVariant(kind: string, variant: string): void {
+  if (!IS_DEV) return;
+  const key = kind + "\u0000" + variant;
+  if (warned.has(key)) return;
+  warned.add(key);
+  console.warn(
+    `Forms v2: no ${kind} variant "${variant}" in this implementation's theme; drawing the base look. Name it in the theme's ${kind} variants.`,
+  );
 }
 
 /**

@@ -3,6 +3,7 @@ export {
   defaultNativeTheme,
   NativeThemeProvider,
   useNativeTheme,
+  type ActionVariantClasses,
   type NativeTheme,
   type PartialNativeTheme,
 } from "./theme.js";

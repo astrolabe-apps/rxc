@@ -81,6 +81,7 @@ import {
   type DisclosureRenderProps,
   type TextFieldRenderProps,
   combineClass,
+  warnUnknownVariant,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -97,6 +98,7 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
+import { useFluentVariants } from "./variants.js";
 
 // ── Root: inherit the host's theme ────────────────────────────────────
 //
@@ -718,20 +720,22 @@ function FluentTabs(p: TabsRenderProps) {
   );
 }
 
+/** The three emphases as Fluent's own button appearances. */
+const emphasis = { primary: "primary", secondary: "secondary", link: "transparent" } as const;
+
 function FluentAction(p: ActionRenderProps) {
   const replace = p.iconPlacement === "replace";
   const icon = p.busy ? <Spinner size="extra-tiny" /> : p.icon;
+  const lookup = useFluentVariants().action?.[p.variant];
+  const builtin = emphasis[p.variant as keyof typeof emphasis];
+  if (!builtin && !lookup) warnUnknownVariant("action", p.variant);
   return (
     <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
       <Button
-        appearance={
-          p.variant === "primary"
-            ? "primary"
-            : p.variant === "link"
-              ? "transparent"
-              : "secondary"
-        }
+        appearance={builtin ?? "secondary"}
         size="small"
+        {...lookup}
+        data-variant={p.variant}
         className={mergeClass(undefined, p.className)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
@@ -763,11 +767,18 @@ function FluentAction(p: ActionRenderProps) {
  * for a form section rather than by the outline's level — the top level takes
  * `subtitle1`, anything deeper `subtitle2`.
  */
+function FluentInline(p: GroupRenderProps) {
+  const group = useFluentVariants().group;
+  return <Inline {...p} variantStyle={p.variant === undefined ? undefined : group?.[p.variant]} />;
+}
+
 function FluentContents(p: GroupRenderProps) {
   const top = (p.headingLevel ?? 2) <= 2;
+  const group = useFluentVariants().group;
   return (
     <ContentsRegion
       {...p}
+      variantStyle={p.variant === undefined ? undefined : group?.[p.variant]}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -801,6 +812,10 @@ function FluentText(p: TextDisplayRenderProps) {
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
+  const variants = useFluentVariants().text;
+  const variant = getProp(rc, p.variant);
+  const { style: lookStyle, ...look } = (variant === undefined ? undefined : variants?.[variant]) ?? {};
+  if (variant !== undefined && !variants?.[variant]) warnUnknownVariant("text", variant);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -811,6 +826,7 @@ function FluentText(p: TextDisplayRenderProps) {
       style={toneStyle(p.tone)}
     >
       <Text
+        {...look}
         className={mergeClass(undefined, p.className)}
         // Fluent's Text sets its own colour; inherit the shell's tone.
         style={{
@@ -821,8 +837,10 @@ function FluentText(p: TextDisplayRenderProps) {
                 color: tokens.colorNeutralForeground1,
               }
             : {}),
+          ...lookStyle,
           ...(p.tone ? { color: "inherit" } : {}),
         }}
+        data-variant={variant}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
@@ -1115,7 +1133,7 @@ export const fluentRenderers: FormRenderers = {
   icon: FluentIcon,
   action: FluentAction,
   contents: FluentContents,
-  inline: Inline,
+  inline: FluentInline,
   wizard: FluentWizard,
   dialog: FluentDialog,
   disclosure: FluentDisclosure,

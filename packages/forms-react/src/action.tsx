@@ -12,11 +12,17 @@ import { useBoundScope, useInternalScope } from "./scope.js";
 import { bailout, boundaryName, resolveImpl } from "./boundaryParts.js";
 
 /**
- * A button's emphasis. `variant`, not `style`: in React `style` is inline CSS.
+ * A button's look. `variant`, not `style`: in React `style` is inline CSS.
+ *
+ * Every implementation draws the three emphases — `primary`, `secondary`,
+ * `link`. Any other name is a role the form names ("quiet", "inlineLink")
+ * and the implementation's theme says the look of; a name the theme does not
+ * know draws as `secondary`, with a warning in development. See
+ * {@link warnUnknownVariant}.
  *
  * @group Authoring
  */
-export type ActionVariant = "primary" | "secondary" | "link";
+export type ActionVariant = "primary" | "secondary" | "link" | (string & {});
 
 /**
  * Where a button's icon goes relative to its text; `replace` draws the icon
@@ -71,7 +77,7 @@ export interface ActionProps {
   disabled?: FormProp<boolean>;
   /** What an asynchronous `onClick` locks while it runs. Default `self`. */
   disableType?: DisableType;
-  /** Emphasis. Default `secondary`. */
+  /** Its look: an emphasis, or a role the theme names. Default `secondary`. */
   variant?: FormProp<ActionVariant>;
   /** The button. */
   className?: FormProp<ClassValue>;
@@ -112,7 +118,10 @@ export interface ActionRenderProps {
   disabled: boolean;
   /** An asynchronous handler is running. */
   busy: boolean;
-  /** Emphasis. */
+  /**
+   * Its look: one of the three emphases, or a name for the theme to resolve —
+   * drawn as `secondary` when the theme does not know it.
+   */
   variant: ActionVariant;
   /** The button. */
   className?: ClassValue;

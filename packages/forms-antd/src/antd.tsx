@@ -61,9 +61,11 @@ import {
   type DisclosureRenderProps,
   type TextFieldRenderProps,
   combineClass,
+  warnUnknownVariant,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
+  type GroupVariantStyle,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -77,6 +79,7 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
 } from "@rx-controls/forms-html/shared";
+import { atToken, useAntdVariants } from "./variants.js";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
 //
@@ -590,18 +593,23 @@ function AntTabs(p: TabsRenderProps) {
   );
 }
 
+/** The three emphases as Ant's own button types. */
+const emphasis = { primary: "primary", secondary: "default", link: "link" } as const;
+
 function AntAction(p: ActionRenderProps) {
+  const { token } = theme.useToken();
+  const lookup = useAntdVariants().action?.[p.variant];
+  const { style, ...named } = lookup ?? {};
+  const builtin = emphasis[p.variant as keyof typeof emphasis];
+  if (!builtin && !lookup) warnUnknownVariant("action", p.variant);
   return (
     <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
       <Button
-        type={
-          p.variant === "primary"
-            ? "primary"
-            : p.variant === "link"
-              ? "link"
-              : "default"
-        }
+        type={builtin ?? "default"}
         size="small"
+        {...named}
+        style={atToken(style, token)}
+        data-variant={p.variant}
         className={mergeClass(undefined, p.className)}
         disabled={p.disabled}
         loading={p.busy}
@@ -652,11 +660,29 @@ function headingStyle(
  * than by that level — level 2 would be Ant's 30px — so the top level takes
  * heading 4's size and anything deeper heading 5's.
  */
+/** A group's variant as styles, each resolved against the tokens. */
+function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefined {
+  const { token } = theme.useToken();
+  const group = useAntdVariants().group;
+  const look = variant === undefined ? undefined : group?.[variant];
+  if (!look) return undefined;
+  return {
+    wrapper: atToken(look.wrapper, token),
+    title: atToken(look.title, token),
+    body: atToken(look.body, token),
+  };
+}
+
+function AntInline(p: GroupRenderProps) {
+  return <Inline {...p} variantStyle={useGroupStyle(p.variant)} />;
+}
+
 function AntContents(p: GroupRenderProps) {
   const { token } = theme.useToken();
   return (
     <ContentsRegion
       {...p}
+      variantStyle={useGroupStyle(p.variant)}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -691,6 +717,10 @@ function AntText(p: TextDisplayRenderProps) {
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
+  const variants = useAntdVariants().text;
+  const variant = getProp(rc, p.variant);
+  const { style: lookStyle, ...look } = (variant === undefined ? undefined : variants?.[variant]) ?? {};
+  if (variant !== undefined && !variants?.[variant]) warnUnknownVariant("text", variant);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -701,12 +731,15 @@ function AntText(p: TextDisplayRenderProps) {
       style={toneStyle}
     >
       <Typography.Text
+        {...look}
         className={mergeClass(undefined, p.className)}
         // Ant's Typography sets its own colour; inherit the shell's tone.
         style={{
           ...(heading ? { display: "block", ...headingStyle(token, p.headingLevel) } : {}),
+          ...atToken(lookStyle, token),
           ...(p.tone ? { color: "inherit" } : {}),
         }}
+        data-variant={variant}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
         <span className={mergeClass(undefined, p.textClassName)}>
@@ -1043,7 +1076,7 @@ export const antdRenderers: FormRenderers = {
   icon: AntIcon,
   action: AntAction,
   contents: AntContents,
-  inline: Inline,
+  inline: AntInline,
   wizard: AntWizard,
   dialog: AntDialog,
   disclosure: AntDisclosure,

@@ -60,6 +60,7 @@ function Contents(p: GroupRenderProps) {
   return (
     <div
       data-group
+      data-variant={p.variant}
       data-invalid={p.invalid ? "" : undefined}
       data-layout={p.layout ? JSON.stringify(p.layout) : undefined}
       className={cls(p.className)}
