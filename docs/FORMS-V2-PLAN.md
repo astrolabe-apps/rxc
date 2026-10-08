@@ -652,9 +652,16 @@ and Font Awesome's React Native icons. It declares `react-native >=0.81.5`. Movi
 - **Some suite assertions are web-shaped**: a `hideLabel` label element clipped by a CSS style,
   a `<form>` element to submit. Native has neither — a hidden label is the control's own name, and
   submission is the submit action's. The suite needs a reading of these that does not assume a DOM.
-- **Styling is the open question.** NativeWind classes (the app's, and "layout is classes") need
-  the library compiled with NativeWind's JSX runtime, as legacy `schemas-rn` was built
-  (`--jsxImportSource nativewind`); the spike draws structure with style objects only.
+- **Styling: NativeWind (decided).** The library compiles its JSX with NativeWind's runtime
+  (`jsxImportSource: "nativewind"`), as legacy `schemas-rn` was built — `tsc`'s output carries no
+  JSX, so the app's own Babel setting cannot reach it. The look is a `NativeTheme` of class slots
+  under `NativeThemeProvider`, like `HtmlTheme`: NativeWind classes only, frame state (focused,
+  invalid, disabled) as slots of its own rather than variants, hiding a style rather than a class.
+  The app's Tailwind `content` must list the package's built files. Neither NativeWind nor
+  `react-native-css-interop` declares `exports`, so under `nodenext` the JSX runtime's types come
+  through `paths` and the `className` augmentation through a path reference. In the tests the
+  runtime is aliased to React's: classes are inert there, and the look is checked in the app.
+  NativeWind 4 needs Tailwind 3, an allowed alternative to the repo's 4 for this package only.
 
 Drawn so far: the text field (shell, frame, input), groups, text displays (headings, live
 regions), actions and the form. The shared suite, opt-in while slots are stubbed (`rushx

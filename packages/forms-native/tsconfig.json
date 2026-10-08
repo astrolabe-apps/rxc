@@ -4,8 +4,15 @@
     "outDir": "./lib",
     "rootDir": "./src",
     "jsx": "react-jsx",
+    "jsxImportSource": "nativewind",
     "module": "nodenext",
-    "moduleResolution": "nodenext"
+    "moduleResolution": "nodenext",
+    // NativeWind declares no `exports` and its JSX runtime is a directory,
+    // which ESM resolution will not enter; Metro (the only bundler that loads
+    // this package) resolves it. The types are found here instead.
+    "paths": {
+      "nativewind/jsx-runtime": ["./node_modules/nativewind/jsx-runtime/index.d.ts"]
+    }
   },
   "include": ["src"]
 }

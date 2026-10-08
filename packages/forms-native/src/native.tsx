@@ -5,15 +5,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  type TextStyle,
-  type ViewStyle,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   countText,
@@ -37,6 +29,7 @@ import {
   type TextDisplayRenderProps,
   type TextFieldRenderProps,
 } from "@rx-controls/forms-react";
+import { useNativeTheme } from "./theme.js";
 
 // ── Accessibility, for both of React Native's targets ────────────────
 //
@@ -69,65 +62,45 @@ function webOnly(props: Record<string, unknown>): object {
   return props;
 }
 
-// ── Styles ────────────────────────────────────────────────────────────
-//
-// Structure only, as React Native style objects: the look is an open
-// question for the spike (NativeWind classes, as the app and legacy
-// schemas-rn use, need the library compiled with NativeWind's JSX runtime).
-
-const s = {
-  shell: { gap: 4 } satisfies ViewStyle,
-  label: { fontWeight: "600" } satisfies TextStyle,
-  help: { fontSize: 12, opacity: 0.7 } satisfies TextStyle,
-  error: { fontSize: 13, color: "#b91c1c" } satisfies TextStyle,
-  frame: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-  } satisfies ViewStyle,
-  input: { flex: 1, paddingVertical: 8 } satisfies TextStyle,
-  body: { gap: 12 } satisfies ViewStyle,
-  title: { fontWeight: "700" } satisfies TextStyle,
-  inline: { flexDirection: "row", flexWrap: "wrap", gap: 4 } satisfies ViewStyle,
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  } satisfies ViewStyle,
-};
+/** Join the classes that apply. */
+function cx(...cs: (string | false | undefined | null)[]): string {
+  return cs.filter(Boolean).join(" ");
+}
 
 // ── Shell and frame ───────────────────────────────────────────────────
 
 function NativeFieldShell(p: FieldShellProps) {
+  const t = useNativeTheme().shell;
   const hasLabel = p.label !== undefined && p.label !== null;
   return (
-    <View style={s.shell}>
+    <View className={mergeClass(t.className, p.className)}>
       {/* A hidden label is not drawn: the control carries the name itself. */}
       {hasLabel && !p.hideLabel && (
-        <Text id={fieldLabelId(p.id)} style={s.label}>
+        <Text
+          id={fieldLabelId(p.id)}
+          className={mergeClass(t.label, p.labelClassName)}
+        >
           {p.label}
-          {p.required && <Text aria-hidden> *</Text>}
+          {p.required && (
+            <Text aria-hidden className={t.required}>
+              {" *"}
+            </Text>
+          )}
         </Text>
       )}
       {p.children}
       {p.helpText != null && !p.error && (
-        <Text id={fieldHelpId(p.id)} style={s.help}>
+        <Text id={fieldHelpId(p.id)} className={t.help}>
           {p.helpText}
         </Text>
       )}
       {p.error != null && (
-        <Text id={fieldErrorId(p.id)} style={s.error}>
+        <Text id={fieldErrorId(p.id)} className={t.error}>
           {p.error}
         </Text>
       )}
       {p.count != null && (
-        <Text id={fieldCountId(p.id)} style={p.countOver ? s.error : s.help}>
+        <Text id={fieldCountId(p.id)} className={p.countOver ? t.countOver : t.count}>
           {p.count}
         </Text>
       )}
@@ -136,6 +109,7 @@ function NativeFieldShell(p: FieldShellProps) {
 }
 
 function NativeInputFrame(p: InputFrameProps) {
+  const t = useNativeTheme().frame;
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -148,7 +122,12 @@ function NativeInputFrame(p: InputFrameProps) {
   const edge = (e: ReactNode | ((s: FrameState) => ReactNode)) =>
     typeof e === "function" ? e(state) : e;
   return (
-    <View style={s.frame}>
+    <View
+      className={mergeClass(
+        cx(t.className, focused && t.focused, p.invalid && t.invalid, p.disabled && t.disabled),
+        p.className,
+      )}
+    >
       {p.start !== undefined && edge(p.start)}
       {p.render(
         {
@@ -161,7 +140,7 @@ function NativeInputFrame(p: InputFrameProps) {
           "aria-required": p.required || undefined,
           "aria-describedby": p.describedBy,
           ref: p.controlRef,
-          className: mergeClass(undefined, p.className),
+          className: t.input,
         },
         state,
       )}
@@ -218,7 +197,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
           <TextInput
             id={slot.id}
             ref={slot.ref as never}
-            style={s.input}
+            className={mergeClass(slot.className, p.textClassName)}
             value={ctl.value}
             onChangeText={ctl.setValue}
             onFocus={() => (slot.onFocus as (() => void) | undefined)?.()}
@@ -255,21 +234,37 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
 // ── Groups, displays, actions ─────────────────────────────────────────
 
 function NativeContents(p: GroupRenderProps) {
+  const t = useNativeTheme().contents;
   return (
-    <View style={p.hidden ? { display: "none" } : undefined}>
+    // Hiding is a style, not a class: it must work with no stylesheet.
+    <View
+      className={mergeClass(t.className, p.shellClassName)}
+      style={p.hidden ? { display: "none" } : undefined}
+    >
       {p.title !== undefined && p.title !== null && (
-        <Text role="heading" aria-level={p.headingLevel} style={s.title}>
+        <Text
+          role="heading"
+          aria-level={p.headingLevel}
+          className={mergeClass(t.title, p.labelClassName)}
+        >
           {p.title}
         </Text>
       )}
-      <View style={s.body}>{p.children}</View>
+      {/* The author's className is the body's layout, in place of the theme's. */}
+      <View className={p.className === undefined ? t.body : mergeClass(undefined, p.className)}>
+        {p.children}
+      </View>
     </View>
   );
 }
 
 function NativeInline(p: GroupRenderProps) {
+  const t = useNativeTheme().inline;
   return (
-    <View style={[s.inline, p.hidden ? { display: "none" } : undefined]}>
+    <View
+      className={mergeClass(t.className, p.className)}
+      style={p.hidden ? { display: "none" } : undefined}
+    >
       {p.children}
     </View>
   );
@@ -277,6 +272,7 @@ function NativeInline(p: GroupRenderProps) {
 
 function NativeText(p: TextDisplayRenderProps): Rendered {
   const { rc, rendered } = useReactive();
+  const t = useNativeTheme().text;
   const content = getProp(rc, p.text) ?? p.children;
   const heading = !p.inline && !!getProp(rc, p.heading);
   const role = p.announce ? (p.tone === "error" ? "alert" : "status") : undefined;
@@ -285,10 +281,20 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
   if (p.regionOnly || (p.announce && textOf(content) === ""))
     return rendered(<View role={role} />);
   return rendered(
-    <View role={role}>
+    <View role={role} className={mergeClass(undefined, p.shellClassName)}>
       <Text
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
-        style={heading ? s.title : undefined}
+        className={mergeClass(
+          heading
+            ? cx(
+                t.heading.className,
+                t.heading.levels[
+                  Math.min(Math.max(p.headingLevel, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6
+                ],
+              )
+            : t.className,
+          p.className,
+        )}
       >
         {content}
       </Text>
@@ -297,6 +303,8 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
 }
 
 function NativeAction(p: ActionRenderProps) {
+  const t = useNativeTheme().action;
+  const variant = t.variants[p.variant];
   const icon = p.busy ? <ActivityIndicator size="small" /> : p.icon;
   return (
     <Pressable
@@ -305,10 +313,15 @@ function NativeAction(p: ActionRenderProps) {
       aria-disabled={p.disabled || undefined}
       aria-busy={p.busy || undefined}
       onPress={() => p.onClick()}
-      style={s.button}
+      className={mergeClass(cx(t.className, variant.className, p.disabled && t.disabled), p.className)}
     >
       {p.iconPlacement !== "after" && icon}
-      {p.iconPlacement !== "replace" && (p.children ?? <Text>{p.text}</Text>)}
+      {p.iconPlacement !== "replace" &&
+        (p.children ?? (
+          <Text className={mergeClass(cx(t.textClassName, variant.textClassName), p.textClassName)}>
+            {p.text}
+          </Text>
+        ))}
       {p.iconPlacement === "after" && icon}
     </Pressable>
   );
