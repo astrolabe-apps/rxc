@@ -10,23 +10,20 @@ import { defineConfig } from "vitest/config";
  * The library compiles its JSX with NativeWind's runtime, which turns
  * `className` into styles — but only against the Tailwind CSS an app
  * compiles, and its CommonJS runtime would load React Native's Flow source
- * past the alias. Here it is React's own runtime: classes are inert, and the
+ * past the alias. Here it is `test/nativewind-web.ts`, which does what
+ * NativeWind does on the web — the classes reach the DOM — and no more: the
  * look is checked in the app.
  */
 export default defineConfig({
   resolve: {
     alias: {
       "react-native": "react-native-web",
-      "nativewind/jsx-runtime": "react/jsx-runtime",
-      "nativewind/jsx-dev-runtime": "react/jsx-dev-runtime",
+      "nativewind/jsx-runtime": new URL("./test/nativewind-web.ts", import.meta.url).pathname,
+      "nativewind/jsx-dev-runtime": new URL("./test/nativewind-web.ts", import.meta.url).pathname,
     },
   },
   test: {
-    // The shared suite is opt-in (`rushx conformance`) while slots are
-    // still unbuilt: it would fail `rush test` on every one of them.
-    include: process.env.CONFORMANCE
-      ? ["test/conformance.suite.tsx"]
-      : ["test/**/*.test.{ts,tsx}"],
+    include: ["test/**/*.test.{ts,tsx}"],
     environment: "happy-dom",
     setupFiles: ["test/setup.tsx"],
   },

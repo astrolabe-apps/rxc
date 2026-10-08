@@ -682,6 +682,28 @@ Still to check by ear, with TalkBack: the descriptions (`accessibilityHint`, whi
 `uiautomator` does not show) and the visible label hidden from it. Not yet styled on native: a
 display's tone.
 
+**Every slot is drawn**, and the shared suite runs in `rushx test`, 40 of 40. The suite was
+loosened only where it read html's DOM rather than the contract — choice widgets found by role as
+well as by `input[type]`, a hidden label either clipped or absent, the help button by a name
+starting "Help" — and an implementation now declares platform `limits` the suite holds it to
+instead: **a dialog moves its content across opening** (React Native's `Modal` mounts its
+content only while visible, and no portal keeps a node across a move: closed, the content is
+mounted in place and hidden, still validating; values survive, a widget's own state such as
+focus does not), **no form element** (the keyboard's submit key in a single-line field submits),
+and **html drawn as its text** (an app that needs rendered HTML replaces the slot). On the device
+every widget works: the select's sheet, the radio's per-option content with boolean values, the
+checkbox as the theme's `Switch` with `labelEnd` help, the check list, the disclosure, the dialog
+in a Modal, tabs marking the tab left with an error, a refused submit marking every field.
+
+Found by the build-out: **class conflicts** — a state or variant slot (an active tab's border
+colour, the link variant's `px-0`) lost to the base slot's utility of the same kind, since those
+resolve by stylesheet order; classes now merge with `tailwind-merge`, as legacy `schemas-rn` did.
+**Bare text in a group** (`<Contents>words</Contents>`) is wrapped in a `Text`, which React
+Native requires. And one for the contract: **a refused submit focuses a field on an inactive tab**
+— with no document order on native, the first invalid field in registration order, here on a tab
+not shown, so the keyboard rose for a field nobody could see. Tabs need the reveal a disclosure
+has (switch to the field's tab, then focus), which the web wants too.
+
 Running the ServiceTas app itself for this was abandoned: it fetches its configuration from the
 API before rendering, its routes import native modules Expo Go does not have (Mapbox), and its
 Babel tracking plugin's `exclude: ["**/.pnpm/**"]` does not match under a path with a dot

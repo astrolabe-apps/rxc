@@ -48,6 +48,22 @@ export interface Implementation {
   renderers: FormRenderers;
   /** Providers it needs above the form beyond its own `root` — a theme. */
   wrap?: (node: ReactNode) => ReactNode;
+  /**
+   * What its platform cannot do, so the suite holds it to what it can
+   * instead. None on the web; React Native has all three.
+   */
+  limits?: {
+    /**
+     * A dialog's content cannot keep one node across opening and closing —
+     * React Native's Modal mounts its content only while visible. It is
+     * still mounted, validating and out of reach while closed.
+     */
+    dialogMovesContent?: boolean;
+    /** No form element: a `<Form onSubmit>` submits through its submit action. */
+    noFormElement?: boolean;
+    /** An html display draws its markup's text, not its markup. */
+    htmlAsText?: boolean;
+  };
 }
 
 // React 19 warns unless this is set for `act()`.
@@ -137,6 +153,16 @@ export function describeConformance(impl: Implementation): void {
       ) as HTMLButtonElement | undefined;
     const set = <T,>(c: Control<T>, v: T) =>
       act(() => ctx.update((wc) => wc.setValue(c, v)));
+    /**
+     * The checkboxes or radios drawn: native inputs, or elements with the
+     * role — React Native's, through react-native-web. Either is the control
+     * a screen reader announces.
+     */
+    const choices = (kind: "checkbox" | "radio") => [
+      ...container.querySelectorAll<HTMLElement>(`input[type="${kind}"], [role="${kind}"]`),
+    ];
+    const isChecked = (el: HTMLElement) =>
+      el instanceof HTMLInputElement ? el.checked : el.getAttribute("aria-checked") === "true";
     // Text as assistive technology reads it: aria-hidden decoration (a
     // required marker) left out.
     const readable = (el: Element) => {
@@ -266,19 +292,20 @@ export function describeConformance(impl: Implementation): void {
         />,
       );
       const box = (name: string) =>
-        [...container.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
-          // Its label: around it, or one `for` it (Fluent's is a sibling).
+        choices("checkbox").find(
+          // Its label: around it, or one `for` it (Fluent's is a sibling), or
+          // its own name.
           (i) =>
             (
               (i.id
                 ? container.querySelector(`label[for="${CSS.escape(i.id)}"]`)
                 : null) ?? i.closest("label")
-            )?.textContent?.includes(name),
+            )?.textContent?.includes(name) || i.getAttribute("aria-label")?.includes(name),
         )!;
       click(box("Bee"));
       click(box("Ay"));
       expect(rc.getValue(v)).toEqual(["b", "a"]);
-      expect(box("Ay").checked).toBe(true);
+      expect(isChecked(box("Ay"))).toBe(true);
       click(box("Bee"));
       click(box("Ay"));
       expect(rc.getValue(v)).toEqual([]);
@@ -310,9 +337,7 @@ export function describeConformance(impl: Implementation): void {
             <button type="button">Elsewhere</button>
           </>,
         );
-        const [first, second] = container.querySelectorAll<HTMLInputElement>(
-          `input[type="${input}"]`,
-        );
+        const [first, second] = choices(input);
         const focusOut = (from: HTMLElement, to: HTMLElement) =>
           act(() => {
             from.dispatchEvent(
@@ -331,7 +356,7 @@ export function describeConformance(impl: Implementation): void {
       const ok = ctx.newControl(false);
       mount(<CheckboxField field={ok} id="ok" label="Agree" />);
       expect(text()).toContain("Agree");
-      click(document.querySelector("input[type=checkbox]")!);
+      click(choices("checkbox")[0]!);
       expect(rc.getValue(ok)).toBe(true);
     });
 
@@ -343,7 +368,7 @@ export function describeConformance(impl: Implementation): void {
         </RadioField>,
       );
       expect(text()).toContain("about Bee");
-      const radios = [...document.querySelectorAll<HTMLInputElement>("input[type=radio]")];
+      const radios = choices("radio");
       expect(radios).toHaveLength(2);
       click(radios[1]);
       expect(rc.getValue(v)).toBe("b");
@@ -400,7 +425,7 @@ export function describeConformance(impl: Implementation): void {
         expect([kind, read()]).toEqual(named("Needed", !group));
         if (group)
           expect(
-            [...container.querySelectorAll('input[type="checkbox"]')].map((b) =>
+            choices("checkbox").map((b) =>
               b.getAttribute("aria-invalid"),
             ),
           ).toEqual(["true", "true"]);
@@ -439,10 +464,11 @@ export function describeConformance(impl: Implementation): void {
           kind,
           [[label, kind === "checklist" ? "Required Help" : "Help"]],
         ]);
-        // The label is there, under its id, and not drawn — and with it goes
-        // the required marker: nothing on screen reads the label's words.
+        // The label is under its id and not drawn — or, where a platform
+        // names a control by a string, not there at all — and with it goes the
+        // required marker: nothing on screen reads the label's words.
         const el = byId("f-label");
-        expect([kind, !!el, clipped(el)]).toEqual([kind, true, true]);
+        expect([kind, !el || clipped(el)]).toEqual([kind, true]);
         const drawn = [...container.querySelectorAll("*")].filter(
           (e) =>
             !clipped(e) &&
@@ -470,8 +496,10 @@ export function describeConformance(impl: Implementation): void {
         const label = `${kind[0]!.toUpperCase()}${kind.slice(1)} name`.replace("Checkbox", "Check");
         // The name stays exactly the label, and the help is still read with it.
         expect([kind, read().map((r) => [r.name, r.description])]).toEqual([kind, [[label, "Help words"]]]);
-        // One button for it, named Help, outside every label element.
-        const buttons = [...document.querySelectorAll('button[aria-label="Help"]')];
+        // One button for it, named for help, outside every label element.
+        const buttons = [...document.querySelectorAll('button, [role="button"]')].filter((b) =>
+          b.getAttribute("aria-label")?.startsWith("Help"),
+        );
         expect([kind, buttons.length, buttons.some((b) => b.closest("label"))]).toEqual([kind, 1, false]);
         act(() => root.render(null));
       }
@@ -806,11 +834,20 @@ export function describeConformance(impl: Implementation): void {
       const node = byId("inside");
       set(open, false);
       await flush();
-      expect(byId("inside")).toBe(node);
-      // Closed by the author's own code: not a dismissal — and focus goes
-      // back where it was, which no library does for a dialog it did not
-      // open from its own trigger unless the implementation sees to it.
+      // Closed by the author's own code: not a dismissal.
       expect(dismissed).not.toHaveBeenCalled();
+      if (impl.limits?.dialogMovesContent) {
+        // Mounted again in place, still validating and out of reach.
+        expect([!!byId("inside"), validation.isValid(rc), outOfReach(byId("inside")!)]).toEqual([
+          true,
+          false,
+          true,
+        ]);
+        return;
+      }
+      expect(byId("inside")).toBe(node);
+      // Focus goes back where it was, which no library does for a dialog it
+      // did not open from its own trigger unless the implementation sees to it.
       expect(document.activeElement).toBe(opener);
     });
 
@@ -918,11 +955,13 @@ export function describeConformance(impl: Implementation): void {
       const input = byId<HTMLInputElement>("sub")!;
       const form = input.closest("form");
       const save = buttonNamed("Save")!;
-      // A real form element around the fields, and Save its submit button —
-      // what Enter in a field presses.
-      expect(form).not.toBeNull();
-      expect(save.type).toBe("submit");
-      expect(save.form).toBe(form);
+      if (!impl.limits?.noFormElement) {
+        // A real form element around the fields, and Save its submit button —
+        // what Enter in a field presses.
+        expect(form).not.toBeNull();
+        expect(save.type).toBe("submit");
+        expect(save.form).toBe(form);
+      }
       click(save);
       await flush();
       expect(submitted).toEqual([]);
@@ -931,6 +970,7 @@ export function describeConformance(impl: Implementation): void {
       click(save);
       await flush();
       expect(submitted).toEqual(["Ada"]);
+      if (impl.limits?.noFormElement) return;
       act(() => {
         form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       });
@@ -1135,6 +1175,10 @@ export function describeConformance(impl: Implementation): void {
         </>,
       );
       expect(text()).toContain("plain words");
+      if (impl.limits?.htmlAsText) {
+        expect([text().includes("bold words"), text().includes("<b>")]).toEqual([true, false]);
+        return;
+      }
       expect(document.querySelector("b")?.textContent).toBe("bold words");
     });
 

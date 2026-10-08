@@ -9,69 +9,164 @@ import {
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   Action,
+  CheckboxField,
+  CheckListField,
   Contents,
+  Dialog,
+  Disclosure,
+  DisplayOnlyField,
   Form,
   FormProvider,
+  InlineGroup,
+  RadioField,
+  SelectField,
+  Tabs,
   TextDisplay,
   TextField,
   useFormValidation,
 } from "@rx-controls/forms-react";
-import { nativeRenderers } from "@rx-controls/forms-native";
+import { NativeThemeProvider, nativeRenderers } from "@rx-controls/forms-native";
+
+const states = [
+  { name: "Tasmania", value: "TAS" },
+  { name: "Victoria", value: "VIC" },
+  { name: "New South Wales", value: "NSW" },
+];
+const yesNo = [
+  { name: "Yes", value: true },
+  { name: "No", value: false },
+];
+const reasons = [
+  { name: "Recreation", value: "rec" },
+  { name: "Commercial", value: "com" },
+  { name: "Other", value: "other" },
+];
 
 /**
  * forms-native's playground: a Forms v2 form under the React Native
- * implementation, on the ServiceTas app's stack (React Native 0.81, React
- * 19.1, NativeWind 4), inside the compat engine's context as that app has it.
+ * implementation, every widget kind, inside the compat engine's context as a
+ * ServiceTas app has it.
  */
 function Playground(): Rendered {
   const { rc, rendered, update } = useReactive();
-  const data = useControl({ name: "", email: "", reason: "" });
+  const data = useControl({
+    name: "",
+    email: "",
+    state: undefined as string | undefined,
+    hasLicence: undefined as boolean | undefined,
+    licence: "",
+    uvi: false,
+    reasons: [] as string[],
+    phone: "",
+  });
+  const address = useControl("12 Main St, Hobart");
+  const dialogOpen = useControl(false);
   const result = useControl<string | undefined>(undefined);
   const validation = useFormValidation();
   const f = data.fields;
   const info = getCompatPatchInfo();
   return rendered(
     <FormProvider renderers={nativeRenderers}>
-      <ScrollView contentContainerClassName="gap-4 p-4 pt-16">
-        <Form validation={validation}>
-          <TextDisplay text="Forms v2 on React Native" heading />
-          <TextDisplay
-            text={`React ${React.version} · ${Platform.OS} · engine copies ${info.engineCopies}`}
-          />
-          <Contents title="Your details">
-            <TextField
-              field={f.name}
-              label="Name"
-              required
-              helpText="As it appears on your licence."
+      {/* Checkboxes as on/off settings: the theme's switch. */}
+      <NativeThemeProvider theme={{ checkbox: { control: "switch" } }}>
+        <ScrollView contentContainerClassName="gap-5 p-4 pt-16 pb-24">
+          <Form
+            validation={validation}
+            onSubmit={() => update((wc) => wc.setValue(result, "Submitted"))}
+          >
+            <TextDisplay text="Forms v2 on React Native" heading />
+            <TextDisplay
+              text={`React ${React.version} · ${Platform.OS} · engine copies ${info.engineCopies}`}
             />
-            <TextField
-              field={f.email}
-              label="Email"
-              inputMode="email"
-              helpText="We send the receipt here."
+            <Tabs
+              items={[
+                {
+                  key: "you",
+                  title: "You",
+                  children: (
+                    <Contents title="Your details">
+                      <TextField
+                        field={f.name}
+                        label="Name"
+                        required
+                        helpText="As it appears on your licence."
+                      />
+                      <TextField field={f.email} label="Email" inputMode="email" />
+                      <SelectField field={f.state} label="State" options={states} required />
+                      <DisplayOnlyField
+                        field={address}
+                        label="Postal address"
+                        startIcon={<Text>{"•"}</Text>}
+                      />
+                    </Contents>
+                  ),
+                },
+                {
+                  key: "licence",
+                  title: "Licence",
+                  children: (
+                    <Contents title="Your licence">
+                      <RadioField
+                        field={f.hasLicence}
+                        label="Do you hold a licence?"
+                        options={yesNo}
+                        required
+                      >
+                        {(o, selected) =>
+                          o.value === true && selected ? (
+                            <TextField field={f.licence} label="Licence number" required />
+                          ) : null
+                        }
+                      </RadioField>
+                      <CheckboxField
+                        field={f.uvi}
+                        label="Commercial vessel"
+                        helpText="A Unique Vessel Identifier is issued by AMSA."
+                        helpPlacement="labelEnd"
+                      />
+                      <CheckListField
+                        field={f.reasons}
+                        label="Why do you need it?"
+                        options={reasons}
+                        required
+                      />
+                      <Disclosure title="Need a callback?">
+                        <TextField field={f.phone} label="Phone" inputMode="tel" required />
+                      </Disclosure>
+                    </Contents>
+                  ),
+                },
+              ]}
             />
-            <TextField field={f.reason} label="Reason" multiline maxLength={50} showCount />
-          </Contents>
-          <Action
-            actionId="check"
-            text="Check"
-            variant="primary"
-            onClick={async () => {
-              const ok = await validation.check();
-              update((wc) => wc.setValue(result, ok ? "Valid" : "Invalid: errors shown"));
-            }}
-          />
-          <TextDisplay
-            text={(r) => r.getValue(result)}
-            announce
-            tone={(r) => (r.getValue(result)?.startsWith("Valid") ? "success" : "error")}
-          />
-        </Form>
-        <Text selectable className="font-mono text-xs text-gray-500">
-          {JSON.stringify(rc.getValue(data))}
-        </Text>
-      </ScrollView>
+            <InlineGroup>
+              <TextDisplay text="Read the" />
+              <Action
+                actionId="terms"
+                text="terms"
+                variant="link"
+                onClick={() => update((wc) => wc.setValue(dialogOpen, true))}
+              />
+              <TextDisplay text="before you submit." />
+            </InlineGroup>
+            <Dialog
+              open={dialogOpen}
+              onClose={() => update((wc) => wc.setValue(dialogOpen, false))}
+              title="Terms"
+            >
+              <TextDisplay text="Your details are used only to process this request." />
+            </Dialog>
+            <Action actionId="submit" text="Submit" variant="primary" submit />
+            <TextDisplay
+              text={(r) => r.getValue(result)}
+              announce
+              tone="success"
+            />
+          </Form>
+          <Text selectable className="font-mono text-xs text-gray-500">
+            {JSON.stringify(rc.getValue(data))}
+          </Text>
+        </ScrollView>
+      </NativeThemeProvider>
       <StatusBar style="dark" />
     </FormProvider>,
   );

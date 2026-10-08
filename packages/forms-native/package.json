@@ -26,13 +26,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "conformance": "CONFORMANCE=1 vitest run"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@rx-controls/core": "workspace:^",
+    "@rx-controls/forms-react": "workspace:^",
     "@rx-controls/react": "workspace:^",
-    "@rx-controls/forms-react": "workspace:^"
+    "tailwind-merge": "^2.6.0"
   },
   "peerDependencies": {
     "nativewind": "^4.2.1",
