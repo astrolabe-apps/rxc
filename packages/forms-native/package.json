@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/forms-native",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "The Forms v2 React Native implementation: registry slots drawn with React Native's own components, styled through NativeWind.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",

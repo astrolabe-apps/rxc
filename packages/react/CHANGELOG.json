@@ -2,6 +2,18 @@
   "name": "@rx-controls/react",
   "entries": [
     {
+      "version": "1.1.5",
+      "tag": "@rx-controls/react_v1.1.5",
+      "date": "Thu, 08 Oct 2026 22:30:34 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Commit-phase effects run as layout effects on React Native. They were chosen by `typeof document`, meant to detect server rendering, and React Native has no `document` — so on a device the render-body write drain and useValidator's publish ran after paint. React Native is now recognised by `navigator.product`."
+          }
+        ]
+      }
+    },
+    {
       "version": "1.1.4",
       "tag": "@rx-controls/react_v1.1.4",
       "date": "Wed, 07 Oct 2026 22:13:31 GMT",

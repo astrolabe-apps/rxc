@@ -1,6 +1,11 @@
 # Change Log - @react-typed-forms/core
 
-This log was last generated on Wed, 07 Oct 2026 22:13:31 GMT and should not be manually modified.
+This log was last generated on Thu, 08 Oct 2026 22:30:34 GMT and should not be manually modified.
+
+## 5.1.5
+Thu, 08 Oct 2026 22:30:34 GMT
+
+_Version update only_
 
 ## 5.1.4
 Wed, 07 Oct 2026 22:13:31 GMT

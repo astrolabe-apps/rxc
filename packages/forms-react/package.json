@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/forms-react",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "The Forms v2 contract: reactive props, presence and scope, the boundaries every field, collection, group, display and action is built from, the containers, and the registry an implementation fills. No DOM, no class strings.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",

@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/react",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "React bindings for @rx-controls/core — explicit reactive reads through a ReadContext, no compiler plugin, no globals.",
   "keywords": [
     "react",

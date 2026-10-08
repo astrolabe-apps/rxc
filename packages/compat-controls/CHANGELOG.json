@@ -2,6 +2,18 @@
   "name": "@react-typed-forms/core",
   "entries": [
     {
+      "version": "5.1.5",
+      "tag": "@react-typed-forms/core_v5.1.5",
+      "date": "Thu, 08 Oct 2026 22:30:34 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@rx-controls/react\" to `^1.1.5`"
+          }
+        ]
+      }
+    },
+    {
       "version": "5.1.4",
       "tag": "@react-typed-forms/core_v5.1.4",
       "date": "Wed, 07 Oct 2026 22:13:31 GMT",

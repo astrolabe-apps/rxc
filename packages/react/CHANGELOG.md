@@ -1,6 +1,13 @@
 # Change Log - @rx-controls/react
 
-This log was last generated on Wed, 07 Oct 2026 22:13:31 GMT and should not be manually modified.
+This log was last generated on Thu, 08 Oct 2026 22:30:34 GMT and should not be manually modified.
+
+## 1.1.5
+Thu, 08 Oct 2026 22:30:34 GMT
+
+### Patches
+
+- Commit-phase effects run as layout effects on React Native. They were chosen by `typeof document`, meant to detect server rendering, and React Native has no `document` — so on a device the render-body write drain and useValidator's publish ran after paint. React Native is now recognised by `navigator.product`.
 
 ## 1.1.4
 Wed, 07 Oct 2026 22:13:31 GMT
