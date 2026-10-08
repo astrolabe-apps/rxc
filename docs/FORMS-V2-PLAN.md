@@ -712,6 +712,88 @@ Native itself.
 
 *Exit:* the shared suite green under it, and a real form's unchanged source rendering on a device.
 
+### 10 — `alpha.6`: named looks, rich text, and `forms-native` published
+
+A session starts from [`FORMS-V2-ALPHA6-SESSION-BRIEF.md`](./FORMS-V2-ALPHA6-SESSION-BRIEF.md).
+
+From the alpha.5 MAST run
+([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md),
+gaps N1–N11) and the `forms-native` build-out (phase 9). Its thread is phase 9's: **form source
+that names what it means and leaves the look to the theme**, so the same source draws under html,
+MUI, Ant, Fluent and React Native. The MAST run showed what stops that today — a component layer
+that has to carry visual classes (`looks`) and a seam module (`Strong`, `Picture`, icons) because
+the contract has no words for them.
+
+Every contract item lands in all five implementations, with a conformance case where it is a
+behaviour (under each implementation's declared `limits`) and a story where it is something to see.
+`rushx gates` runs before anything that touches the loader.
+
+**Named looks (N1, N2, N10)** — one mechanism for all three.
+- `variant?: string` on `TextDisplay`, on groups (`Contents` / `Section`) and on `Action`, beside
+  `ActionVariant`'s fixed three. The form names a role ("lead", "card", "tag"); the theme says
+  what it looks like. html and native resolve it from theme maps (`text.variants[v]`,
+  `contents.variants[v]`, `action.variants[v]` — the html `action.variants` record opens up); an
+  unknown variant draws the base look, and design mode or a dev warning says so.
+- *To decide:* how MUI, Ant and Fluent resolve a variant — they have no class theme. Recommended:
+  each implementation's own theme option (`muiRenderers({ variants })`, or a context like
+  `HtmlThemeProvider`) mapping a variant to its library's props or `sx` / style.
+- N10's two links are then two action variants; nothing link-specific is needed.
+
+**Rich text (N9).** Words inside a sentence or a label that are emphasised.
+- *To decide:* a contract inline (`<Strong>`, perhaps `<Em>`) usable inside any `text` / `label`
+  node, which each implementation draws (html `<strong>` with a theme class, native a nested
+  `Text`, the libraries their own); or rich text as segments (`text: ["Is ", strong(name), "…"]`).
+  Recommended: the inline component — it reads as JSX, nests in a derived label, and native's
+  nested `Text` is exactly its shape. Either way `textOf` (native's names) keeps its words.
+
+**An image display (N8).** `ImageDisplay` (`source`, `alt`, `width` / `height`, `fit`) — html
+`<img>`, native `Image`, the libraries their own.
+- *To decide:* how a source names an asset across platforms (a URL on the web, a bundled
+  `require` on native). Recommended: `source` is whatever the implementation's image takes
+  (string or the platform's asset object), so a seam module supplies it per platform, as icons
+  are supplied — the contract does not invent an asset registry.
+
+**A group's own heading (N3).** Content before a group's title ("Step 1 of 2", an image above
+the page title on a phone).
+- *To decide:* `GroupProps.header` drawn before the title, or a `TextDisplay heading="group"` that
+  is its group's own title — the level a title there takes, with content free to precede it.
+  Recommended: `heading="group"`, which keeps one way to write a heading and lets layout order it.
+
+**Checks that move nothing, and focus (N4, N5, the tabs reveal).**
+- `WizardController.check()`: the page's check without moving, for a page whose next page a
+  server decides. `next()` stays check-and-move.
+- A refused check focuses the first field in error by default — `ValidationScope.check({ focus })`,
+  `true` unless an author opts out — as a refused `<Form onSubmit>` already does. The wizard's own
+  `next()` follows.
+- **Tabs reveal** their tab before a field on it takes focus, as a disclosure opens: the same
+  `reveal` on each tab's validation scope (`setActive`, then focus once committed). Found on a
+  device, where a refused submit focused a field on an inactive tab and the keyboard rose for a
+  field nobody could see; the web has the same hole (focus on a hidden field does nothing).
+- `WizardPage.title` optional under `navigation="none"`, where nothing shows it.
+
+**`labelEnd` help, finished (N6, N7, N11).**
+- On a trailing-label widget (a checkbox), html draws the label text with `htmlFor` beside, then
+  the help button, then the control — not the button after a label that wraps the control, whose
+  visual order a theme then had to reverse against the focus order (WCAG 2.4.3). MUI, Ant and
+  Fluent checked for the same. (`forms-native` already draws control, label, button.)
+- The help button is named for its field ("Help: Commercial vessel"), as `forms-native`'s is.
+- `disclosure.icon` in html's theme (a node, turned while open by `data-open`), as native has.
+
+**`forms-native` published.** Into the `forms-v2-alpha` policy (`shouldPublish`, lock-step) so it
+ships with the others; its README-level doc (NativeWind setup: `jsxImportSource`, the Tailwind
+`content` entry, `NativeThemeProvider`); its stories — `apps/native-dev` grows a screen per story
+kind, and the storybook smoke test gains a native column through react-native-web if it fits.
+`rush docs` covers it.
+
+**Alongside, outside this repo:** ServiceTas's `servicetas-rn` and `@react-typed-forms/schemas-rn`
+move to Expo 57 (React Native 0.86, React 19.2) — the prompt for that work was written for this
+phase — so `forms-native` can be adopted there.
+
+*Exit:* `alpha.6` published, `forms-native` with it; the MAST trial re-run with its `looks` moved
+into theme variants and its seam down to icons and image sources; and one MAST page's unchanged
+source rendering under `forms-native` in `apps/native-dev`, with only a `platform.native.tsx`
+beside it.
+
 ### Later, not blocked on any of this
 
 - **The designer** (goal 7). Needs definitions exposed as live values; reimplemented against the
