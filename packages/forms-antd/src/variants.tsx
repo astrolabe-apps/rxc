@@ -64,6 +64,8 @@ export interface AntdVariants {
    * one of the three replaces it.
    */
   action?: Record<string, AntActionVariant>;
+  /** An `ImageDisplay`'s variants: a style on the image. */
+  image?: Record<string, AntStyle>;
 }
 
 const { Provider, useVariants } = createVariantsContext<AntdVariants>("AntdVariantsProvider");

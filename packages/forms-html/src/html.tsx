@@ -49,6 +49,7 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -66,6 +67,7 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
   RichTextDom,
+  ImageDom,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -1013,6 +1015,10 @@ function join(...cs: (string | undefined)[]): string | undefined {
 
 // The shared pieces take their classes as a parameter; the html set passes
 // the theme's, and the other three implementations keep the defaults.
+function HtmlImage(p: ImageDisplayRenderProps) {
+  const t = useHtmlTheme();
+  return <ImageDom {...p} classes={t.image} displayShell={t.displayShell} />;
+}
 function HtmlRichText(p: RichTextRenderProps) {
   return <RichTextDom {...p} classes={useHtmlTheme().richText} />;
 }
@@ -1061,6 +1067,7 @@ export const htmlRenderers: FormRenderers = {
   html: HtmlHtml,
   icon: HtmlIcon,
   richText: HtmlRichText,
+  image: HtmlImage,
   action: HtmlAction,
   contents: HtmlContents,
   inline: HtmlInline,

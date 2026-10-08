@@ -219,6 +219,17 @@ export interface NativeTheme {
     /** `img`. */
     image: string;
   };
+  /** The image display. */
+  image: {
+    /** The `Image`. */
+    className: string;
+    /**
+     * Named looks (`ImageDisplay variant` — "rounded"), merged over the
+     * base. A name not here draws the base look, with a warning in
+     * development.
+     */
+    variants: Record<string, string>;
+  };
   /** The html display: its markup's text. */
   html: {
     /** Its element. */
@@ -405,6 +416,7 @@ export const defaultNativeTheme: NativeTheme = {
     variants: {},
   },
   icon: { className: "text-xl" },
+  image: { className: "", variants: {} },
   richText: {
     strong: "font-bold",
     em: "italic",

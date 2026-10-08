@@ -240,6 +240,7 @@ export const testRenderers: FormRenderers = {
   html: Plain,
   icon: Plain,
   richText: Rich,
+  image: Plain,
   contents: Contents,
   inline: Contents,
   tabs: Tabs,

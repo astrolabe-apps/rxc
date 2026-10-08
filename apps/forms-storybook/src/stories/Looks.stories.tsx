@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Action, Contents, InlineGroup, TextDisplay } from "@rx-controls/forms-react";
+import { Action, Contents, ImageDisplay, InlineGroup, TextDisplay } from "@rx-controls/forms-react";
 import { HtmlThemeProvider, type PartialHtmlTheme } from "@rx-controls/forms-html";
 import { MuiVariantsProvider, type MuiVariants } from "@rx-controls/forms-mui";
 import { AntdVariantsProvider, type AntdVariants } from "@rx-controls/forms-antd";
@@ -33,6 +33,7 @@ const html: PartialHtmlTheme = {
       inlineLink: { className: "bg-transparent underline text-blue-700" },
     },
   },
+  image: { variants: { rounded: "rounded-xl" } },
 };
 const mui: MuiVariants = {
   text: {
@@ -56,6 +57,7 @@ const mui: MuiVariants = {
     quiet: { variant: "text", color: "primary" },
     inlineLink: { variant: "text", sx: { p: 0, minWidth: 0, textDecoration: "underline" } },
   },
+  image: { rounded: (t) => ({ borderRadius: Number(t.shape.borderRadius) * 3 }) },
 };
 const antd: AntdVariants = {
   text: {
@@ -73,6 +75,7 @@ const antd: AntdVariants = {
     quiet: { type: "text" },
     inlineLink: { type: "link", style: { padding: 0, textDecoration: "underline" } },
   },
+  image: { rounded: (t) => ({ borderRadius: t.borderRadiusLG }) },
 };
 const fluent: FluentVariants = {
   text: {
@@ -95,6 +98,7 @@ const fluent: FluentVariants = {
     quiet: { appearance: "subtle" },
     inlineLink: { appearance: "transparent", style: { padding: 0, minWidth: 0, textDecoration: "underline" } },
   },
+  image: { rounded: { borderRadius: tokens.borderRadiusXLarge } },
 };
 
 function Looks({ children }: { children: ReactNode }) {
@@ -123,6 +127,18 @@ export const Roles: Story = {
       <Contents>
         <TextDisplay text="Step 1 of 2" variant="tag" />
         <TextDisplay text="Before you start, check the details we hold for you." variant="lead" />
+        <ImageDisplay
+          source={
+            "data:image/svg+xml," +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="120"><rect width="240" height="120" fill="#bfdbfe"/><rect y="80" width="240" height="40" fill="#1d4ed8"/></svg>',
+            )
+          }
+          alt=""
+          width={240}
+          height={120}
+          variant="rounded"
+        />
         <Contents title="Your vessel" variant="card">
           <TextDisplay text="UBER — a 6.2m runabout, registered in Hobart." />
           <Action actionId="checkAgain" text="I've updated it, check again" variant="quiet" />

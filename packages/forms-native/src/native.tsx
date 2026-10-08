@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  type ImageSourcePropType,
   Modal,
   Pressable,
   ScrollView,
@@ -70,7 +71,8 @@ import {
   parseRichText,
   RichText,
   richTextWords,
-  type RichNode,
+  type ImageDisplayRenderProps,
+  type ImageFit,
   type RichTextProps,
   type RichTextRenderProps,
 } from "@rx-controls/forms-react";
@@ -950,39 +952,103 @@ function NativeHtml(p: HtmlDisplayRenderProps): Rendered {
   );
 }
 
+/** A source as React Native's `Image` takes it. */
+function nativeSource(source: unknown): ImageSourcePropType | undefined {
+  if (typeof source === "string") return { uri: source };
+  if (typeof source === "number") return source;
+  if (source && typeof source === "object") {
+    const o = source as { uri?: unknown; src?: unknown };
+    if (typeof o.uri === "string") return source as ImageSourcePropType;
+    // A web bundler's static import, on the web half.
+    if (typeof o.src === "string") return { uri: o.src };
+  }
+  return undefined;
+}
+
+type Dimension = number | `${number}%`;
+
 /**
- * An image inside text. React Native draws none without a size, so a missing
- * one is read from the image itself, the given width keeping its proportions.
+ * An image with a size. React Native draws none without one, so a missing
+ * dimension comes from the image's own proportions: read from a bundled
+ * asset at once, or from the file once it loads.
  */
-function RichImage({ node, className }: { node: Extract<RichNode, { kind: "image" }>; className?: string }) {
-  const [natural, setNatural] = useState<{ width: number; height: number }>();
-  const sized = node.width !== undefined && node.height !== undefined;
+function SizedImage({
+  source,
+  alt,
+  width,
+  height,
+  fit,
+  className,
+}: {
+  source: ImageSourcePropType;
+  alt: string;
+  width?: Dimension;
+  height?: Dimension;
+  fit?: ImageFit;
+  className?: string;
+}) {
+  const uri = typeof source === "object" && !Array.isArray(source) ? source.uri : undefined;
+  const bundled =
+    typeof source === "number" ? Image.resolveAssetSource?.(source) : undefined;
+  const [loaded, setLoaded] = useState<{ width: number; height: number }>();
+  const sized = width !== undefined && height !== undefined;
   useEffect(() => {
-    if (sized) return;
+    if (sized || !uri) return;
     let live = true;
     Image.getSize(
-      node.src,
-      (width, height) => live && setNatural({ width, height }),
+      uri,
+      (w, h) => live && setLoaded({ width: w, height: h }),
       () => {},
     );
     return () => {
       live = false;
     };
-  }, [node.src, sized]);
-  const width = node.width ?? natural?.width;
-  const height =
-    node.height ??
-    (natural && width !== undefined ? (natural.height * width) / natural.width : undefined);
+  }, [uri, sized]);
+  const natural = bundled ?? loaded;
+  const ratio = natural && natural.height > 0 ? natural.width / natural.height : undefined;
   return (
     <Image
-      source={{ uri: node.src }}
-      alt={node.alt}
-      aria-label={node.alt || undefined}
+      source={source}
+      alt={alt}
+      aria-label={alt || undefined}
+      // `alt=""` decorates: out of the accessibility tree, as the web's is.
+      accessible={alt !== ""}
+      aria-hidden={alt === "" || undefined}
       accessibilityIgnoresInvertColors
       className={className}
-      style={{ width: width ?? 0, height: height ?? 0 }}
-      resizeMode="contain"
+      resizeMode={fit === "fill" ? "stretch" : (fit ?? "contain")}
+      style={{
+        width: width ?? (height === undefined ? natural?.width : undefined) ?? 0,
+        ...(height !== undefined
+          ? { height }
+          : ratio !== undefined
+            ? { aspectRatio: ratio }
+            : { height: 0 }),
+      }}
     />
+  );
+}
+
+function NativeImage(p: ImageDisplayRenderProps): Rendered {
+  const { rc, rendered } = useReactive();
+  const t = useNativeTheme().image;
+  const source = nativeSource(getProp(rc, p.source));
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : t.variants[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("image", variant);
+  const live = liveRegion(p.announce, p.tone);
+  if (p.regionOnly || !source) return rendered(<View {...live} />);
+  return rendered(
+    <View {...live} className={mergeClass(undefined, p.shellClassName)}>
+      <SizedImage
+        source={source}
+        alt={getProp(rc, p.alt) ?? ""}
+        width={getProp(rc, p.width)}
+        height={getProp(rc, p.height)}
+        fit={getProp(rc, p.fit)}
+        className={mergeClass(cx(t.className, look), p.className)}
+      />
+    </View>,
   );
 }
 
@@ -1027,7 +1093,16 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
           </Text>
         ),
         break: (k) => <Text key={k}>{"\n"}</Text>,
-        image: (n, k) => <RichImage key={k} node={n} className={t.image} />,
+        image: (n, k) => (
+          <SizedImage
+            key={k}
+            source={{ uri: n.src }}
+            alt={n.alt}
+            width={n.width}
+            height={n.height}
+            className={t.image}
+          />
+        ),
       })}
     </Text>
   );
@@ -1328,6 +1403,7 @@ export const nativeRenderers: FormRenderers = {
   html: NativeHtml,
   icon: NativeIcon,
   richText: NativeRichText,
+  image: NativeImage,
   contents: NativeContents,
   inline: NativeInline,
   tabs: NativeTabs,

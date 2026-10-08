@@ -63,10 +63,12 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
   RichTextDom,
+  ImageDom,
   type GroupVariantStyle,
   Inline,
   ElementsList,
@@ -675,6 +677,20 @@ function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefin
   };
 }
 
+/** The image as DOM, a variant's style resolved against the tokens. */
+function AntImage(p: ImageDisplayRenderProps) {
+  const { token } = theme.useToken();
+  const images = useAntdVariants().image;
+  const toneStyle = useToneStyle(p.tone);
+  return (
+    <ImageDom
+      {...p}
+      shellStyle={toneStyle}
+      variantStyle={(v) => (images?.[v] === undefined ? undefined : atToken(images[v], token))}
+    />
+  );
+}
+
 /** Rich text as DOM, its links Ant's own. */
 function AntRichText(p: RichTextRenderProps) {
   return (
@@ -1091,6 +1107,7 @@ export const antdRenderers: FormRenderers = {
   html: AntHtml,
   icon: AntIcon,
   richText: AntRichText,
+  image: AntImage,
   action: AntAction,
   contents: AntContents,
   inline: AntInline,

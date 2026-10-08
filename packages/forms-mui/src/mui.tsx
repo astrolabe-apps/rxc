@@ -87,10 +87,12 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
   RichTextDom,
+  ImageDom,
   type GroupVariantStyle,
   Inline,
   ElementsList,
@@ -630,6 +632,23 @@ function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefin
   return { wrapper: at(look.wrapper), title: at(look.title), body: at(look.body) };
 }
 
+/** The image as DOM, a variant's style resolved against the MUI theme. */
+function MuiImage(p: ImageDisplayRenderProps) {
+  const theme = useTheme();
+  const images = useMuiVariants().image;
+  const toneStyle = useToneStyle(p.tone);
+  return (
+    <ImageDom
+      {...p}
+      shellStyle={toneStyle}
+      variantStyle={(v) => {
+        const s = images?.[v];
+        return typeof s === "function" ? s(theme) : s;
+      }}
+    />
+  );
+}
+
 /** Rich text as DOM, its links MUI's own. */
 function MuiRichText(p: RichTextRenderProps) {
   return (
@@ -1092,6 +1111,7 @@ export const muiRenderers: FormRenderers = {
   html: MuiHtml,
   icon: MuiIcon,
   richText: MuiRichText,
+  image: MuiImage,
   action: MuiAction,
   contents: MuiContents,
   inline: MuiInline,

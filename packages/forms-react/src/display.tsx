@@ -185,6 +185,68 @@ export interface IconDisplayExtra {
 }
 
 /**
+ * Where an image comes from: a URL, or whatever the platform's image takes —
+ * a bundled asset (`require("./boat.png")` under Metro, a number), an object
+ * with a `uri`, or a web bundler's static import (`{ src, width, height }`,
+ * as Next.js gives). The contract invents no asset registry: a form that
+ * draws a bundled asset on one platform and a URL on another imports it from
+ * a per-platform module (`assets.native.ts` beside `assets.ts`), which the
+ * bundler picks.
+ *
+ * @group Authoring
+ */
+export type ImageSource = string | number | object;
+
+/**
+ * How an image fills the box `width` and `height` make: whole and
+ * letterboxed (`contain`), filling it and cropped (`cover`), or stretched
+ * (`fill`).
+ *
+ * @group Authoring
+ */
+export type ImageFit = "contain" | "cover" | "fill";
+
+/**
+ * {@link ImageDisplay}'s own props.
+ *
+ * @group Authoring
+ */
+export interface ImageDisplayExtra {
+  /** The image. */
+  source?: FormProp<ImageSource | undefined>;
+  /**
+   * What the image says, for whoever cannot see it — the image's name. `""`
+   * for one that only decorates, which assistive technology then skips.
+   * Required, so that is always a decision.
+   */
+  alt: FormProp<string>;
+  /**
+   * Its width: pixels, or a percentage of what holds it (`"100%"`). Absent,
+   * the image's own — which on React Native, where nothing is drawn without
+   * a size, is read from the image once it loads.
+   */
+  width?: FormProp<number | `${number}%` | undefined>;
+  /** Its height, as `width`. Absent with a `width`, its proportions keep. */
+  height?: FormProp<number | `${number}%` | undefined>;
+  /** How it fills a box both given. */
+  fit?: FormProp<ImageFit | undefined>;
+  /**
+   * A named look — "rounded", "hero" — that the implementation's theme
+   * resolves. A name the theme does not know draws the base look, with a
+   * warning in development.
+   */
+  variant?: FormProp<string | undefined>;
+}
+
+/**
+ * What the `image` slot receives — its own props still unresolved, as every
+ * display's are.
+ *
+ * @group Implementations
+ */
+export type ImageDisplayRenderProps = DisplayRenderProps & ImageDisplayExtra;
+
+/**
  * What the `text` slot receives.
  *
  * @group Implementations

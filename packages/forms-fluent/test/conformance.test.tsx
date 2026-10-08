@@ -6,6 +6,7 @@ const variants: FluentVariants = {
   text: { lead: { size: 400, weight: "semibold" } },
   group: { card: { wrapper: { padding: tokens.spacingHorizontalL } } },
   action: { quiet: { appearance: "subtle" } },
+  image: { rounded: { borderRadius: tokens.borderRadiusLarge } },
 };
 describeConformance({
   name: "Fluent",

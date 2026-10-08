@@ -84,10 +84,12 @@ import {
   combineClass,
   warnUnknownVariant,
   type RichTextRenderProps,
+  type ImageDisplayRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
   RichTextDom,
+  ImageDom,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -770,6 +772,12 @@ function FluentAction(p: ActionRenderProps) {
  * for a form section rather than by the outline's level — the top level takes
  * `subtitle1`, anything deeper `subtitle2`.
  */
+/** The image as DOM, a variant's style from the provider. */
+function FluentImage(p: ImageDisplayRenderProps) {
+  const images = useFluentVariants().image;
+  return <ImageDom {...p} shellStyle={toneStyle(p.tone)} variantStyle={(v) => images?.[v]} />;
+}
+
 /** Rich text as DOM, its links Fluent's own. */
 function FluentRichText(p: RichTextRenderProps) {
   return (
@@ -1149,6 +1157,7 @@ export const fluentRenderers: FormRenderers = {
   html: FluentHtml,
   icon: FluentIcon,
   richText: FluentRichText,
+  image: FluentImage,
   action: FluentAction,
   contents: FluentContents,
   inline: FluentInline,

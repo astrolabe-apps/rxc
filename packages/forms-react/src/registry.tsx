@@ -16,6 +16,7 @@ import type {
 import type {
   HtmlDisplayRenderProps,
   IconDisplayRenderProps,
+  ImageDisplayRenderProps,
   TextDisplayRenderProps,
 } from "./display.js";
 import type { GroupRenderProps } from "./group.js";
@@ -73,6 +74,8 @@ export interface FormRenderers {
    * label, a help text, a display's text. {@link drawRichText} walks it.
    */
   richText: ComponentType<RichTextRenderProps>;
+  /** {@link ImageDisplay}. */
+  image: ComponentType<ImageDisplayRenderProps>;
   /** {@link Contents} and {@link Section}: the standard group. */
   contents: ComponentType<GroupRenderProps>;
   /** {@link InlineGroup}: a bare inline element whose children are prose. */

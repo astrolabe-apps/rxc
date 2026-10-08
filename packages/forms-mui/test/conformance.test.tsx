@@ -5,6 +5,7 @@ const variants: MuiVariants = {
   text: { lead: { variant: "subtitle1" } },
   group: { card: { wrapper: (t) => ({ padding: t.spacing(2) }) } },
   action: { quiet: { variant: "text" } },
+  image: { rounded: (t) => ({ borderRadius: t.shape.borderRadius }) },
 };
 describeConformance({
   name: "MUI",

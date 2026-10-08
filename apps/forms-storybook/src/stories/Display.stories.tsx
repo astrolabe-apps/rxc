@@ -7,6 +7,7 @@ import {
   DisplayOnlyField,
   HtmlDisplay,
   IconDisplay,
+  ImageDisplay,
   RichText,
   TextDisplay,
   TextField,
@@ -64,6 +65,28 @@ function RichLabels() {
   );
 }
 export const Rich: Story = { render: () => <RichLabels /> };
+
+/** A picture, drawn without a network: an inline SVG. */
+const boat =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200"><rect width="320" height="200" fill="#bfdbfe"/><rect y="140" width="320" height="60" fill="#1d4ed8"/><path d="M90 140h140l-20 25H110z" fill="#f8fafc"/><path d="M160 60v75h45z" fill="#f8fafc"/></svg>',
+  );
+
+/**
+ * `ImageDisplay`: a source (a URL, or the platform's own asset), an `alt` —
+ * `""` for decoration — and a size, its proportions kept when only a width
+ * is given.
+ */
+export const Image: Story = {
+  render: () => (
+    <Contents>
+      <ImageDisplay source={boat} alt="A boat at its mooring" width={320} height={200} />
+      <ImageDisplay source={boat} alt="The same boat, smaller" width={160} />
+      <ImageDisplay source={boat} alt="" width={320} height={40} fit="cover" />
+    </Contents>
+  ),
+};
 
 export const Html: Story = {
   render: () => (

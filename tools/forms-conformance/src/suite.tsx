@@ -23,6 +23,7 @@ import {
   combineClass,
   type GroupRenderProps,
   HtmlDisplay,
+  ImageDisplay,
   InlineGroup,
   RadioField,
   RichText,
@@ -50,9 +51,10 @@ export interface Implementation {
   /** Providers it needs above the form beyond its own `root` — a theme. */
   wrap?: (node: ReactNode) => ReactNode;
   /**
-   * Its theme naming three looks, around `node`: a text variant `lead`, a
-   * group variant `card` and an action variant `quiet`, each drawn
-   * differently from the base look — however the implementation says looks.
+   * Its theme naming four looks, around `node`: a text variant `lead`, a
+   * group variant `card`, an action variant `quiet` and an image variant
+   * `rounded`, each drawn differently from the base look — however the
+   * implementation says looks.
    */
   looks: (node: ReactNode) => ReactNode;
   /**
@@ -1164,6 +1166,9 @@ export function describeConformance(impl: Implementation): void {
           <Action actionId="plain" text="Base button" />
           <Action actionId="quietly" text="Quiet button" variant="quiet" />
           <Action actionId="unnamed" text="Unknown button" variant={unknown} onClick={clicked} />
+          <ImageDisplay source="https://example.test/a.png" alt="Base image" width={40} height={40} />
+          <ImageDisplay source="https://example.test/a.png" alt="Rounded image" width={40} height={40} variant="rounded" />
+          <ImageDisplay source="https://example.test/a.png" alt="Unknown image" width={40} height={40} variant={unknown} />
         </>
       );
       mount(impl.looks(ui));
@@ -1179,6 +1184,17 @@ export function describeConformance(impl: Implementation): void {
           chain.push(`${e.getAttribute("class") ?? ""}|${e.getAttribute("style") ?? ""}`);
         return chain.join(" / ");
       };
+      // An image has no words: found by its name, out to the form likewise.
+      const image = (name: string) => {
+        const chain: string[] = [];
+        for (
+          let e: Element | null = container.querySelector(`[alt="${name}"], [aria-label="${name}"]`);
+          e && e !== container;
+          e = e.parentElement
+        )
+          chain.push(`${e.getAttribute("class") ?? ""}|${(e.getAttribute("style") ?? "").replace(/aspect-ratio[^;]*;?/, "")}`);
+        return chain.join(" / ");
+      };
       expect([
         look("Lead words") !== look("Base words"),
         look("Card region") !== look("Base region"),
@@ -1186,16 +1202,18 @@ export function describeConformance(impl: Implementation): void {
         look("Unknown words") === look("Base words"),
         look("Unknown region") === look("Base region"),
         look("Unknown button") === look("Base button"),
-      ]).toEqual([true, true, true, true, true, true]);
+        image("Rounded image") !== image("Base image"),
+        image("Unknown image") === image("Base image"),
+      ]).toEqual([true, true, true, true, true, true, true, true]);
       // One warning per kind, naming the variant — and none again on the
       // next render.
       const warnings = logged.splice(0);
       expect(
-        ["text", "group", "action"].map(
+        ["text", "group", "action", "image"].map(
           (kind) => warnings.filter((w) => w.includes(`${kind} variant "${unknown}"`)).length,
         ),
-      ).toEqual([1, 1, 1]);
-      expect(warnings).toHaveLength(3);
+      ).toEqual([1, 1, 1, 1]);
+      expect(warnings).toHaveLength(4);
       mount(impl.looks(ui));
       click(buttonNamed("Unknown button")!);
       expect([logged.splice(0), clicked.mock.calls.length]).toEqual([[], 1]);
@@ -1227,6 +1245,38 @@ export function describeConformance(impl: Implementation): void {
       expect(link?.getAttribute("href")).toBe("https://example.test/guide");
       // The image, named by its alt.
       expect(container.querySelector('[alt="Licence card"], [aria-label="Licence card"]')).not.toBeNull();
+    });
+
+    it("draws an image named by its alt, a decorative one unnamed, and a hidden one off screen", async () => {
+      const hide = ctx.newControl(false);
+      mount(
+        <>
+          <ImageDisplay source="https://example.test/boat.png" alt="A boat at its mooring" width={320} height={200} fit="cover" />
+          <ImageDisplay source="https://example.test/rule.png" alt="" width={320} height={4} />
+          <ImageDisplay source="https://example.test/logo.png" alt="MAST" width={80} height={40} hidden={hide} />
+        </>,
+      );
+      // The source reaches the platform's element: an <img>'s src, or a
+      // background React Native's web half draws it with.
+      const drawing = (url: string) =>
+        [...container.querySelectorAll("*")].find(
+          (e) => e.getAttribute("src") === url || (e.getAttribute("style") ?? "").includes(url),
+        );
+      const named = (name: string) => container.querySelector(`[alt="${name}"], [aria-label="${name}"]`);
+      expect([!!named("A boat at its mooring"), !!drawing("https://example.test/boat.png")]).toEqual([
+        true,
+        true,
+      ]);
+      // Decoration: drawn, and out of the accessibility tree.
+      const rule = drawing("https://example.test/rule.png")!;
+      expect(
+        rule.getAttribute("alt") === "" || !!rule.closest('[aria-hidden="true"]'),
+      ).toBe(true);
+      expect(onScreen(named("MAST"))).toBe(true);
+      set(hide, true);
+      // Gone once the implementation's exit transition has run.
+      await flush(250);
+      expect(onScreen(named("MAST"))).toBe(false);
     });
 
     it("runs an action, and locks it while an async handler is busy", async () => {

@@ -14,6 +14,7 @@ const looks = (node: ReactNode) => (
       text: { variants: { lead: "lead" } },
       contents: { variants: { card: { wrapper: "card" } } },
       action: { variants: { quiet: { className: "quiet" } } },
+      image: { variants: { rounded: "rounded" } },
     }}
   >
     {node}

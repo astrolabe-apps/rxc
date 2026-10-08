@@ -13,6 +13,7 @@ import type {
   DisplayProps,
   HtmlDisplayExtra,
   IconDisplayExtra,
+  ImageDisplayExtra,
   TextDisplayExtra,
 } from "./display.js";
 import type { FieldProps } from "./field.js";
@@ -239,6 +240,15 @@ export const TextDisplay: ComponentType<DisplayProps & TextDisplayExtra> =
  */
 export const HtmlDisplay: ComponentType<DisplayProps & HtmlDisplayExtra> =
   displayRenderer<HtmlDisplayExtra>({ key: "html" });
+
+/**
+ * A static image — a photo, a logo, a diagram. Give it an `alt`; `""` for one
+ * that only decorates.
+ *
+ * @group Authoring
+ */
+export const ImageDisplay: ComponentType<DisplayProps & ImageDisplayExtra> =
+  displayRenderer<ImageDisplayExtra>({ key: "image" });
 
 /**
  * A static icon. Give it an `accessibleName`: it has no text of its own.

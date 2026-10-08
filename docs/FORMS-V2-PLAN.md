@@ -777,12 +777,22 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   sets — and its own `HelpText` adornment draws through `RichText` too. Parity ran every corpus
   form through it with nothing on the console, so no ServiceTas markup falls outside the subset.
 
-**An image display (N8).** `ImageDisplay` (`source`, `alt`, `width` / `height`, `fit`) — html
+**An image display (N8). ✅** `ImageDisplay` (`source`, `alt`, `width` / `height`, `fit`) — html
 `<img>`, native `Image`, the libraries their own.
 - *Decided:* `source` is a URL string everywhere (forms-native wraps it as `{ uri }`) or the
   platform's own asset object. A bundled native asset comes from a `platform.native.tsx` seam,
   which Metro picks over `platform.tsx` by itself, so there is no detection code and no asset
   registry in the contract.
+- *Landed:* `ImageDisplay` (`source`, a required `alt` — `""` decorates — `width` / `height` in
+  pixels or a percentage, `fit`, and a `variant` like text's) and an `image` slot in all five.
+  The web draws an `<img>` (`ImageDom` in `forms-html/shared`), sized by attribute so the box is
+  reserved before it loads, and takes a web bundler's static import (`{ src, width, height }`) as
+  it is. Native takes a URL, a bundled asset (a number), `{ uri }` or that static import, and —
+  since React Native draws nothing without a size — keeps proportions from the image itself
+  (`resolveAssetSource` for a bundled one, `getSize` once a file loads) through `aspectRatio`;
+  rich text's images share the same component. Image variants: `image.variants` in the html
+  and native themes, `image` in each library's variants provider. The JSON format has no image
+  display, so the loader is untouched.
 
 **A group's own heading (N3).** Content before a group's title ("Step 1 of 2", an image above
 the page title on a phone).

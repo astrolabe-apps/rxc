@@ -34,7 +34,10 @@ import {
   drawRichText,
   type RichTextParts,
   type RichTextRenderProps,
+  type ImageDisplayRenderProps,
+  getProp,
 } from "@rx-controls/forms-react";
+import { useReactive } from "@rx-controls/react";
 import {
   defaultHtmlTheme,
   useHtmlTheme,
@@ -654,5 +657,90 @@ export function RichTextDom({
         ),
       })}
     </>
+  );
+}
+
+/** A source as the web takes it: a URL, or a bundler's static import's. */
+export function webImage(source: unknown): { src?: string; width?: number; height?: number } {
+  if (typeof source === "string") return { src: source };
+  if (source && typeof source === "object") {
+    const o = source as { src?: unknown; uri?: unknown; width?: unknown; height?: unknown };
+    const src = typeof o.src === "string" ? o.src : typeof o.uri === "string" ? o.uri : undefined;
+    return {
+      src,
+      width: typeof o.width === "number" ? o.width : undefined,
+      height: typeof o.height === "number" ? o.height : undefined,
+    };
+  }
+  return {};
+}
+
+/** A width or height as an attribute (pixels) or a style (a percentage). */
+function dimension(v: number | string | undefined): { attr?: number; style?: string } {
+  return typeof v === "number" ? { attr: v } : v ? { style: v } : {};
+}
+
+/**
+ * The image display as DOM: an `<img>` in the display's wrapper, sized by
+ * attribute when given pixels — so the page reserves its box before it loads
+ * — and by style when given a percentage. `alt=""` takes a decorative image
+ * out of the accessibility tree, as html means it. A web bundler's static
+ * import (`{ src, width, height }`) is taken as it is.
+ */
+export function ImageDom({
+  classes = defaultHtmlTheme.image,
+  displayShell,
+  variantStyle,
+  shellStyle,
+  ...p
+}: ImageDisplayRenderProps & {
+  classes?: HtmlTheme["image"];
+  displayShell?: HtmlTheme["displayShell"];
+  /** A variant's look as a style, for an implementation whose looks are tokens. */
+  variantStyle?: (variant: string) => CSSProperties | undefined;
+  /** The wrapper's style: a tone's colour from tokens. */
+  shellStyle?: CSSProperties;
+}) {
+  const { rc, rendered } = useReactive();
+  const img = webImage(getProp(rc, p.source));
+  const alt = getProp(rc, p.alt) ?? "";
+  const fit = getProp(rc, p.fit);
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : classes.variants[variant];
+  const lookStyle = variant === undefined ? undefined : variantStyle?.(variant);
+  if (variant !== undefined && look === undefined && lookStyle === undefined)
+    warnUnknownVariant("image", variant);
+  const w = dimension(getProp(rc, p.width) ?? img.width);
+  const h = dimension(getProp(rc, p.height) ?? (getProp(rc, p.width) === undefined ? img.height : undefined));
+  return rendered(
+    <DisplayShell
+      shellClassName={p.shellClassName}
+      inline={p.inline}
+      tone={p.tone}
+      announce={p.announce}
+      regionOnly={p.regionOnly || !img.src}
+      classes={displayShell}
+      style={shellStyle}
+    >
+      {img.src && (
+        <img
+          src={img.src}
+          alt={alt}
+          width={w.attr}
+          height={h.attr}
+          className={mergeClass(cat(classes.className, look), p.className)}
+          data-variant={variant}
+          style={{
+            ...(w.style ? { width: w.style } : {}),
+            ...(h.style ? { height: h.style } : {}),
+            // A width alone keeps the proportions, whatever a stylesheet's
+            // height on img says.
+            ...(w.attr !== undefined && h.attr === undefined && !h.style ? { height: "auto" } : {}),
+            ...(fit ? { objectFit: fit } : {}),
+            ...lookStyle,
+          }}
+        />
+      )}
+    </DisplayShell>,
   );
 }

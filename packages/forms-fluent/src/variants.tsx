@@ -56,6 +56,8 @@ export interface FluentVariants {
    * A name given here for one of the three replaces it.
    */
   action?: Record<string, FluentActionVariant>;
+  /** An `ImageDisplay`'s variants: a style on the image. */
+  image?: Record<string, CSSProperties>;
 }
 
 const { Provider, useVariants } = createVariantsContext<FluentVariants>("FluentVariantsProvider");

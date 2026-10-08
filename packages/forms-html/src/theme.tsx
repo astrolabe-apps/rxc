@@ -321,6 +321,17 @@ export interface HtmlTheme {
     /** `<img>`. */
     image: string;
   };
+  /** The image display. */
+  image: {
+    /** The `<img>`. */
+    className: string;
+    /**
+     * Named looks (`ImageDisplay variant` — "rounded", "hero"), each added to
+     * the `<img>`. A name not here draws the base look, with a warning in
+     * development; the element carries the name as `data-variant` either way.
+     */
+    variants: Record<string, string>;
+  };
   /** The HTML display. */
   html: {
     /** Its element. */
@@ -582,6 +593,7 @@ export const defaultHtmlTheme: HtmlTheme = {
     link: "rxf-link",
     image: "rxf-rich-image",
   },
+  image: { className: "rxf-image", variants: {} },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
   action: {
@@ -776,6 +788,8 @@ export const tailwindHtmlTheme: HtmlTheme = {
     // Inline in the words, never wider than what holds them.
     image: "rxf-rich-image inline-block max-w-full",
   },
+  // Never wider than what holds it.
+  image: { className: "rxf-image max-w-full", variants: {} },
   html: { className: "rxf-html" },
   icon: { className: "rxf-icon" },
   // action.buttonClass, over the standard palette in place of `primary-500`.
