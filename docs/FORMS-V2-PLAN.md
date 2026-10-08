@@ -794,10 +794,18 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   and native themes, `image` in each library's variants provider. The JSON format has no image
   display, so the loader is untouched.
 
-**A group's own heading (N3).** Content before a group's title ("Step 1 of 2", an image above
+**A group's own heading (N3). ✅** Content before a group's title ("Step 1 of 2", an image above
 the page title on a phone).
 - *Decided:* `TextDisplay heading="group"`, its group's own title — the level a title there
   takes, with content free to precede it. One way to write a heading, and layout orders it.
+- *Landed:* `TextDisplay.heading` is `boolean | "group"`. The display boundary gives a `"group"`
+  heading its nearest group's title level and **claims** the group from a commit effect; a
+  claimed group counts as titled, so what is inside heads one deeper, as under a `title`. Not
+  in prose, not while hidden (the group is untitled again), and outside any group an ordinary
+  heading. The claim settles before paint; on the server it cannot run, so server markup has the
+  unclaimed levels until hydration — which matches, and then settles (forms-html's SSR test).
+  Nothing changes in the implementations: a `"group"` heading is a heading, at the level handed
+  over.
 
 **Checks that move nothing, and focus (N4, N5, the tabs reveal). ✅**
 - `WizardController.check()`: the page's check without moving, for a page whose next page a

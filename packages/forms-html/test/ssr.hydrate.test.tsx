@@ -51,6 +51,13 @@ describe("hydration", () => {
       serverInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(container.textContent).toContain("Grace");
+    // The group heading's claim, which the server could not make, settled
+    // after hydration: what is inside the section heads one below its title.
+    const level = (words: string) =>
+      [...container.querySelectorAll('[role="heading"]')]
+        .find((h) => h.textContent?.trim() === words)
+        ?.getAttribute("aria-level");
+    expect([level("Section"), level("Inside")]).toEqual(["2", "3"]);
     act(() => root.unmount());
     container.remove();
   });

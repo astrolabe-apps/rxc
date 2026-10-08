@@ -9,6 +9,7 @@ import {
   IconDisplay,
   ImageDisplay,
   RichText,
+  Section,
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
@@ -85,6 +86,23 @@ export const Image: Story = {
       <ImageDisplay source={boat} alt="The same boat, smaller" width={160} />
       <ImageDisplay source={boat} alt="" width={320} height={40} fit="cover" />
     </Contents>
+  ),
+};
+
+/**
+ * `heading="group"`: the display is its group's own title — at the level a
+ * `title` would take there — so content can come before it, and what follows
+ * heads one deeper.
+ */
+export const GroupHeading: Story = {
+  render: () => (
+    <Section>
+      <TextDisplay text="Step 1 of 2" />
+      <TextDisplay text="Your details" heading="group" />
+      <Contents title="Postal address">
+        <TextDisplay text="12 Main St, Hobart" />
+      </Contents>
+    </Section>
   ),
 };
 

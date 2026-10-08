@@ -656,6 +656,35 @@ export function describeConformance(impl: Implementation): void {
       ]);
     });
 
+    it("draws a group heading as its group's own title, with content before it", () => {
+      mount(
+        <Section>
+          <TextDisplay text="Step 1 of 2" />
+          <TextDisplay text="Your details" heading="group" />
+          <Contents title="Postal address">
+            <TextDisplay text="Is this still right?" heading />
+          </Contents>
+          <TextDisplay text="Before you go" heading />
+        </Section>,
+      );
+      const headings = [...container.querySelectorAll('[role="heading"], h1, h2, h3, h4, h5, h6')].map(
+        (h) => [h.textContent?.trim(), h.getAttribute("aria-level") ?? h.tagName.slice(1)],
+      );
+      // The page's title at the section's level, everything after one below.
+      expect(headings).toEqual([
+        ["Your details", "2"],
+        ["Postal address", "3"],
+        ["Is this still right?", "4"],
+        ["Before you go", "3"],
+      ]);
+      // And what came before it is drawn before it.
+      const at = (words: string) =>
+        [...container.querySelectorAll("*")].filter((e) => e.textContent?.trim() === words).pop()!;
+      expect(
+        at("Step 1 of 2").compareDocumentPosition(at("Your details")) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
     it("unmounts a hidden field's widget", () => {
       mount(<TextField field={ctx.newControl("")} id="gone" label="Gone" hidden />);
       expect(byId("gone")).toBeNull();

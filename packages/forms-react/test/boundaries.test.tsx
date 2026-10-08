@@ -601,6 +601,55 @@ describe("the group boundary", () => {
     expect(levels()).toEqual([["Under an h2", "3"]]);
   });
 
+  it("takes a heading display as its group's own title, with content before it", () => {
+    const hide = dom.ctx.newControl(false);
+    const outline = () =>
+      $$("[data-title], [data-heading]").map((t) => [
+        t.textContent,
+        t.getAttribute("data-level") ?? t.getAttribute("data-heading"),
+      ]);
+    mount(
+      <Group>
+        <Show text="Step 1 of 2" />
+        <Show text="Your details" heading="group" hidden={hide} />
+        <Group title="Address">{null}</Group>
+        <Show text="Card" heading />
+      </Group>,
+    );
+    // The page's title at the group's level; what follows one deeper.
+    expect(outline()).toEqual([
+      ["Your details", "2"],
+      ["Address", "3"],
+      ["Card", "3"],
+    ]);
+    // Hidden, it is no title: the group is untitled again.
+    set(hide, true);
+    expect(outline()).toEqual([
+      ["Address", "2"],
+      ["Card", "2"],
+    ]);
+  });
+
+  it("draws a group heading in prose, or outside any group, as an ordinary heading", () => {
+    const levels = () => $$("[data-heading]").map((t) => t.getAttribute("data-heading"));
+    mount(
+      <>
+        <Show text="Top" heading="group" />
+        <Group title="Outer">
+          <Inline>
+            <Show text="In prose" heading="group" />
+          </Inline>
+          <Group title="Inner">{null}</Group>
+        </Group>
+      </>,
+    );
+    // Prose claims nothing, so Inner stays one below Outer.
+    expect([levels()[0], $$("[data-title]").map((t) => t.getAttribute("data-level"))]).toEqual([
+      "2",
+      ["2", "3"],
+    ]);
+  });
+
   it("passes layout and extra props, and marks inline children", () => {
     const c = dom.ctx.newControl("x");
     mount(

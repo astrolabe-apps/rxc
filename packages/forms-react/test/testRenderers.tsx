@@ -132,6 +132,7 @@ function Text(p: TextDisplayRenderProps): Rendered {
   return rendered(
     <span
       data-text
+      data-heading={getProp(rc, p.heading) ? p.headingLevel : undefined}
       data-tone={p.tone}
       data-announce={p.announce ? "" : undefined}
       aria-label={p.accessibleName}

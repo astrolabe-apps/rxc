@@ -72,7 +72,11 @@ function Kitchen(): Rendered {
         <Contents hidden title="Hidden region">
           <TextField field={f.hidden} label="Hidden" />
         </Contents>
-        <Section title="Section">
+        <Section>
+          <TextDisplay text="Step 1 of 2" />
+          {/* Its claim on the section runs in a commit effect, never on the server. */}
+          <TextDisplay text="Section" heading="group" />
+          <Contents title="Inside">{null}</Contents>
           <Elements field={f.pets} label="Pets">
             {(p, i) => <TextField field={p.fields.name} label={`Pet ${i + 1}`} />}
           </Elements>

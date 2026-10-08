@@ -1,5 +1,9 @@
-import { useMemo, type ComponentType, type ReactNode } from "react";
-import { useReactive, type Rendered } from "@rx-controls/react";
+import {
+  useMemo,
+  type ComponentType,
+  type ReactNode,
+} from "react";
+import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type ClassValue, type FormProp } from "./props.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { FormScopeProvider, narrowScope, useBoundScope } from "./scope.js";
@@ -14,6 +18,7 @@ import {
   republish,
   resolveImpl,
 } from "./boundaryParts.js";
+import { GroupHeadingContext, type GroupHeading } from "./groupHeading.js";
 
 /**
  * A group body drawn as a flex box with no CSS — an inline style, or the
@@ -201,16 +206,31 @@ export function groupRenderer<P extends object = {}>(
   options?: GroupBoundaryOptions,
 ): ComponentType<GroupProps & P> {
   function GroupBoundary(props: GroupProps & P): Rendered {
-    const { rc, rendered } = useReactive();
+    const { rc, rendered, update } = useReactive();
     const renderers = useRenderers();
     const bound = useBoundScope(props);
     // `inline` is the container's kind, not a prop, so it is a boundary
     // option — and reaches the children as a scope facet.
     const { transitions, clearHidden } = props;
     const title = getProp(rc, props.title);
+    // A display inside that is this group's title (`heading="group"`) claims
+    // it, from its commit effect.
+    const claims = useControl(0);
+    const claimed = rc.getValue(claims) > 0;
     // A titled group is a level in the outline: what is inside it heads one
     // deeper. Inline prose has no outline.
-    const titled = title !== undefined && title !== null && !options?.inline;
+    const titled =
+      ((title !== undefined && title !== null) || claimed) && !options?.inline;
+    const heading = useMemo<GroupHeading>(
+      () => ({
+        level: bound.headingLevel,
+        claim: () => {
+          update((wc) => wc.updateValue(claims, (n) => n + 1));
+          return () => update((wc) => wc.updateValue(claims, (n) => n - 1));
+        },
+      }),
+      [bound.headingLevel, claims, update],
+    );
     const scope = useMemo(
       () =>
         options?.inline ||
@@ -259,7 +279,7 @@ export function groupRenderer<P extends object = {}>(
     const body = (
       <Impl {...renderProps} {...extraProps(props, groupContractKeys)} />
     );
-    return rendered(
+    const content = (
       <FormScopeProvider scope={scope}>
         {republish(
           validation ? (
@@ -270,7 +290,15 @@ export function groupRenderer<P extends object = {}>(
           scope.disabled(rc),
           scope.readOnly(rc),
         )}
-      </FormScopeProvider>,
+      </FormScopeProvider>
+    );
+    // Inline prose has no outline: a heading display inside it heads nothing.
+    return rendered(
+      options?.inline ? (
+        content
+      ) : (
+        <GroupHeadingContext.Provider value={heading}>{content}</GroupHeadingContext.Provider>
+      ),
     );
   }
   GroupBoundary.displayName = boundaryName(

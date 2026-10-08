@@ -3,7 +3,6 @@ import {
   useContext,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -30,14 +29,7 @@ import {
 } from "./validationScope.js";
 import type { CheckOptions } from "./validation.js";
 import { boundaryName, resolveImpl } from "./boundaryParts.js";
-
-/** `useLayoutEffect` on the client (a DOM, or React Native), `useEffect` on the server. */
-const useCommitEffect =
-  typeof document !== "undefined" ||
-  // React Native has layout effects but no `document`; it identifies itself here.
-  (typeof navigator !== "undefined" && navigator.product === "ReactNative")
-    ? useLayoutEffect
-    : useEffect;
+import { useCommitEffect } from "./commitEffect.js";
 
 /**
  * Give each scope the `reveal` a refused check uses before it focuses a field

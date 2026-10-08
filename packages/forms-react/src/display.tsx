@@ -3,6 +3,8 @@ import { useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type ClassValue, type FormProp } from "./props.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope } from "./scope.js";
+import { useCommitEffect } from "./commitEffect.js";
+import { useGroupHeading } from "./groupHeading.js";
 import {
   bailout,
   boundaryName,
@@ -120,12 +122,20 @@ export interface TextDisplayExtra {
   /** The text. */
   text?: FormProp<ReactNode>;
   /**
-   * Draw the text as a heading — a page's own title, a card's — at the level
-   * the form's outline gives this place: one below the titled group it sits
-   * in, as a group title there would be. No author picks a number, so the
-   * headings stay an outline as the form is rearranged.
+   * Draw the text as a heading, at the level the form's outline gives this
+   * place — no author picks a number, so the headings stay an outline as the
+   * form is rearranged.
+   *
+   * - `true`: one below the titled group it sits in, as a group title there
+   *   would be — a card's title among the page's content.
+   * - `"group"`: **its group's own title**, at the level a `title` on that
+   *   group would take, and the group then counts as titled, so what is
+   *   inside it heads one deeper. For a title with content before it — "Step
+   *   1 of 2" above the page's heading, an image above it on a phone — which
+   *   a group's `title`, always drawn first, cannot have. Outside any group,
+   *   or in prose, it is an ordinary heading.
    */
-  heading?: FormProp<boolean>;
+  heading?: FormProp<boolean | "group">;
   /**
    * A named look — "lead", "tag", "statLabel" — that the implementation's
    * theme resolves. The form names a role and never a look, so the same
@@ -295,6 +305,16 @@ export function displayRenderer<P extends object = {}>(
     const Visibility = visibilityFor(renderers, scope);
     // An announced display stays mounted under `hidden` (see `announce`).
     const announce = getProp(rc, props.announce) ?? false;
+    // A display that is its group's title takes the group's level, and
+    // claims the title so what is inside the group heads one deeper. Not in
+    // prose, and not while hidden: the group is then untitled again.
+    const group = useGroupHeading();
+    const ownsGroup =
+      getProp(rc, (props as { heading?: FormProp<boolean | "group"> }).heading) === "group" &&
+      !scope.inline &&
+      presence !== "hidden" &&
+      group !== undefined;
+    useCommitEffect(() => (ownsGroup ? group!.claim() : undefined), [ownsGroup, group]);
     const renderProps: DisplayRenderProps = {
       accessibleName: getProp(rc, props.accessibleName),
       inline: scope.inline,
@@ -305,7 +325,7 @@ export function displayRenderer<P extends object = {}>(
       announce,
       regionOnly: announce && presence === "hidden" ? true : undefined,
       children: props.children,
-      headingLevel: scope.headingLevel,
+      headingLevel: ownsGroup ? group!.level : scope.headingLevel,
     };
     const impl = (
       <Impl {...renderProps} {...extraProps(props, displayContractKeys)} />
