@@ -45,7 +45,7 @@ at the `@rx-controls/forms-react_v0.1.0-alpha.6` tag (`df5625b`).
   the form source to know the platform.
 - **One behaviour is wrong on both platforms:** a refused check doesn't focus its field when the
   action holds the form's global lock (P2). On the web this shows only behind a disclosure; on
-  native it shows always.
+  native it shows always. Fixed on `main` since, in `f56e908`.
 
 ## 1. The page on React Native
 
@@ -204,7 +204,7 @@ show in `uiautomator` either. Both need TalkBack.
 | The roles look like roles | Yes, with the differences in P6 |
 | The rich text's emphasis shows | Yes: step pill, intro and labels |
 | The image keeps its proportions | With P3 fixed. The boat (width and height given, `fit="cover"`) was right from the start. |
-| A refused action focuses its field | **No** (P2). Without `disableType="global"`, yes: the input focused and the keyboard rose. |
+| A refused action focuses its field | **No** (P2). Without `disableType="global"`, yes: the input focused and the keyboard rose. Fixed since (`f56e908`), not yet rerun on the device. |
 | The tree names each control and each help button | Yes, with P4 fixed |
 
 ## 2. Roles and the seam
@@ -336,7 +336,7 @@ and the index is an index into it.
   `icon.className`, which fits this form only because it has one kind of icon display.
 
 **Wrong:**
-- **A refused check inside a global-lock action doesn't focus (P2).**
+- **A refused check inside a global-lock action doesn't focus (P2).** Fixed since (`f56e908`).
 - **forms-native's width-only image (P3) and unnamed switch (P4).**
 - **The native group variant slot is `className`, html's is `wrapper`.** A theme author porting
   roles renames every group variant. A small inconsistency, but it is exactly the file the brief
@@ -385,6 +385,16 @@ action, so the field may already be disabled when focus arrives.
   after it releases its lock, or `focusInvalid` could defer while the scope is locked.
 
   No page here should opt out with `{ focus: false }`: each refusal has exactly one field to go to.
+- **Fixed since, on `main` (`f56e908`):** the second suggestion. `focusInvalid` asks each
+  enclosing `<Form>` before it focuses. While the lock is free the focus goes at once. Otherwise
+  it waits for the commit that releases the lock, which is the one that re-enables the fields, and
+  on native a frame after that. Disclosures and tabs are still revealed first. No change on the
+  ServiceTas side.
+  - A conformance case: a submit action with the global lock, the field focused and not
+    `disabled`, `readonly` or `aria-disabled` when focus arrives. It failed under html and native
+    before the fix.
+  - Not yet checked on the device: the next rerun should see the refused Continue raise the
+    keyboard with `disableType="global"` in place.
 
 ### P3. forms-native: an image given only a width draws at its natural size
 
@@ -536,6 +546,7 @@ unknown variant name, as designed.
 
 - **The P3 and P4 fixes** are committed on `main` (`21b24ae`). forms-native's suite passes,
   49 of 49.
+- **The P2 fix**, after the report, on `main` (`f56e908`), with a conformance case for it.
 - **The MAST screen stays out of the repo.** It imports ServiceTas's own source, which isn't the
   public repo's to carry. What was written for it moved to the ServiceTas trial branch
   (`c1db6634`), since it is the app's own native side:
