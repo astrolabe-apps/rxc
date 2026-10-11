@@ -281,7 +281,7 @@ Native had none of this: tailwind-merge resolves a variant over the base, whatev
 | N8 `Picture` | `ImageDisplay`; sources in the seam | **Closed, fits** on the web. On native, a width-only image was wrong until P3 was fixed. |
 | N9 `Strong` | `RichText` + `html` | **Closed, fits.** Six places. The radio group's name, from its label via `aria-labelledby`, is "Is UBER the first name on your driver licence?", bold word included. `Jo <Sam> & Co` draws as text on the device. |
 | N10 both links underlined | `link` + `inlineLink` | **Closed, fits.** Prose links (`inlineLink`) are underlined; the standalone "I've updated it, check again" (`link`) isn't. Checked by its theme classes on the web (the profile has no missing details) and visually on the device. |
-| N11 `::after` chevron | `disclosure.icon` / `iconClassName` | **Closed, fits.** The icon turns under `data-open`. The slot draws the icon *before* the title; the JSON version's chevron is after it, so the theme adds `order-last`. Small, but a `iconPlacement` would say it. |
+| N11 `::after` chevron | `disclosure.icon` / `iconClassName` | **Closed, fits.** The icon turns under `data-open`. The slot draws the icon *before* the title; the JSON version's chevron is after it, so the theme adds `order-last`. Small, but a `iconPlacement` would say it. Since (`24a2adc`), `disclosure.iconPlacement: "after"` does. |
 
 **Wizard moves.** `useEoiWizard.ts` stopped *owning* the moves, but not the step.
 - Moves are the pages' (`check`, call, `goTo`).
@@ -336,8 +336,10 @@ and the index is an index into it.
   version has three nested ones). The claim makes the page's title the header group's instead.
   Fixed since (`b152f55`).
 - **`disclosure.icon`** is drawn before the title; a chevron after it needs `order-last`.
+  Fixed since (`24a2adc`): `disclosure.iconPlacement: "after"` in the html and native themes.
 - **`IconDisplay` has no `variant`.** The note icon's 24px became the theme's only
-  `icon.className`, which fits this form only because it has one kind of icon display.
+  `icon.className`, which fits this form only because it has one kind of icon display. Fixed
+  since (`24a2adc`): `IconDisplay variant`, under every implementation.
 
 **Wrong:**
 - **A refused check inside a global-lock action doesn't focus (P2).** Fixed since (`f56e908`).
@@ -577,6 +579,7 @@ unknown variant name, as designed.
 - **The P3 and P4 fixes** are committed on `main` (`21b24ae`). forms-native's suite passes,
   49 of 49.
 - **The P2 fix**, after the report, on `main` (`f56e908`), with a conformance case for it.
+- **`IconDisplay variant` and `disclosure.iconPlacement`**, after the report, on `main` (`24a2adc`).
 - **The P1 fix**, after the report, on `main` (`b152f55`). Corpus gates pass.
 - **The rest of the forms-native gaps**, after the report, on `main` (`eadadb1`): P5, P6, P7, P9,
   the P4 audit and the group slot's name. What's left is P3's device case: React Native's `Image`
