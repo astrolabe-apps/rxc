@@ -2,12 +2,19 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   type ReactNode,
 } from "react";
-import type { Control, ReadContext } from "@rx-controls/core";
-import { useControl, useFormEdit } from "@rx-controls/react";
+import { untrackedRead, type Control, type ReadContext } from "@rx-controls/core";
+import {
+  useControl,
+  useFormEdit,
+  useReactive,
+  type Rendered,
+} from "@rx-controls/react";
+import { afterMount, useCommitEffect } from "./commitEffect.js";
 import { getProp, type FormProp } from "./props.js";
 import { useRenderersIfAny } from "./registry.js";
 import type { ValidationScope } from "./validation.js";
@@ -267,6 +274,7 @@ export function Form({
   const body = (
     <ScopeContext.Provider value={scope}>
       <ValidationScopeProvider value={validation}>
+        <FocusAfterUnlock lock={globalLock} validation={validation} />
         {children}
       </ValidationScopeProvider>
     </ScopeContext.Provider>
@@ -281,6 +289,46 @@ export function Form({
   ) : (
     body
   );
+}
+
+/**
+ * The form's `whenUnlocked`: a refused check's focus, asked for while a
+ * `disableType: "global"` action holds the lock, waits for the commit that
+ * releases it. That commit also re-enables every field — they subscribe to
+ * the lock through the same write — so the focus lands on an enabled one,
+ * and on React Native a frame later, once the UI thread has it too.
+ */
+function FocusAfterUnlock({
+  lock,
+  validation,
+}: {
+  lock: Control<number>;
+  validation: ValidationScopeImpl;
+}): Rendered {
+  const { rc, rendered } = useReactive();
+  const waiting = useRef<(() => void)[]>([]);
+  useEffect(() => {
+    const gate = (then: () => void) => {
+      if (untrackedRead.getValue(lock) === 0) then();
+      else waiting.current.push(then);
+    };
+    validation.whenUnlocked = gate;
+    return () => {
+      if (validation.whenUnlocked === gate) validation.whenUnlocked = undefined;
+      waiting.current = [];
+    };
+  }, [lock, validation]);
+  // Subscribed, so every change to the lock commits here; checked on every
+  // commit rather than keyed on the value, since a lock taken and released
+  // before this renders leaves the value where it was.
+  rc.getValue(lock);
+  useCommitEffect(() => {
+    if (untrackedRead.getValue(lock) > 0 || !waiting.current.length) return;
+    const run = waiting.current;
+    waiting.current = [];
+    afterMount(() => run.forEach((f) => f()));
+  });
+  return rendered(null);
 }
 
 /** Inside a rendered form element: a nested `<Form>` must not draw another. */

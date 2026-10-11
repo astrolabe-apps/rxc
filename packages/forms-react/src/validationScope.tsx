@@ -75,6 +75,14 @@ export interface ValidationScopeImpl extends ValidationScope {
    * content has committed.
    */
   reveal?: (then: () => void) => boolean;
+  /**
+   * Set by a `<Form>` on its scope: hands `then` on at once while the form's
+   * global lock is free, or else once it is released and the fields it
+   * disabled have committed enabled. A refused check inside a
+   * `disableType: "global"` action asks before it focuses — a disabled field
+   * takes no focus, and on React Native a locked input never will.
+   */
+  whenUnlocked?: (then: () => void) => void;
 }
 
 function isFocusTarget(v: unknown): v is FocusTarget {
@@ -214,9 +222,19 @@ export function createValidationScope(
         .sort((a, b) => documentOrder(a.target, b.target))[0];
       if (!first) return false;
       // Reveal each enclosing container that hides its content — outermost
-      // first, each after the one above has committed — then focus.
+      // first, each after the one above has committed — then focus, once
+      // every enclosing form's lock is free.
+      const forms: ValidationScopeImpl[] = [...first.path];
+      for (let s: ValidationScopeImpl | undefined = scope; s; s = s.parent)
+        forms.unshift(s);
+      const focus = (i: number): void => {
+        if (i === forms.length) return void first.target.focus();
+        const gate = forms[i]!.whenUnlocked;
+        if (gate) gate(() => focus(i + 1));
+        else focus(i + 1);
+      };
       const step = (i: number): void => {
-        if (i === first.path.length) return void first.target.focus();
+        if (i === first.path.length) return focus(0);
         if (!first.path[i]!.reveal?.(() => step(i + 1))) step(i + 1);
       };
       step(0);

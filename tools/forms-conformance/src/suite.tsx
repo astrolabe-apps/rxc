@@ -1221,6 +1221,42 @@ export function describeConformance(impl: Implementation): void {
       expect(document.activeElement?.id).toBe("top");
     });
 
+    it("focuses a refused field once a global action's lock lifts, not while it is locked", async () => {
+      const where = ctx.newControl("");
+      function Submitting() {
+        validation = useFormValidation();
+        return (
+          <Form validation={validation} onSubmit={() => {}}>
+            <TextField field={where} id="where" label="Where" required />
+            <Action actionId="save" text="Save" submit disableType="global" variant="primary" />
+          </Form>
+        );
+      }
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            {(impl.wrap ?? ((t: ReactNode) => t))(
+              <FormProvider renderers={impl.renderers}>
+                <Submitting />
+              </FormProvider>,
+            )}
+          </ControlContextProvider>,
+        ),
+      );
+      // Whether the input could take the user's typing when focus arrived:
+      // a disabled field takes no focus, and a locked React Native input is
+      // not editable (react-native-web draws that as readonly).
+      const input = byId("where") as HTMLInputElement;
+      const seen: boolean[] = [];
+      input.addEventListener("focus", () =>
+        seen.push(!input.disabled && !input.readOnly && input.getAttribute("aria-disabled") !== "true"),
+      );
+      click(buttonNamed("Save")!);
+      await flush();
+      await flush();
+      expect([document.activeElement?.id, seen]).toEqual(["where", [true]]);
+    });
+
     it("draws a look the theme names, and the base look with one warning for a name it does not", () => {
       // Unique per run: the warning is once per name, for the whole process.
       const unknown = "unnamed" + Math.random().toString(36).slice(2);
