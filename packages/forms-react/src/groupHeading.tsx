@@ -12,6 +12,8 @@ import { createContext, useContext } from "react";
  */
 export interface GroupHeading {
   level: number;
+  /** Has a `title` of its own: a group inside that is only layout claims for itself. */
+  titled: boolean;
   claim(): () => void;
 }
 

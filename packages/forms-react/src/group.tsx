@@ -18,7 +18,11 @@ import {
   republish,
   resolveImpl,
 } from "./boundaryParts.js";
-import { GroupHeadingContext, type GroupHeading } from "./groupHeading.js";
+import {
+  GroupHeadingContext,
+  useGroupHeading,
+  type GroupHeading,
+} from "./groupHeading.js";
 
 /**
  * A group body drawn as a flex box with no CSS — an inline style, or the
@@ -213,24 +217,34 @@ export function groupRenderer<P extends object = {}>(
     // option — and reaches the children as a scope facet.
     const { transitions, clearHidden } = props;
     const title = getProp(rc, props.title);
+    const variant = getProp(rc, props.variant);
     // A display inside that is this group's title (`heading="group"`) claims
     // it, from its commit effect.
     const claims = useControl(0);
     const claimed = rc.getValue(claims) > 0;
     // A titled group is a level in the outline: what is inside it heads one
     // deeper. Inline prose has no outline.
-    const titled =
-      ((title !== undefined && title !== null) || claimed) && !options?.inline;
-    const heading = useMemo<GroupHeading>(
+    const hasTitle = title !== undefined && title !== null;
+    const titled = (hasTitle || claimed) && !options?.inline;
+    const own = useMemo<GroupHeading>(
       () => ({
         level: bound.headingLevel,
+        titled: hasTitle,
         claim: () => {
           update((wc) => wc.updateValue(claims, (n) => n + 1));
           return () => update((wc) => wc.updateValue(claims, (n) => n - 1));
         },
       }),
-      [bound.headingLevel, claims, update],
+      [bound.headingLevel, hasTitle, claims, update],
     );
+    // A group that is only layout — no title, no named look, no scope —
+    // is no part of the outline, so a title inside it is the enclosing
+    // group's: a page header laid out in nested groups still titles the
+    // page. Not past a group with a title of its own, which would then have
+    // two: the outermost layout group below it, or below nothing, takes it.
+    const above = useGroupHeading();
+    const layoutOnly = !hasTitle && variant === undefined && !options?.scope;
+    const heading = layoutOnly && above && !above.titled ? above : own;
     const scope = useMemo(
       () =>
         options?.inline ||
@@ -263,7 +277,7 @@ export function groupRenderer<P extends object = {}>(
       kind: options?.inline ? "inline" : options?.scope ? "section" : "contents",
       title,
       headingLevel: bound.headingLevel,
-      variant: getProp(rc, props.variant),
+      variant,
       className: getProp(rc, props.className),
       shellClassName: getProp(rc, props.shellClassName),
       labelClassName: getProp(rc, props.labelClassName),

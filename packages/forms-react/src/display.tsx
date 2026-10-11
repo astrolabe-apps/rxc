@@ -134,6 +134,13 @@ export interface TextDisplayExtra {
    *   1 of 2" above the page's heading, an image above it on a phone — which
    *   a group's `title`, always drawn first, cannot have. Outside any group,
    *   or in prose, it is an ordinary heading.
+   *
+   *   A group that is only layout — no `title`, no `variant`, not a section
+   *   — is no part of the outline, so the claim passes through it to the
+   *   group above: a page header laid out in nested groups still titles the
+   *   page. It stops at a group that is more than layout, and never passes a
+   *   group with a `title` of its own; with nothing above to take it, the
+   *   outermost layout group does.
    */
   heading?: FormProp<boolean | "group">;
   /**

@@ -806,6 +806,12 @@ the page title on a phone).
   unclaimed levels until hydration — which matches, and then settles (forms-html's SSR test).
   Nothing changes in the implementations: a `"group"` heading is a heading, at the level handed
   over.
+- *Revised after the MAST alpha.6 trial (P1):* "nearest group" included groups that are only
+  layout, so a page header laid out in nested groups titled the header rather than the page, and
+  the page's sections headed beside its title. A group with no `title`, no `variant` and no scope
+  now passes the claim to the group above. The claim stops at a group that is more than layout,
+  never passes one with a `title` of its own, and falls to the outermost layout group when
+  nothing above takes it — so a lone group's heading, the case above, is unchanged.
 
 **Checks that move nothing, and focus (N4, N5, the tabs reveal). ✅**
 - `WizardController.check()`: the page's check without moving, for a page whose next page a

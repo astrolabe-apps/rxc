@@ -630,6 +630,68 @@ describe("the group boundary", () => {
     ]);
   });
 
+  it("passes a group heading's claim through groups that are only layout", () => {
+    const outline = () =>
+      $$("[data-title], [data-heading]").map((t) => [
+        t.textContent,
+        t.getAttribute("data-level") ?? t.getAttribute("data-heading"),
+      ]);
+    const page = (Outer: typeof Group) => (
+      <Outer>
+        <Group className="header">
+          <Show text="An image" />
+          <Group className="header-text">
+            <Show text="Before you start" heading="group" />
+          </Group>
+        </Group>
+        <Group title="What's involved">{null}</Group>
+      </Outer>
+    );
+    // To the section, past two layout groups: the page's sections head one deeper.
+    mount(page(Section));
+    expect(outline()).toEqual([
+      ["Before you start", "2"],
+      ["What's involved", "3"],
+    ]);
+    // With no group above that is more than layout, to the outermost.
+    mount(page(Group));
+    expect(outline()).toEqual([
+      ["Before you start", "2"],
+      ["What's involved", "3"],
+    ]);
+    // A named look makes a group a part of the outline: the claim stops there.
+    mount(
+      <Section>
+        <Group variant="card">
+          <Show text="Card title" heading="group" />
+          <Group title="Inside the card">{null}</Group>
+        </Group>
+        <Group title="Beside the card">{null}</Group>
+      </Section>,
+    );
+    expect(outline()).toEqual([
+      ["Card title", "2"],
+      ["Inside the card", "3"],
+      ["Beside the card", "2"],
+    ]);
+    // Not past a group with a title of its own: the layout group below it takes it.
+    mount(
+      <Group title="Address">
+        <Group className="row">
+          <Show text="Postal" heading="group" />
+          <Group title="Inside postal">{null}</Group>
+        </Group>
+        <Group title="Beside postal">{null}</Group>
+      </Group>,
+    );
+    expect(outline()).toEqual([
+      ["Address", "2"],
+      ["Postal", "3"],
+      ["Inside postal", "4"],
+      ["Beside postal", "3"],
+    ]);
+  });
+
   it("draws a group heading in prose, or outside any group, as an ordinary heading", () => {
     const levels = () => $$("[data-heading]").map((t) => t.getAttribute("data-heading"));
     mount(
