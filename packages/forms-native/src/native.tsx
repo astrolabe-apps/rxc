@@ -445,6 +445,8 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           onValueChange={toggle}
           disabled={locked}
           {...a11y}
+          // React Native's Switch passes no `aria-label` to Android's view
+          accessibilityLabel={a11y["aria-label"]}
           {...webOnly({ "aria-required": p.required || undefined })}
         />
       ) : (
@@ -1016,7 +1018,9 @@ function SizedImage({
         ...(height !== undefined
           ? { height }
           : ratio !== undefined
-            ? { aspectRatio: ratio }
+            ? // `auto` over the height React Native's Image puts in its base
+              // style for a sized source, which would win over the ratio
+              { aspectRatio: ratio, height: "auto" as const }
             : { height: 0 }),
       }}
     />
