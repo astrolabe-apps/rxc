@@ -33,6 +33,31 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  * native controls globally, mark the slot's utilities important (`!w-[13px]`)
  * or give the theme a wrapper class to scope them under.
  *
+ * **A variant is added beside the base slot, not merged over it.** A named
+ * look's classes (`text.variants`, `contents.variants`, `action.variants`)
+ * land on the same element as the base slot's, and two utilities of one
+ * kind on one element — a base `text-[18px]` and a variant's `text-[40px]` —
+ * resolve by stylesheet order, not by which one is the variant's. So shape
+ * the base around what the variants change:
+ *
+ * - **Text: put the body look on the wrapper.** Give `displayShell.display`
+ *   the base typography (size, weight, line height) and keep `text.className`
+ *   to what no variant sets (`m-0`). The text element inherits the body look,
+ *   and a variant on the element itself wins by inheritance, whatever the
+ *   stylesheet order.
+ * - **Headings: the level's class is on the element too.** A heading variant
+ *   (`pageTitle`) and `text.heading.levels[n]` share the element, so the
+ *   wrapper doesn't help. Keep `text.heading.className` to what no heading
+ *   variant changes, put size, weight and leading in `levels`, and mark the
+ *   variant's utilities for those important (`!text-[40px]`).
+ * - **Groups and actions: leave out of the base what a variant changes.**
+ *   The Tailwind theme leaves an action's padding to its variants; a group
+ *   variant that only adds a box (background, border, radius, padding) to a
+ *   wrapper whose base sets display and gap never conflicts.
+ *
+ * React Native's theme merges with `tailwind-merge` instead, so none of this
+ * applies there: a variant's utility wins over the base's of the same kind.
+ *
  * @group Theming
  */
 export interface HtmlTheme {
@@ -256,7 +281,12 @@ export interface HtmlTheme {
   };
   /** The wrapper a display or a button sits in. */
   displayShell: {
-    /** Around a display. Not its colour: that is `color`, which a tone replaces. */
+    /**
+     * Around a display. Not its colour: that is `color`, which a tone
+     * replaces. The place for a display's base typography, which the text
+     * inherits — so a text variant on the element wins over it whatever the
+     * stylesheet order (see {@link HtmlTheme}).
+     */
     display: string;
     /**
      * A display's base text colour, dropped when it has a tone — so a tone
@@ -282,7 +312,11 @@ export interface HtmlTheme {
   };
   /** The text display. */
   text: {
-    /** As a block. */
+    /**
+     * As a block. Keep it to what no text variant sets (`m-0`), with the base
+     * typography on `displayShell.display`: a variant is added beside this
+     * class, not merged over it (see {@link HtmlTheme}).
+     */
     className: string;
     /** Inside an inline group. */
     inline: string;
@@ -292,9 +326,13 @@ export interface HtmlTheme {
      * place, 1 to 6. In place of the block `className`, not added to it.
      */
     heading: {
-      /** On every heading. */
+      /** On every heading. Keep it to what no heading variant changes. */
       className: string;
-      /** Beside it, by the heading's level. */
+      /**
+       * Beside it, by the heading's level: the size, weight and leading. A
+       * heading variant lands on the same element, so its utilities for
+       * these need `!` to win (see {@link HtmlTheme}).
+       */
       levels: Record<1 | 2 | 3 | 4 | 5 | 6, string>;
     };
     /**
@@ -364,7 +402,8 @@ export interface HtmlTheme {
      * variant's `px-0` — resolve by stylesheet order, not by which slot is
      * the variant's. Leave out of the base what a variant changes, as the
      * Tailwind theme does with padding, or mark the variant's `!`. The same
-     * holds for `text.variants` and `contents.variants`.
+     * holds for `text.variants` and `contents.variants` (see
+     * {@link HtmlTheme}).
      */
     variants: Record<"primary" | "secondary" | "link", ActionVariantClasses> &
       Record<string, ActionVariantClasses>;
@@ -780,14 +819,15 @@ export const tailwindHtmlTheme: HtmlTheme = {
     heading: {
       // A group title's look at every level, as the group titles have: a
       // heading's rank is the outline's, and sizes per level are the app's.
-      className: "rxf-heading m-0 font-bold",
+      // The weight is on the levels, beside where a heading variant's lands.
+      className: "rxf-heading m-0",
       levels: {
-        1: "rxf-heading-1",
-        2: "rxf-heading-2",
-        3: "rxf-heading-3",
-        4: "rxf-heading-4",
-        5: "rxf-heading-5",
-        6: "rxf-heading-6",
+        1: "rxf-heading-1 font-bold",
+        2: "rxf-heading-2 font-bold",
+        3: "rxf-heading-3 font-bold",
+        4: "rxf-heading-4 font-bold",
+        5: "rxf-heading-5 font-bold",
+        6: "rxf-heading-6 font-bold",
       },
     },
     variants: {},

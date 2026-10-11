@@ -195,3 +195,36 @@ supplied from a `.native.ts` module beside the web's:
 `aria-label` and `accessibilityHint` on native, and `aria-labelledby` /
 `aria-describedby` by id on the web (react-native-web). A label or help that is
 a node is flattened to its words for native's string name.
+
+## One form source for the web and native
+
+The same page component can draw under `forms-html` on the web and under
+`nativeRenderers` on a device, copied byte for byte. What the ServiceTas trial
+needed for that:
+
+- **A page imports a model, not its data layer.** The page's types, keys and
+  actions live in a small module of their own (`eoiModel.ts`: the page keys,
+  the form data's shape, the actions as functions that answer). The data layer
+  implements it and hands it in. A page that takes its type from the data
+  layer (`ReturnType<typeof useWizardData>`) drags in the API clients and
+  generated schemas with it, and won't type-check or bundle anywhere else.
+- **What differs by platform sits behind one seam.** Icons and image sources
+  are the usual difference: a `platform.tsx` the web uses and a
+  `platform.native.tsx` beside it, which Metro picks by itself. Type the native
+  maps against the web's, so a name missing on one platform is a type error:
+
+  ```ts
+  // platform.native.tsx
+  import type { icons as webIcons } from "./platform";
+  export const icons = {
+    next: "→",
+    warning: "⚠",
+  } satisfies Record<keyof typeof webIcons, unknown>;
+  ```
+
+- **Looks are roles, so the theme carries them.** The form names `variant`s
+  (`pageTitle`, `taskCard`), and each platform's theme says what they look
+  like: an html theme and a `NativeTheme` with the same names. The slot names
+  match where the two draw the same thing, so the port is the classes.
+- **A row in an author's `className` needs `shrink`** on the child that should
+  give way (see "Flex items don't shrink", above).
