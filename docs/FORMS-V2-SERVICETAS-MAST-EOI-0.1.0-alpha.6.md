@@ -57,7 +57,8 @@ and the intro) but no image. Page 3 is the only one with a required field behind
 `check()` and a `labelEnd` help button, which the device checks need. So all three run, in one
 `Wizard` (`navigation="none"`), over one copy of the component layer.
 
-The screen was `apps/native-dev/src/mast/Mast.tsx` ("MAST" in the app's screen row), local to this run and not committed. The
+The screen was a "MAST" entry in `apps/native-dev`, local to the run; it now lives in ServiceTas
+as `components/mast/eoi-v2/EoiTrialScreen.native.tsx` (`c1db6634`, see the end). The
 data layer is a fake: plain controls holding a profile, and actions that answer as MAST might,
 without calling it. Auto-linking fails, so "Link my account" leads to page 3. The first name is
 `Jo <Sam> & Co`, to check the `html` template.
@@ -110,7 +111,8 @@ Both maps are typed `satisfies Record<keyof typeof webIcons, unknown>` (and the 
 
 ### The native theme's roles against the html theme's
 
-`apps/native-dev/src/mast/mastTheme.ts` is a `PartialNativeTheme` with the same 14 names.
+`forms-v2/serviceTasTheme.native.ts` (ServiceTas, `c1db6634`) is a `PartialNativeTheme` with the
+same 14 names.
 Colours are given by value (`#098851`, `#343534`), because `native-dev`'s Tailwind config doesn't
 carry ServiceTas's palette; an app with it would write `text-primary` as the web does.
 
@@ -534,7 +536,15 @@ unknown variant name, as designed.
 
 - **The P3 and P4 fixes** are committed on `main` (`21b24ae`). forms-native's suite passes,
   49 of 49.
-- **The MAST screen stays out of the repo.** That covers `apps/native-dev/src/mast/`
-  (`Mast.tsx`, `mastTheme.ts`, and the copied ServiceTas source), its `App.tsx` entry and its
-  `.gitignore` line. The screen imports ServiceTas's own source, which isn't the public repo's
-  to carry.
+- **The MAST screen stays out of the repo.** It imports ServiceTas's own source, which isn't the
+  public repo's to carry. What was written for it moved to the ServiceTas trial branch
+  (`c1db6634`), since it is the app's own native side:
+  - `forms-v2/platform.native.tsx`, with its two images in `forms-v2/assets/`;
+  - `forms-v2/serviceTasTheme.native.ts`, the theme above;
+  - `components/mast/eoi-v2/EoiTrialScreen.native.tsx`, the screen and its fake data layer.
+
+  `client-common`'s `tsc` now excludes `*.native.*`, having no React Native; the three files
+  type-check in `apps/native-dev`, checked after the move. To run the trial again, copy the
+  pages, `eoiModel.ts`, `forms-v2/` and `custom-display/HowToFindLicenceNumber.tsx` into
+  `apps/native-dev/src/` keeping client-common's tree, and show `EoiTrialScreen`. Nothing is
+  written in rxc.
