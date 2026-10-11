@@ -111,8 +111,8 @@ const native: PartialNativeTheme = {
   },
   contents: {
     variants: {
-      card: { className: "rounded-lg bg-gray-100 p-4" },
-      callout: { className: "border-l-4 border-green-600 pl-4", title: "text-green-800" },
+      card: { wrapper: "rounded-lg bg-gray-100 p-4" },
+      callout: { wrapper: "border-l-4 border-green-600 pl-4", title: "text-green-800" },
     },
   },
   action: {

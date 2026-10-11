@@ -74,7 +74,7 @@ import {
   type RichTextRenderProps,
 } from "@rx-controls/forms-react";
 import { twMerge } from "tailwind-merge";
-import { useNativeTheme } from "./theme.js";
+import { useNativeTheme, type NativeTheme } from "./theme.js";
 
 // ── Accessibility, for both of React Native's targets ────────────────
 //
@@ -176,8 +176,41 @@ function useLeaveGroup(onLeave: () => void) {
 
 // ── Shell and frame ───────────────────────────────────────────────────
 
+type ShellTheme = NativeTheme["shell"];
+/** Each theme's shell per widget, merged once. */
+const shellsFor = new WeakMap<NativeTheme, Map<string, ShellTheme>>();
+
+/** The shell slots for a widget: `shellFor[widget]` over `shell`. */
+function shellOf(theme: NativeTheme, widget: string | undefined): ShellTheme {
+  const over = widget === undefined ? undefined : theme.shellFor[widget];
+  if (!over) return theme.shell;
+  let cache = shellsFor.get(theme);
+  if (!cache) shellsFor.set(theme, (cache = new Map()));
+  let merged = cache.get(widget!);
+  if (!merged) {
+    merged = {
+      ...theme.shell,
+      ...(over as Partial<ShellTheme>),
+      helpButton: {
+        ...theme.shell.helpButton,
+        ...(over.helpButton as Partial<ShellTheme["helpButton"]>),
+      },
+    };
+    cache.set(widget!, merged);
+  }
+  return merged;
+}
+
+/**
+ * What pressing the shell's label does: set by a widget whose label toggles
+ * it, as a web `<label>` toggles its checkbox. Native has no such element, so
+ * the label is pressable itself.
+ */
+const LabelPressContext = createContext<(() => void) | undefined>(undefined);
+
 function NativeFieldShell(p: FieldShellProps) {
-  const t = useNativeTheme().shell;
+  const t = shellOf(useNativeTheme(), p.widget);
+  const onLabelPress = useContext(LabelPressContext);
   const [helpOpen, setHelpOpen] = useState(false);
   const hasLabel = p.label !== undefined && p.label !== null;
   const after = p.labelPosition === "after";
@@ -191,6 +224,9 @@ function NativeFieldShell(p: FieldShellProps) {
       // web's aria-labelledby still names the control by this element.
       importantForAccessibility="no-hide-descendants"
       accessibilityElementsHidden
+      // The control is what assistive technology presses; this is for a
+      // finger, so it stays out of the tree like the rest of the label.
+      onPress={onLabelPress}
     >
       {p.label}
       {p.required && (
@@ -421,6 +457,7 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
   };
   const a11y = fieldA11y(p);
   return ctl.rendered(
+    <LabelPressContext.Provider value={locked ? undefined : () => toggle(!ctl.checked)}>
     <Shell
       widget="checkbox"
       id={p.id}
@@ -470,7 +507,8 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           )}
         </Pressable>
       )}
-    </Shell>,
+    </Shell>
+    </LabelPressContext.Provider>,
   );
 }
 
@@ -785,7 +823,7 @@ function NativeContents(p: GroupRenderProps) {
   return (
     // Hiding is a style, not a class: it must work with no stylesheet.
     <View
-      className={mergeClass(cx(t.className, look?.className), p.shellClassName)}
+      className={mergeClass(cx(t.wrapper, look?.wrapper), p.shellClassName)}
       style={p.hidden ? { display: "none" } : undefined}
     >
       {p.title !== undefined && p.title !== null && (
@@ -816,7 +854,7 @@ function NativeInline(p: GroupRenderProps) {
   if (p.variant !== undefined && look === undefined) warnUnknownVariant("group", p.variant);
   return (
     <View
-      className={mergeClass(cx(t.className, look), p.className)}
+      className={mergeClass(cx(t.wrapper, look?.wrapper), p.className)}
       style={p.hidden ? { display: "none" } : undefined}
     >
       {wrapText(p.children, text.className)}
@@ -1152,7 +1190,12 @@ function NativeAction(p: ActionRenderProps) {
   ) : (
     p.icon
   );
-  const icon = shown != null && shown !== false && <View className={t.iconClassName}>{wrapText(shown)}</View>;
+  const textClass = mergeClass(cx(t.textClassName, variant.textClassName), p.textClassName);
+  // A glyph is drawn in the text's look, since React Native text inherits
+  // nothing from the button: that is how it takes the button's colour.
+  const icon = shown != null && shown !== false && (
+    <View className={t.iconClassName}>{wrapText(shown, cx(textClass, t.iconTextClassName))}</View>
+  );
   return (
     <Pressable
       role="button"
@@ -1165,7 +1208,7 @@ function NativeAction(p: ActionRenderProps) {
       {p.iconPlacement !== "after" && icon}
       {p.iconPlacement !== "replace" &&
         (p.children ?? (
-          <Text className={mergeClass(cx(t.textClassName, variant.textClassName), p.textClassName)}>
+          <Text className={textClass}>
             {p.text}
           </Text>
         ))}

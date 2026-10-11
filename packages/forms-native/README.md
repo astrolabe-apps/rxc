@@ -110,7 +110,7 @@ it overrides.
 <NativeThemeProvider
   theme={{
     text: { variants: { lead: "text-lg font-semibold" } },
-    contents: { variants: { card: { className: "rounded-lg bg-gray-100 p-4" } } },
+    contents: { variants: { card: { wrapper: "rounded-lg bg-gray-100 p-4" } } },
     action: { variants: { quiet: { className: "bg-transparent", textClassName: "text-blue-700" } } },
     image: { variants: { rounded: "rounded-xl" } },
   }}
@@ -120,6 +120,33 @@ it overrides.
 ```tsx
 <TextDisplay text="Before you start" variant="lead" />
 ```
+
+The slots are named as `forms-html`'s are where the two draw the same thing — a
+group's `wrapper`, `title` and `body`, a field's `shellFor` — so a theme's roles
+carry across with only their classes rewritten.
+
+**Shells per widget.** `shellFor` merges slots over `shell` for one widget's
+shell, keyed by its `FieldShellProps.widget` (`radio`, `checkbox`, a
+third-party widget's own name), as html's does:
+
+```tsx
+<NativeThemeProvider
+  theme={{
+    shellFor: {
+      radio: { className: "gap-2 rounded-lg bg-gray-100 p-4" },
+      checkbox: { label: "shrink text-lg font-bold" },
+    },
+  }}
+>
+```
+
+**Flex items don't shrink.** On the web a flex item shrinks to fit by default;
+in React Native `flexShrink` is 0, so a long text beside something else in a
+row runs off the screen or out of its button. The default theme's own row
+children shrink — a label, a label row, a button's text — and a theme that
+replaces those slots should keep `shrink` in them. An author's own row in a
+`className` needs `shrink` on the child that should give way (`shrink min-w-0`,
+for one that also lays out the same on the web).
 
 ### Metro in a monorepo
 

@@ -24,7 +24,7 @@ import type { Tone } from "@rx-controls/forms-react";
  */
 export interface GroupVariantClasses {
   /** Added to the wrapper around title and body. */
-  className?: string;
+  wrapper?: string;
   /** Added to the title. */
   title?: string;
   /** Added to the body. */
@@ -37,7 +37,11 @@ export interface GroupVariantClasses {
 export interface ActionVariantClasses {
   /** Added to the button. */
   className?: string;
-  /** Added to its text. */
+  /**
+   * Added to its text, and to an icon given as a string: React Native text
+   * inherits nothing from the button around it, so this is how a glyph
+   * takes the button's colour.
+   */
   textClassName?: string;
 }
 
@@ -47,11 +51,23 @@ export interface ActionVariantClasses {
  * @group Theming
  */
 export interface NativeTheme {
+  /**
+   * The field shell, per widget: slots merged over `shell` for the shell
+   * around that widget (`FieldShellProps.widget` — `select`, `checkbox`, or
+   * a third-party widget's own name). For a look whose shells differ by
+   * widget: a card behind each radio question, a larger label beside a
+   * switch. Keyed as html's `shellFor` is.
+   */
+  shellFor: Partial<Record<string, DeepPartial<NativeTheme["shell"]>>>;
   /** The field shell. */
   shell: {
     /** The outer element: label, control, help, error. */
     className: string;
-    /** The label. */
+    /**
+     * The label. In a row (a checkbox's, `labelEnd` help's) it sits beside
+     * other items, and React Native's flex items do not shrink unless told:
+     * keep `shrink` here, or a long label pushes the control off the screen.
+     */
     label: string;
     /** The required marker, inside the label. */
     required: string;
@@ -70,7 +86,10 @@ export interface NativeTheme {
     requiredNote: string;
     /** A trailing label beside its control (a checkbox's): the row. */
     afterRow: string;
-    /** `labelEnd` help: the label and its button side by side. */
+    /**
+     * `labelEnd` help: the label and its button side by side. In a
+     * `horizontal` row, beside the control, so it shrinks as `label` does.
+     */
     labelRow: string;
     /**
      * A label beside its control (`orientation: "horizontal"` — a checkbox
@@ -173,7 +192,7 @@ export interface NativeTheme {
   /** The standard group. */
   contents: {
     /** The wrapper around title and body. */
-    className: string;
+    wrapper: string;
     /** The title, a heading. */
     title: string;
     /** The body the children sit in. */
@@ -189,9 +208,12 @@ export interface NativeTheme {
   /** An inline group: prose. */
   inline: {
     /** Its element. */
-    className: string;
-    /** Named looks for an inline group, added to its element. */
-    variants: Record<string, string>;
+    wrapper: string;
+    /**
+     * Named looks for an inline group, as `contents.variants`: `wrapper` is
+     * added to its element (an inline group draws no title or body).
+     */
+    variants: Record<string, GroupVariantClasses>;
   };
   /** The text display. */
   text: {
@@ -260,10 +282,20 @@ export interface NativeTheme {
   action: {
     /** Every button. */
     className: string;
-    /** Every button's text. */
+    /**
+     * Every button's text. React Native's flex items do not shrink unless
+     * told, so keep `shrink` here: a long label beside an icon otherwise
+     * pushes the icon out of the button.
+     */
     textClassName: string;
     /** Around its icon, or the spinner in its place. */
     iconClassName: string;
+    /**
+     * Added over the text's classes on an icon given as a string, which is
+     * drawn in the button's text look so it takes the button's colour: what
+     * a glyph should not share with the words (an underline).
+     */
+    iconTextClassName: string;
     /** Added while disabled. */
     disabled: string;
     /**
@@ -352,9 +384,10 @@ export interface NativeTheme {
  * @group Theming
  */
 export const defaultNativeTheme: NativeTheme = {
+  shellFor: {},
   shell: {
     className: "gap-1",
-    label: "text-sm font-semibold text-gray-700",
+    label: "shrink text-sm font-semibold text-gray-700",
     required: "text-red-600",
     help: "text-xs text-gray-500",
     error: "text-sm text-red-600",
@@ -362,7 +395,7 @@ export const defaultNativeTheme: NativeTheme = {
     countOver: "text-xs text-red-600",
     requiredNote: "Required",
     afterRow: "flex-row items-center gap-2",
-    labelRow: "flex-row items-center gap-1",
+    labelRow: "shrink flex-row items-center gap-1",
     horizontal: "flex-row items-center justify-between gap-2",
     helpButton: { className: "px-1", icon: "ⓘ", text: "Help" },
   },
@@ -410,12 +443,12 @@ export const defaultNativeTheme: NativeTheme = {
     icon: "items-center",
   },
   contents: {
-    className: "",
+    wrapper: "",
     title: "mb-2 text-base font-bold text-gray-900",
     body: "gap-4",
     variants: {},
   },
-  inline: { className: "flex-row flex-wrap items-baseline gap-1", variants: {} },
+  inline: { wrapper: "flex-row flex-wrap items-baseline gap-1", variants: {} },
   text: {
     className: "text-base text-gray-800",
     heading: {
@@ -450,8 +483,9 @@ export const defaultNativeTheme: NativeTheme = {
   html: { className: "text-base text-gray-800" },
   action: {
     className: "flex-row items-center justify-center gap-2 rounded-md px-4 py-2",
-    textClassName: "text-sm font-medium",
+    textClassName: "shrink text-sm font-medium",
     iconClassName: "items-center",
+    iconTextClassName: "no-underline",
     disabled: "opacity-50",
     variants: {
       primary: { className: "bg-blue-600", textClassName: "text-white" },
@@ -514,13 +548,14 @@ export type DeepPartial<T> = {
  */
 export type PartialNativeTheme = DeepPartial<NativeTheme>;
 
+/** `over` onto `base`; a key `base` lacks (a `shellFor` widget) starts empty. */
 function merge<T>(base: T, over: DeepPartial<T> | undefined): T {
   if (!over) return base;
   const out = { ...base } as Record<string, unknown>;
   for (const [k, v] of Object.entries(over))
     out[k] =
       v && typeof v === "object" && !isValidElement(v)
-        ? merge((base as Record<string, unknown>)[k], v as never)
+        ? merge((base as Record<string, unknown> | undefined)?.[k], v as never)
         : v;
   return out as T;
 }

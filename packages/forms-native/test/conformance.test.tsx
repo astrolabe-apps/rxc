@@ -10,7 +10,7 @@ describeConformance({
     <NativeThemeProvider
       theme={{
         text: { variants: { lead: "text-lg" } },
-        contents: { variants: { card: { className: "p-4" } } },
+        contents: { variants: { card: { wrapper: "p-4" } } },
         action: { variants: { quiet: { className: "bg-transparent" } } },
         image: { variants: { rounded: "rounded-lg" } },
       }}
