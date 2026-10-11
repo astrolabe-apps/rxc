@@ -194,7 +194,7 @@ Page 2:
 
 **Not settled:** whether the radio group itself is named by its question. forms-native sets
 `aria-label` on the `radiogroup` view, but `uiautomator` doesn't list it. Heading levels don't
-show in `uiautomator` either. Both need TalkBack.
+show in `uiautomator` either. Both need TalkBack, and still do: it's for the next device run.
 
 ### What was checked on the device
 
@@ -248,13 +248,16 @@ utilities of one kind resolve by stylesheet order. Three conflicts came up:
    - **Why it works:** the text element inherits the body look, and a variant on the element wins
      by inheritance, not stylesheet order.
    - **Not in the docs:** nothing in them suggests this. It is the single most useful thing a
-     theme author would need to know.
+     theme author would need to know. In them since (`c099a56`): `HtmlTheme`'s own description, and
+     the slots it concerns.
 2. **A heading level against a heading variant.** `pageTitle` lands on the same element as
    `text.heading.levels[2]` (`html.tsx:690`); the wrapper trick doesn't help, since the level's
    class is on the element.
    - **Shaped:** weight and leading moved from `heading.className` into each level, and
      `pageTitle` uses `!` for size, weight and leading. These are the theme's only `!`s outside
      the documented radio/checkbox ones.
+   - **Documented since (`c099a56`)** as the way to do it, and the built-in Tailwind theme now keeps
+     its weight on the levels too.
 3. **Group variants against the wrapper's base.** `contents.wrapper` is
    `flex flex-col gap-[20px]`. Every group variant only adds a box (background, border, radius,
    padding) and never touches display or gap, so nothing conflicts by construction.
@@ -495,6 +498,8 @@ generated schemas, so a byte-identical copy couldn't type-check or bundle anywhe
   `useEoiWizard` returns it, and the native screen's fake implements it.
 - **Suggest:** not a library change. A line in the docs: a page imports a model, not its data
   layer.
+- **Documented since (`c099a56`):** forms-native's README, "One form source for the web and native",
+  with the platform seam and the roles each theme carries.
 
 ### P9. On native, a switch's label isn't pressable
 
