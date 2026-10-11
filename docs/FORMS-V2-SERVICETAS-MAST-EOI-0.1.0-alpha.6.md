@@ -340,7 +340,9 @@ and the index is an index into it.
 - **forms-native's width-only image (P3) and unnamed switch (P4).**
 - **The native group variant slot is `className`, html's is `wrapper`.** A theme author porting
   roles renames every group variant. A small inconsistency, but it is exactly the file the brief
-  asks to carry over.
+  asks to carry over. Fixed since (`eadadb1`): native's is `wrapper` too, and
+  `contents.className` / `inline.className` with it. `serviceTasTheme.native.ts` renames its five
+  group variants on the next alpha.
 
 ## 5. New gaps
 
@@ -421,6 +423,9 @@ five switches had an empty description.
   `uiautomator` then names each by its label.
 - **Suggest:** that fix. Also audit every native component the implementation spreads `a11y`
   onto, rather than `View` / `Pressable` / `TextInput`, which map it.
+- **Audited since (`eadadb1`):** nothing else. `View`, `Text`, `TextInput` and `Image` map
+  `aria-label` in JS, and `ScrollView` through the native props parser. `Switch` is the only one
+  that doesn't.
 
 ### P5. forms-native: an action's icon can't take its button's text colour
 
@@ -432,6 +437,10 @@ primary button draws black.
   on. That ties the seam to the theme.
 - **Suggest:** wrap a string icon in the variant's `textClassName` (as the text is), or give
   action variants an `iconTextClassName`.
+- **Fixed since, on `main` (`eadadb1`):** both, in a way. A string icon is drawn in the button's
+  text look, the variant's included, so `platform.native.tsx` can go back to plain strings. A
+  new base slot, `action.iconTextClassName` (`no-underline` by default), takes back what a
+  glyph shouldn't share with the words.
 
 ### P6. forms-native has no per-widget shell slot
 
@@ -441,6 +450,9 @@ bold 18px label. `NativeTheme` has one `shell` for every widget.
 - **Done instead:** nothing. On native, questions sit on the page and switch labels are the 24px
   field label.
 - **Suggest:** `shellFor` in `NativeTheme`, keyed the same way.
+- **Fixed since, on `main` (`eadadb1`):** `shellFor` in `NativeTheme`, merged over `shell` per
+  widget as html's is. The native theme can carry the question cards (`radio`) and the switch
+  labels (`checkbox`).
 
 ### P7. React Native's flex items don't shrink unless told
 
@@ -456,6 +468,9 @@ overflowed:
 - **Suggest:** forms-native's default theme shrinks its own row children: action text, label
   row, label. The forms-native README should say that an author's row in `className` needs
   `shrink` on the child that should give way.
+- **Fixed since, on `main` (`eadadb1`):** both. The ServiceTas native theme's own `shrink`s stay
+  right, since it replaces those slots; the one in `components.tsx` is still the author's to
+  keep.
 
 ### P8. The pages imported their data layer
 
@@ -479,6 +494,8 @@ On the web, clicking a checkbox's `<label>` toggles it. On the device, tapping "
 vessel UVI" did nothing; only the switch itself toggles.
 
 - **Suggest:** the label `Text` of a checkbox or switch toggles it on press, as the web's does.
+- **Fixed since, on `main` (`eadadb1`):** pressing a checkbox's label toggles it, box or switch,
+  and touches it as pressing the control does; not while it is locked.
 
 ## 6. Visual parity
 
@@ -547,6 +564,10 @@ unknown variant name, as designed.
 - **The P3 and P4 fixes** are committed on `main` (`21b24ae`). forms-native's suite passes,
   49 of 49.
 - **The P2 fix**, after the report, on `main` (`f56e908`), with a conformance case for it.
+- **The rest of the forms-native gaps**, after the report, on `main` (`eadadb1`): P5, P6, P7, P9,
+  the P4 audit and the group slot's name. What's left is P3's device case: React Native's `Image`
+  sizing can't be reproduced through react-native-web, so a width-only bundled asset is still
+  checked only on a device.
 - **The MAST screen stays out of the repo.** It imports ServiceTas's own source, which isn't the
   public repo's to carry. What was written for it moved to the ServiceTas trial branch
   (`c1db6634`), since it is the app's own native side:
