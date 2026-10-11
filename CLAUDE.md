@@ -165,7 +165,7 @@ Gated by `shouldPublish` in `rush.json`:
 | `@rx-controls/core` | 1.1.4 | `latest` |
 | `@rx-controls/react` | 1.1.5 | `latest` |
 | `@react-typed-forms/core` (the compat package) | 5.1.5 | `latest` |
-| `@rx-controls/forms-schema`, `-react`, `-json`, `-html`, `-mui`, `-antd`, `-fluent`, `-native` | 0.1.0-alpha.6 | `alpha` |
+| `@rx-controls/forms-schema`, `-react`, `-json`, `-html`, `-mui`, `-antd`, `-fluent`, `-native` | 0.1.0-alpha.7 | `alpha` |
 
 The apps and `tools/` packages are never published. A consumer of Forms v2 asks for `@alpha`:
 npm pointed each v2 package's `latest` at `0.1.0-alpha.0` too, since it always tags a
