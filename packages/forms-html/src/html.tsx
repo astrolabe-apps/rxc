@@ -741,6 +741,9 @@ function HtmlText(p: TextDisplayRenderProps) {
 function HtmlIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const { displayShell, icon: t } = useHtmlTheme();
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : t.variants[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
   return rendered(
     <DisplayShell
       shellClassName={p.shellClassName}
@@ -752,9 +755,10 @@ function HtmlIcon(p: IconDisplayRenderProps) {
     >
       <span
         className={mergeClass(
-          t.className,
+          join(t.className, look),
           combineClass(p.className, p.textClassName),
         )}
+        data-variant={variant}
         role="img"
         aria-label={p.accessibleName}
         title={p.accessibleName}
@@ -923,6 +927,11 @@ function HtmlWizard(p: WizardRenderProps) {
  */
 function HtmlDisclosure(p: DisclosureRenderProps) {
   const t = useHtmlTheme().disclosure;
+  const icon = t.icon != null && (
+    <span className={t.iconClassName || undefined} data-open={p.open ? "" : undefined} aria-hidden="true">
+      {t.icon}
+    </span>
+  );
   return (
     <details
       className={mergeClass(t.className, p.className)}
@@ -941,12 +950,9 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
           p.setOpen(!p.open);
         }}
       >
-        {t.icon != null && (
-          <span className={t.iconClassName || undefined} data-open={p.open ? "" : undefined} aria-hidden="true">
-            {t.icon}
-          </span>
-        )}
+        {t.iconPlacement !== "after" && icon}
         {p.title}
+        {t.iconPlacement === "after" && icon}
         {p.invalid && (
           <span className={t.invalidMarker} aria-hidden="true">
             {"\u25CF"}

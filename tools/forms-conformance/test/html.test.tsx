@@ -15,6 +15,7 @@ const looks = (node: ReactNode) => (
       contents: { variants: { card: { wrapper: "card" } } },
       action: { variants: { quiet: { className: "quiet" } } },
       image: { variants: { rounded: "rounded" } },
+      icon: { variants: { large: "text-3xl" } },
     }}
   >
     {node}

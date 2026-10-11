@@ -749,6 +749,11 @@ function MuiText(p: TextDisplayRenderProps) {
 function MuiIcon(p: IconDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const theme = useTheme();
+  const icons = useMuiVariants().icon;
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : icons?.[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
   const glyph = (
     <Typography
       component="span"
@@ -758,7 +763,8 @@ function MuiIcon(p: IconDisplayRenderProps) {
         undefined,
         combineClass(p.className, p.textClassName),
       )}
-      sx={{ fontSize: 24, lineHeight: 1 }}
+      data-variant={variant}
+      sx={{ fontSize: 24, lineHeight: 1, ...(typeof look === "function" ? look(theme) : look) }}
     >
       {getProp(rc, p.icon)}
     </Typography>

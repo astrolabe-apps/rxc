@@ -6,6 +6,7 @@ const variants: AntdVariants = {
   group: { card: { wrapper: (t) => ({ padding: t.paddingMD }) } },
   action: { quiet: { type: "text" } },
   image: { rounded: (t) => ({ borderRadius: t.borderRadiusLG }) },
+  icon: { large: (t) => ({ fontSize: t.fontSizeHeading1 }) },
 };
 describeConformance({
   name: "Ant",

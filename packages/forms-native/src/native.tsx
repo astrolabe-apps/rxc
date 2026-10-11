@@ -923,18 +923,24 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
 function NativeIcon(p: IconDisplayRenderProps): Rendered {
   const { rc, rendered } = useReactive();
   const { icon: t, text } = useNativeTheme();
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : t.variants[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
   const live = liveRegion(p.announce, p.tone);
   if (p.regionOnly) return rendered(<View {...live} />);
   const glyph = getProp(rc, p.icon);
+  // On the view and on a glyph's Text alike, as the base is: a size or a
+  // colour reaches a string glyph only on its Text.
+  const cls = cx(t.className, look, p.tone && text.tones[p.tone]);
   return rendered(
     <View
       {...live}
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(cx(t.className, p.tone && text.tones[p.tone]), p.shellClassName)}
+      className={mergeClass(cls, p.shellClassName)}
     >
       {typeof glyph === "string" ? (
-        <Text className={mergeClass(cx(t.className, p.tone && text.tones[p.tone]), p.className)}>
+        <Text className={mergeClass(cls, p.className)}>
           {glyph}
         </Text>
       ) : (
@@ -1381,6 +1387,11 @@ function NativeDialog(p: DialogRenderProps) {
 /** A toggle and its content; closed, the content is mounted and hidden. */
 function NativeDisclosure(p: DisclosureRenderProps) {
   const t = useNativeTheme().disclosure;
+  const icon = (
+    <View aria-hidden style={p.open ? { transform: [{ rotate: "90deg" }] } : undefined}>
+      <Text className={t.title}>{t.icon}</Text>
+    </View>
+  );
   return (
     <View
       className={mergeClass(t.className, p.className)}
@@ -1393,10 +1404,9 @@ function NativeDisclosure(p: DisclosureRenderProps) {
         className={t.toggle}
         {...webOnly({ "aria-controls": p.id })}
       >
-        <View aria-hidden style={p.open ? { transform: [{ rotate: "90deg" }] } : undefined}>
-          <Text className={t.title}>{t.icon}</Text>
-        </View>
+        {t.iconPlacement !== "after" && icon}
         <Text className={t.title}>{p.title}</Text>
+        {t.iconPlacement === "after" && icon}
         {p.invalid && (
           <Text aria-hidden className={t.invalidMarker}>
             {"●"}

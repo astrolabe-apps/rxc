@@ -379,6 +379,13 @@ export interface HtmlTheme {
   icon: {
     /** Its element. */
     className: string;
+    /**
+     * Named looks (`IconDisplay variant` — "large", "note"), each added to
+     * the element beside `className`. A name not here draws the base look,
+     * with a warning in development; the element carries the name as
+     * `data-variant` either way.
+     */
+    variants: Record<string, string>;
   };
   /** Buttons. */
   action: {
@@ -456,11 +463,17 @@ export interface HtmlTheme {
     /** The `<summary>` — the toggle. */
     summary: string;
     /**
-     * What the toggle shows before its title — a chevron, an icon component
+     * What the toggle shows beside its title — a chevron, an icon component
      * — in place of the browser's own marker, which `summary` should then
      * hide. `null` keeps the browser's marker.
      */
     icon: ReactNode;
+    /**
+     * Which side of the title `icon` sits: `before`, or `after` for a
+     * chevron at the title's end. The invalid marker stays after the title
+     * either way.
+     */
+    iconPlacement: "before" | "after";
     /**
      * Around `icon`, `aria-hidden`. Marked `data-open` while open, so the
      * theme turns it.
@@ -645,7 +658,7 @@ export const defaultHtmlTheme: HtmlTheme = {
   },
   image: { className: "rxf-image", variants: {} },
   html: { className: "rxf-html" },
-  icon: { className: "rxf-icon" },
+  icon: { className: "rxf-icon", variants: {} },
   action: {
     className: "rxf-btn",
     textClassName: "",
@@ -682,6 +695,7 @@ export const defaultHtmlTheme: HtmlTheme = {
     className: "rxf-disclosure",
     summary: "rxf-disclosure-summary",
     icon: null,
+    iconPlacement: "before",
     iconClassName: "rxf-disclosure-icon",
     content: "rxf-disclosure-content",
     invalidMarker: "rxf-disclosure-dot",
@@ -844,7 +858,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
   // Never wider than what holds it.
   image: { className: "rxf-image max-w-full", variants: {} },
   html: { className: "rxf-html" },
-  icon: { className: "rxf-icon" },
+  icon: { className: "rxf-icon", variants: {} },
   // action.buttonClass, over the standard palette in place of `primary-500`.
   action: {
     className:
@@ -908,6 +922,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
     summary:
       "rxf-disclosure-summary flex cursor-pointer list-none items-center gap-1.5 select-none font-medium text-gray-700 [&::-webkit-details-marker]:hidden",
     icon: "\u25B8",
+    iconPlacement: "before",
     iconClassName:
       "rxf-disclosure-icon inline-block transition-transform duration-150 data-[open]:rotate-90",
     content: "rxf-disclosure-content mt-2",

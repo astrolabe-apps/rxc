@@ -240,8 +240,14 @@ export interface NativeTheme {
   };
   /** The icon display. */
   icon: {
-    /** Its element. */
+    /** Its element, and a glyph given as a string. */
     className: string;
+    /**
+     * Named looks (`IconDisplay variant` — "large", "note"), merged over the
+     * base. A name not here draws the base look, with a warning in
+     * development.
+     */
+    variants: Record<string, string>;
   };
   /** Rich text (`RichText`): nested `Text`, inheriting what it sits in. */
   richText: {
@@ -365,6 +371,11 @@ export interface NativeTheme {
     title: string;
     /** What the toggle shows beside its text; turned while open. */
     icon: ReactNode;
+    /**
+     * Which side of the title `icon` sits: `before`, or `after` for a
+     * chevron at the title's end. The invalid marker stays last.
+     */
+    iconPlacement: "before" | "after";
     /** The marker on a toggle whose content has an error. */
     invalidMarker: string;
     /** Around the content. */
@@ -470,7 +481,7 @@ export const defaultNativeTheme: NativeTheme = {
     },
     variants: {},
   },
-  icon: { className: "text-xl" },
+  icon: { className: "text-xl", variants: {} },
   image: { className: "", variants: {} },
   richText: {
     strong: "font-bold",
@@ -524,6 +535,7 @@ export const defaultNativeTheme: NativeTheme = {
     toggle: "flex-row items-center gap-2 py-2",
     title: "text-base font-medium text-gray-700",
     icon: "▸",
+    iconPlacement: "before",
     invalidMarker: "text-[9px] text-red-600",
     content: "pt-2",
   },

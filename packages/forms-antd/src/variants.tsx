@@ -66,6 +66,8 @@ export interface AntdVariants {
   action?: Record<string, AntActionVariant>;
   /** An `ImageDisplay`'s variants: a style on the image. */
   image?: Record<string, AntStyle>;
+  /** An `IconDisplay`'s variants: a style on the glyph, over its own size. */
+  icon?: Record<string, AntStyle>;
 }
 
 const { Provider, useVariants } = createVariantsContext<AntdVariants>("AntdVariantsProvider");

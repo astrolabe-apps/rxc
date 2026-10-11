@@ -803,6 +803,11 @@ function AntText(p: TextDisplayRenderProps) {
 function AntIcon(p: IconDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
+  const { token } = theme.useToken();
+  const icons = useAntdVariants().icon;
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : icons?.[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
   const glyph = (
     <span
       role="img"
@@ -811,7 +816,8 @@ function AntIcon(p: IconDisplayRenderProps) {
         undefined,
         combineClass(p.className, p.textClassName),
       )}
-      style={{ fontSize: 24, lineHeight: 1 }}
+      data-variant={variant}
+      style={{ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token)) }}
     >
       {getProp(rc, p.icon)}
     </span>

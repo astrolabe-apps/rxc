@@ -232,6 +232,25 @@ describe("Disclosure", () => {
     mount(<Disclosure title="Plain">{null}</Disclosure>);
     expect($(".rxf-disclosure-icon")).toBeNull();
   });
+
+  it("draws the icon after the title under iconPlacement after, the marker still last", () => {
+    const theme = {
+      ...tailwindHtmlTheme,
+      disclosure: { ...tailwindHtmlTheme.disclosure, iconPlacement: "after" as const },
+    };
+    const c = dom.ctx.newControl("");
+    mount(
+      <Disclosure title="How to find this">
+        <TextField field={c} id="where" required />
+      </Disclosure>,
+      { theme },
+    );
+    act(() => dom.ctx.update((wc) => wc.setTouched(c, true)));
+    const parts = [...$("summary")!.childNodes].map((n) =>
+      n.nodeType === 3 ? "title" : (n as Element).className.split(" ")[0],
+    );
+    expect(parts).toEqual(["title", "rxf-disclosure-icon", "rxf-disclosure-dot"]);
+  });
 });
 
 describe("DisplayOnlyField", () => {

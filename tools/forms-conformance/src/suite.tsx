@@ -23,6 +23,7 @@ import {
   combineClass,
   type GroupRenderProps,
   HtmlDisplay,
+  IconDisplay,
   ImageDisplay,
   InlineGroup,
   RadioField,
@@ -1281,6 +1282,9 @@ export function describeConformance(impl: Implementation): void {
           <ImageDisplay source="https://example.test/a.png" alt="Base image" width={40} height={40} />
           <ImageDisplay source="https://example.test/a.png" alt="Rounded image" width={40} height={40} variant="rounded" />
           <ImageDisplay source="https://example.test/a.png" alt="Unknown image" width={40} height={40} variant={unknown} />
+          <IconDisplay icon="i" accessibleName="Base icon" />
+          <IconDisplay icon="i" accessibleName="Large icon" variant="large" />
+          <IconDisplay icon="i" accessibleName="Unknown icon" variant={unknown} />
         </>
       );
       mount(impl.looks(ui));
@@ -1316,16 +1320,18 @@ export function describeConformance(impl: Implementation): void {
         look("Unknown button") === look("Base button"),
         image("Rounded image") !== image("Base image"),
         image("Unknown image") === image("Base image"),
-      ]).toEqual([true, true, true, true, true, true, true, true]);
+        image("Large icon") !== image("Base icon"),
+        image("Unknown icon") === image("Base icon"),
+      ]).toEqual([true, true, true, true, true, true, true, true, true, true]);
       // One warning per kind, naming the variant — and none again on the
       // next render.
       const warnings = logged.splice(0);
       expect(
-        ["text", "group", "action", "image"].map(
+        ["text", "group", "action", "image", "icon"].map(
           (kind) => warnings.filter((w) => w.includes(`${kind} variant "${unknown}"`)).length,
         ),
-      ).toEqual([1, 1, 1, 1]);
-      expect(warnings).toHaveLength(4);
+      ).toEqual([1, 1, 1, 1, 1]);
+      expect(warnings).toHaveLength(5);
       mount(impl.looks(ui));
       click(buttonNamed("Unknown button")!);
       expect([logged.splice(0), clicked.mock.calls.length]).toEqual([[], 1]);

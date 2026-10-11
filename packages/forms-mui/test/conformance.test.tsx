@@ -6,6 +6,7 @@ const variants: MuiVariants = {
   group: { card: { wrapper: (t) => ({ padding: t.spacing(2) }) } },
   action: { quiet: { variant: "text" } },
   image: { rounded: (t) => ({ borderRadius: t.shape.borderRadius }) },
+  icon: { large: (t) => ({ fontSize: t.typography.h4.fontSize }) },
 };
 describeConformance({
   name: "MUI",

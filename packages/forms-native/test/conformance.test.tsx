@@ -13,6 +13,7 @@ describeConformance({
         contents: { variants: { card: { wrapper: "p-4" } } },
         action: { variants: { quiet: { className: "bg-transparent" } } },
         image: { variants: { rounded: "rounded-lg" } },
+        icon: { variants: { large: "text-3xl" } },
       }}
     >
       {node}

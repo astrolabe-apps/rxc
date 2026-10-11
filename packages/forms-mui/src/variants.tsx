@@ -43,6 +43,8 @@ export interface MuiVariants {
   action?: Record<string, Pick<ButtonProps, "variant" | "color" | "size" | "sx">>;
   /** An `ImageDisplay`'s variants: a style on the image. */
   image?: Record<string, MuiStyle>;
+  /** An `IconDisplay`'s variants: a style on the glyph, over its own size. */
+  icon?: Record<string, MuiStyle>;
 }
 
 const { Provider, useVariants } = createVariantsContext<MuiVariants>("MuiVariantsProvider");

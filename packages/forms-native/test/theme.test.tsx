@@ -6,6 +6,7 @@ import { ControlContextProvider, createControlContext } from "@rx-controls/react
 import {
   Action,
   CheckboxField,
+  Disclosure,
   Form,
   FormProvider,
   InlineGroup,
@@ -161,6 +162,19 @@ describe("the native theme", () => {
       classes(label.parentElement!).includes("shrink"),
       classes(text).includes("shrink"),
     ]).toEqual([true, true, true]);
+  });
+
+  it("draws a disclosure's icon after its title under iconPlacement after, the marker last", () => {
+    const c = ctx.newControl("");
+    mount(
+      <Disclosure title="How to find this">
+        <TextField field={c} id="where" required />
+      </Disclosure>,
+      { disclosure: { icon: "›", iconPlacement: "after" } },
+    );
+    act(() => ctx.update((wc) => wc.setTouched(c, true)));
+    const toggle = el.querySelector('[aria-expanded]')!;
+    expect([...toggle.children].map((e) => e.textContent)).toEqual(["How to find this", "›", "●"]);
   });
 
   it("names a group variant's slot `wrapper`, as html does, for an inline group too", () => {

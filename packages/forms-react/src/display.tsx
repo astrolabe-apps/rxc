@@ -199,6 +199,12 @@ export interface IconDisplayExtra {
    * implementation places it and names it.
    */
   icon?: FormProp<ReactNode>;
+  /**
+   * A named look — "large", "note" — that the implementation's theme
+   * resolves. A name the theme does not know draws the base look, with a
+   * warning in development.
+   */
+  variant?: FormProp<string | undefined>;
 }
 
 /**

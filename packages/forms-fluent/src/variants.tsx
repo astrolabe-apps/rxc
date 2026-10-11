@@ -58,6 +58,8 @@ export interface FluentVariants {
   action?: Record<string, FluentActionVariant>;
   /** An `ImageDisplay`'s variants: a style on the image. */
   image?: Record<string, CSSProperties>;
+  /** An `IconDisplay`'s variants: a style on the glyph, over its own size. */
+  icon?: Record<string, CSSProperties>;
 }
 
 const { Provider, useVariants } = createVariantsContext<FluentVariants>("FluentVariantsProvider");

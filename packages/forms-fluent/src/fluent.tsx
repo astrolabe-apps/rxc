@@ -880,6 +880,10 @@ function FluentText(p: TextDisplayRenderProps) {
 
 function FluentIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
+  const icons = useFluentVariants().icon;
+  const variant = getProp(rc, p.variant);
+  const look = variant === undefined ? undefined : icons?.[variant];
+  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
   const glyph = (
     <span
       role="img"
@@ -888,7 +892,8 @@ function FluentIcon(p: IconDisplayRenderProps) {
         undefined,
         combineClass(p.className, p.textClassName),
       )}
-      style={{ fontSize: 24, lineHeight: 1 }}
+      data-variant={variant}
+      style={{ fontSize: 24, lineHeight: 1, ...look }}
     >
       {getProp(rc, p.icon)}
     </span>
