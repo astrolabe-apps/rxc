@@ -270,7 +270,7 @@ Native had none of this: tailwind-merge resolves a variant over the base, whatev
 |---|---|---|
 | N1 `looks` text classes | `TextDisplay variant` from `text.variants` | **Closed, fits.** Eight roles. Fits once the base typography moves to the wrapper (§2). |
 | N2 `looks` group classes | `variant` on `Contents` / `Section`, from `contents.variants` | **Closed, fits.** Five roles on the wrapper. The pills and tags became text variants, so `displayShell` needed no variants. |
-| N3 page title as the `Section`'s title | `TextDisplay heading="group"` | **Closed, awkwardly.** The step pill sits above the title and the image above it on a phone, matching the JSON version. But the claim goes to the *nearest* group, so the header items had to be the page's own children on a grid (P1). Outline checked: the h1, page titles at 2, groups at 3, task-card titles at 4. Unchanged under Ant. |
+| N3 page title as the `Section`'s title | `TextDisplay heading="group"` | **Closed, awkwardly; P1 fixed since (`b152f55`).** The step pill sits above the title and the image above it on a phone, matching the JSON version. But the claim goes to the *nearest* group, so the header items had to be the page's own children on a grid (P1). Outline checked: the h1, page titles at 2, groups at 3, task-card titles at 4. Unchanged under Ant. |
 | N4 `useValidation().check()` then writing `page` | `useWizard().check()`, then `goTo(key)` | **Closed, fits.** The data layer no longer writes the step: every server-decided move returns an `EoiPage` key, and the page's action goes there. `goTo` writes the bound index, so the host still sees it. |
 | N5 `else page.focusInvalid()` ×3 | a refused `check()` focuses | **Closed, with P2.** All three `focusInvalid` calls are gone. A refused check focuses on page 3 on the web, but not behind a closed disclosure, and never on native, because `disableType="global"` disables the field first. |
 | N6 `labelRow` reordering | `CheckboxField labelPosition="before"` | **Closed, fits.** The visual order (label x=173, button 372, switch 830) is the focus order (help, then switch). `shellFor.checkbox.labelRow` is gone; `horizontal` puts the switch at the end. |
@@ -331,6 +331,7 @@ and the index is an index into it.
 **Awkward:**
 - **`heading="group"` and layout groups (P1).** A page header is naturally a group (the JSON
   version has three nested ones). The claim makes the page's title the header group's instead.
+  Fixed since (`b152f55`).
 - **`disclosure.icon`** is drawn before the title; a chevron after it needs `order-last`.
 - **`IconDisplay` has no `variant`.** The note icon's 24px became the theme's only
   `icon.className`, which fits this form only because it has one kind of icon display.
@@ -363,6 +364,13 @@ beside the image.
 - **Suggest:** a group that is only layout (no `title`, no `variant`, no scope) passes the claim
   through to the group above. Or `heading="section"`, claiming the nearest scope group (a
   `Section`).
+- **Fixed since, on `main` (`b152f55`):** the first suggestion. A group that is only layout passes
+  the claim through. The claim stops at a group that is more than layout and never passes one with
+  a `title` of its own. When nothing above takes it, the outermost layout group does, so a page
+  that is a plain `Contents` also works.
+  - `Page` can nest the header groups again, as the JSON version does, and drop the grid. On a
+    phone and on native the image comes first by source order either way.
+  - The `1fr` column fix (`b82a5699`) goes with the grid.
 
 ### P2. A refused check doesn't focus a field that the action's global lock has disabled
 
@@ -564,6 +572,7 @@ unknown variant name, as designed.
 - **The P3 and P4 fixes** are committed on `main` (`21b24ae`). forms-native's suite passes,
   49 of 49.
 - **The P2 fix**, after the report, on `main` (`f56e908`), with a conformance case for it.
+- **The P1 fix**, after the report, on `main` (`b152f55`). Corpus gates pass.
 - **The rest of the forms-native gaps**, after the report, on `main` (`eadadb1`): P5, P6, P7, P9,
   the P4 audit and the group slot's name. What's left is P3's device case: React Native's `Image`
   sizing can't be reproduced through react-native-web, so a width-only bundled asset is still
