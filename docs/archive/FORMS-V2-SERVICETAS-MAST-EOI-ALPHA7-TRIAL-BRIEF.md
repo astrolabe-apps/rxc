@@ -7,7 +7,7 @@ below the line into a fresh Claude Code session in a new ServiceTas worktree.
 ([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.6.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.6.md))
 met phase 10's exit: three MAST pages ran on Android from unchanged source. It ended with gaps
 P1–P9, two small API gaps, and a list of device checks it could not settle. alpha.7 has no phase of
-its own in [`FORMS-V2-PLAN.md`](./FORMS-V2-PLAN.md): it is that report's follow-ups, each recorded
+its own in [`FORMS-V2-PLAN.md`](../FORMS-V2-PLAN.md): it is that report's follow-ups, each recorded
 under its gap as "Fixed since". This run starts from that run's branch and is judged on whether
 the follow-ups fit: every alpha.6 workaround gone, and the native pages closer to the web's look
 with the copied source still byte-identical.

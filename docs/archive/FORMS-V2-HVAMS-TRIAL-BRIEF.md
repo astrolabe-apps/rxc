@@ -4,7 +4,7 @@ The prompt for rerunning the Request Access trial against a new Forms v2 alpha. 
 below the line into a fresh Claude Code session in a new HVAMS worktree. It is a **cold read**:
 the conversion is redone from scratch each time, so the contract is judged without knowing the
 last run's workarounds. The last run's findings are in
-[`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md);
+[`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md`](../FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md);
 the runs before it are the
 [alpha.3](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.3.md),
 [alpha.1](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.1.md) and

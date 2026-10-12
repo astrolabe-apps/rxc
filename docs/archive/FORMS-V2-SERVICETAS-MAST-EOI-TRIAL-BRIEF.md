@@ -6,11 +6,11 @@ below the line into a fresh Claude Code session in a new ServiceTas worktree.
 **Not a cold read**, unlike the [HVAMS brief](./FORMS-V2-HVAMS-TRIAL-BRIEF.md). The alpha.4 run
 ([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md))
 ended with a list of workarounds, and alpha.5 (phase 8 of
-[`FORMS-V2-PLAN.md`](./FORMS-V2-PLAN.md)) was built against that list. This run starts from that
+[`FORMS-V2-PLAN.md`](../FORMS-V2-PLAN.md)) was built against that list. This run starts from that
 run's branch and is judged on whether each workaround can go. The report is the worklist, so it is
 read first.
 
-**The focus is platform independence** (goal 4 in [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md)): the
+**The focus is platform independence** (goal 4 in [`FORMS-V2-GOALS.md`](../FORMS-V2-GOALS.md)): the
 ServiceTas component layer and the pages must not be DOM-specific. The alpha.4 run proved the look
 can live in a theme; this run has to prove the *form source* — pages and component layer alike —
 would render unchanged on another platform. It is not hypothetical: a React Native implementation

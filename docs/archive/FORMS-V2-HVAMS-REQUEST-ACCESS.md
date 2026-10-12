@@ -4,8 +4,8 @@ Status: **findings from a real adopter, against `0.1.0-alpha.0`.** The first for
 repo written against the contract: HVAMS's public *Request Access* form, converted from
 `@astrolabe/ui` compat widgets to `@rx-controls/forms-react`, drawn by `forms-html`, then mounted
 unchanged under `forms-antd`. The goal was to find where the abstraction does not reach, not to
-ship a page. What the contract promises is in [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md); its
-design in [`FORMS-V2-INTERFACES.md`](./FORMS-V2-INTERFACES.md).
+ship a page. What the contract promises is in [`FORMS-V2-GOALS.md`](../FORMS-V2-GOALS.md); its
+design in [`FORMS-V2-INTERFACES.md`](../FORMS-V2-INTERFACES.md).
 
 ## The form
 

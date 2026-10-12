@@ -2,9 +2,9 @@
 
 The rerun of the ServiceTas **MAST licence EOI wizard** against
 `@rx-controls/forms-*@0.1.0-alpha.8`, from the brief
-[`FORMS-V2-SERVICETAS-MAST-EOI-ALPHA8-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-ALPHA8-TRIAL-BRIEF.md).
+[`FORMS-V2-SERVICETAS-MAST-EOI-ALPHA8-TRIAL-BRIEF.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-ALPHA8-TRIAL-BRIEF.md).
 It starts from the alpha.7 run's branch and gaps
-([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.7.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.7.md),
+([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.7.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.7.md),
 Q1–Q3). New gaps are numbered R1 onwards.
 
 ServiceTas branch `trial/codefirst-mast-eoi-alpha8` (throwaway, not pushed), from `452aa158`:

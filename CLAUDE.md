@@ -131,7 +131,7 @@ All in `docs/`:
 - **FORMS-V2-INTERFACES.md** — The contract's design and its reasons (the API reference itself is `rush docs`). "README finding N" cites the removed POC build's README: `git show a087d03:poc/forms-v2/README.md`.
 - **FORMS-V2-PLAN.md** — The package layout, TypeDoc as the API reference, the Storybook, the two adopter tracks (HVAMS on the JSX path; ServiceTas on the JSON path, protected by the local corpus gates), and phases with exit criteria. **No dates, by design.**
 - **FORM-SEMANTICS.md**, **TRAVERSAL-LEGACY.md** — Legacy `@astroapps/forms-core` form-state and traversal semantics: what parity holds the Forms v2 JSON path to.
-- **IMPLEMENTATION-PLAN.md** — Original step-by-step migration plan from the controls-api prototype (historical).
+- **archive/** — The dated trial record: every HVAMS / ServiceTas MAST trial brief and the reports before the latest of each (`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.4.md` and `FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.8.md` stay at the top level as the current record), the alpha.6 session brief, and `IMPLEMENTATION-PLAN.md` (the original controls-api migration plan). A new trial's report replaces the previous one at the top level; archive that one with `git mv`. `docs/README.md` indexes it.
 
 ## Constraints
 

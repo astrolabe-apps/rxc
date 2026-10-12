@@ -347,7 +347,7 @@ per-column class, losing cross-row column alignment unless widths are fixed — 
 both platforms. Divergence would only arrive in v2, if `forms-html` drew a grid as a CSS grid
 (aligned columns, hidden children skipped by layout) while `forms-native` chunked rows; and
 chunking needs to know which children are hidden, which a v2 group cannot see through opaque
-`children` ([`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md) §1).
+`children` ([`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./archive/FORMS-V2-HVAMS-REQUEST-ACCESS.md) §1).
 
 **The schema describes the data; the form describes what it demands of that data.** So
 `required` and every other validator is declared at the **usage** and never defaulted from the

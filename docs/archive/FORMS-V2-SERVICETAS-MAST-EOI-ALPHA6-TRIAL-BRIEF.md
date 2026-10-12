@@ -7,7 +7,7 @@ below the line into a fresh Claude Code session in a new ServiceTas worktree.
 ([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md))
 removed every alpha.4 workaround, and ended with gaps N1–N11 and a `looks` object and a seam
 module that the contract had no words for. alpha.6 (phase 10 of
-[`FORMS-V2-PLAN.md`](./FORMS-V2-PLAN.md)) was built against those. This run starts from that run's
+[`FORMS-V2-PLAN.md`](../FORMS-V2-PLAN.md)) was built against those. This run starts from that run's
 branch and is judged on phase 10's exit:
 
 - the `looks` moved into theme variants;

@@ -402,7 +402,7 @@ ServiceTas work continues underneath on the burndown list — `DataGrid` / `Page
 `ColumnOptions`, host adornments (`Spotlight`) — the `Accordion` adornment and help beside the
 label are phase 8's — so the JSON path advances while HVAMS sets the pace. The gates from phase 3 keep
 it from sliding backwards regardless. A code-first ServiceTas trial (the MAST EOI wizard,
-[`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md))
+[`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md))
 feeds the same list from the JSX side.
 
 *Exit:* HVAMS ships a form on v2.
@@ -540,7 +540,7 @@ at `alpha.4` — while the html / MUI tab wiring and the four new suite assertio
 ### 8 — `alpha.5`: the MAST trial's gaps
 
 From the code-first ServiceTas trial
-([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md)).
+([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.4.md)).
 Every contract item lands in all four implementations — html, MUI, Ant and Fluent — with a
 conformance case where it is a behaviour and a story where it is something to see. `rushx gates`
 runs before anything that touches the loader lands.
@@ -594,7 +594,7 @@ Published as one lock-step bump to `alpha.5`, which also carries `forms-fluent`'
 and phase 7's tab wiring.
 
 *Exit:* the MAST trial re-run on `alpha.5`
-([`FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md)) with its workarounds gone — the `PagesWizard`
+([`FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md)) with its workarounds gone — the `PagesWizard`
 override, the nested `<Form clearHidden>`, the `sr-only` labels, `BulletValue`, the plain-JSX
 `<details>`, the `async` wrapper around `onClick`, the `[&>i]` icon selectors, and `QuestionRadio`
 (by `shellFor`, already in) — leaving no slot overrides at all.
@@ -615,7 +615,7 @@ as Fluent's did, and answers first:
   label and live regions (React Native's own accessibility props).
 
 The MAST trial's platform inventory
-([`FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md))
+([`FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-TRIAL-BRIEF.md))
 is its first input: the boundaries a real form uses, and what its component layer still leans on
 the web for.
 
@@ -714,10 +714,10 @@ Native itself.
 
 ### 10 — `alpha.6`: named looks, rich text, and `forms-native` published
 
-A session starts from [`FORMS-V2-ALPHA6-SESSION-BRIEF.md`](./FORMS-V2-ALPHA6-SESSION-BRIEF.md).
+A session starts from [`FORMS-V2-ALPHA6-SESSION-BRIEF.md`](./archive/FORMS-V2-ALPHA6-SESSION-BRIEF.md).
 
 From the alpha.5 MAST run
-([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md`](./FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md),
+([`FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-0.1.0-alpha.5.md),
 gaps N1–N11) and the `forms-native` build-out (phase 9). Its thread is phase 9's: **form source
 that names what it means and leaves the look to the theme**, so the same source draws under html,
 MUI, Ant, Fluent and React Native. The MAST run showed what stops that today — a component layer
@@ -878,7 +878,7 @@ beside it.
 **Published** as `0.1.0-alpha.6` on 2026-10-09, all eight in lock step, `forms-native`'s first
 release, with `@rx-controls/react` 1.1.5 (the React Native commit-effect fix `forms-native`
 needs) and compat 5.1.5. The MAST re-run starts from
-[`FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md`](./FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md).
+[`FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md).
 
 ### Later, not blocked on any of this
 
