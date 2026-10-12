@@ -907,7 +907,10 @@ a field left disabled on Android after a lock lifted (MAST alpha.7's Q2). So bef
 alpha with any `forms-native` change, run `apps/native-dev` on an Android emulator (`rushx dev`,
 then `rushx android`) and check, scripted where it can be:
 
-- **Every screen draws** with no warnings in Metro or `adb logcat -s ReactNativeJS:W`.
+- **Every screen draws** with nothing in Metro's log after the bundle. Expo Go sends the
+  app's console to Metro, not to logcat, so run a Metro whose output you can read (a second one:
+  `CI=1 npx expo start --go --localhost --port 8082`, `adb reverse tcp:8082 tcp:8082`, then open
+  `exp://127.0.0.1:8082`).
 - **State and names** through `adb shell uiautomator dump`: each control named, and
   `enabled="true"` on every field after a `disableType="global"` action has run and finished.
 - **Focus and the keyboard**: a refused check focuses its field (`focused="true"` in the dump)
@@ -915,5 +918,7 @@ then `rushx android`) and check, scripted where it can be:
   lock and without.
 - **The theme's props**: a switch's colours, an image at a width alone keeping its proportions.
 
+The keyboard's autofill popup hides the app from `uiautomator dump` until it is dismissed:
+Escape, or a tap on an empty area (Back sends Expo Go to the background).
 TalkBack's speech cannot be driven from `adb` (MAST alpha.7, §1): a person swipes through when
 an accessibility change is in the release. Record the pass in the release commit's message.
