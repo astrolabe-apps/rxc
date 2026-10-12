@@ -678,9 +678,10 @@ label ("Name", not "Name *"). It found one real bug: **a spinner inside a button
 the description "busy", which outlived the spinner and replaced the button's name** — a settled
 button was announced as "busy". The spinner is now hidden from accessibility (the button's busy
 and disabled states say it); checked by putting the busy state back with the spinner hidden.
-Still to check by ear, with TalkBack: the descriptions (`accessibilityHint`, which
-`uiautomator` does not show) and the visible label hidden from it. Not yet styled on native: a
-display's tone.
+TalkBack was settled by hand in the MAST alpha.8 trial: headings are announced without a level
+(Android has none), the help button and a switch are right, and it found that a radio group's
+question was never spoken and a switch's label out of reach — both fixed after alpha.8 (see the
+device-pass section). Not yet styled on native: a display's tone.
 
 **Every slot is drawn**, and the shared suite runs in `rushx test`, 40 of 40. The suite was
 loosened only where it read html's DOM rather than the contract — choice widgets found by role as
@@ -920,5 +921,11 @@ then `rushx android`) and check, scripted where it can be:
 
 The keyboard's autofill popup hides the app from `uiautomator dump` until it is dismissed:
 Escape, or a tap on an empty area (Back sends Expo Go to the background).
-TalkBack's speech cannot be driven from `adb` (MAST alpha.7, §1): a person swipes through when
-an accessibility change is in the release. Record the pass in the release commit's message.
+TalkBack's speech cannot be driven from `adb` (MAST alpha.7, §1): a person runs it when an
+accessibility change is in the release. On the emulator, turn on TalkBack's "Display speech
+output" (Developer settings) to see each utterance as a caption; a mouse drag is too slow to
+swipe, so click to explore and move with Alt + ← / →, activating with a double-click. A radio
+group's question must be read before its options, and a switch's row (label included) must take
+focus as one stop (MAST alpha.8's R1 and R2, pinned in `test/deviceA11y.test.tsx`; the device
+check of both is still to do, in the alpha.9 trial). Record the pass in the release commit's
+message.

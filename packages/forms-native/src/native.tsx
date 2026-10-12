@@ -14,6 +14,7 @@ import {
   Linking,
   type ImageSourcePropType,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Switch,
@@ -216,24 +217,46 @@ function shellOf(theme: NativeTheme, widget: string | undefined): ShellTheme {
  */
 const LabelPressContext = createContext<(() => void) | undefined>(undefined);
 
+/**
+ * The props of a checkbox's whole row as one accessible element, on a device:
+ * set by a widget whose label sits beside its control. The row then carries
+ * the role, name, state and press, so a touch anywhere on it (the words
+ * included) lands on the control under explore-by-touch, as a web `<label>`
+ * does for a pointer.
+ */
+const RowA11yContext = createContext<Record<string, unknown> | undefined>(undefined);
+
 function NativeFieldShell(p: FieldShellProps) {
   const t = shellOf(useNativeTheme(), p.widget);
   const onLabelPress = useContext(LabelPressContext);
+  const row = useContext(RowA11yContext);
   const [helpOpen, setHelpOpen] = useState(false);
   const hasLabel = p.label !== undefined && p.label !== null;
   const after = p.labelPosition === "after";
   const labelEnd = p.helpPlacement === "labelEnd" && !empty(p.helpText);
+  // A group's question (a radio group's, a check list's) is the group's only
+  // name on Android, which exposes none from the group's view: it stays in the
+  // tree, as a stop before the options, read by `aria-label` to leave out the
+  // required marker. Any other label is hidden: the control carries the name.
+  const named = p.labelAs === "legend" && Platform.OS !== "web";
   const label = hasLabel && !p.hideLabel && (
     <Text
       id={fieldLabelId(p.id)}
       className={mergeClass(t.label, p.labelClassName)}
-      // Native: the control carries the name, and a nested Text merges into
-      // this one, so the marker would be read with it ("Name star"). The
-      // web's aria-labelledby still names the control by this element.
-      importantForAccessibility="no-hide-descendants"
-      accessibilityElementsHidden
-      // The control is what assistive technology presses; this is for a
-      // finger, so it stays out of the tree like the rest of the label.
+      {...(named
+        ? {
+            "aria-label": plainText(p.label) || undefined,
+            accessibilityHint: p.required && p.describeRequired ? t.requiredNote : undefined,
+          }
+        : {
+            // Native: the control carries the name, and a nested Text merges
+            // into this one, so the marker would be read with it ("Name
+            // star"). The web's aria-labelledby still names the control by
+            // this element.
+            importantForAccessibility: "no-hide-descendants",
+            accessibilityElementsHidden: true,
+          })}
+      // A finger's target: for a widget whose label toggles it
       onPress={onLabelPress}
     >
       {p.label}
@@ -257,30 +280,46 @@ function NativeFieldShell(p: FieldShellProps) {
       <Text aria-hidden>{t.helpButton.icon}</Text>
     </Pressable>
   );
+  // The row of a label beside its control: on a device, one accessible
+  // element when the widget asks (a help button inside stays its own stop)
+  const rowOf = (className: string, kids: ReactNode) =>
+    row ? (
+      <Pressable {...row} className={className}>
+        {kids}
+      </Pressable>
+    ) : (
+      <View className={className}>{kids}</View>
+    );
   return (
     <View className={mergeClass(t.className, p.className)}>
       {after ? (
         // A trailing label: the control, its words, then any help button —
         // the order it is read in is the order it is seen in.
-        <View className={t.afterRow}>
-          {p.children}
-          {label}
-          {helpButton}
-        </View>
+        rowOf(
+          t.afterRow,
+          <>
+            {p.children}
+            {label}
+            {helpButton}
+          </>,
+        )
       ) : p.orientation === "horizontal" ? (
         // A leading label beside its control: the words, any help, then the
         // control at the row's end — read in the order it is seen.
-        <View className={t.horizontal}>
-          {label && helpButton ? (
-            <View className={t.labelRow}>
-              {label}
-              {helpButton}
-            </View>
-          ) : (
-            label || helpButton
-          )}
-          {p.children}
-        </View>
+        rowOf(
+          t.horizontal,
+          <>
+            {label && helpButton ? (
+              <View className={t.labelRow}>
+                {label}
+                {helpButton}
+              </View>
+            ) : (
+              label || helpButton
+            )}
+            {p.children}
+          </>,
+        )
       ) : (
         <>
           {label && helpButton ? (
@@ -469,7 +508,25 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
     ctl.onBlur();
   };
   const a11y = fieldA11y(p);
+  // On a device the row is the one accessible element, its control hidden
+  // from it (see `RowA11yContext`); a label that isn't drawn leaves the
+  // control as it was
+  const asRow = Platform.OS !== "web" && p.label != null && !p.hideLabel;
+  const row: Record<string, unknown> | undefined = asRow
+    ? {
+        accessible: true,
+        role: t.control === "switch" ? "switch" : "checkbox",
+        "aria-label": a11y["aria-label"],
+        "aria-checked": ctl.checked,
+        accessibilityHint: a11y.accessibilityHint,
+        accessibilityState: { checked: ctl.checked, disabled: locked },
+        disabled: locked,
+        onPress: () => toggle(!ctl.checked),
+      }
+    : undefined;
+  const hidden = asRow ? ({ importantForAccessibility: "no-hide-descendants" } as const) : {};
   return ctl.rendered(
+    <RowA11yContext.Provider value={row}>
     <LabelPressContext.Provider value={locked ? undefined : () => toggle(!ctl.checked)}>
     <Shell
       widget="checkbox"
@@ -500,6 +557,7 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           thumbColor={ctl.checked ? t.switchColors?.thumbOn : t.switchColors?.thumbOff}
           ios_backgroundColor={t.switchColors?.trackOff}
           {...a11y}
+          {...hidden}
           // React Native's Switch passes no `aria-label` to Android's view
           accessibilityLabel={a11y["aria-label"]}
           {...webOnly({ "aria-required": p.required || undefined })}
@@ -516,6 +574,7 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           onBlur={ctl.onBlur}
           className={cx(t.box, ctl.checked && t.checked)}
           {...a11y}
+          {...hidden}
           {...webOnly({ "aria-required": p.required || undefined })}
         >
           {ctl.checked && (
@@ -526,7 +585,8 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
         </Pressable>
       )}
     </Shell>
-    </LabelPressContext.Provider>,
+    </LabelPressContext.Provider>
+    </RowA11yContext.Provider>,
   );
 }
 
