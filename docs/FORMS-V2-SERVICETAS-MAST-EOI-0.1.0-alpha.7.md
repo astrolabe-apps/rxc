@@ -288,6 +288,8 @@ action variants. Icon and image variants are added the same way, and the docs do
 - **What it meant here:** the note icon's 24px couldn't stay on `icon.className` beside a
   variant that sets a size, so the size moved to the variant and the base kept `inline-flex`.
 - **Suggest:** name `icon.variants` and `image.variants` in that paragraph.
+- **Fixed since (`c877546`):** the paragraph names both, with a bullet on keeping sizes in the
+  variants and the base to what no variant sets.
 
 ## 4. New gaps
 
@@ -302,6 +304,9 @@ action variants. Icon and image variants are added the same way, and the docs do
 - **Done instead:** nothing. The switches are blue on the device.
 - **Suggest:** `checkbox.switchColors: { trackOn, trackOff, thumbOn?, thumbOff? }` in
   `NativeTheme`, as colour values, since there's no class to give.
+- **Fixed since (`c877546`):** `checkbox.switchColors: { trackOn?, trackOff?, thumbOn?,
+  thumbOff? }`, each optional and the platform's own when left out; `trackOff` is also iOS's
+  background while off. Checked on the emulator in `apps/native-dev`'s kitchen sink (`8161778`).
 
 ### Q2. forms-native: a field disabled and enabled again stays disabled on Android
 
@@ -342,6 +347,8 @@ disabled a locked input.
   reads `enabled="true"`, and the radios after a lock too.
 - **Suggest:** a rule for forms-native, in its source: a state React Native turns into a native
   setter (`disabled`, `checked`, `selected`) is always a boolean, never `undefined`.
+- **Fixed since (`c877546`):** the rule heads `native.tsx`'s accessibility section, pointing at
+  the test that pins it. The fix itself (`d97e448`) ships in alpha.8.
 
 ### Q3. Device-only behaviour has no check short of a device
 
@@ -352,6 +359,12 @@ doesn't reproduce. Each passed the suites and failed on the device.
 - **Suggest:** a short device pass before each alpha that touches forms-native, scripted the way
   this run's checks were (`uiautomator` for state and names, `dumpsys input_method` for the
   keyboard). TalkBack's speech needs a person or TalkBack's own test tooling (§1).
+- **Fixed since (`c877546`, `89e5e60`):** "Before an alpha that touches `forms-native`: a device
+  pass" in `FORMS-V2-PLAN.md`'s Publishing section. `apps/native-dev`'s kitchen sink gained what it
+  checks against: a `disableType="global"` check and a theme's `switchColors` (`8161778`). Run for
+  alpha.8 and recorded in that commit: every check passed but TalkBack, which still needs a person.
+  One correction it found: Expo Go sends the app's console to Metro, not logcat, so this run's
+  "logcat holds no warnings" checked an empty channel.
 
 ## 5. Visual parity
 
