@@ -59,8 +59,15 @@ export function KitchenSink(): Rendered {
   const f = data.fields;
   const info = getCompatPatchInfo();
   return rendered(
-    // Checkboxes as on/off settings: the theme's switch.
-    <NativeThemeProvider theme={{ checkbox: { control: "switch" } }}>
+    // Checkboxes as on/off settings: the theme's switch, in its own colours.
+    <NativeThemeProvider
+      theme={{
+        checkbox: {
+          control: "switch",
+          switchColors: { trackOn: "#16a34a", trackOff: "#d1d5db", thumbOn: "#ffffff" },
+        },
+      }}
+    >
       <ScrollView contentContainerClassName="gap-5 p-4 pb-24">
           <Form
             validation={validation}
@@ -148,6 +155,19 @@ export function KitchenSink(): Rendered {
               <TextDisplay text="Your details are used only to process this request." />
             </Dialog>
             <Action actionId="submit" text="Submit" variant="primary" submit />
+            {/* The form's lock held across a check, as ServiceTas's Continue:
+                the refused field is focused once the lock lifts, and every
+                field is enabled again after (the device pass's check). */}
+            <Action
+              actionId="checkLocked"
+              text="Check, locking the form"
+              disableType="global"
+              onClick={async () => {
+                await new Promise((r) => setTimeout(r, 400));
+                const ok = await validation.check();
+                update((wc) => wc.setValue(result, ok ? "Checked" : undefined));
+              }}
+            />
             <TextDisplay
               text={(r) => r.getValue(result)}
               announce
