@@ -421,8 +421,9 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
               (slot.onBlur as (() => void) | undefined)?.();
               ctl.onBlur();
             }}
+            // `editable` alone: React Native's `readOnly`, when given at all,
+            // overrides it, so a disabled field would stay editable
             editable={!slot.disabled && !slot.readOnly}
-            readOnly={slot.readOnly}
             placeholder={placeholder}
             multiline={multiline}
             maxLength={maxLength}
@@ -436,7 +437,9 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             aria-labelledby={
               a11y["aria-label"] !== undefined && !p.hideLabel ? fieldLabelId(p.id) : undefined
             }
-            aria-disabled={slot.disabled || undefined}
+            // Always a boolean: Android disables the view for `true`, and only
+            // an explicit `false` enables it again once the field is
+            aria-disabled={!!slot.disabled}
             {...webOnly({ "aria-required": slot["aria-required"] })}
           />
         )}
@@ -449,7 +452,9 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   const t = useNativeTheme().checkbox;
-  const locked = ctl.state.disabled || ctl.state.readOnly;
+  // A boolean, as every `disabled` handed to React Native: Android disables
+  // the view for `true`, and only an explicit `false` enables it again.
+  const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   // Native has no focus to leave: a press is the touch.
   const toggle = (v: boolean) => {
     ctl.setChecked(v);
@@ -523,7 +528,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
   const entryCls = getProp(ctl.rc, p.entryClassName);
   const onCls = getProp(ctl.rc, p.selectedClassName);
   const offCls = getProp(ctl.rc, p.notSelectedClassName);
-  const locked = ctl.state.disabled || ctl.state.readOnly;
+  const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   const leave = useLeaveGroup(ctl.onBlur);
   const a11y = fieldA11y(p);
   return ctl.rendered(
@@ -563,7 +568,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
                 role="radio"
                 aria-checked={selected}
                 aria-label={plainText(o.name)}
-                disabled={locked || o.disabled}
+                disabled={locked || !!o.disabled}
                 onPress={() => {
                   ctl.setFromString(String(o.value));
                   ctl.onBlur();
@@ -590,7 +595,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const { checkList: t, checkbox: box, shell } = useNativeTheme();
-  const locked = ctl.state.disabled || ctl.state.readOnly;
+  const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   const leave = useLeaveGroup(ctl.onBlur);
   const a11y = fieldA11y(p, undefined, shell.requiredNote);
   return ctl.rendered(
@@ -627,7 +632,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
               role="checkbox"
               aria-checked={on}
               aria-label={plainText(o.name)}
-              disabled={locked || o.disabled}
+              disabled={locked || !!o.disabled}
               onPress={() => {
                 ctl.setSelected(o, !on);
                 ctl.onBlur();
@@ -714,7 +719,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
             ref={slot.ref as never}
             role="combobox"
             aria-expanded={open}
-            disabled={slot.disabled || slot.readOnly}
+            disabled={!!(slot.disabled || slot.readOnly)}
             onPress={() => setOpen(true)}
             className="flex-1"
             {...a11y}
@@ -738,7 +743,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
                       key={c.key}
                       role="option"
                       aria-selected={selected}
-                      disabled={c.disabled}
+                      disabled={!!c.disabled}
                       onPress={() => {
                         ctl.setFromString(c.value);
                         close();
