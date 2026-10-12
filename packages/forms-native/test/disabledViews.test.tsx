@@ -97,3 +97,46 @@ describe("native fields disabled, then enabled again", () => {
     act(() => root.unmount());
   });
 });
+
+/**
+ * A switch's colours are its props, not styles, so no class reaches them:
+ * the theme's `checkbox.switchColors` hands them over (the MAST alpha.7
+ * trial's Q1 — Android's default blue where the web's switch was green).
+ */
+describe("the native switch's colours", () => {
+  afterEach(() => void (seen.length = 0));
+
+  it("come from the theme, the thumb following the value, and are the platform's without it", () => {
+    const ctx = createControlContext();
+    const on = ctx.newControl(false);
+    const root = createRoot(document.createElement("div"));
+    const mount = (switchColors?: Record<string, string>) =>
+      act(() =>
+        root.render(
+          <ControlContextProvider value={ctx}>
+            <FormProvider renderers={nativeRenderers}>
+              <NativeThemeProvider theme={{ checkbox: { control: "switch", switchColors } }}>
+                <Form>
+                  <CheckboxField field={on} label="Opt in" />
+                </Form>
+              </NativeThemeProvider>
+            </FormProvider>
+          </ControlContextProvider>,
+        ),
+      );
+    const last = () => seen.filter((s) => s.type === "Switch").at(-1)!.props;
+    mount();
+    expect([last().trackColor, last().thumbColor, last().ios_backgroundColor]).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    mount({ trackOn: "#0a7d4f", trackOff: "#d1d5db", thumbOn: "#fff", thumbOff: "#f3f4f6" });
+    expect(last().trackColor).toEqual({ true: "#0a7d4f", false: "#d1d5db" });
+    expect(last().thumbColor).toBe("#f3f4f6");
+    expect(last().ios_backgroundColor).toBe("#d1d5db");
+    act(() => ctx.update((wc) => wc.setValue(on, true)));
+    expect(last().thumbColor).toBe("#fff");
+    act(() => root.unmount());
+  });
+});

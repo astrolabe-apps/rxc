@@ -34,11 +34,12 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  * or give the theme a wrapper class to scope them under.
  *
  * **A variant is added beside the base slot, not merged over it.** A named
- * look's classes (`text.variants`, `contents.variants`, `action.variants`)
- * land on the same element as the base slot's, and two utilities of one
- * kind on one element — a base `text-[18px]` and a variant's `text-[40px]` —
- * resolve by stylesheet order, not by which one is the variant's. So shape
- * the base around what the variants change:
+ * look's classes (`text.variants`, `contents.variants`, `action.variants`,
+ * `icon.variants`, `image.variants`) land on the same element as the base
+ * slot's, and two utilities of one kind on one element — a base
+ * `text-[18px]` and a variant's `text-[40px]` — resolve by stylesheet order,
+ * not by which one is the variant's. So shape the base around what the
+ * variants change:
  *
  * - **Text: put the body look on the wrapper.** Give `displayShell.display`
  *   the base typography (size, weight, line height) and keep `text.className`
@@ -54,6 +55,10 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  *   The Tailwind theme leaves an action's padding to its variants; a group
  *   variant that only adds a box (background, border, radius, padding) to a
  *   wrapper whose base sets display and gap never conflicts.
+ * - **Icons and images: the same.** A base `icon.className` that sets a size
+ *   loses or wins against an `icon.variants` size by stylesheet order; keep
+ *   the base to what no variant sets (`inline-flex`) and put sizes in the
+ *   variants.
  *
  * React Native's theme merges with `tailwind-merge` instead, so none of this
  * applies there: a variant's utility wins over the base's of the same kind.

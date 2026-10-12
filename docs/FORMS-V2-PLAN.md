@@ -898,3 +898,22 @@ alphas; a prerelease carries no semver promise. The implementations publish with
 `forms-mui` and `forms-antd` go out alongside `forms-html`, not after. `apps/forms-storybook` and
 the `tools/` packages are never published. The repo's rules apply: `workspace:^`, versions set by
 hand, and `--tag` passed explicitly — `alpha` for these, `latest` for the stable packages.
+
+### Before an alpha that touches `forms-native`: a device pass
+
+The suites run `forms-native` through react-native-web, which has none of React Native's native
+view state. Two bugs passed them and failed on a device: an image's size (MAST alpha.5's P3) and
+a field left disabled on Android after a lock lifted (MAST alpha.7's Q2). So before publishing an
+alpha with any `forms-native` change, run `apps/native-dev` on an Android emulator (`rushx dev`,
+then `rushx android`) and check, scripted where it can be:
+
+- **Every screen draws** with no warnings in Metro or `adb logcat -s ReactNativeJS:W`.
+- **State and names** through `adb shell uiautomator dump`: each control named, and
+  `enabled="true"` on every field after a `disableType="global"` action has run and finished.
+- **Focus and the keyboard**: a refused check focuses its field (`focused="true"` in the dump)
+  and raises the keyboard (`adb shell dumpsys input_method | grep mInputShown`), with the global
+  lock and without.
+- **The theme's props**: a switch's colours, an image at a width alone keeping its proportions.
+
+TalkBack's speech cannot be driven from `adb` (MAST alpha.7, §1): a person swipes through when
+an accessibility change is in the release. Record the pass in the release commit's message.

@@ -126,6 +126,21 @@ export interface NativeTheme {
      * `Switch`, for a form whose checkboxes are on/off settings.
      */
     control: "box" | "switch";
+    /**
+     * The `Switch`'s colours, as colour values: they are its props, not
+     * styles, so no class reaches them. One left out is the platform's own.
+     * `trackOff` is also iOS's background while off.
+     */
+    switchColors?: {
+      /** The track while on. */
+      trackOn?: string;
+      /** The track while off. */
+      trackOff?: string;
+      /** The thumb while on. */
+      thumbOn?: string;
+      /** The thumb while off. */
+      thumbOff?: string;
+    };
     /** The box. */
     box: string;
     /** Added while checked. */

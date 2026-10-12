@@ -84,6 +84,14 @@ import { useNativeTheme, type NativeTheme } from "./theme.js";
 // (react-native-web) honours the `aria-*` props by id and drops the hint.
 // An app on both targets needs both, so the implementation sets both and
 // each platform ignores the other's.
+//
+// A state React Native turns into a native setter — `disabled`, `checked`,
+// `selected`, `aria-disabled`, `editable` — is always a boolean, never
+// `undefined`. Android calls the setter only for a key that is present, so
+// `true` followed by `undefined` leaves the view disabled (or checked) for
+// good; only an explicit `false` undoes it (the MAST alpha.7 trial's Q2).
+// react-native-web has no such state, so the suites cannot catch a lapse:
+// `test/disabledViews.test.tsx` pins the props instead.
 
 /**
  * Props React Native's types do not declare, which react-native-web passes to
@@ -486,6 +494,11 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           value={ctl.checked}
           onValueChange={toggle}
           disabled={locked}
+          trackColor={
+            t.switchColors && { true: t.switchColors.trackOn, false: t.switchColors.trackOff }
+          }
+          thumbColor={ctl.checked ? t.switchColors?.thumbOn : t.switchColors?.thumbOff}
+          ios_backgroundColor={t.switchColors?.trackOff}
           {...a11y}
           // React Native's Switch passes no `aria-label` to Android's view
           accessibilityLabel={a11y["aria-label"]}
