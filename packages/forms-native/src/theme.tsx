@@ -3,12 +3,36 @@ import {
   isValidElement,
   useContext,
   useMemo,
+  type ComponentType,
   type ReactElement,
   type ReactNode,
 } from "react";
 import type { Tone } from "@rx-controls/forms-react";
 import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 import type { NativeLook } from "./looks.js";
+
+/**
+ * What a host's date picker is handed; see {@link NativeTheme.date}.
+ *
+ * @group Theming
+ */
+export interface DatePickerProps {
+  /** Show it. */
+  visible: boolean;
+  /** The date it opens on, an ISO date, `""` for none. */
+  value: string;
+  /** The date chosen, as an ISO date. */
+  onConfirm(iso: string): void;
+  /** Dismissed with no choice. */
+  onCancel(): void;
+}
+
+/**
+ * A date picker component: the host's, over a native module.
+ *
+ * @group Theming
+ */
+export type DatePicker = ComponentType<DatePickerProps>;
 
 /**
  * Every style the React Native implementation puts on an element, one slot
@@ -92,6 +116,32 @@ export interface NativeTheme {
     disabled: ViewStyle;
     /** The `TextInput` inside. */
     input: TextStyle;
+  };
+  /**
+   * A date field (`TextField` with `inputType="date"`): a read-only box showing
+   * the date, and a button beside it, either of which opens the platform's date
+   * picker. The picker is a native module, so the host supplies it; with none
+   * given the date is typed as text, `2024-03-05`.
+   */
+  date: {
+    /**
+     * The host's picker: shown while `visible`, handing the chosen date to
+     * `onConfirm` as an ISO date (`2024-03-05`) and calling `onCancel` when it
+     * is dismissed. `value` is the date it opens on, `""` for none.
+     */
+    picker?: DatePicker;
+    /** What the box shows when there is no date. */
+    placeholder: string;
+    /** The date as the box shows it, from the ISO date. Default `dd/mm/yyyy`. */
+    format: (iso: string) => string;
+    /** The box and the button, in a row. */
+    row: ViewStyle;
+    /** The button that opens the picker. */
+    button: ViewStyle;
+    /** What the button shows. */
+    icon: ReactNode;
+    /** The button's accessible name — words. */
+    buttonText: string;
   };
   /** The checkbox. */
   checkbox: {
@@ -430,6 +480,24 @@ export const defaultNativeTheme: NativeTheme = {
     disabled: { backgroundColor: gray[100], opacity: 0.75 },
     input: { flex: 1, paddingVertical: 8, ...base, color: gray[900] },
   },
+  date: {
+    placeholder: "dd/mm/yyyy",
+    format: (iso) => {
+      const [y, m, d] = iso.split("-");
+      return y && m && d ? `${d}/${m}/${y}` : iso;
+    },
+    row: { ...row, alignItems: "stretch" },
+    button: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: gray[300],
+      backgroundColor: gray[100],
+    },
+    icon: "📅",
+    buttonText: "Choose a date",
+  },
   checkbox: {
     control: "box",
     box: {
@@ -623,7 +691,8 @@ function isPlain(v: unknown): v is Record<string, unknown> {
  * drop a property of the enclosing theme's by leaving it out.
  */
 function isGroup(v: unknown): v is Record<string, unknown> {
-  return isPlain(v) && Object.values(v).some(isPlain);
+  // a component (the date picker) is a slot too: a style holds no function
+  return isPlain(v) && Object.values(v).some((x) => isPlain(x) || typeof x === "function");
 }
 
 /**
@@ -638,6 +707,8 @@ export type DeepPartial<T> = {
     | null
     | undefined
     | ReactElement
+    | ComponentType<any>
+    | ((...args: any[]) => unknown)
     | ViewStyle
     | TextStyle
     | ImageStyle

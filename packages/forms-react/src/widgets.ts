@@ -12,8 +12,12 @@ export interface TextFieldExtra {
   placeholder?: FormProp<string>;
   /** A multi-line control. */
   multiline?: FormProp<boolean>;
-  /** The input's type. Default `text`. */
-  inputType?: FormProp<"text" | "email" | "password" | "tel">;
+  /**
+   * The input's type. Default `text`. `date` is a calendar date, its value the
+   * ISO string `2024-03-05` on every platform: the web's own date input, a
+   * picker on a device (the theme's, where it has one, else typed as text).
+   */
+  inputType?: FormProp<"text" | "email" | "password" | "tel" | "date">;
   /**
    * The on-screen keyboard to offer. HTML's `inputmode` and React Native's
    * `TextInput.inputMode` take the same values, so this is one vocabulary on

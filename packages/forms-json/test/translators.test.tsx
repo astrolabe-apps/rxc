@@ -1008,6 +1008,16 @@ describe("meta fields", () => {
   });
 });
 
+describe("a Date field", () => {
+  it("is a date input, holding the ISO date legacy's did", () => {
+    h.load([{ type: "Data", field: "d" }], [{ field: "d", type: "Date", displayName: "d" } as never], {
+      d: "2024-03-05",
+    } as never);
+    const input = $<HTMLInputElement>("input");
+    expect([input.type, input.value]).toEqual(["date", "2024-03-05"]);
+  });
+});
+
 describe("adornments", () => {
   it("turns HelpText into help text and a control-edge Icon into an icon slot", () => {
     const { warnings } = h.load(

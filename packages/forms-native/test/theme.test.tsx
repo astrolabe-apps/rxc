@@ -183,6 +183,44 @@ describe("the native theme", () => {
     expect([...toggle.children].map((e) => e.textContent)).toEqual(["How to find this", "›", "●"]);
   });
 
+  it("draws a date as dd/mm/yyyy beside a button that opens the host's picker, and writes the ISO date", () => {
+    const date = ctx.newControl("2024-03-05");
+    const Picker = (p: { visible: boolean; value: string; onConfirm(iso: string): void; onCancel(): void }) =>
+      p.visible ? (
+        <div>
+          <span data-testid="picker">{`on ${p.value}`}</span>
+          <button onClick={() => p.onConfirm("2025-01-02")}>pick</button>
+        </div>
+      ) : null;
+    mount(<TextField field={date} id="d" label="Date of birth" inputType="date" />, { date: { picker: Picker } });
+    const input = byId("d") as HTMLInputElement;
+    expect([input.value, input.readOnly || input.disabled || input.getAttribute("aria-disabled")]).toEqual([
+      "05/03/2024",
+      expect.anything(),
+    ]);
+    expect(el.querySelector('[data-testid="picker"]')).toBeNull();
+    act(() => button("Choose a date").click());
+    expect(el.querySelector('[data-testid="picker"]')!.textContent).toBe("on 2024-03-05");
+    act(() => [...el.querySelectorAll("button")].find((b) => b.textContent === "pick")!.click());
+    expect([untrackedRead.getValue(date), untrackedRead.isTouched(date), el.querySelector('[data-testid="picker"]')]).toEqual([
+      "2025-01-02",
+      true,
+      null,
+    ]);
+    expect((byId("d") as HTMLInputElement).value).toBe("02/01/2025");
+  });
+
+  it("leaves a date typed as text, as an ISO date, where the theme has no picker", () => {
+    const date = ctx.newControl("2024-03-05");
+    mount(<TextField field={date} id="d" label="Date of birth" inputType="date" />);
+    const input = byId("d") as HTMLInputElement;
+    expect([input.value, input.readOnly, el.querySelector('[aria-label="Choose a date"]')]).toEqual([
+      "2024-03-05",
+      false,
+      null,
+    ]);
+  });
+
   it("lands a look's shell on an inline group's one element, as html's wrapper", () => {
     mount(
       <InlineGroup look="pill">

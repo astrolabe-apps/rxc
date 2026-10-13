@@ -4,6 +4,8 @@ export {
   defaultNativeTheme,
   NativeThemeProvider,
   useNativeTheme,
+  type DatePicker,
+  type DatePickerProps,
   type DeepPartial,
   type NativeTheme,
   type PartialNativeTheme,

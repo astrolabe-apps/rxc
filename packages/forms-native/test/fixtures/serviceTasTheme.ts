@@ -124,6 +124,20 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     disabled: { backgroundColor: "#fafafa" },
     input: { ...withInk(type.body), fontSize: 18, lineHeight: 22.5, flex: 1, padding: 0 },
   },
+  // schemas-rn's RNDateTimePicker: the read-only input, then a square `bg-[#F5F5F5] size-[54px]
+  // border border-[#E7E7E8]` button with a calendar. (The picker is the host's.)
+  date: {
+    row: { flexDirection: "row", alignItems: "stretch" },
+    button: {
+      width: 54,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: serviceTasColors.border,
+      backgroundColor: serviceTasColors.lightGrey,
+    },
+    icon: "📅",
+  },
   checkbox: {
     // schemas-rn's RNCheckbox: "native:h-[24px] native:w-[24px] native:rounded border border-accent", a
     // tick of `text-accent text-[18px]` on no fill.

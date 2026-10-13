@@ -582,11 +582,13 @@ const builtins: Builtin[] = [
   {
     match: (d) => d.type === "Data",
     renderTypes: ["Standard", "Textfield", "Multiline"],
-    render: ({ props, def }) => (
+    render: ({ props, def, schema }) => (
       <TextField
         {...props}
         multiline={def.renderOptions?.type === "Multiline"}
         placeholder={def.renderOptions?.placeholder as string | undefined}
+        // A Date field holds the ISO date legacy's did, which a date input reads and writes.
+        inputType={schema?.type === "Date" ? "date" : undefined}
       />
     ),
   },

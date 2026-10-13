@@ -434,9 +434,12 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
   placement is `labelEnd`, as ServiceTas's renderer does); and a disclosure took no look's parts at all
   on native, MUI, Ant and Fluent (html's `control` was the container), so it now has `shell` and
   `control` as above — the accordion draws as the bordered card with its toggle row and a chevron at
-  the end. **Still different, and not ours to fix by restating a style:**
-  - **A date field.** The app has a date picker with a calendar button; `forms-native` draws a text
-    input.
+  the end; and a Date field, which every implementation drew as a text input, is now a date: `TextField`
+  takes `inputType="date"` (the web's own date input, whose value is the ISO date legacy held), the loader
+  sets it for a Date schema field, and `forms-native` draws a read-only `dd/mm/yyyy` box and a button that
+  open the host's picker (`theme.date.picker`, a native module the host supplies; the playground's is
+  `@react-native-community/datetimepicker`), typing the ISO date as text where there is none. DateTime
+  and Time are still text. **Still different, and not ours to fix by restating a style:**
   - **Icons.** The app draws Font Awesome; v2's default icon draws nothing, so the playground has
     none until a host gives it an icon set.
   - **An empty collection** draws "Nothing yet." in v2 and nothing in the app; a **blank

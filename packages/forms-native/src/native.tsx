@@ -502,6 +502,41 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
     true,
   );
   const ownText = lookPart.own(p.style).text;
+  // A date field, where the theme has a picker: a read-only box and a button, either opens it.
+  const dateTheme = useNativeTheme().date;
+  const Picker = dateTheme.picker;
+  const dateMode = getProp(ctl.rc, p.inputType) === "date" && !!Picker;
+  const [picking, setPicking] = useState(false);
+  const locked = !!(ctl.state.disabled || ctl.state.readOnly);
+  const openPicker = () => !locked && setPicking(true);
+  const withDate = (frame: ReactNode) =>
+    dateMode && Picker ? (
+      <>
+        <View {...sp(dateTheme.row)}>
+          <View style={{ flex: 1 }}>{frame}</View>
+          <Pressable
+            role="button"
+            aria-label={dateTheme.buttonText}
+            onPress={openPicker}
+            {...sp(dateTheme.button)}
+          >
+            <Text aria-hidden>{dateTheme.icon}</Text>
+          </Pressable>
+        </View>
+        <Picker
+          visible={picking}
+          value={ctl.value}
+          onConfirm={(iso) => {
+            ctl.setValue(iso);
+            ctl.onBlur();
+            setPicking(false);
+          }}
+          onCancel={() => setPicking(false)}
+        />
+      </>
+    ) : (
+      frame
+    );
   return ctl.rendered(
     <Shell
       widget="textfield"
@@ -520,6 +555,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
       look={p.look}
       style={p.shellStyle}
     >
+      {withDate(
       <Frame
         id={p.id}
         look={p.look}
@@ -539,7 +575,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             id={slot.id}
             ref={slot.ref as never}
             {...sp(slot.style as object, textLook.text, ownText)}
-            value={ctl.value}
+            value={dateMode ? (ctl.value ? dateTheme.format(ctl.value) : "") : ctl.value}
             onChangeText={ctl.setValue}
             onFocus={() => (slot.onFocus as (() => void) | undefined)?.()}
             onBlur={() => {
@@ -548,8 +584,10 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             }}
             // `editable` alone: React Native's `readOnly`, when given at all,
             // overrides it, so a disabled field would stay editable
-            editable={!slot.disabled && !slot.readOnly}
-            placeholder={placeholder}
+            editable={!slot.disabled && !slot.readOnly && !dateMode}
+            placeholder={placeholder ?? (dateMode ? dateTheme.placeholder : undefined)}
+            // a touch on a date's box goes to the picker, not into a keyboard
+            {...(dateMode ? { onPressIn: openPicker, showSoftInputOnFocus: false } : {})}
             multiline={multiline}
             maxLength={maxLength}
             inputMode={inputMode}
@@ -568,7 +606,8 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             {...webOnly({ "aria-required": slot["aria-required"] })}
           />
         )}
-      />
+      />,
+      )}
     </Shell>,
   );
 }

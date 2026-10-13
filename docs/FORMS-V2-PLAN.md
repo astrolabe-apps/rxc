@@ -943,6 +943,10 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   "Help: ‹label›"); a `HelpText` adornment's `helpLabel` reaches it on the JSON path. A disclosure's look
   has parts: `shell` the container and `control` the toggle row (html's `control` was the container: it
   moves to `shell`); MUI, Ant and Fluent read it as a group's look.
+- `TextField` takes `inputType="date"` (an ISO date; the web's date input), and the JSON loader sets it for a
+  Date schema field, so a web Date field is now a `<input type="date">`. `forms-native` draws a date as a
+  box and a button opening the theme's `date.picker`, a component the host supplies over a native date
+  picker; without one the date is typed as text. DateTime and Time are still text.
 - The default icon draws nothing (a React Native host cannot draw an `<i>`); a web host passes
   `legacyIconClass`'s result through its icon translator.
 

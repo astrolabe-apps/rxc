@@ -5,6 +5,7 @@ import { useControl } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import { nativeStandInHost } from "../host";
+import { DatePickerHost } from "../DatePickerHost";
 import { serviceTasNativeTheme } from "../../../../packages/forms-native/test/fixtures/serviceTasTheme";
 
 /**
@@ -44,7 +45,7 @@ export function Converted() {
       </Text>
     );
   // ServiceTas's own native theme (a fixture), with the converted forms' looks over it.
-  const theme: PartialNativeTheme = { tokens: { colors: data.tokens }, looks: data.looks };
+  const theme: PartialNativeTheme = { tokens: { colors: data.tokens }, looks: data.looks, date: { picker: DatePickerHost } };
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 8 }}>

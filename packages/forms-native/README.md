@@ -177,6 +177,21 @@ supplied from a `.native.ts` module beside the web's:
 // assets.native.ts     export const boat = require("./boat.png");
 ```
 
+**Dates** (`TextField` with `inputType="date"`, the ISO date `2024-03-05` as its value) draw as a read-only
+`dd/mm/yyyy` box and a button, either of which opens a picker. The picker is a native module, so the host
+supplies it in the theme, and without one the date is typed as text:
+
+```tsx
+import DateTimePickerModal from "react-native-modal-datetime-picker"; // or any picker
+const picker: DatePicker = ({ visible, value, onConfirm, onCancel }) => (
+  <DateTimePickerModal isVisible={visible} mode="date" date={value ? new Date(value) : new Date()}
+    onConfirm={(d) => onConfirm(d.toISOString().slice(0, 10))} onCancel={onCancel} />
+);
+<NativeThemeProvider theme={{ date: { picker } }} />
+```
+
+(`apps/native-dev` has one over `@react-native-community/datetimepicker`.)
+
 **Accessibility** is set for both of React Native's targets: a string
 `aria-label` and `accessibilityHint` on native, and `aria-labelledby` /
 `aria-describedby` by id on the web (react-native-web). A label or help that is
