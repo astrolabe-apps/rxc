@@ -34,6 +34,8 @@ import {
   useFormLooks,
   type LookRef,
   type PortableStyle,
+  type LookState,
+  NO_LOOK_STATE,
   resolveStyleTokens,
   splitPortableStyle,
   drawRichText,
@@ -46,6 +48,7 @@ import { useReactive } from "@rx-controls/react";
 import {
   defaultHtmlTheme,
   useHtmlTheme,
+  type HtmlLookPart,
   type HtmlLook,
   type HtmlTheme,
 } from "./theme.js";
@@ -139,31 +142,13 @@ function withStyle(
   return a && b ? { ...a, ...b } : (a ?? b);
 }
 
-/**
- * A look's classes, from the theme's `looks`, for the boundary `kind` — `undefined`
- * for no look. A name the theme does not know is reported once in development,
- * unless `styled`: the implementation resolves it to styles of its own.
- */
-export function lookParts(
-  kind: string,
-  look: LookRef | undefined,
-  looks: HtmlTheme["looks"],
-  styled?: boolean,
-): HtmlLook | undefined {
-  let merged: HtmlLook | undefined;
-  for (const name of lookNames(look)) {
-    const parts = looks[name];
-    if (!parts) {
-      if (!styled) warnUnknownLook(kind, name);
-      continue;
-    }
-    // A later look over an earlier, part by part.
-    merged = merged ? layerLooks(merged, parts) : parts;
-  }
-  return merged;
-}
+/** A look's parts as ordered layers: each part's value from every look named, earliest first. */
+export type LayeredLook = { [P in LookPartName]?: HtmlLookPart[] };
 
-const LOOK_PARTS = [
+/** The parts of a look. */
+export type LookPartName = keyof HtmlLook;
+
+const LOOK_PARTS: readonly LookPartName[] = [
   "shell",
   "control",
   "text",
@@ -173,16 +158,35 @@ const LOOK_PARTS = [
   "entry",
   "selected",
   "notSelected",
-] as const;
+];
 
-/** Two looks, the second over the first: each part's classes combined, a `{ replace }` winning. */
-function layerLooks(a: HtmlLook, b: HtmlLook): HtmlLook {
-  const out: HtmlLook = {};
-  for (const k of LOOK_PARTS) {
-    const v = combineClass(a[k], b[k]);
-    if (v !== undefined) out[k] = v;
+/**
+ * A look's parts, from the theme's `looks` (the form's under them), for the
+ * boundary `kind` — `undefined` for no look. A list of names is layered
+ * earliest first, part by part. A name the theme does not know is reported
+ * once in development, unless `styled`: the implementation resolves it to
+ * styles of its own.
+ */
+export function lookParts(
+  kind: string,
+  look: LookRef | undefined,
+  looks: HtmlTheme["looks"],
+  styled?: boolean,
+): LayeredLook | undefined {
+  let layered: LayeredLook | undefined;
+  for (const name of lookNames(look)) {
+    const parts = looks[name];
+    if (!parts) {
+      if (!styled) warnUnknownLook(kind, name);
+      continue;
+    }
+    layered ??= {};
+    for (const k of LOOK_PARTS) {
+      const v = parts[k];
+      if (v !== undefined) (layered[k] ??= []).push(v);
+    }
   }
-  return out;
+  return layered;
 }
 
 /**
@@ -273,22 +277,129 @@ export function portableCssSplit(
   return { box: portableCss(box, colors), text: portableCss(text, colors) };
 }
 
+/** One look part, or the layers of one from a list of looks. */
+export type PartLayers = HtmlLookPart | readonly HtmlLookPart[] | undefined;
+
+function* flat(parts: readonly PartLayers[]): Generator<HtmlLookPart> {
+  for (const p of parts) {
+    if (p === undefined) continue;
+    if (Array.isArray(p)) yield* p as HtmlLookPart[];
+    else yield p as HtmlLookPart;
+  }
+}
+
 /**
- * A slot's own classes with a look's parts laid over them, in order: a
- * string part is added; a `{ replace }` part stands in for what came before
- * it, the slot's own classes included. The author's class goes over the
- * result through {@link mergeClass}.
+ * A slot's own classes with a look's parts laid over them, in order: a string
+ * part is added; a `{ replace }` part stands in for what came before it, the
+ * slot's own classes included. A part that is a style, or a function of state,
+ * adds no class (see {@link lookStyle}).
  */
 export function lookClass(
   base: string | undefined,
-  ...parts: (ClassValue | undefined)[]
+  ...parts: PartLayers[]
 ): string | undefined {
   let out = base;
-  for (const p of parts) {
-    if (p === undefined) continue;
-    out = typeof p === "object" ? p.replace : [out, p].filter(Boolean).join(" ");
+  for (const p of flat(parts)) {
+    if (typeof p === "string") out = [out, p].filter(Boolean).join(" ");
+    else if (typeof p === "object" && "replace" in p)
+      out = typeof p.replace === "string" ? p.replace : undefined;
   }
   return out || undefined;
+}
+
+/** Whether any of these parts is a function of the state — and so needs it tracked. */
+export function needsState(...parts: PartLayers[]): boolean {
+  for (const p of flat(parts))
+    if (typeof p === "function" || (typeof p === "object" && "replace" in p && typeof p.replace === "function"))
+      return true;
+  return false;
+}
+
+/**
+ * The inline style a look's parts give an element, as {@link portableCss} draws it: the style parts
+ * in order, a function called with `state`, a `{ replace }` dropping what came before it. `undefined`
+ * when no part gives a style.
+ */
+export function lookStyle(
+  colors: Record<string, string>,
+  state: LookState,
+  ...parts: PartLayers[]
+): CSSProperties | undefined {
+  let acc: PortableStyle | undefined;
+  for (const p of flat(parts)) {
+    if (typeof p === "string") continue;
+    let v: unknown = p;
+    if (typeof p === "object" && "replace" in p) {
+      acc = undefined;
+      v = p.replace;
+    }
+    if (typeof v === "function") v = (v as (s: LookState) => PortableStyle)(state);
+    if (v && typeof v === "object") acc = { ...acc, ...(v as PortableStyle) };
+  }
+  return portableCss(acc, colors);
+}
+
+/** The handlers that let a look read `pressed` and `hovered`. */
+export interface LookPointer {
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  onPointerDown: () => void;
+  onPointerUp: () => void;
+  onPointerCancel: () => void;
+}
+
+/**
+ * A boundary's look as inline styles, with the state its functions ask for
+ * tracked — and **only** that: with no function in the look the hook costs a
+ * few `useState`s and listens to nothing. `base` is what the boundary already
+ * knows (`invalid`, `disabled`, `focused`).
+ *
+ * `style(part, authored)` is the part's (or parts', in order) inline style with
+ * the author's own style laid over it; `pointer` is what to spread on the element that should
+ * report `pressed` / `hovered`, and is `undefined` when the look does not read them.
+ */
+export function useLookStyles(
+  look: LayeredLook | undefined,
+  base?: Partial<LookState>,
+): {
+  style: (
+    part: LookPartName | readonly LookPartName[],
+    authored?: CSSProperties,
+  ) => CSSProperties | undefined;
+  pointer: LookPointer | undefined;
+} {
+  const colors = useHtmlTheme().tokens.colors;
+  const needed = !!look && LOOK_PARTS.some((k) => needsState(look[k]));
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    if (!needed) return;
+    const read = () => setWidth(window.innerWidth);
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, [needed]);
+  const state: LookState = { ...NO_LOOK_STATE, ...base, hovered, pressed, width };
+  return {
+    style: (part, authored) => {
+      const parts = typeof part === "string" ? [part] : part;
+      const own = look ? lookStyle(colors, state, ...parts.map((k) => look[k])) : undefined;
+      return own && authored ? { ...own, ...authored } : (authored ?? own);
+    },
+    pointer: needed
+      ? {
+          onPointerEnter: () => setHovered(true),
+          onPointerLeave: () => {
+            setHovered(false);
+            setPressed(false);
+          },
+          onPointerDown: () => setPressed(true),
+          onPointerUp: () => setPressed(false),
+          onPointerCancel: () => setPressed(false),
+        }
+      : undefined,
+  };
 }
 
 /**
@@ -299,7 +410,7 @@ function useGroupLook(
   look: LookRef | undefined,
   looks: HtmlTheme["looks"],
   style: GroupLookStyle | undefined,
-): { classes?: HtmlLook; style?: GroupLookStyle } {
+): { classes?: LayeredLook; style?: GroupLookStyle } {
   return { classes: lookParts("group", look, looks, !!style), style };
 }
 
@@ -359,6 +470,7 @@ export function ContentsRegion({
   const htmlTheme = useHtmlTheme();
   const looks = looksProp ?? htmlTheme.looks;
   const look = useGroupLook(lookName, looks, lookStyle);
+  const ls = useLookStyles(look.classes, { invalid: !!invalid });
   const colors = htmlTheme.tokens.colors;
   // A look's `control` is the body's layout: the theme's default only when there is none.
   const ownLayout = look.classes?.control === undefined;
@@ -376,7 +488,7 @@ export function ContentsRegion({
           look.classes?.label,
           look.classes?.labelText,
         )}
-      style={titleStyle || look.style?.title ? { ...titleStyle, ...look.style?.title } : undefined}
+      style={{ ...titleStyle, ...look.style?.title, ...ls.style(["label", "labelText"]) }}
     >
       {title}
     </div>
@@ -400,7 +512,7 @@ export function ContentsRegion({
               : undefined,
           look.style?.body,
         ),
-        portableCss(authorStyle, colors),
+        ls.style("control", portableCss(authorStyle, colors)),
       )}
     >
       {children}
@@ -429,7 +541,7 @@ export function ContentsRegion({
       // from the wrapper's classes beats the attribute without preflight.
       hidden={(hidden && mode === "attribute") || undefined}
       style={withStyle(
-        withStyle(look.style?.wrapper, portableCss(shellStyle, colors)),
+        withStyle(look.style?.wrapper, ls.style("shell", portableCss(shellStyle, colors))),
         hidden && mode === "attribute" ? { display: "none" } : undefined,
       )}
     >
@@ -503,11 +615,12 @@ export function Inline({
   const htmlTheme = useHtmlTheme();
   const looks = looksProp ?? htmlTheme.looks;
   const look = useGroupLook(lookName, looks, lookStyle);
+  const ls = useLookStyles(look.classes);
   const colors = htmlTheme.tokens.colors;
   return (
     <span
       className={lookClass(classes.wrapper, look.classes?.shell)}
-      style={withStyle(look.style?.wrapper, portableCss(shellStyle, colors))}
+      style={withStyle(look.style?.wrapper, ls.style("shell", portableCss(shellStyle, colors)))}
       data-look={lookAttr(lookName)}
       data-hidden={hidden ? "" : undefined}
       inert={hidden || undefined}
@@ -523,7 +636,7 @@ export function Inline({
       )}
       <span
         className={lookClass(undefined, look.classes?.control)}
-        style={portableCss(authorStyle, colors)}
+        style={ls.style(["control", "text"], portableCss(authorStyle, colors))}
       >
         {children}
       </span>
@@ -615,7 +728,7 @@ export function DisplayShell({
   children,
   classes = defaultHtmlTheme.displayShell,
 }: {
-  shellClassName?: ClassValue;
+  shellClassName?: PartLayers;
   inline?: boolean;
   kind?: "display" | "action";
   /** The display's tone: the theme's class for it, and `data-tone`. */
@@ -678,6 +791,7 @@ export function ElementsList(
   const htmlTheme = useHtmlTheme();
   const look = lookParts("collection", p.look, p.looks ?? htmlTheme.looks);
   const colors = htmlTheme.tokens.colors;
+  const ls = useLookStyles(look);
   const Shell = useFieldShell();
   return (
     <Shell
@@ -694,7 +808,7 @@ export function ElementsList(
     >
       <div
         className={lookClass(classes.className, look?.control)}
-        style={portableCss(p.style, colors)}
+        style={ls.style("control", portableCss(p.style, colors))}
       >
         {p.elements.length ? p.elements.map((e) => e.node) : p.empty}
       </div>
@@ -886,6 +1000,7 @@ export function ImageDom({
     .map((n) => lookStyle?.(n))
     .reduce<CSSProperties | undefined>((a, b) => (a && b ? { ...a, ...b } : (a ?? b)), undefined);
   const look = lookParts("image", lookName, looks, styled !== undefined);
+  const ls = useLookStyles(look);
   const w = dimension(getProp(rc, p.width) ?? img.width);
   const h = dimension(getProp(rc, p.height) ?? (getProp(rc, p.width) === undefined ? img.height : undefined));
   return rendered(
@@ -914,7 +1029,7 @@ export function ImageDom({
             ...(w.attr !== undefined && h.attr === undefined && !h.style ? { height: "auto" } : {}),
             ...(fit ? { objectFit: fit } : {}),
             ...styled,
-            ...portableCss(p.style, colors),
+            ...ls.style("control", portableCss(p.style, colors)),
           }}
         />
       )}

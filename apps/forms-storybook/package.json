@@ -38,7 +38,6 @@
     "@types/react-dom": "~19.2.0",
     "@vitejs/plugin-react": "^6.1.1",
     "happy-dom": "~15.11.0",
-    "nativewind": "~4.2.3",
     "postcss": "~8.5.0",
     "react-native": "0.86.3",
     "storybook": "^10.6.1",

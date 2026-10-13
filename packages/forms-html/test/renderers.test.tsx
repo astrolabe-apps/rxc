@@ -917,3 +917,114 @@ describe("looks: layering, replace and the slots they share with className", () 
     warn.mockRestore();
   });
 });
+
+describe("looks given as portable styles", () => {
+  const theme = (looks: NonNullable<PartialHtmlTheme["looks"]>): PartialHtmlTheme => ({
+    tokens: { colors: { accent: "#ff0000" } },
+    looks,
+  });
+  const dispatch = (el: Element, type: string) =>
+    act(() => void el.dispatchEvent(new Event(type, { bubbles: true })));
+
+  it("draws a look's style parts inline, tokens resolved, and layers them over a class look", () => {
+    mount(
+      <>
+        <TextDisplay text="a" look={["tw", "ink"]} />
+        <TextField field={dom.ctx.newControl("")} id="t" look="boxed" />
+      </>,
+      {
+        theme: theme({
+          tw: { control: "tw-class" },
+          ink: { control: { color: "$accent", paddingTop: 8 }, text: { fontSize: 32 } },
+          boxed: { control: { borderRadius: 6 }, text: { color: "$accent/50" } },
+        }),
+      },
+    );
+    const p = $("p")!;
+    // classes and styles from different looks in one list: both land
+    expect(p.classList.contains("tw-class")).toBe(true);
+    expect([p.style.paddingTop, p.style.color]).toEqual(["8px", expect.stringMatching(/#ff0000|255, 0, 0/)]);
+    expect(p.querySelector("span")!.style.fontSize).toBe("2rem");
+    // a field: the control's style on the frame, the text part's on the input
+    expect($("#t")!.parentElement!.style.borderRadius).toBe("6px");
+    expect($("#t")!.style.color).toMatch(/rgba\(255, 0, 0, 0\.5/);
+  });
+
+  it("lets a style `{ replace }` drop the earlier classes and styles, and the author's style win", () => {
+    mount(
+      <>
+        <TextDisplay text="a" look={["base", "swap"]} />
+        <TextDisplay text="b" look="base" style={{ paddingTop: 1 }} />
+      </>,
+      {
+        theme: theme({
+          base: { control: "from-base" },
+          swap: { control: { replace: { margin: 2 } } },
+        }),
+      },
+    );
+    const [a, b] = $$("p") as HTMLElement[];
+    expect(a.classList.contains("from-base")).toBe(false);
+    expect(a.style.margin).toBe("2px");
+    expect(b.style.paddingTop).toBe("1px");
+  });
+
+  it("tells a function of the state when an action is pressed and hovered, and drops it again", () => {
+    mount(<Action actionId="a" text="Go" look="press" />, {
+      theme: theme({
+        press: {
+          control: (s) => ({ opacity: s.pressed ? 0.5 : s.hovered ? 0.8 : 1 }),
+        },
+      }),
+    });
+    const button = $("button")!;
+    expect(button.style.opacity).toBe("1");
+    dispatch(button, "pointerover");
+    expect(button.style.opacity).toBe("0.8");
+    dispatch(button, "pointerdown");
+    expect(button.style.opacity).toBe("0.5");
+    dispatch(button, "pointerup");
+    expect(button.style.opacity).toBe("0.8");
+    dispatch(button, "pointerout");
+    expect(button.style.opacity).toBe("1");
+  });
+
+  it("tells a function of the state a field's focus and error", () => {
+    const c = dom.ctx.newControl("");
+    mount(<TextField field={c} id="t" required look="frame" />, {
+      theme: theme({
+        frame: {
+          control: (s) => ({
+            borderColor: s.invalid ? "#ff0000" : s.focused ? "#0000ff" : "#cccccc",
+            borderWidth: 1,
+          }),
+        },
+      }),
+    });
+    const frame = () => $("#t")!.parentElement!;
+    expect(frame().style.borderColor).toBe("#cccccc");
+    act(() => $<HTMLInputElement>("#t")!.focus());
+    expect(frame().style.borderColor).toBe("#0000ff");
+    touch(c as Control<unknown>);
+    expect(frame().style.borderColor).toBe("#ff0000");
+  });
+
+  it("tells a function of the state the window's width, and follows a resize", () => {
+    const saved = window.innerWidth;
+    (window as { innerWidth: number }).innerWidth = 500;
+    try {
+      mount(<Contents look="wide">x</Contents>, {
+        theme: theme({
+          wide: { control: (s) => ({ flexDirection: s.width >= 1024 ? "row" : "column" }) },
+        }),
+      });
+      const body = () => $(".rxf-contents-body")!;
+      expect(body().style.flexDirection).toBe("column");
+      (window as { innerWidth: number }).innerWidth = 1200;
+      act(() => void window.dispatchEvent(new Event("resize")));
+      expect(body().style.flexDirection).toBe("row");
+    } finally {
+      (window as { innerWidth: number }).innerWidth = saved;
+    }
+  });
+});

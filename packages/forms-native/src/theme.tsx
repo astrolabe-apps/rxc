@@ -6,22 +6,19 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { useFormLooks, type Tone } from "@rx-controls/forms-react";
+import type { Tone } from "@rx-controls/forms-react";
+import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 import type { NativeLook } from "./looks.js";
 
 /**
- * Every class the React Native implementation puts on an element, one slot
- * per element — NativeWind classes, which an app's Tailwind build turns into
- * styles. `forms-native`'s API, not the contract's.
+ * Every style the React Native implementation puts on an element, one slot
+ * per element — React Native `style` objects, a {@link ViewStyle} for a
+ * container and a {@link TextStyle} for words. `forms-native`'s API, not the
+ * contract's.
  *
- * Only classes NativeWind carries to native belong here: no pseudo-elements,
- * no descendant selectors. State an element has no variant for — a frame
- * focused, a box checked, a tab active — is a slot of its own, applied by the
- * implementation, so it never depends on a variant a platform lacks.
- *
- * The app's Tailwind `content` must include this package's built files
- * (`node_modules/@rx-controls/forms-native/lib/**\/*.js`), or none of these
- * classes are compiled.
+ * State an element has no variant for — a frame focused, a box checked, a tab
+ * active — is a slot of its own, applied by the implementation after the base
+ * slot, so a later one wins.
  *
  * @group Theming
  */
@@ -37,44 +34,44 @@ export interface NativeTheme {
   /** The field shell. */
   shell: {
     /** The outer element: label, control, help, error. */
-    className: string;
+    style: ViewStyle;
     /**
      * The label. In a row (a checkbox's, `labelEnd` help's) it sits beside
      * other items, and React Native's flex items do not shrink unless told:
      * keep `shrink` here, or a long label pushes the control off the screen.
      */
-    label: string;
+    label: TextStyle;
     /** The required marker, inside the label. */
-    required: string;
+    required: TextStyle;
     /** Help text. */
-    help: string;
+    help: TextStyle;
     /** The error. */
-    error: string;
+    error: TextStyle;
     /** A character count within its limit. */
-    count: string;
+    count: TextStyle;
     /** The count past its limit, in place of `count`. */
-    countOver: string;
+    countOver: TextStyle;
     /**
      * What a group that cannot carry `aria-required` (a check list) is
      * described with first. Words, for assistive technology.
      */
     requiredNote: string;
     /** A trailing label beside its control (a checkbox's): the row. */
-    afterRow: string;
+    afterRow: ViewStyle;
     /**
      * `labelEnd` help: the label and its button side by side. In a
      * `horizontal` row, beside the control, so it shrinks as `label` does.
      */
-    labelRow: string;
+    labelRow: ViewStyle;
     /**
      * A label beside its control (`orientation: "horizontal"` — a checkbox
      * with `labelPosition: "before"`): the row, the control at its end.
      */
-    horizontal: string;
+    horizontal: ViewStyle;
     /** The button that shows `labelEnd` help. */
     helpButton: {
       /** Its element. */
-      className: string;
+      style: ViewStyle;
       /** What it shows. */
       icon: ReactNode;
       /** Its accessible name — words. */
@@ -84,15 +81,15 @@ export interface NativeTheme {
   /** The input frame: the box around a text input or a select's trigger. */
   frame: {
     /** Always. */
-    className: string;
+    style: ViewStyle;
     /** Added while the control has focus. */
-    focused: string;
+    focused: ViewStyle;
     /** Added while the field is invalid. */
-    invalid: string;
+    invalid: ViewStyle;
     /** Added while the field is disabled. */
-    disabled: string;
+    disabled: ViewStyle;
     /** The `TextInput` inside. */
-    input: string;
+    input: TextStyle;
   };
   /** The checkbox. */
   checkbox: {
@@ -103,7 +100,7 @@ export interface NativeTheme {
     control: "box" | "switch";
     /**
      * The `Switch`'s colours, as colour values: they are its props, not
-     * styles, so no class reaches them. One left out is the platform's own.
+     * styles, so no style reaches them. One left out is the platform's own.
      * `trackOff` is also iOS's background while off.
      */
     switchColors?: {
@@ -117,211 +114,213 @@ export interface NativeTheme {
       thumbOff?: string;
     };
     /** The box. */
-    box: string;
+    box: ViewStyle;
     /** Added while checked. */
-    checked: string;
+    checked: ViewStyle;
     /** The tick inside a checked box. */
-    mark: string;
+    mark: TextStyle;
     /** What the tick shows. */
     markIcon: ReactNode;
   };
   /** The radio group. */
   radio: {
     /** The group. */
-    className: string;
+    style: ViewStyle;
     /** Around each option and its per-option content. */
-    entry: string;
+    entry: ViewStyle;
     /** One option: the ring and its text. */
-    option: string;
+    option: ViewStyle;
     /** The ring. */
-    ring: string;
+    ring: ViewStyle;
     /** Added to the ring while selected. */
-    ringSelected: string;
+    ringSelected: ViewStyle;
     /** The dot inside a selected ring. */
-    dot: string;
+    dot: ViewStyle;
     /** The option's text. */
-    label: string;
+    label: TextStyle;
   };
   /** A set of checkboxes. */
   checkList: {
     /** The group. */
-    className: string;
+    style: ViewStyle;
     /** One option: the box and its text. */
-    option: string;
+    option: ViewStyle;
     /** The option's text. */
-    label: string;
+    label: TextStyle;
   };
   /** The select: a trigger in the input frame, its options in a sheet. */
   select: {
     /** The trigger's text: the chosen option's name. */
-    value: string;
+    value: TextStyle;
     /** The trigger's text with nothing chosen. */
-    placeholder: string;
+    placeholder: TextStyle;
     /** The empty choice's words. */
     emptyText: string;
     /** The sheet's backdrop. */
-    backdrop: string;
+    backdrop: ViewStyle;
     /** The sheet. */
-    sheet: string;
+    sheet: ViewStyle;
     /** One option in it. */
-    option: string;
+    option: ViewStyle;
     /** Added to the chosen option. */
-    optionSelected: string;
+    optionSelected: ViewStyle;
     /** An option's text. */
-    optionText: string;
+    optionText: TextStyle;
   };
   /** The display-only field. */
   displayOnly: {
     /** As a block. */
-    className: string;
+    style: ViewStyle;
+    /** The value's words. */
+    text: TextStyle;
     /** Inside an inline group. */
-    inline: string;
+    inline: TextStyle;
     /** Around a `startIcon` / `endIcon`. */
-    icon: string;
+    icon: ViewStyle;
   };
   /** The standard group. */
   contents: {
     /** The wrapper around title and body. */
-    wrapper: string;
+    wrapper: ViewStyle;
     /** The title, a heading. */
-    title: string;
+    title: TextStyle;
     /** The body the children sit in. */
-    body: string;
+    body: ViewStyle;
   };
   /** An inline group: prose. */
   inline: {
     /** Its element. */
-    wrapper: string;
+    wrapper: ViewStyle;
   };
   /** The text display. */
   text: {
     /** As a block. */
-    className: string;
+    style: TextStyle;
     /**
-     * Drawn as a heading: `className` on every one, and the level's class
+     * Drawn as a heading: `style` on every one, and the level's style
      * beside it — the level the form's outline gives the place.
      */
     heading: {
       /** On every heading. */
-      className: string;
+      style: TextStyle;
       /** Beside it, by the heading's level. */
-      levels: Record<1 | 2 | 3 | 4 | 5 | 6, string>;
+      levels: Record<1 | 2 | 3 | 4 | 5 | 6, TextStyle>;
     };
     /** By tone, on any display's text. */
-    tones: Record<Tone, string>;
+    tones: Record<Tone, TextStyle>;
   };
   /** The icon display. */
   icon: {
     /** Its element, and a glyph given as a string. */
-    className: string;
+    style: TextStyle;
   };
   /** Rich text (`RichText`): nested `Text`, inheriting what it sits in. */
   richText: {
     /** `b` / `strong`. */
-    strong: string;
+    strong: TextStyle;
     /** `i` / `em`. */
-    em: string;
+    em: TextStyle;
     /**
      * `sup`. Digits and signs are drawn as Unicode superscripts, raised in
-     * every font; anything else just takes this class — native text has no
+     * every font; anything else just takes this style — native text has no
      * baseline shift.
      */
-    sup: string;
+    sup: TextStyle;
     /** `sub`. */
-    sub: string;
+    sub: TextStyle;
     /** `a`. */
-    link: string;
+    link: TextStyle;
     /** `img`. */
-    image: string;
+    image: ImageStyle;
   };
   /** The image display. */
   image: {
     /** The `Image`. */
-    className: string;
+    style: ImageStyle;
   };
   /** The html display: its markup's text. */
   html: {
     /** Its element. */
-    className: string;
+    style: TextStyle;
   };
   /** Buttons. */
   action: {
     /** Every button. */
-    className: string;
+    style: ViewStyle;
     /**
      * Every button's text. React Native's flex items do not shrink unless
      * told, so keep `shrink` here: a long label beside an icon otherwise
      * pushes the icon out of the button.
      */
-    textClassName: string;
+    textStyle: TextStyle;
     /** Around its icon, or the spinner in its place. */
-    iconClassName: string;
+    iconStyle: ViewStyle;
     /**
-     * Added over the text's classes on an icon given as a string, which is
+     * Added over the text's styles on an icon given as a string, which is
      * drawn in the button's text look so it takes the button's colour: what
      * a glyph should not share with the words (an underline).
      */
-    iconTextClassName: string;
+    iconTextStyle: TextStyle;
     /** Added while disabled. */
-    disabled: string;
+    disabled: ViewStyle;
   };
   /** The tab strip. */
   tabs: {
     /** The outer element. */
-    className: string;
+    style: ViewStyle;
     /** The row of tabs. */
-    list: string;
+    list: ViewStyle;
     /** One tab. */
-    tab: string;
+    tab: ViewStyle;
     /** Added to the active tab. */
-    active: string;
+    active: ViewStyle;
     /** Added to every other tab. */
-    inactive: string;
+    inactive: ViewStyle;
     /** A tab's text. */
-    tabText: string;
+    tabText: TextStyle;
     /** Added to the active tab's text. */
-    activeText: string;
+    activeText: TextStyle;
     /** The marker on a tab whose panel has an error. */
-    invalidMarker: string;
+    invalidMarker: TextStyle;
     /** Around each panel. */
-    panel: string;
+    panel: ViewStyle;
   };
   /** The wizard. */
   wizard: {
     /** The step row. */
-    steps: string;
+    steps: ViewStyle;
     /** One step. */
-    step: string;
+    step: ViewStyle;
     /** Added to the current step. */
-    active: string;
+    active: ViewStyle;
     /** A step's text. */
-    stepText: string;
+    stepText: TextStyle;
     /** Around each page. */
-    page: string;
+    page: ViewStyle;
     /** The Back / Next row. */
-    nav: string;
+    nav: ViewStyle;
   };
   /** The dialog. */
   dialog: {
     /** Behind the surface. */
-    backdrop: string;
+    backdrop: ViewStyle;
     /** The surface. */
-    surface: string;
+    surface: ViewStyle;
     /** In design mode, drawn in place. */
-    inline: string;
+    inline: ViewStyle;
     /** The heading. */
-    title: string;
+    title: TextStyle;
     /** The button row. */
-    actions: string;
+    actions: ViewStyle;
   };
   /** The disclosure. */
   disclosure: {
     /** The outer element. */
-    className: string;
+    style: ViewStyle;
     /** The toggle. */
-    toggle: string;
+    toggle: ViewStyle;
     /** The toggle's text. */
-    title: string;
+    title: TextStyle;
     /** What the toggle shows beside its text; turned while open. */
     icon: ReactNode;
     /**
@@ -330,16 +329,19 @@ export interface NativeTheme {
      */
     iconPlacement: "before" | "after";
     /** The marker on a toggle whose content has an error. */
-    invalidMarker: string;
+    invalidMarker: TextStyle;
     /** Around the content. */
-    content: string;
+    content: ViewStyle;
   };
   /**
    * Named looks (`look="card"` on a boundary): for each, what it gives the
-   * parts of the boundary it styles — React Native styles with no class and
-   * no NativeWind in the way, or NativeWind classes; see {@link NativeLook}.
-   * A look is *added* to the slots above (a class merged with
-   * `tailwind-merge`, so its utility wins) unless a part says `{ replace }`.
+   * parts of the boundary it styles — React Native styles, as values or as
+   * functions of the element's state; see {@link NativeLook}. A look is
+   * layered over the slots above (the later in the element's `style` array
+   * wins) unless a part says `{ replace }`. Looks the form brings in
+   * `useFormLooks()` are class-valued and are not drawn on native: name each
+   * one here too.
+   *
    * A name not here draws the base look, with a warning in development.
    *
    * The three emphases every theme draws for an action — `primary`,
@@ -356,176 +358,283 @@ export interface NativeTheme {
   /** The chrome-less collection. */
   elements: {
     /** Around the rows. */
-    className: string;
+    style: ViewStyle;
   };
 }
 
+
+const gray = {
+  900: "#111827",
+  800: "#1f2937",
+  700: "#374151",
+  500: "#6b7280",
+  400: "#9ca3af",
+  300: "#d1d5db",
+  200: "#e5e7eb",
+  100: "#f3f4f6",
+};
+const blue600 = "#2563eb";
+const red600 = "#dc2626";
+const white = "#fff";
+const scrim = "rgba(0, 0, 0, 0.4)";
+/** Tailwind's type scale: size and line height. */
+const xs = { fontSize: 12, lineHeight: 16 } as const;
+const sm = { fontSize: 14, lineHeight: 20 } as const;
+const base = { fontSize: 16, lineHeight: 24 } as const;
+const row = { flexDirection: "row", alignItems: "center" } as const;
+
 /**
- * The default: a plain NativeWind look in Tailwind's palette, for an app with
- * no theme of its own.
+ * The default: a plain look in Tailwind's palette, as React Native styles,
+ * for an app with no theme of its own.
  *
  * @group Theming
  */
 export const defaultNativeTheme: NativeTheme = {
   shellFor: {},
   shell: {
-    className: "gap-1",
-    label: "shrink text-sm font-semibold text-gray-700",
-    required: "text-red-600",
-    help: "text-xs text-gray-500",
-    error: "text-sm text-red-600",
-    count: "text-xs text-gray-500",
-    countOver: "text-xs text-red-600",
+    style: { gap: 4 },
+    label: { flexShrink: 1, ...sm, fontWeight: "600", color: gray[700] },
+    required: { color: red600 },
+    help: { ...xs, color: gray[500] },
+    error: { ...sm, color: red600 },
+    count: { ...xs, color: gray[500] },
+    countOver: { ...xs, color: red600 },
     requiredNote: "Required",
-    afterRow: "flex-row items-center gap-2",
-    labelRow: "shrink flex-row items-center gap-1",
-    horizontal: "flex-row items-center justify-between gap-2",
-    helpButton: { className: "px-1", icon: "ⓘ", text: "Help" },
+    afterRow: { ...row, gap: 8 },
+    labelRow: { flexShrink: 1, ...row, gap: 4 },
+    horizontal: { ...row, justifyContent: "space-between", gap: 8 },
+    helpButton: { style: { paddingHorizontal: 4 }, icon: "ⓘ", text: "Help" },
   },
   frame: {
-    className: "flex-row items-center gap-2 rounded-md border border-gray-300 bg-white px-3",
-    focused: "border-blue-600",
-    invalid: "border-red-500",
-    disabled: "bg-gray-100 opacity-75",
-    input: "flex-1 py-2 text-base text-gray-900",
+    style: {
+      ...row,
+      gap: 8,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: gray[300],
+      backgroundColor: white,
+      paddingHorizontal: 12,
+    },
+    focused: { borderColor: blue600 },
+    invalid: { borderColor: "#ef4444" },
+    disabled: { backgroundColor: gray[100], opacity: 0.75 },
+    input: { flex: 1, paddingVertical: 8, ...base, color: gray[900] },
   },
   checkbox: {
     control: "box",
-    box: "h-5 w-5 items-center justify-center rounded border border-gray-400 bg-white",
-    checked: "border-blue-600 bg-blue-600",
-    mark: "text-xs font-bold text-white",
+    box: {
+      height: 20,
+      width: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: gray[400],
+      backgroundColor: white,
+    },
+    checked: { borderColor: blue600, backgroundColor: blue600 },
+    mark: { ...xs, fontWeight: "700", color: white },
     markIcon: "✓",
   },
   radio: {
-    className: "gap-2",
-    entry: "gap-1",
-    option: "flex-row items-center gap-2 py-1",
-    ring: "h-5 w-5 items-center justify-center rounded-full border border-gray-400 bg-white",
-    ringSelected: "border-blue-600",
-    dot: "h-2.5 w-2.5 rounded-full bg-blue-600",
-    label: "text-base text-gray-800",
+    style: { gap: 8 },
+    entry: { gap: 4 },
+    option: { ...row, gap: 8, paddingVertical: 4 },
+    ring: {
+      height: 20,
+      width: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: gray[400],
+      backgroundColor: white,
+    },
+    ringSelected: { borderColor: blue600 },
+    dot: { height: 10, width: 10, borderRadius: 9999, backgroundColor: blue600 },
+    label: { ...base, color: gray[800] },
   },
   checkList: {
-    className: "gap-2",
-    option: "flex-row items-center gap-2 py-1",
-    label: "text-base text-gray-800",
+    style: { gap: 8 },
+    option: { ...row, gap: 8, paddingVertical: 4 },
+    label: { ...base, color: gray[800] },
   },
   select: {
-    value: "flex-1 py-2 text-base text-gray-900",
-    placeholder: "flex-1 py-2 text-base text-gray-400",
+    value: { flex: 1, paddingVertical: 8, ...base, color: gray[900] },
+    placeholder: { flex: 1, paddingVertical: 8, ...base, color: gray[400] },
     emptyText: "—",
-    backdrop: "flex-1 justify-end bg-black/40",
-    sheet: "max-h-[70%] rounded-t-xl bg-white pb-6",
-    option: "border-b border-gray-100 px-4 py-3",
-    optionSelected: "bg-blue-50",
-    optionText: "text-base text-gray-900",
+    backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: scrim },
+    sheet: {
+      maxHeight: "70%",
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      backgroundColor: white,
+      paddingBottom: 24,
+    },
+    option: {
+      borderBottomWidth: 1,
+      borderBottomColor: gray[100],
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    optionSelected: { backgroundColor: "#eff6ff" },
+    optionText: { ...base, color: gray[900] },
   },
   displayOnly: {
-    className: "flex-row items-center gap-1.5 py-1.5 text-base text-gray-900",
-    inline: "font-semibold",
-    icon: "items-center",
+    style: { ...row, gap: 6, paddingVertical: 6 },
+    text: { ...base, color: gray[900] },
+    inline: { fontWeight: "600" },
+    icon: { alignItems: "center" },
   },
   contents: {
-    wrapper: "",
-    title: "mb-2 text-base font-bold text-gray-900",
-    body: "gap-4",
+    wrapper: {},
+    title: { marginBottom: 8, ...base, fontWeight: "700", color: gray[900] },
+    body: { gap: 16 },
   },
-  inline: { wrapper: "flex-row flex-wrap items-baseline gap-1" },
+  inline: { wrapper: { ...row, flexWrap: "wrap", alignItems: "baseline", gap: 4 } },
   text: {
-    className: "text-base text-gray-800",
+    style: { ...base, color: gray[800] },
     heading: {
-      className: "font-bold text-gray-900",
+      style: { fontWeight: "700", color: gray[900] },
       levels: {
-        1: "text-3xl",
-        2: "text-xl",
-        3: "text-lg",
-        4: "text-base",
-        5: "text-base",
-        6: "text-base",
+        1: { fontSize: 30, lineHeight: 36 },
+        2: { fontSize: 20, lineHeight: 28 },
+        3: { fontSize: 18, lineHeight: 28 },
+        4: base,
+        5: base,
+        6: base,
       },
     },
     tones: {
-      error: "text-red-600",
-      warning: "text-amber-600",
-      info: "text-blue-700",
-      success: "text-green-700",
+      error: { color: red600 },
+      warning: { color: "#d97706" },
+      info: { color: "#1d4ed8" },
+      success: { color: "#15803d" },
     },
   },
-  icon: { className: "text-xl" },
-  image: { className: "" },
+  icon: { style: { fontSize: 20, lineHeight: 28 } },
+  image: { style: {} },
   richText: {
-    strong: "font-bold",
-    em: "italic",
-    sup: "",
-    sub: "",
-    link: "text-blue-600 underline",
-    image: "",
+    strong: { fontWeight: "700" },
+    em: { fontStyle: "italic" },
+    sup: {},
+    sub: {},
+    link: { color: blue600, textDecorationLine: "underline" },
+    image: {},
   },
-  html: { className: "text-base text-gray-800" },
+  html: { style: { ...base, color: gray[800] } },
   action: {
-    className: "flex-row items-center justify-center gap-2 rounded-md px-4 py-2",
-    textClassName: "shrink text-sm font-medium",
-    iconClassName: "items-center",
-    iconTextClassName: "no-underline",
-    disabled: "opacity-50",
+    style: {
+      ...row,
+      justifyContent: "center",
+      gap: 8,
+      borderRadius: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    textStyle: { flexShrink: 1, ...sm, fontWeight: "500" },
+    iconStyle: { alignItems: "center" },
+    iconTextStyle: { textDecorationLine: "none" },
+    disabled: { opacity: 0.5 },
   },
   tabs: {
-    className: "gap-2",
-    list: "flex-row border-b border-gray-200",
-    tab: "flex-row items-center gap-1 border-b-2 px-4 py-3",
-    active: "border-blue-600",
-    inactive: "border-transparent",
-    tabText: "text-sm font-medium text-gray-500",
-    activeText: "text-blue-600",
-    invalidMarker: "text-[9px] text-red-600",
-    panel: "pt-2",
+    style: { gap: 8 },
+    list: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: gray[200] },
+    tab: { ...row, gap: 4, borderBottomWidth: 2, paddingHorizontal: 16, paddingVertical: 12 },
+    active: { borderBottomColor: blue600 },
+    inactive: { borderBottomColor: "transparent" },
+    tabText: { ...sm, fontWeight: "500", color: gray[500] },
+    activeText: { color: blue600 },
+    invalidMarker: { fontSize: 9, color: red600 },
+    panel: { paddingTop: 8 },
   },
   wizard: {
-    steps: "mb-4 flex-row flex-wrap gap-2",
-    step: "rounded-full border border-gray-300 px-3 py-1",
-    active: "border-blue-600 bg-blue-50",
-    stepText: "text-sm text-gray-700",
-    page: "",
-    nav: "mt-3 flex-row gap-2",
+    steps: { marginBottom: 16, flexDirection: "row", flexWrap: "wrap", gap: 8 },
+    step: {
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: gray[300],
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    active: { borderColor: blue600, backgroundColor: "#eff6ff" },
+    stepText: { ...sm, color: gray[700] },
+    page: {},
+    nav: { marginTop: 12, flexDirection: "row", gap: 8 },
   },
   dialog: {
-    backdrop: "flex-1 items-center justify-center bg-black/40 p-6",
-    surface: "w-full gap-3 rounded-xl bg-white p-5",
-    inline: "gap-3 rounded-md border border-gray-200 p-4",
-    title: "text-lg font-semibold text-gray-900",
-    actions: "flex-row justify-end gap-2",
+    backdrop: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: scrim,
+      padding: 24,
+    },
+    surface: { width: "100%", gap: 12, borderRadius: 12, backgroundColor: white, padding: 20 },
+    inline: { gap: 12, borderRadius: 6, borderWidth: 1, borderColor: gray[200], padding: 16 },
+    title: { fontSize: 18, lineHeight: 28, fontWeight: "600", color: gray[900] },
+    actions: { flexDirection: "row", justifyContent: "flex-end", gap: 8 },
   },
   disclosure: {
-    className: "",
-    toggle: "flex-row items-center gap-2 py-2",
-    title: "text-base font-medium text-gray-700",
+    style: {},
+    toggle: { ...row, gap: 8, paddingVertical: 8 },
+    title: { ...base, fontWeight: "500", color: gray[700] },
     icon: "▸",
     iconPlacement: "before",
-    invalidMarker: "text-[9px] text-red-600",
-    content: "pt-2",
+    invalidMarker: { fontSize: 9, color: red600 },
+    content: { paddingTop: 8 },
   },
   looks: {
-    primary: { control: "bg-blue-600", text: "text-white" },
-    secondary: { control: "border border-gray-300 bg-white", text: "text-gray-800" },
-    link: { control: "px-0 py-0", text: "text-blue-600 underline" },
+    primary: { control: { backgroundColor: blue600 }, text: { color: white } },
+    secondary: {
+      control: { borderWidth: 1, borderColor: gray[300], backgroundColor: white },
+      text: { color: gray[800] },
+    },
+    link: {
+      control: { paddingHorizontal: 0, paddingVertical: 0 },
+      text: { color: blue600, textDecorationLine: "underline" },
+    },
   },
   tokens: { colors: {} },
-  elements: { className: "gap-2" },
+  elements: { style: { gap: 8 } },
 };
 
+/** A node, a string, or anything else the merge replaces whole. */
+function isPlain(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v) && !isValidElement(v);
+}
+
 /**
- * Every property optional, recursively — except nodes and other leaves,
- * which are replaced whole.
+ * A slot group, as against a style: a group holds slots (objects), a style
+ * holds values. A style given over one is replaced whole, so a theme can
+ * drop a property of the enclosing theme's by leaving it out.
+ */
+function isGroup(v: unknown): v is Record<string, unknown> {
+  return isPlain(v) && Object.values(v).some(isPlain);
+}
+
+/**
+ * Every property optional, recursively — except styles, nodes and other
+ * leaves, which are replaced whole.
  */
 export type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends string | number | boolean | null | undefined | ReactElement
+  [K in keyof T]?: T[K] extends
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | ReactElement
+    | ViewStyle
+    | TextStyle
+    | ImageStyle
     ? T[K]
     : DeepPartial<T[K]>;
 };
 
 /**
  * A theme as a host supplies it: any slots, merged over the enclosing theme.
- * A node slot (an icon) is replaced whole.
+ * A style or a node slot (an icon) is replaced whole.
  *
  * @group Theming
  */
@@ -534,16 +643,32 @@ export type PartialNativeTheme = Omit<DeepPartial<NativeTheme>, "looks" | "token
   tokens?: { colors?: Record<string, string> };
 };
 
-/** `over` onto `base`; a key `base` lacks (a `shellFor` widget) starts empty. */
+/** `over` onto `base`: groups merge, anything else replaces. */
 function merge<T>(base: T, over: DeepPartial<T> | undefined): T {
   if (!over) return base;
   const out = { ...base } as Record<string, unknown>;
-  for (const [k, v] of Object.entries(over))
-    out[k] =
-      v && typeof v === "object" && !isValidElement(v)
-        ? merge((base as Record<string, unknown> | undefined)?.[k], v as never)
-        : v;
+  for (const [k, v] of Object.entries(over)) {
+    const b = (base as Record<string, unknown> | undefined)?.[k];
+    out[k] = isGroup(v) && isGroup(b) ? merge(b, v as never) : v;
+  }
   return out as T;
+}
+
+/** The theme with `over` laid on it: slots merged, looks and tokens by name. */
+function mergeTheme(base: NativeTheme, over: PartialNativeTheme): NativeTheme {
+  const { looks, tokens, shellFor, ...slots } = over;
+  const out = merge(base, slots as DeepPartial<NativeTheme>);
+  if (shellFor) {
+    const merged = { ...base.shellFor };
+    for (const [w, s] of Object.entries(shellFor)) {
+      const was = merged[w] as Record<string, unknown> | undefined;
+      merged[w] = { ...was, ...s, helpButton: { ...(was?.helpButton as object), ...s?.helpButton } } as never;
+    }
+    out.shellFor = merged;
+  }
+  if (looks) out.looks = { ...base.looks, ...looks };
+  if (tokens?.colors) out.tokens = { colors: { ...base.tokens.colors, ...tokens.colors } };
+  return out;
 }
 
 const ThemeContext = createContext<NativeTheme>(defaultNativeTheme);
@@ -561,7 +686,7 @@ export function NativeThemeProvider({
   children: ReactNode;
 }) {
   const parent = useContext(ThemeContext);
-  const value = useMemo(() => merge(parent, theme), [parent, theme]);
+  const value = useMemo(() => mergeTheme(parent, theme), [parent, theme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
@@ -571,11 +696,5 @@ export function NativeThemeProvider({
  * @group Theming
  */
 export function useNativeTheme(): NativeTheme {
-  const theme = useContext(ThemeContext);
-  const form = useFormLooks();
-  // The looks the form brought sit beneath the theme's own: a name the theme defines wins.
-  return useMemo(
-    () => (Object.keys(form).length === 0 ? theme : { ...theme, looks: { ...form, ...theme.looks } }),
-    [theme, form],
-  );
+  return useContext(ThemeContext);
 }

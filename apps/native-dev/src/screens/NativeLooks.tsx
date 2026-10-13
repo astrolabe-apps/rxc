@@ -5,9 +5,9 @@ import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms
 import { Screen } from "./Screen";
 
 /**
- * Looks as React Native styles, with no class in the way: the same names the
- * Named looks screen draws with NativeWind, here from `theme.looks`.
- * `docs/FORMS-V2-LOOKS.md`.
+ * Looks with colour tokens and state: a function of the element's state
+ * (`focused`, `invalid`, `pressed`, `width` …) returning styles, from
+ * `theme.looks`. `docs/FORMS-V2-LOOKS.md`.
  */
 const theme: PartialNativeTheme = {
   tokens: { colors: { accent: "#1d4ed8", danger: "#dc2626", ink: "#111827" } },

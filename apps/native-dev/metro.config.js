@@ -1,6 +1,5 @@
 const path = require("path");
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
 
 const projectRoot = __dirname;
 const repoRoot = path.resolve(projectRoot, "../..");
@@ -15,7 +14,7 @@ config.watchFolders = [repoRoot];
 // @rx-controls/react, …) resolve React and React Native from their own
 // node_modules. Two copies in one bundle break every hook and every native
 // component, so these resolve to the app's own wherever the import is.
-const single = ["react", "react-native", "nativewind", "react-native-css-interop"];
+const single = ["react", "react-native"];
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const pkg = single.find((p) => moduleName === p || moduleName.startsWith(p + "/"));
   if (pkg)
@@ -27,4 +26,4 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+module.exports = config;

@@ -72,6 +72,12 @@ export interface Implementation {
     noFormElement?: boolean;
     /** An html display draws its markup's text, not its markup. */
     htmlAsText?: boolean;
+    /**
+     * It cannot draw a look given as classes, which is what the JSON loader makes
+     * of a legacy control's class slots. It says so once per look instead, and the
+     * suite lets the fixture form's carry on without failing on that message.
+     */
+    classLooks?: boolean;
   };
 }
 
@@ -1548,6 +1554,10 @@ export function describeConformance(impl: Implementation): void {
         />,
       );
       await flush();
+      // What the fixture's class slots became: looks of the form's own, which a
+      // platform that cannot draw classes reports once per name.
+      if (impl.limits?.classLooks)
+        logged.splice(0, logged.length, ...logged.filter((m) => !/class looks/.test(m)));
       expect(text()).toContain("Pet 1 of 1");
       expect(text()).toContain("host greeting");
     });

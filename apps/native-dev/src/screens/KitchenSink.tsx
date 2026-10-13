@@ -20,6 +20,7 @@ import {
   useFormValidation,
 } from "@rx-controls/forms-react";
 import { NativeThemeProvider } from "@rx-controls/forms-native";
+import { shownStyle } from "./Screen";
 
 const states = [
   { name: "Tasmania", value: "TAS" },
@@ -68,7 +69,7 @@ export function KitchenSink(): Rendered {
         },
       }}
     >
-      <ScrollView contentContainerClassName="gap-5 p-4 pb-24">
+      <ScrollView contentContainerStyle={{ gap: 20, padding: 16, paddingBottom: 96 }}>
           <Form
             validation={validation}
             onSubmit={() => update((wc) => wc.setValue(result, "Submitted"))}
@@ -174,7 +175,7 @@ export function KitchenSink(): Rendered {
               tone="success"
             />
           </Form>
-          <Text selectable className="font-mono text-xs text-gray-500">
+          <Text selectable style={shownStyle}>
             {JSON.stringify(rc.getValue(data))}
           </Text>
       </ScrollView>

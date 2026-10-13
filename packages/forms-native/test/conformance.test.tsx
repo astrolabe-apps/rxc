@@ -5,16 +5,16 @@ describeConformance({
   name: "native",
   renderers: nativeRenderers,
   // React Native's own limits; the suite asserts what it can do instead.
-  limits: { dialogMovesContent: true, noFormElement: true, htmlAsText: true },
+  limits: { dialogMovesContent: true, noFormElement: true, htmlAsText: true, classLooks: true },
   looks: (node) => (
     <NativeThemeProvider
       theme={{
         looks: {
-          lead: { control: "text-lg" },
-          card: { shell: "p-4" },
-          quiet: { control: "bg-transparent" },
-          rounded: { control: "rounded-lg" },
-          large: { control: "text-3xl" },
+          lead: { control: { fontSize: 18 } },
+          card: { shell: { padding: 16 } },
+          quiet: { control: { backgroundColor: "transparent" } },
+          rounded: { control: { borderRadius: 8 } },
+          large: { control: { fontSize: 30 } },
         },
       }}
     >

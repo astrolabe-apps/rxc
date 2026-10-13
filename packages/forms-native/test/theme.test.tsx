@@ -52,7 +52,7 @@ describe("the native theme", () => {
       ),
     );
   const byId = (id: string) => document.getElementById(id)!;
-  const classes = (e: Element) => (e.getAttribute("class") ?? "").split(/\s+/);
+  const style = (e: Element | null) => (e as HTMLElement).style;
   const button = (name: string) => el.querySelector<HTMLElement>(`[aria-label="${name}"]`)!;
   const options = [
     { name: "One", value: "1" },
@@ -80,17 +80,21 @@ describe("the native theme", () => {
       </>,
       {
         shellFor: {
-          radio: { className: "question-card" },
-          checkbox: { label: "big-label", helpButton: { text: "More" } },
+          radio: { style: { padding: 13 } },
+          checkbox: { label: { fontSize: 21 }, helpButton: { text: "More" } },
         },
       },
     );
-    const cards = [...el.querySelectorAll(".question-card")];
-    expect(cards.map((c) => c.contains(byId(fieldLabelId("r"))))).toEqual([true]);
+    // The radio's shell is the label's parent: padded, where the text field's is not.
     expect([
-      classes(byId(fieldLabelId("c"))).includes("big-label"),
-      classes(byId(fieldLabelId("t"))).includes("big-label"),
-    ]).toEqual([true, false]);
+      style(byId(fieldLabelId("r")).parentElement).padding,
+      style(byId(fieldLabelId("t")).parentElement).padding,
+    ]).toEqual(["13px", ""]);
+    // A slot given merges over `shell`: the checkbox's label is larger, the text field's the base's.
+    expect([style(byId(fieldLabelId("c"))).fontSize, style(byId(fieldLabelId("t"))).fontSize]).toEqual([
+      "21px",
+      "14px",
+    ]);
     // The help button's words are the checkbox's own, its icon still the base's.
     expect([!!button("More: Agree"), !!button("Help: Name")]).toEqual([true, true]);
     expect(button("More: Agree").textContent).toBe(button("Help: Name").textContent);
@@ -132,13 +136,14 @@ describe("the native theme", () => {
       [...button(name).querySelectorAll("*")].find(
         (e) => e.textContent === g && e.children.length === 0,
       )!;
-    expect(classes(glyph("Next", "→"))).toEqual(expect.arrayContaining(["text-white", "no-underline"]));
-    const link = classes(glyph("Elsewhere", "↗"));
-    expect([link.includes("text-blue-600"), link.includes("underline"), link.includes("no-underline")]).toEqual([
-      true,
-      false,
-      true,
-    ]);
+    const next = style(glyph("Next", "→"));
+    expect([next.color, next.textDecorationLine]).toEqual([expect.stringMatching(/255, 255, 255/), "none"]);
+    // the link look underlines its words; the glyph in them does not
+    const link = style(glyph("Elsewhere", "↗"));
+    expect([link.color, link.textDecorationLine]).toEqual([expect.stringMatching(/37, 99, 235/), "none"]);
+    expect(style(button("Elsewhere").querySelector("span, div:not([aria-hidden])") && glyph("Elsewhere", "Elsewhere")).textDecorationLine).toBe(
+      "underline",
+    );
   });
 
   it("shrinks the row children React Native would not: a label, a label row, a button's text", () => {
@@ -158,10 +163,10 @@ describe("the native theme", () => {
     const label = byId(fieldLabelId("c"));
     const text = [...button("Go").querySelectorAll("*")].find((e) => e.textContent === "Go")!;
     expect([
-      classes(label).includes("shrink"),
-      classes(label.parentElement!).includes("shrink"),
-      classes(text).includes("shrink"),
-    ]).toEqual([true, true, true]);
+      style(label).flexShrink,
+      style(label.parentElement).flexShrink,
+      style(text).flexShrink,
+    ]).toEqual(["1", "1", "1"]);
   });
 
   it("draws a disclosure's icon after its title under iconPlacement after, the marker last", () => {
@@ -182,8 +187,9 @@ describe("the native theme", () => {
       <InlineGroup look="pill">
         <Action actionId="a" text="Inside" />
       </InlineGroup>,
-      { looks: { pill: { shell: "rounded-full" } } },
+      { looks: { pill: { shell: { borderRadius: 9999 } } } },
     );
-    expect(button("Inside").closest(".rounded-full")).not.toBeNull();
+    const wrapper = button("Inside").parentElement!;
+    expect([style(wrapper).borderRadius, style(wrapper).flexWrap]).toEqual(["9999px", "wrap"]);
   });
 });

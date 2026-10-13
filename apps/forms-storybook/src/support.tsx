@@ -36,8 +36,8 @@ export const implementations: Record<string, FormRenderers> = {
   antd: antdRenderers,
   fluent: fluentRenderers,
   // React Native's components through react-native-web — see `nativeWeb`
-  // in vitest.config.ts and .storybook/main.ts. Its look needs the app's
-  // NativeWind build, so here it is the contract and the structure.
+  // in vitest.config.ts and .storybook/main.ts. Styled by its theme's
+  // React Native styles, which react-native-web writes inline.
   native: nativeRenderers,
 };
 

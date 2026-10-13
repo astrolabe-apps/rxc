@@ -17,14 +17,11 @@
     "@rx-controls/react": "workspace:^",
     "expo": "~57.0.27",
     "expo-status-bar": "~57.0.1",
-    "nativewind": "~4.2.3",
     "react": "~19.2.0",
     "react-native": "0.86.3",
-    "react-native-css-interop": "0.2.7",
     "react-native-reanimated": "~4.5.1",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-worklets": "0.10.1",
-    "tailwindcss": "~3.4.17"
+    "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

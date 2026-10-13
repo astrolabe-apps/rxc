@@ -12,7 +12,7 @@ export function Screen({ title, children }: { title: string; children: ReactNode
   const validation = useFormValidation();
   const result = useControl<string | undefined>(undefined);
   return rendered(
-    <ScrollView contentContainerClassName="gap-5 p-4 pb-24" keyboardShouldPersistTaps="handled">
+    <ScrollView contentContainerStyle={{ gap: 20, padding: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
       <Form
         validation={validation}
         onSubmit={() => update((wc) => wc.setValue(result, "Submitted"))}
@@ -31,5 +31,8 @@ export function Screen({ title, children }: { title: string; children: ReactNode
 
 /** A value for the eye, under a screen. */
 export function Shown({ value }: { value: unknown }) {
-  return <Text className="font-mono text-xs text-gray-500">{JSON.stringify(value)}</Text>;
+  return <Text style={shownStyle}>{JSON.stringify(value)}</Text>;
 }
+
+/** What `Shown` and the kitchen sink's readout are drawn in. */
+export const shownStyle = { fontFamily: "monospace", fontSize: 12, lineHeight: 16, color: "#6b7280" } as const;

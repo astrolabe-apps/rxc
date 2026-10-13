@@ -1,7 +1,7 @@
 {
   "name": "@rx-controls/forms-native",
   "version": "0.1.0-alpha.8",
-  "description": "The Forms v2 React Native implementation: registry slots drawn with React Native's own components, styled through NativeWind.",
+  "description": "The Forms v2 React Native implementation: registry slots drawn with React Native's own components, styled with React Native styles.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",
   "repository": {
@@ -30,11 +30,9 @@
   "dependencies": {
     "@rx-controls/core": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",
-    "@rx-controls/react": "workspace:^",
-    "tailwind-merge": "^2.6.0"
+    "@rx-controls/react": "workspace:^"
   },
   "peerDependencies": {
-    "nativewind": "^4.2.1",
     "react": "^19",
     "react-native": ">=0.86"
   },
@@ -43,14 +41,11 @@
     "@types/react": "~19.2.0",
     "@types/react-dom": "~19.2.0",
     "happy-dom": "~15.11.0",
-    "nativewind": "~4.2.3",
     "react": "~19.2.0",
     "react-dom": "~19.2.0",
     "react-native": "0.86.3",
-    "react-native-css-interop": "0.2.7",
     "react-native-web": "~0.21.0",
     "rxc-forms-conformance": "workspace:^",
-    "tailwindcss": "~3.4.17",
     "typescript": "~5.8.0",
     "vitest": "~3.1.0"
   }

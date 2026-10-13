@@ -72,6 +72,7 @@ import {
   lookAttr,
   portableCss,
   portableCssSplit,
+  useLookStyles,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -103,6 +104,8 @@ function HtmlFieldShell(p: FieldShellProps) {
   const theme = useHtmlTheme();
   const t = shellOf(theme, p.widget);
   const look = lookParts("field", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!p.disabled });
+  const labelStyle = ls.style(["label", "labelText"]);
   // A "legend" captions a group the widget draws itself, so it is a plain
   // element the group names by id: a fieldset here would be a second group.
   const legend = p.labelAs === "legend";
@@ -118,7 +121,7 @@ function HtmlFieldShell(p: FieldShellProps) {
   // label parts both land on it.
   const labelClass = lookClass(t.label, look?.label, look?.labelText);
   const labelText = (
-    <span className={labelClass}>
+    <span className={labelClass} style={labelStyle}>
       {p.label}
       {required}
     </span>
@@ -153,7 +156,8 @@ function HtmlFieldShell(p: FieldShellProps) {
   return (
     <div
       className={lookClass(p.orientation === "horizontal" ? t.horizontal : t.vertical, look?.shell)}
-      style={portableCss(p.style, theme.tokens.colors)}
+      style={ls.style("shell", portableCss(p.style, theme.tokens.colors))}
+      {...ls.pointer}
       data-look={lookAttr(p.look)}
       data-widget={p.widget}
       data-invalid={p.error ? "" : undefined}
@@ -188,6 +192,7 @@ function HtmlFieldShell(p: FieldShellProps) {
             ? withHelp(
                 <Label
                   className={labelClass}
+                  style={labelStyle}
                   id={fieldLabelId(p.id)}
                   {...(legend ? {} : { htmlFor: p.id })}
                 >
@@ -260,6 +265,11 @@ function HtmlInputFrame(p: InputFrameProps) {
   // properties to the control element, which is what draws the words.
   const css = portableCssSplit(p.style, theme.tokens.colors);
   const onInput = t.classNameOn === "input";
+  const ls = useLookStyles(look, {
+    focused,
+    invalid: !!p.invalid,
+    disabled: !!p.disabled,
+  });
   return (
     <div
       className={
@@ -267,7 +277,8 @@ function HtmlInputFrame(p: InputFrameProps) {
           ? lookClass(t.className, look?.control)
           : t.className || undefined
       }
-      style={onInput ? undefined : css.box}
+      style={onInput ? undefined : ls.style("control", css.box)}
+      {...ls.pointer}
       data-focused={focused ? "" : undefined}
       data-invalid={p.invalid ? "" : undefined}
       data-disabled={p.disabled ? "" : undefined}
@@ -284,7 +295,7 @@ function HtmlInputFrame(p: InputFrameProps) {
               ? lookClass(own, look?.control)
               : own;
           })(),
-          style: onInput && css.box ? { ...css.box, ...css.text } : css.text,
+          style: onInput ? ls.style("control", { ...css.box, ...css.text }) : css.text,
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
           disabled: p.disabled,
@@ -309,6 +320,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const ctl = useTextInput(p.field);
   const theme = useHtmlTheme();
   const look = lookParts("field", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
   // Renderer-specific props arrive unresolved; resolve them here, in this
   // window — and before the frame's render prop, which runs in the frame's.
   const placeholder = getProp(ctl.rc, p.placeholder);
@@ -358,6 +370,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
             // The look's `text` part: the words the user types.
             // The control's words: the look's `text` and the author's `textClassName`.
             className: lookClass(slot.className, look?.text),
+            style: { ...slot.style, ...ls.style("text") },
             value: ctl.value,
             placeholder,
             inputMode,
@@ -388,7 +401,8 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const theme = useHtmlTheme();
   const t = theme.displayOnly;
   const look = lookParts("field", p.look, theme.looks);
-  const css = portableCss(p.style, theme.tokens.colors);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
+  const css = ls.style(["control", "text"], portableCss(p.style, theme.tokens.colors));
   const start = p.startIcon != null && <span className={t.icon}>{p.startIcon}</span>;
   const end = p.endIcon != null && <span className={t.icon}>{p.endIcon}</span>;
   // Inline: the value in prose — no shell, no label, a span.
@@ -439,6 +453,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
   const theme = useHtmlTheme();
   const t = theme.checkbox;
   const look = lookParts("field", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
   return ctl.rendered(
     <Shell
       widget="checkbox"
@@ -461,7 +476,8 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
         id={p.id}
         type="checkbox"
         className={lookClass(t.input, look?.control)}
-        style={portableCss(p.style, theme.tokens.colors)}
+        style={ls.style("control", portableCss(p.style, theme.tokens.colors))}
+        {...ls.pointer}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         aria-describedby={describedBy(p)}
@@ -485,6 +501,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
   const theme = useHtmlTheme();
   const t = theme.radio;
   const look = lookParts("field", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
   const locked = ctl.state.disabled || ctl.state.readOnly;
   const entries = ctl.options.map((o) => ({
     o,
@@ -514,7 +531,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
         role="radiogroup"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         className={lookClass(t.className, look?.control)}
-        style={portableCss(p.style, theme.tokens.colors)}
+        style={ls.style("control", portableCss(p.style, theme.tokens.colors))}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
         aria-required={p.required || undefined}
@@ -524,6 +541,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
           <div
             key={keys[i]}
             className={entryClass(selected)}
+            style={ls.style(["entry", selected ? "selected" : "notSelected"])}
             data-selected={selected ? "" : undefined}
           >
             <label className={t.entry || undefined}>
@@ -538,7 +556,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
                 disabled={locked || o.disabled}
                 onChange={() => ctl.setFromString(String(o.value))}
               />
-              <span className={lookClass(t.label, look?.text)}>
+              <span className={lookClass(t.label, look?.text)} style={ls.style("text")}>
                 {o.name}
               </span>
             </label>
@@ -560,6 +578,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
   const theme = useHtmlTheme();
   const t = theme.checkList;
   const look = lookParts("field", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
   const locked = ctl.state.disabled || ctl.state.readOnly;
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
@@ -584,7 +603,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         className={lookClass(t.className, look?.control)}
-        style={portableCss(p.style, theme.tokens.colors)}
+        style={ls.style("control", portableCss(p.style, theme.tokens.colors))}
         onBlur={onFocusLeave(ctl.onBlur)}
       >
         {ctl.options.map((o, i) => (
@@ -600,7 +619,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
               disabled={locked || o.disabled}
               onChange={(e) => ctl.setSelected(o, e.target.checked)}
             />
-            <span className={lookClass(t.label, look?.text)}>
+            <span className={lookClass(t.label, look?.text)} style={ls.style("text")}>
               {o.name}
             </span>
           </label>
@@ -614,13 +633,14 @@ function HtmlTabs(p: TabsRenderProps) {
   const theme = useHtmlTheme();
   const t = theme.tabs;
   const look = lookParts("tabs", p.look, theme.looks);
+  const ls = useLookStyles(look);
   const id = useId();
   const tabId = (key: string) => `${id}-tab-${key}`;
   const panelId = (key: string) => `${id}-panel-${key}`;
   return (
     <div
       className={lookClass(t.className, look?.control)}
-      style={portableCss(p.style, theme.tokens.colors)}
+      style={ls.style("control", portableCss(p.style, theme.tokens.colors))}
       data-look={lookAttr(p.look)}
       data-hidden={p.hidden ? "" : undefined}
       hidden={p.hidden || undefined}
@@ -668,18 +688,19 @@ function HtmlTabs(p: TabsRenderProps) {
 function HtmlAction(p: ActionRenderProps) {
   const { displayShell, action: t, looks, tokens } = useHtmlTheme();
   // A role the theme does not name draws as the default emphasis.
-  const look = lookParts("action", p.look, looks) ?? looks.secondary;
+  const look = lookParts("action", p.look, looks) ?? lookParts("action", "secondary", looks);
+  const ls = useLookStyles(look, { disabled: !!p.disabled });
   const shown = p.busy ? t.busy : p.icon;
   // The icon in a wrapper the theme reaches, whatever element it is.
   const busy = !noContent(shown) && (
-    <span className={lookClass(t.iconClassName, look.icon)}>
+    <span className={lookClass(t.iconClassName, look?.icon)} style={ls.style("icon")}>
       {shown}
     </span>
   );
   return (
     <DisplayShell
-      shellClassName={look.shell}
-      style={portableCss(p.shellStyle, tokens.colors)}
+      shellClassName={look?.shell}
+      style={ls.style("shell", portableCss(p.shellStyle, tokens.colors))}
       inline={true}
       kind="action"
       classes={displayShell}
@@ -688,8 +709,9 @@ function HtmlAction(p: ActionRenderProps) {
         // The default button is a submit, so Enter presses it; the click
         // runs the form's submission and the native one never happens.
         type={p.submit ? "submit" : "button"}
-        className={lookClass(t.className, look.control)}
-        style={portableCss(p.style, tokens.colors)}
+        className={lookClass(t.className, look?.control)}
+        style={ls.style("control", portableCss(p.style, tokens.colors))}
+        {...ls.pointer}
         data-look={lookAttr(p.look)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
@@ -702,7 +724,8 @@ function HtmlAction(p: ActionRenderProps) {
         {p.iconPlacement !== "replace" &&
           (p.children ?? (
             <span
-              className={lookClass(t.textClassName, look.text)}
+              className={lookClass(t.textClassName, look?.text)}
+              style={ls.style("text")}
             >
               {p.text}
             </span>
@@ -724,11 +747,12 @@ function HtmlText(p: TextDisplayRenderProps) {
   const Tag = p.inline ? "span" : heading ? "div" : "p";
   const content = getProp(rc, p.text) ?? p.children;
   const look = lookParts("text", p.look, looks);
+  const ls = useLookStyles(look);
   // Three slots, three elements: wrapper, element, text.
   return rendered(
     <DisplayShell
       shellClassName={look?.shell}
-      style={portableCss(p.shellStyle, tokens.colors)}
+      style={ls.style("shell", portableCss(p.shellStyle, tokens.colors))}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
@@ -744,11 +768,12 @@ function HtmlText(p: TextDisplayRenderProps) {
                 : t.className,
             look?.control,
           )}
-        style={portableCss(p.style, tokens.colors)}
+        style={ls.style("control", portableCss(p.style, tokens.colors))}
+        {...ls.pointer}
         data-look={lookAttr(p.look)}
         {...(heading ? { role: "heading", "aria-level": level } : {})}
       >
-        <span className={lookClass(undefined, look?.text)}>
+        <span className={lookClass(undefined, look?.text)} style={ls.style("text")}>
           {content}
         </span>
       </Tag>
@@ -765,10 +790,11 @@ function HtmlIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const { displayShell, icon: t, looks, tokens } = useHtmlTheme();
   const look = lookParts("icon", p.look, looks);
+  const ls = useLookStyles(look);
   return rendered(
     <DisplayShell
       shellClassName={look?.shell}
-      style={portableCss(p.shellStyle, tokens.colors)}
+      style={ls.style("shell", portableCss(p.shellStyle, tokens.colors))}
       inline={true}
       tone={p.tone}
       announce={p.announce}
@@ -777,7 +803,7 @@ function HtmlIcon(p: IconDisplayRenderProps) {
     >
       <span
         className={lookClass(t.className, look?.control, look?.text)}
-        style={portableCss(p.style, tokens.colors)}
+        style={ls.style(["control", "text"], portableCss(p.style, tokens.colors))}
         data-look={lookAttr(p.look)}
         role="img"
         aria-label={p.accessibleName}
@@ -794,11 +820,12 @@ function HtmlHtml(p: HtmlDisplayRenderProps) {
   const { displayShell, html: t, looks, tokens } = useHtmlTheme();
   const html = getProp(rc, p.html);
   const look = lookParts("html", p.look, looks);
+  const ls = useLookStyles(look);
   // The html *is* the text, so both slots land on the one element.
   return rendered(
     <DisplayShell
       shellClassName={look?.shell}
-      style={portableCss(p.shellStyle, tokens.colors)}
+      style={ls.style("shell", portableCss(p.shellStyle, tokens.colors))}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
@@ -807,7 +834,7 @@ function HtmlHtml(p: HtmlDisplayRenderProps) {
     >
       <div
         className={lookClass(t.className, look?.control, look?.text)}
-        style={portableCss(p.style, tokens.colors)}
+        style={ls.style(["control", "text"], portableCss(p.style, tokens.colors))}
         data-look={lookAttr(p.look)}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
@@ -823,6 +850,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
   const theme = useHtmlTheme();
   const t = theme.select;
   const look = lookParts("field", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
   return ctl.rendered(
     <Shell
       widget="select"
@@ -855,6 +883,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
           <select
             {...slot}
             className={lookClass(slot.className, look?.text)}
+            style={{ ...slot.style, ...ls.style("text") }}
             value={ctl.stringValue}
             onChange={(e) => ctl.setFromString(e.target.value)}
             onBlur={(e) => {
@@ -886,13 +915,14 @@ function HtmlWizard(p: WizardRenderProps) {
   const theme = useHtmlTheme();
   const t = theme.wizard;
   const look = lookParts("wizard", p.look, theme.looks);
+  const ls = useLookStyles(look);
   // `none`: the pages only — the host's own actions move the wizard.
   const nav = p.navigation === "builtin";
   return (
     <div
       className={lookClass(undefined, look?.control)}
       data-look={lookAttr(p.look)}
-      style={{ ...portableCss(p.style, theme.tokens.colors), ...(p.hidden ? { display: "none" } : {}) }}
+      style={{ ...ls.style("control", portableCss(p.style, theme.tokens.colors)), ...(p.hidden ? { display: "none" } : {}) }}
     >
       {nav && (
         <ol className={t.steps}>
@@ -959,6 +989,7 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
   const theme = useHtmlTheme();
   const t = theme.disclosure;
   const look = lookParts("disclosure", p.look, theme.looks);
+  const ls = useLookStyles(look, { invalid: !!p.invalid });
   const icon = t.icon != null && (
     <span className={t.iconClassName || undefined} data-open={p.open ? "" : undefined} aria-hidden="true">
       {t.icon}
@@ -974,7 +1005,7 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
       }}
       data-invalid={p.invalid ? "" : undefined}
       data-open={p.open ? "" : undefined}
-      style={{ ...portableCss(p.style, theme.tokens.colors), ...(p.hidden ? { display: "none" } : {}) }}
+      style={{ ...ls.style("control", portableCss(p.style, theme.tokens.colors)), ...(p.hidden ? { display: "none" } : {}) }}
     >
       <summary
         className={t.summary}
@@ -1008,6 +1039,7 @@ function HtmlDialog(p: DialogRenderProps) {
   const theme = useHtmlTheme();
   const t = theme.dialog;
   const look = lookParts("dialog", p.look, theme.looks);
+  const ls = useLookStyles(look);
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -1019,7 +1051,7 @@ function HtmlDialog(p: DialogRenderProps) {
     return (
       <div
         className={lookClass(t.inline, look?.control)}
-        style={portableCss(p.style, theme.tokens.colors)}
+        style={ls.style("control", portableCss(p.style, theme.tokens.colors))}
         data-look={lookAttr(p.look)}
       >
         {p.title && <strong>{p.title}</strong>}
@@ -1031,7 +1063,7 @@ function HtmlDialog(p: DialogRenderProps) {
     <dialog
       ref={ref}
       className={lookClass(t.className, look?.control)}
-      style={portableCss(p.style, theme.tokens.colors)}
+      style={ls.style("control", portableCss(p.style, theme.tokens.colors))}
       data-look={lookAttr(p.look)}
       // Not `onClose`: the native `close` event also fires when the effect
       // above closes the dialog because `open` went false, which would tell

@@ -8,27 +8,21 @@ import {
 } from "@rx-controls/forms-react";
 
 /**
- * What a look gives one element: React Native styles — the path that needs no
- * NativeWind — or NativeWind classes, the form a legacy class string takes.
- * A value, or a function of the element's state; `{ replace }` stands in for
- * the implementation's own styling of the element (legacy's `"@ "`) instead
- * of merging over it.
+ * What a look gives one element: {@link PortableStyle}, as a value or as a
+ * function of the element's {@link LookState} (`pressed`, `focused`,
+ * `width` …). `{ replace }` stands in for the implementation's own styling
+ * of the element (and for any earlier look's part) instead of layering over
+ * it.
  *
- * - a **string** is NativeWind classes, merged over the slot's own with
- *   `tailwind-merge`, so the look's utility wins;
- * - a **style** (or a function of {@link LookState} returning one) is
- *   {@link PortableStyle}: React Native `style`, no class involved.
- *
- * Colours in a style may be theme tokens (`$accent`, `$danger/10`), resolved
- * from {@link NativeTheme.tokens}.
+ * Colours may be theme tokens (`$accent`, `$danger/10`), resolved from
+ * {@link NativeTheme.tokens}. This build draws no classes: a look is styles.
  *
  * @group Theming
  */
 export type NativeLookPart =
-  | string
   | PortableStyle
   | ((state: LookState) => PortableStyle)
-  | { replace: string | PortableStyle | ((state: LookState) => PortableStyle) };
+  | { replace: PortableStyle | ((state: LookState) => PortableStyle) };
 
 /**
  * One look: the parts of a boundary it styles. A part left out says nothing.
@@ -59,10 +53,8 @@ export interface NativeLook {
 /** The parts a {@link NativeLook} can name. */
 export type NativeLookPartName = keyof NativeLook;
 
-/** What one part came to: classes, and styles for the box and for the words inside it. */
+/** What one part came to: styles for the box and for the words inside it. */
 export interface ResolvedPart {
-  /** NativeWind classes the look gives this element. */
-  className: string | undefined;
   /** For the container element. */
   box: ViewStyle | undefined;
   /** For the words — a `Text`, or a `TextInput`'s own text. */
@@ -74,17 +66,14 @@ export interface ResolvedPart {
 function evaluate(
   part: NativeLookPart | undefined,
   state: LookState,
-): { style: PortableStyle | undefined; className: string | undefined; replace: boolean } {
-  const none = { style: undefined, className: undefined };
-  if (part === undefined) return { ...none, replace: false };
-  if (typeof part === "string") return { ...none, className: part, replace: false };
-  if (typeof part === "function") return { ...none, style: part(state), replace: false };
+): { style: PortableStyle | undefined; replace: boolean } {
+  if (part === undefined) return { style: undefined, replace: false };
+  if (typeof part === "function") return { style: part(state), replace: false };
   if ("replace" in part) {
     const r = part.replace;
-    if (typeof r === "string") return { ...none, className: r, replace: true };
-    return { ...none, style: typeof r === "function" ? r(state) : r, replace: true };
+    return { style: typeof r === "function" ? r(state) : r, replace: true };
   }
-  return { ...none, style: part, replace: false };
+  return { style: part, replace: false };
 }
 
 /**
@@ -110,19 +99,16 @@ export function resolvePart(
   const layers: (NativeLook | undefined)[] = Array.isArray(look)
     ? (look as (NativeLook | undefined)[])
     : [look as NativeLook | undefined];
-  let className: string | undefined;
   let replace = false;
   let boxStyle: Record<string, unknown> = {};
   let textStyle: Record<string, unknown> = {};
   for (const layer of layers) {
     const from = evaluate(layer?.[part], state);
     if (from.replace) {
-      className = undefined;
       boxStyle = {};
       textStyle = {};
       replace = true;
     }
-    if (from.className) className = className ? `${className} ${from.className}` : from.className;
     const a = splitPortableStyle(from.style && resolveStyleTokens(from.style, colors));
     boxStyle = { ...boxStyle, ...a.box };
     textStyle = { ...textStyle, ...a.text };
@@ -134,10 +120,9 @@ export function resolvePart(
   const hasText = Object.keys(text).length > 0;
   if (all) {
     const both = { ...box, ...text } as TextStyle;
-    return { className, box: undefined, text: hasBox || hasText ? both : undefined, replace };
+    return { box: undefined, text: hasBox || hasText ? both : undefined, replace };
   }
   return {
-    className,
     box: hasBox ? box : undefined,
     text: hasText ? text : undefined,
     replace,

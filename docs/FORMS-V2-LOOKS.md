@@ -10,7 +10,7 @@ JSON loader turns each control's class slots into a look as it loads the form.
 
 The contract carries a **name**. A boundary says `look="card"`, and nothing in `forms-react`
 knows what a card is. Each implementation's theme maps names to its own kind of styling: class
-strings on the web, React Native styles or NativeWind classes on a device, props and `sx` under a
+strings on the web, React Native styles on a device, props and `sx` under a
 component library. Beside the name sits a small, rare **escape hatch**: `style` and `shellStyle`,
 CSS properties that mean the same on the web and on React Native.
 
@@ -121,10 +121,13 @@ only the names are shared.
 
 ```ts
 // forms-html
-looks: Record<string, HtmlLook>   // parts are class strings, or { replace }
+looks: Record<string, HtmlLook>   // parts are class strings, portable styles (inline, state
+                                  // passed as data), a function of state, or { replace }
 // forms-native
-looks: Record<string, NativeLook> // parts are NativeWind classes, React Native styles,
-                                  // a function of state, or { replace }
+looks: Record<string, NativeLook> // parts are portable styles,
+                                  // a function of state (incl. `width`), or { replace }.
+                                  // Style-only: `src/styleProps.ts` is the one adapter
+                                  // point a NativeWind build could bridge through
 // forms-mui / -antd / -fluent: a *LooksProvider of the library's props, `sx` or style, per kind
 ```
 
@@ -168,7 +171,8 @@ const nativeLooks = {
 A look need not live in a theme. **A form can bring its own**: `ClassLooks`, the parts as classes,
 provided through `FormLooksProvider`. An implementation looks a name up in its theme's looks first
 and the form's second, so a host restyles a name a form brought by defining it. Only an
-implementation that styles with classes — html, and React Native under NativeWind — can draw one;
+implementation that styles with classes — html alone — can draw one (native warns once per name that class looks are not drawn;
+the conformance suite's `classLooks` limit);
 MUI, Ant and Fluent do not warn about a name the form brought, since it is not a mistake that they
 cannot.
 
@@ -231,9 +235,13 @@ containers and collections too; a **list** (an action has an emphasis *and* clas
   the wrapper always, or only when styled.
 - **A prop named `shellStyle` already existed** inside `forms-html/shared` (a tone's colour from
   tokens); it is now `toneStyle`.
-- **On Android, under real NativeWind**, `style` and `className` combine, a function-of-state look
-  tracks press and focus, and text properties given on a control reach its `TextInput`. Checked on
-  an emulator, not a device.
+- **On Android**, a function-of-state look tracks press and focus, and text properties given on a
+  control reach its `TextInput` (checked before NativeWind was removed; re-check on a device).
+- **Responsive is state**, not syntax: `LookState.width` (0 = SSR / unknown, so narrowest first).
+  Portable looks on the web are inline styles with state as data; hover, focus rings and
+  breakpoint-heavy styling belong in a class look in the theme.
+- **NativeWind is gone** from `forms-native`; a class-based native build, if wanted, is a separate
+  package bridging through `styleProps.ts`. Not built.
 - **The parity gate's environment mattered.** With no DOM at load, an asynchronous
   `AllowedOptions` expression's pending interval went unobserved and hid a clear-on-move bug on
   the JSON path; the gate now loads a DOM first, and the loader turns `restrictToOptions` off.
@@ -242,11 +250,8 @@ containers and collections too; a **list** (an action has an emphasis *and* clas
 
 ## Not built, and open
 
-- **html resolving a *portable* look** (a look written once as CSS, used on every renderer), with
-  a breakpoint or pressed state: a build-time `looksToCss`, or an injected `<style>`. Today html's
-  looks are class strings, and its `style` is inline.
 - **Native output of the converter**: turning the utilities into styles (a Tailwind compile over
-  the host's config, probably), so a legacy form draws without NativeWind.
+  the host's config, probably), so a legacy form's class looks draw on native (they are warned and skipped today).
 - **Looks on fields under MUI, Ant and Fluent, and on every native widget but the text field**;
   they accept `look` and ignore it.
 - **State on a field**: whether `invalid` / `disabled` reach a look automatically, or only when it

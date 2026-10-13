@@ -5,16 +5,37 @@ import { Screen } from "./Screen";
 
 const boat = require("../../assets/boat.png");
 
-/** The roles the Storybook's "Named looks" story names, as NativeWind classes. */
+/** The roles the Storybook's "Named looks" story names, as React Native styles. */
 const looks: PartialNativeTheme = {
   looks: {
-    lead: { control: "text-lg font-semibold" },
-    tag: { control: "self-start rounded bg-blue-100 px-2 py-0.5 text-sm font-bold text-blue-800" },
-    card: { shell: "rounded-lg bg-gray-100 p-4" },
-    callout: { shell: "border-l-4 border-green-600 pl-4", label: "text-green-800" },
-    quiet: { control: "border-0 bg-transparent px-0", text: "text-blue-700" },
-    inlineLink: { control: "border-0 bg-transparent p-0", text: "text-blue-700 underline" },
-    rounded: { control: "rounded-xl" },
+    lead: { control: { fontSize: 18, lineHeight: 28, fontWeight: "600" } },
+    tag: {
+      control: {
+        alignSelf: "flex-start",
+        borderRadius: 4,
+        backgroundColor: "#dbeafe",
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        fontSize: 14,
+        lineHeight: 20,
+        fontWeight: "700",
+        color: "#1e40af",
+      },
+    },
+    card: { shell: { borderRadius: 8, backgroundColor: "#f3f4f6", padding: 16 } },
+    callout: {
+      shell: { borderLeftWidth: 4, borderLeftColor: "#16a34a", paddingLeft: 16 },
+      label: { color: "#166534" },
+    },
+    quiet: {
+      control: { borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 },
+      text: { color: "#1d4ed8" },
+    },
+    inlineLink: {
+      control: { borderWidth: 0, backgroundColor: "transparent", padding: 0 },
+      text: { color: "#1d4ed8", textDecorationLine: "underline" },
+    },
+    rounded: { control: { borderRadius: 12 } },
   },
 };
 

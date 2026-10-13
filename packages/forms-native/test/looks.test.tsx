@@ -6,6 +6,7 @@ import {
   Action,
   Contents,
   Form,
+  FormLooksProvider,
   FormProvider,
   NO_LOOK_STATE,
   RadioField,
@@ -21,7 +22,7 @@ import {
 
 /**
  * Looks on React Native: a name resolved from the theme to plain styles —
- * no class, no NativeWind. The suites see React Native's styles as
+ * no class. The suites see React Native's styles as
  * react-native-web writes them, inline.
  */
 describe("looks (native)", () => {
@@ -155,7 +156,8 @@ describe("looks (native)", () => {
     const text = () => words("hello");
     expect(style(text()).fontSize).toBe("18px");
     act(() => ctx.update((wc) => wc.setValue(which, "nope")));
-    expect(style(text()).fontSize).toBe("");
+    // the base look: the theme's own 16px, not the card's 18px
+    expect(style(text()).fontSize).toBe("16px");
     act(() => ctx.update((wc) => wc.setValue(which, "nope2")));
     act(() => ctx.update((wc) => wc.setValue(which, "nope")));
     expect(logged.filter((l) => l.includes('look "nope"'))).toHaveLength(1);
@@ -171,8 +173,9 @@ describe("looks (native)", () => {
       </>,
     );
     const [a, b] = [...el.querySelectorAll("button")];
-    expect(a.className).not.toContain("rounded-md");
-    expect(b.className).toContain("rounded-md");
+    // the base button's own 6px corners are the theme's, and the look replaced them
+    expect(style(a).borderRadius).toBe("");
+    expect(style(b).borderRadius).toBe("6px");
     expect(style(a).padding).toBe("2px");
   });
 
@@ -183,25 +186,75 @@ describe("looks (native)", () => {
     ];
     mount(<RadioField field={ctx.newControl("1")} id="r" label="Pick" options={options} look="opts" />, {
       looks: {
-        opts: { entry: "k-entry", selected: "k-on", notSelected: "k-off" },
+        opts: {
+          entry: { padding: 5 },
+          selected: { backgroundColor: "#00ff00" },
+          notSelected: { backgroundColor: "#ff0000" },
+        },
       },
     });
-    const entry = (name: string) => words(name).closest('[role="radio"]')?.parentElement ?? words(name).parentElement!.parentElement!;
-    const cls = (name: string) => (entry(name).getAttribute("class") ?? "").split(/\s+/);
-    expect(cls("One")).toEqual(expect.arrayContaining(["k-entry", "k-on"]));
-    expect(cls("One")).not.toContain("k-off");
-    expect(cls("Two")).toEqual(expect.arrayContaining(["k-entry", "k-off"]));
-    expect(cls("Two")).not.toContain("k-on");
+    const entry = (name: string) => words(name).closest('[role="radio"]')!.parentElement!;
+    const look = (name: string) => [style(entry(name)).padding, style(entry(name)).backgroundColor];
+    expect(look("One")).toEqual(["5px", expect.stringMatching(/0, 255, 0/)]);
+    expect(look("Two")).toEqual(["5px", expect.stringMatching(/255, 0, 0/)]);
+    // the theme's own entry gap sits beneath them
+    expect(style(entry("One")).gap).toBe("4px");
   });
 
-  it("lets a radio's replacing entry drop the theme's own entry class and keep its own", () => {
+  it("lets a radio's replacing entry drop the theme's own entry style and keep its own", () => {
     mount(<RadioField field={ctx.newControl("1")} id="r" label="Pick" options={[{ name: "One", value: "1" }]} look="rep" />, {
-      looks: { rep: { entry: { replace: "k-only" } } },
+      looks: { rep: { entry: { replace: { padding: 7 } } } },
     });
-    const el = words("One").closest('[role="radio"]')?.parentElement ?? words("One").parentElement!.parentElement!;
-    const classes = (el.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
-    expect(classes).toContain("k-only");
-    expect(classes).not.toContain("gap-1");
+    const entry = words("One").closest('[role="radio"]')!.parentElement!;
+    expect([style(entry).padding, style(entry).gap]).toEqual(["7px", ""]);
+  });
+
+  it("layers the theme's slot, the look and the author's style, the later winning", () => {
+    mount(
+      <Action
+        actionId="a"
+        text="A"
+        look="card"
+        style={{ paddingHorizontal: 1 }}
+        onClick={() => {}}
+      />,
+      { looks: { card: { control: { paddingHorizontal: 9, paddingVertical: 9 } } } },
+    );
+    const b = style(el.querySelector("button"));
+    // theme: 16 / 8; the look over it: 9 / 9; the author's over both: 1 horizontally
+    expect([b.paddingLeft, b.paddingRight, b.paddingTop]).toEqual(["1px", "1px", "9px"]);
+  });
+
+  it("gives a look function the window's width, and follows it when the window resizes", async () => {
+    // react-native-web debounces the window's resize
+    const resize = (w: number) =>
+      act(async () => {
+        // what react-native-web measures the window by
+        Object.defineProperty(document.documentElement, "clientWidth", { value: w, configurable: true });
+        window.dispatchEvent(new Event("resize"));
+        await new Promise((r) => setTimeout(r, 80));
+      });
+    mount(<TextDisplay text="hello" look="wide" />, {
+      looks: { wide: { control: (s) => ({ fontSize: s.width >= 700 ? 22 : 11 }) } },
+    });
+    await resize(400);
+    expect(style(words("hello")).fontSize).toBe("11px");
+    await resize(900);
+    expect(style(words("hello")).fontSize).toBe("22px");
+  });
+
+  const formLooks = { "form-only": { shell: "p-4" } };
+  it("says once that a look of the form's own is class-valued and not drawn, and a name found nowhere is unknown", () => {
+    mount(
+      <FormLooksProvider looks={formLooks}>
+        <TextDisplay text="a" look="form-only" />
+        <TextDisplay text="b" look="form-only" />
+        <TextDisplay text="c" look="nowhere-at-all" />
+      </FormLooksProvider>,
+    );
+    expect(logged.filter((l) => l.includes('look "form-only"') && l.includes("not drawn on native"))).toHaveLength(1);
+    expect(logged.filter((l) => l.includes('text look "nowhere-at-all"'))).toHaveLength(1);
+    logged.length = 0;
   });
 
   it("reports a colour token the theme lacks once, and leaves the colour out", () => {
@@ -211,7 +264,8 @@ describe("looks (native)", () => {
     );
     const text = words("hello");
     expect(style(text).fontSize).toBe("11px");
-    expect(style(text).color).toBe("");
+    // the base look's own colour, the token's left out
+    expect(style(text).color).toMatch(/31, 41, 55/);
     expect(logged.filter((l) => l.includes('"$missing"'))).toHaveLength(1);
     logged.length = 0;
   });

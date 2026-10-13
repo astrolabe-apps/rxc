@@ -1,5 +1,5 @@
 import { useState, type ComponentType } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { ControlContextProvider, getCompatContext } from "@react-typed-forms/core";
 import { FormProvider } from "@rx-controls/forms-react";
@@ -34,11 +34,11 @@ export function App() {
   return (
     <ControlContextProvider value={getCompatContext()}>
       <FormProvider renderers={nativeRenderers}>
-        <View className="flex-1 bg-white pt-12">
+        <View style={styles.root}>
           <ScrollView
             horizontal
-            className="max-h-12 grow-0 border-b border-gray-200"
-            contentContainerClassName="items-center gap-2 px-3"
+            style={styles.chips}
+            contentContainerStyle={styles.chipRow}
           >
             {screens.map(([name], i) => (
               <Pressable
@@ -46,9 +46,9 @@ export function App() {
                 role="tab"
                 aria-selected={i === at}
                 onPress={() => setAt(i)}
-                className={`rounded-full px-3 py-1 ${i === at ? "bg-blue-600" : "bg-gray-100"}`}
+                style={[styles.chip, i === at && styles.chipOn]}
               >
-                <Text className={i === at ? "text-white" : "text-gray-800"}>{name}</Text>
+                <Text style={i === at ? styles.chipTextOn : styles.chipText}>{name}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -60,3 +60,13 @@ export function App() {
     </ControlContextProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#fff", paddingTop: 48 },
+  chips: { maxHeight: 48, flexGrow: 0, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
+  chipRow: { alignItems: "center", gap: 8, paddingHorizontal: 12 },
+  chip: { borderRadius: 9999, paddingHorizontal: 12, paddingVertical: 4, backgroundColor: "#f3f4f6" },
+  chipOn: { backgroundColor: "#2563eb" },
+  chipText: { color: "#1f2937" },
+  chipTextOn: { color: "#fff" },
+});

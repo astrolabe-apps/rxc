@@ -2,8 +2,8 @@
 
 The React Native implementation of Forms v2: every registry slot of
 [`@rx-controls/forms-react`](https://www.npmjs.com/package/@rx-controls/forms-react)
-drawn with React Native's own components, styled through
-[NativeWind](https://www.nativewind.dev/). The same form source that draws under
+drawn with React Native's own components, styled with React Native `style`
+objects. The same form source that draws under
 `forms-html`, `forms-mui`, `forms-antd` and `forms-fluent` draws here.
 
 **An alpha**, published on the npm `alpha` dist-tag with the other Forms v2
@@ -12,69 +12,21 @@ packages: `npm install @rx-controls/forms-native@alpha`.
 ## Requirements
 
 - React Native **0.86** or later (Expo 57), on React 19.2.
-- NativeWind **4.2**, on Tailwind CSS **3.4** (NativeWind 4 does not run on
-  Tailwind 4).
-- One copy each of React, React Native, NativeWind and `@rx-controls/core` in
-  the bundle (see Metro, below).
+- One copy each of React, React Native and `@rx-controls/core` in the bundle
+  (see Metro, below).
 
 ```bash
 npm install @rx-controls/forms-native@alpha @rx-controls/forms-react@alpha \
-  @rx-controls/react @rx-controls/core nativewind tailwindcss@3
+  @rx-controls/react @rx-controls/core
 ```
+
+There is nothing to configure for styling: no Babel preset, no Metro wrapper,
+no stylesheet. The package styles every element with React Native `style`
+objects.
 
 ## Setup
 
-### 1. NativeWind, as its own guide has it
-
-`babel.config.js`:
-
-```js
-module.exports = function (api) {
-  api.cache(true);
-  return {
-    presets: [["babel-preset-expo", { jsxImportSource: "nativewind" }], "nativewind/babel"],
-  };
-};
-```
-
-`metro.config.js`:
-
-```js
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
-
-module.exports = withNativeWind(getDefaultConfig(__dirname), { input: "./global.css" });
-```
-
-`global.css`, imported once at the app's entry:
-
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-### 2. List the package in Tailwind's `content`
-
-The implementation's classes live in its built output, which Tailwind does not
-scan unless told to. Without this entry the form renders and works, unstyled.
-
-```js
-// tailwind.config.js
-module.exports = {
-  content: [
-    "./src/**/*.{ts,tsx}",
-    "./node_modules/@rx-controls/forms-native/lib/**/*.js",
-  ],
-  presets: [require("nativewind/preset")],
-};
-```
-
-The package is compiled with NativeWind's JSX runtime
-(`jsxImportSource: "nativewind"`), so its `className`s are NativeWind's however
-your own code is compiled.
-
-### 3. The renderers, and a theme
+### The renderers, and a theme
 
 ```tsx
 import { ControlContextProvider, createControlContext } from "@rx-controls/react";
@@ -99,30 +51,33 @@ export function App() {
 ```
 
 `NativeThemeProvider` is optional: with none, `defaultNativeTheme` applies. A
-theme is a set of NativeWind class slots, one per element and state, given
-partially and nesting — a slot given replaces the enclosing theme's. Classes
-merge with `tailwind-merge`, so a state or look slot wins over the base slot
-it overrides.
+theme is a set of React Native styles, one slot per element and state — a
+`ViewStyle` for a container, a `TextStyle` for words — given partially and
+nesting; a style slot given replaces the enclosing theme's whole. An element's
+styles are layered as `[theme slot, look part, the author's style]`, the later
+winning, and a state slot (a frame's `focused` / `invalid` / `disabled`, a
+tab's `active`) is applied after its base.
 
 **Named looks.** A form names a look and the theme says what it looks like. A
 look is a table entry whose parts (`shell`, `control`, `text`, `label`,
-`labelText`, `icon`, and a radio's `entry`, `selected`, `notSelected`) are NativeWind classes, or React Native styles with no class
-and no NativeWind in the way:
+`labelText`, `icon`, and a radio's `entry`, `selected`, `notSelected`) are
+styles, or functions of the element's state (`invalid`, `disabled`, `focused`,
+`pressed`, and the window's `width`; `hovered` is always false on a device):
 
 ```tsx
 <NativeThemeProvider
   theme={{
     tokens: { colors: { accent: "#1d4ed8" } },
     looks: {
-      // classes
-      lead: { control: "text-lg font-semibold" },
-      card: { shell: "rounded-lg bg-gray-100 p-4" },
-      quiet: { control: "bg-transparent", text: "text-blue-700" },
-      // styles: a colour token, and a function of the element's state
+      lead: { control: { fontSize: 18, fontWeight: "600" } },
+      card: { shell: { borderRadius: 8, backgroundColor: "#f3f4f6", padding: 16 } },
+      quiet: { control: { backgroundColor: "transparent" }, text: { color: "$accent" } },
+      // a colour token, and a function of the element's state
       pill: {
         control: (s) => ({
           backgroundColor: s.pressed ? "$accent/80" : "$accent",
           borderRadius: 999,
+          paddingHorizontal: s.width >= 600 ? 32 : 16,
         }),
         text: { color: "#fff", fontWeight: "bold" },
       },
@@ -138,13 +93,14 @@ and no NativeWind in the way:
 
 The three emphases every theme draws for an action — `primary`, `secondary`,
 `link` — are looks in the same table. A part given as `{ replace }` stands in for
-the theme's own styling of that element instead of merging over it. For a rare
+the theme's own styling of that element (and any earlier look's) instead of
+layering over it. For a rare
 one-off a boundary also takes `style` and `shellStyle`: a portable subset of CSS,
 laid over the look. See `docs/FORMS-V2-LOOKS.md`.
 
 The slots are named as `forms-html`'s are where the two draw the same thing — a
 group's `wrapper`, `title` and `body`, a field's `shellFor` — so a theme's roles
-carry across with only their classes rewritten.
+carry across with only their styling rewritten.
 
 **Shells per widget.** `shellFor` merges slots over `shell` for one widget's
 shell, keyed by its `FieldShellProps.widget` (`radio`, `checkbox`, a
@@ -154,8 +110,8 @@ third-party widget's own name), as html's does:
 <NativeThemeProvider
   theme={{
     shellFor: {
-      radio: { className: "gap-2 rounded-lg bg-gray-100 p-4" },
-      checkbox: { label: "shrink text-lg font-bold" },
+      radio: { style: { gap: 8, borderRadius: 8, backgroundColor: "#f3f4f6", padding: 16 } },
+      checkbox: { label: { flexShrink: 1, fontSize: 18, fontWeight: "bold" } },
     },
   }}
 >
@@ -165,8 +121,8 @@ third-party widget's own name), as html's does:
 in React Native `flexShrink` is 0, so a long text beside something else in a
 row runs off the screen or out of its button. The default theme's own row
 children shrink — a label, a label row, a button's text — and a theme that
-replaces those slots should keep `shrink` in them. A row in a look's classes needs `shrink` on the child that should give way (`shrink min-w-0`,
-for one that also lays out the same on the web).
+replaces those slots should keep `flexShrink: 1` in them. A row in a look needs
+`flexShrink: 1` on the child that should give way.
 
 ### Metro in a monorepo
 
@@ -175,7 +131,7 @@ Linked workspace packages resolve React and React Native from their own
 the app's own wherever the import comes from:
 
 ```js
-const single = ["react", "react-native", "nativewind", "react-native-css-interop"];
+const single = ["react", "react-native"];
 config.resolver.resolveRequest = (context, moduleName, platform) =>
   context.resolveRequest(
     single.some((p) => moduleName === p || moduleName.startsWith(p + "/"))
@@ -185,6 +141,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) =>
     platform,
   );
 ```
+
+**The form's own looks are not drawn.** `useFormLooks()` — what the JSON loader
+derives from a legacy control's class slots — is class-valued, which native
+does not draw. A boundary naming such a look that the native theme lacks is
+reported once per name in development; name it in `theme.looks` as styles.
+
+**Styling is one seam.** Every element gets its styling through `src/styleProps.ts`
+(`sp(theme slot, look part, own style)` returns the props to spread — here
+`{ style: [...] }`), so a build that also draws classes, such as one over
+NativeWind, swaps that module and nothing else.
 
 ## What differs from the web
 
@@ -245,6 +211,6 @@ needed for that:
 - **Looks are roles, so the theme carries them.** The form names `look`s
   (`pageTitle`, `taskCard`), and each platform's theme says what they look
   like: an html theme and a `NativeTheme` with the same names. The slot names
-  match where the two draw the same thing, so the port is the classes.
-- **A row in a look's classes needs `shrink`** on the child that should
+  match where the two draw the same thing, so the port is the styling.
+- **A row in a look needs `flexShrink: 1`** on the child that should
   give way (see "Flex items don't shrink", above).

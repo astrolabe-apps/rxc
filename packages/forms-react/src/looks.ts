@@ -186,7 +186,16 @@ export function splitPortableStyle(style: PortableStyle | undefined): {
 /**
  * What an implementation's look can depend on at the moment it is drawn.
  * State is data passed in, so a look never needs a variant a platform lacks
- * (`:active` on the web, a pressed callback on a device).
+ * (`:active` on the web, a pressed callback on a device) — and a look that
+ * wants a layout per screen size reads `width` rather than naming a
+ * breakpoint:
+ *
+ * ```ts
+ * control: (s) => ({ flexDirection: s.width >= 1024 ? "row" : "column" })
+ * ```
+ *
+ * An implementation tracks `pressed`, `hovered` and `width` only for a look
+ * part that is a function, so a look that asks for nothing costs nothing.
  *
  * @group Implementations
  */
@@ -194,7 +203,16 @@ export interface LookState {
   invalid: boolean;
   disabled: boolean;
   focused: boolean;
+  /** The element is being pressed (a button held down). */
   pressed: boolean;
+  /** A pointer is over the element. Never on a device with no pointer. */
+  hovered: boolean;
+  /**
+   * The window's width, in logical units. `0` where it is not known — a
+   * server render — so a look drawn there is the narrowest one, and a client
+   * render that knows better replaces it after hydration.
+   */
+  width: number;
 }
 
 /** A state with nothing set. */
@@ -203,6 +221,8 @@ export const NO_LOOK_STATE: LookState = {
   disabled: false,
   focused: false,
   pressed: false,
+  hovered: false,
+  width: 0,
 };
 
 declare const process: { env: { NODE_ENV?: string } } | undefined;

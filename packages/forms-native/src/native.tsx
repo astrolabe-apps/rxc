@@ -20,6 +20,7 @@ import {
   Switch,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useReactive, type Rendered } from "@rx-controls/react";
@@ -64,6 +65,7 @@ import {
   type TextFieldRenderProps,
   type Tone,
   type WizardRenderProps,
+  useFormLooks,
   warnUnknownLook,
   lookNames,
   type LookRef,
@@ -78,7 +80,7 @@ import {
   type ImageFit,
   type RichTextRenderProps,
 } from "@rx-controls/forms-react";
-import { twMerge } from "tailwind-merge";
+import { sp, type StylePiece, type StylePieces } from "./styleProps.js";
 import { useNativeTheme, type NativeTheme } from "./theme.js";
 import { resolvePart, type NativeLook, type NativeLookPartName, type ResolvedPart } from "./looks.js";
 
@@ -107,29 +109,37 @@ function webOnly(props: Record<string, unknown>): object {
   return props;
 }
 
-/**
- * Join the classes that apply, the later winning a conflict. Utilities of one
- * kind (`px-4` and `px-0`, two border colours) resolve by stylesheet order,
- * not by the order they are listed in — so a state or variant slot would lose
- * to the base slot it is meant to override. tailwind-merge keeps the last.
- */
-function cx(...cs: (string | false | undefined | null)[]): string {
-  return twMerge(cs.filter(Boolean).join(" "));
-}
+declare const process: { env: { NODE_ENV?: string } } | undefined;
+// The literal `process.env.NODE_ENV`, so bundlers fold it (see CLAUDE.md).
+const IS_DEV: boolean =
+  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
+
+const warnedClassLooks = new Set<string>();
 
 /**
  * A boundary's look, resolved from the theme's `looks` — React Native
- * styles, no classes. Returns a function that resolves one part for the
- * element's state, with the author's own `style` laid over it. A name the
- * theme lacks draws the base look and warns once.
+ * styles. Returns a function that resolves one part for the element's state
+ * (with the window's width in it, for a look that is a function of it), with
+ * the author's own `style` laid over it. A name the theme lacks draws the
+ * base look and warns once: a name the *form* brought in `useFormLooks()` is
+ * class-valued, which native does not draw, and says so.
  */
 function useLook(kind: string, name: LookRef | undefined, fallback?: string) {
   const theme = useNativeTheme();
+  const formLooks = useFormLooks();
+  const { width } = useWindowDimensions();
   const layers: NativeLook[] = [];
   for (const n of lookNames(name)) {
     const found = theme.looks[n];
     if (found) layers.push(found);
-    else warnUnknownLook(kind, n);
+    else if (n in formLooks) {
+      if (IS_DEV && !warnedClassLooks.has(n)) {
+        warnedClassLooks.add(n);
+        console.warn(
+          `Forms v2: look "${n}" is one of the form's own looks, which are class-valued; class looks are not drawn on native. Name "${n}" in the native theme's looks.`,
+        );
+      }
+    } else warnUnknownLook(kind, n);
   }
   // Nothing named is known: draw the fallback, as an action does `secondary`.
   if (!layers.length && fallback !== undefined && lookNames(name).length)
@@ -139,7 +149,8 @@ function useLook(kind: string, name: LookRef | undefined, fallback?: string) {
     state: LookState,
     authored?: PortableStyle,
     all?: boolean,
-  ): ResolvedPart => resolvePart(layers, name, state, theme.tokens.colors, authored, all);
+  ): ResolvedPart =>
+    resolvePart(layers, name, { ...state, width }, theme.tokens.colors, authored, all);
   // The author's own `style`, resolved apart from the look's parts so it can
   // be laid over all of them: it wins over the look, whichever part a
   // property would have come from.
@@ -147,6 +158,9 @@ function useLook(kind: string, name: LookRef | undefined, fallback?: string) {
     resolvePart(undefined, "control", NO_LOOK_STATE, theme.tokens.colors, style, all);
   return part;
 }
+
+/** The slot's own styling, unless the look replaced it. */
+const unless = <T,>(replaced: boolean, slot: T): T | undefined => (replaced ? undefined : slot);
 
 /** Nothing to show: no node, or a node with no text in it. */
 function empty(node: ReactNode): boolean {
@@ -276,8 +290,7 @@ function NativeFieldShell(p: FieldShellProps) {
   const label = hasLabel && !p.hideLabel && (
     <Text
       id={fieldLabelId(p.id)}
-      className={lookLabel.replace || lookLabelText.replace ? undefined : t.label}
-      style={[lookLabel.box, lookLabel.text, lookLabelText.text] as never}
+      {...sp(unless(lookLabel.replace || lookLabelText.replace, t.label), lookLabel.box, lookLabel.text, lookLabelText.text)}
       {...(named
         ? {
             "aria-label": plainText(p.label) || undefined,
@@ -296,7 +309,7 @@ function NativeFieldShell(p: FieldShellProps) {
     >
       {p.label}
       {p.required && (
-        <Text aria-hidden className={t.required}>
+        <Text aria-hidden {...sp(t.required)}>
           {" *"}
         </Text>
       )}
@@ -310,26 +323,23 @@ function NativeFieldShell(p: FieldShellProps) {
       aria-label={helpButtonName(t.helpButton.text, p.label)}
       aria-expanded={helpOpen}
       onPress={() => setHelpOpen((o) => !o)}
-      className={t.helpButton.className}
+      {...sp(t.helpButton.style)}
     >
       <Text aria-hidden>{t.helpButton.icon}</Text>
     </Pressable>
   );
   // The row of a label beside its control: on a device, one accessible
   // element when the widget asks (a help button inside stays its own stop)
-  const rowOf = (className: string, kids: ReactNode) =>
+  const rowOf = (style: object, kids: ReactNode) =>
     row ? (
-      <Pressable {...row} className={className}>
+      <Pressable {...row} {...sp(style)}>
         {kids}
       </Pressable>
     ) : (
-      <View className={className}>{kids}</View>
+      <View {...sp(style)}>{kids}</View>
     );
   return (
-    <View
-      className={shell.replace ? undefined : t.className}
-      style={shell.box}
-    >
+    <View {...sp(unless(shell.replace, t.style), shell.box)}>
       {after ? (
         // A trailing label: the control, its words, then any help button —
         // the order it is read in is the order it is seen in.
@@ -348,7 +358,7 @@ function NativeFieldShell(p: FieldShellProps) {
           t.horizontal,
           <>
             {label && helpButton ? (
-              <View className={t.labelRow}>
+              <View {...sp(t.labelRow)}>
                 {label}
                 {helpButton}
               </View>
@@ -361,7 +371,7 @@ function NativeFieldShell(p: FieldShellProps) {
       ) : (
         <>
           {label && helpButton ? (
-            <View className={t.labelRow}>
+            <View {...sp(t.labelRow)}>
               {label}
               {helpButton}
             </View>
@@ -375,32 +385,31 @@ function NativeFieldShell(p: FieldShellProps) {
         // Kept under its id while closed: the web's description reads it.
         <Text
           id={fieldHelpId(p.id)}
-          className={t.help}
-          style={helpOpen ? undefined : { display: "none" }}
+          {...sp(t.help, !helpOpen && { display: "none" })}
         >
           {p.helpText}
         </Text>
       ) : (
         !empty(p.helpText) &&
         empty(p.error) && (
-          <Text id={fieldHelpId(p.id)} className={t.help}>
+          <Text id={fieldHelpId(p.id)} {...sp(t.help)}>
             {p.helpText}
           </Text>
         )
       )}
       {p.required && p.describeRequired && (
         // Words for the web's description; native says it in the hint.
-        <Text id={fieldRequiredId(p.id)} style={{ display: "none" }}>
+        <Text id={fieldRequiredId(p.id)} {...sp({ display: "none" })}>
           {t.requiredNote}
         </Text>
       )}
       {!empty(p.error) && (
-        <Text id={fieldErrorId(p.id)} className={t.error}>
+        <Text id={fieldErrorId(p.id)} {...sp(t.error)}>
           {p.error}
         </Text>
       )}
       {p.count != null && (
-        <Text id={fieldCountId(p.id)} className={p.countOver ? t.countOver : t.count}>
+        <Text id={fieldCountId(p.id)} {...sp(p.countOver ? t.countOver : t.count)}>
           {p.count}
         </Text>
       )}
@@ -431,12 +440,16 @@ function NativeInputFrame(p: InputFrameProps) {
   const own = part.own(p.style);
   return (
     <View
-      className={
-        control.replace
-          ? undefined
-          : cx(t.className, focused && t.focused, p.invalid && t.invalid, p.disabled && t.disabled)
-      }
-      style={[control.box, own.box] as never}
+      {...sp(
+        unless(control.replace, [
+          t.style,
+          focused && t.focused,
+          p.invalid && t.invalid,
+          p.disabled && t.disabled,
+        ]),
+        control.box,
+        own.box,
+      )}
     >
       {/* An icon given as a string ("@") must be in a Text on native. */}
       {p.start !== undefined && wrapText(edge(p.start))}
@@ -451,9 +464,8 @@ function NativeInputFrame(p: InputFrameProps) {
           "aria-required": p.required || undefined,
           "aria-describedby": p.describedBy,
           ref: p.controlRef,
-          className: t.input,
-          // React Native text styles: the control's words, for the control.
-          style: control.text as never,
+          // The theme's input, then the look's words for the control.
+          ...sp(t.input, control.text),
         },
         state,
       )}
@@ -519,8 +531,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
           <TextInput
             id={slot.id}
             ref={slot.ref as never}
-            className={slot.className}
-            style={[slot.style, textLook.text, ownText] as never}
+            {...sp(slot.style as object, textLook.text, ownText)}
             value={ctl.value}
             onChangeText={ctl.setValue}
             onFocus={() => (slot.onFocus as (() => void) | undefined)?.()}
@@ -630,13 +641,13 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           accessibilityState={{ checked: ctl.checked, disabled: locked }}
           onPress={() => toggle(!ctl.checked)}
           onBlur={ctl.onBlur}
-          className={cx(t.box, ctl.checked && t.checked)}
+          {...sp(t.box, ctl.checked && t.checked)}
           {...a11y}
           {...hidden}
           {...webOnly({ "aria-required": p.required || undefined })}
         >
           {ctl.checked && (
-            <Text aria-hidden className={t.mark}>
+            <Text aria-hidden {...sp(t.mark)}>
               {t.markIcon}
             </Text>
           )}
@@ -677,7 +688,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
       <View
         ref={leave.group as never}
         role="radiogroup"
-        className={t.className}
+        {...sp(t.style)}
         {...a11y}
         aria-labelledby={p.label != null && !p.hideLabel ? fieldLabelId(p.id) : undefined}
         {...webOnly({ "aria-required": p.required || undefined })}
@@ -689,16 +700,13 @@ function NativeRadio(p: RadioRenderProps): Rendered {
           return (
             <View
               key={`${i}:${String(o.value)}`}
-              className={
-                // A `{ replace }` drops what came before it — the theme's own entry class, and
-                // the entry part for a replacing state — and keeps its own classes.
-                state.replace
-                  ? state.className
-                  : entry.replace
-                    ? cx(entry.className, state.className)
-                    : cx(t.entry, entry.className, state.className)
-              }
-              style={[entry.box, state.box] as never}
+              // A `{ replace }` drops what came before it: the theme's own entry
+              // style, and the entry part for a replacing state.
+              {...sp(
+                !state.replace && !entry.replace && t.entry,
+                !state.replace && entry.box,
+                state.box,
+              )}
             >
               <Pressable
                 id={`${p.id}_${i}`}
@@ -712,12 +720,12 @@ function NativeRadio(p: RadioRenderProps): Rendered {
                   ctl.onBlur();
                 }}
                 onBlur={leave.onBlur as never}
-                className={t.option}
+                {...sp(t.option)}
               >
-                <View className={cx(t.ring, selected && t.ringSelected)}>
-                  {selected && <View className={t.dot} />}
+                <View {...sp(t.ring, selected && t.ringSelected)}>
+                  {selected && <View {...sp(t.dot)} />}
                 </View>
-                <Text className={t.label}>{o.name}</Text>
+                <Text {...sp(t.label)}>{o.name}</Text>
               </Pressable>
               {p.children?.(o, selected)}
             </View>
@@ -754,7 +762,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
       <View
         ref={leave.group as never}
         role="group"
-        className={t.className}
+        {...sp(t.style)}
         {...a11y}
         aria-labelledby={p.label != null && !p.hideLabel ? fieldLabelId(p.id) : undefined}
       >
@@ -774,17 +782,17 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
                 ctl.onBlur();
               }}
               onBlur={leave.onBlur as never}
-              className={t.option}
+              {...sp(t.option)}
               {...webOnly({ "aria-invalid": p.error ? true : undefined })}
             >
-              <View className={cx(box.box, on && box.checked)}>
+              <View {...sp(box.box, on && box.checked)}>
                 {on && (
-                  <Text aria-hidden className={box.mark}>
+                  <Text aria-hidden {...sp(box.mark)}>
                     {box.markIcon}
                   </Text>
                 )}
               </View>
-              <Text className={t.label}>{o.name}</Text>
+              <Text {...sp(t.label)}>{o.name}</Text>
             </Pressable>
           );
         })}
@@ -854,11 +862,11 @@ function NativeSelect(p: SelectRenderProps): Rendered {
             aria-expanded={open}
             disabled={!!(slot.disabled || slot.readOnly)}
             onPress={() => setOpen(true)}
-            className="flex-1"
+            {...sp({ flex: 1 })}
             {...a11y}
             {...webOnly({ "aria-required": slot["aria-required"] })}
           >
-            <Text className={chosen ? t.value : t.placeholder}>
+            <Text {...sp(chosen ? t.value : t.placeholder)}>
               {chosen ? chosen.name : t.emptyText}
             </Text>
           </Pressable>
@@ -866,8 +874,8 @@ function NativeSelect(p: SelectRenderProps): Rendered {
       />
       {open && (
         <Modal transparent visible animationType="slide" onRequestClose={close}>
-          <Pressable className={t.backdrop} onPress={close} aria-label="Close">
-            <View className={t.sheet}>
+          <Pressable {...sp(t.backdrop)} onPress={close} aria-label="Close">
+            <View {...sp(t.sheet)}>
               <ScrollView role="list" aria-label={plainText(p.label) || undefined}>
                 {choices.map((c) => {
                   const selected = c.value === ctl.stringValue;
@@ -881,9 +889,9 @@ function NativeSelect(p: SelectRenderProps): Rendered {
                         ctl.setFromString(c.value);
                         close();
                       }}
-                      className={cx(t.option, selected && t.optionSelected)}
+                      {...sp(t.option, selected && t.optionSelected)}
                     >
-                      <Text className={t.optionText}>{c.name}</Text>
+                      <Text {...sp(t.optionText)}>{c.name}</Text>
                     </Pressable>
                   );
                 })}
@@ -900,12 +908,12 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const t = useNativeTheme().displayOnly;
-  const start = p.startIcon != null && <View className={t.icon}>{wrapText(p.startIcon)}</View>;
-  const end = p.endIcon != null && <View className={t.icon}>{wrapText(p.endIcon)}</View>;
+  const start = p.startIcon != null && <View {...sp(t.icon)}>{wrapText(p.startIcon)}</View>;
+  const end = p.endIcon != null && <View {...sp(t.icon)}>{wrapText(p.endIcon)}</View>;
   // Inline: the value in prose — no shell, no label.
   if (p.inline)
     return ctl.rendered(
-      <Text id={p.id} className={t.inline}>
+      <Text id={p.id} {...sp(t.inline)}>
         {ctl.content}
       </Text>,
     );
@@ -923,13 +931,11 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     >
       <View
         id={p.id}
-        className={t.className}
+        {...sp(t.style)}
         {...webOnly({ "aria-describedby": describedBy(p) })}
       >
         {start}
-        <Text
-          selectable={!p.noSelection}
-        >
+        <Text {...sp(t.text)} selectable={!p.noSelection}>
           {ctl.content}
         </Text>
         {end}
@@ -945,10 +951,10 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
  * only inside a `Text`, and an author writes `<Contents>words</Contents>` on
  * the web without a thought.
  */
-function wrapText(children: ReactNode, className?: string, style?: unknown): ReactNode {
+function wrapText(children: ReactNode, ...style: (StylePiece | StylePieces)[]): ReactNode {
   return Children.map(children, (c) =>
     typeof c === "string" || typeof c === "number" ? (
-      <Text className={className} style={style as never}>
+      <Text {...sp(style)}>
         {c}
       </Text>
     ) : (
@@ -968,30 +974,21 @@ function NativeContents(p: GroupRenderProps) {
   const title = part("label", st);
   const titleText = part("labelText", st, undefined, true);
   return (
-    // Hiding is a style, not a class: it must work with no stylesheet.
+    // Hiding is a style: it works with no theme at all.
     <View
-      className={shell.replace ? undefined : cx(t.wrapper, shell.className)}
-      style={[shell.box, p.hidden ? { display: "none" } : undefined] as never}
+      {...sp(unless(shell.replace, t.wrapper), shell.box, p.hidden && { display: "none" })}
     >
       {p.title !== undefined && p.title !== null && (
         <Text
           role="heading"
           aria-level={p.headingLevel}
-          className={
-            title.replace || titleText.replace
-              ? undefined
-              : cx(t.title, title.className, titleText.className)
-          }
-          style={[title.box, title.text, titleText.text] as never}
+          {...sp(unless(title.replace || titleText.replace, t.title), title.box, title.text, titleText.text)}
         >
           {p.title}
         </Text>
       )}
-      <View
-        className={body.replace ? undefined : cx(t.body, body.className)}
-        style={[body.box, ownBody.box] as never}
-      >
-        {wrapText(p.children, cx(text.className, words.className), [body.text, words.text, ownBody.text])}
+      <View {...sp(unless(body.replace, t.body), body.box, ownBody.box)}>
+        {wrapText(p.children, text.style, body.text, words.text, ownBody.text)}
       </View>
     </View>
   );
@@ -1007,12 +1004,15 @@ function NativeInline(p: GroupRenderProps) {
   return (
     // One element: the look's shell and control both land on it.
     <View
-      className={
-        shell.replace || control.replace ? undefined : cx(t.wrapper, shell.className, control.className)
-      }
-      style={[shell.box, control.box, own.box, p.hidden ? { display: "none" } : undefined] as never}
+      {...sp(
+        unless(shell.replace || control.replace, t.wrapper),
+        shell.box,
+        control.box,
+        own.box,
+        p.hidden && { display: "none" },
+      )}
     >
-      {wrapText(p.children, cx(text.className, words.className), [control.text, words.text, own.text])}
+      {wrapText(p.children, text.style, control.text, words.text, own.text)}
     </View>
   );
 }
@@ -1050,22 +1050,20 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
     <Text
       {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       aria-label={p.accessibleName}
-      style={[control.text, words.text, ownText.text] as never}
-      className={
-        control.replace || words.replace ? undefined : cx(
+      {...sp(
+        unless(control.replace || words.replace, [
           heading
-            ? cx(
-                t.heading.className,
-                t.heading.levels[
-                  Math.min(Math.max(p.headingLevel, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6
-                ],
-              )
-            : t.className,
-          control.className,
-          words.className,
-          p.tone && t.tones[p.tone],
-        )
-      }
+            ? [
+                t.heading.style,
+                t.heading.levels[Math.min(Math.max(p.headingLevel, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6],
+              ]
+            : t.style,
+        ]),
+        control.text,
+        words.text,
+        p.tone && !(control.replace || words.replace) && t.tones[p.tone],
+        ownText.text,
+      )}
     >
       {content}
     </Text>
@@ -1073,7 +1071,7 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
   // Inline in prose: the text alone.
   if (p.inline && !p.announce) return rendered(text);
   return rendered(
-    <View {...live} className={shell.className} style={shell.box}>
+    <View {...live} {...sp(shell.box)}>
       {text}
     </View>,
   );
@@ -1092,18 +1090,16 @@ function NativeIcon(p: IconDisplayRenderProps): Rendered {
   const glyph = getProp(rc, p.icon);
   // On the view and on a glyph's Text alike, as the base is: a size or a
   // colour reaches a string glyph only on its Text.
-  const cls = cx(t.className, control.className, words.className, p.tone && text.tones[p.tone]);
-  const glyphStyle = [control.text, words.text, ownText.text] as never;
+  const look = [t.style, control.text, words.text, p.tone && text.tones[p.tone], ownText.text];
   return rendered(
     <View
       {...live}
       role="img"
       aria-label={p.accessibleName}
-      className={cx(cls, shell.className)}
-      style={shell.box}
+      {...sp(look, shell.box)}
     >
       {typeof glyph === "string" ? (
-        <Text className={cls} style={glyphStyle}>
+        <Text {...sp(look)}>
           {glyph}
         </Text>
       ) : (
@@ -1148,7 +1144,7 @@ function NativeHtml(p: HtmlDisplayRenderProps): Rendered {
   if (p.regionOnly || (p.announce && html === "")) return rendered(<View {...live} />);
   return rendered(
     <View {...live}>
-      <Text className={cx(t.className, p.tone && text.tones[p.tone])}>
+      <Text {...sp(t.style, p.tone && text.tones[p.tone])}>
         {htmlText(html)}
       </Text>
     </View>,
@@ -1181,17 +1177,15 @@ function SizedImage({
   width,
   height,
   fit,
-  className,
-  look,
+  style,
 }: {
   source: ImageSourcePropType;
   alt: string;
   width?: Dimension;
   height?: Dimension;
   fit?: ImageFit;
-  className?: string;
-  /** A look's (and the author's) styles, applied after the image's own sizing. */
-  look?: unknown;
+  /** The theme's, the look's and the author's styles, applied after the image's own sizing. */
+  style?: StylePieces;
 }) {
   const uri = typeof source === "object" && !Array.isArray(source) ? source.uri : undefined;
   const bundled =
@@ -1221,19 +1215,20 @@ function SizedImage({
       accessible={alt !== ""}
       aria-hidden={alt === "" || undefined}
       accessibilityIgnoresInvertColors
-      className={className}
       resizeMode={fit === "fill" ? "stretch" : (fit ?? "contain")}
-      style={{
-        width: width ?? (height === undefined ? natural?.width : undefined) ?? 0,
-        ...(height !== undefined
-          ? { height }
-          : ratio !== undefined
-            ? // `auto` over the height React Native's Image puts in its base
-              // style for a sized source, which would win over the ratio
-              { aspectRatio: ratio, height: "auto" as const }
-            : { height: 0 }),
-        ...(look as object | undefined),
-      }}
+      {...sp(
+        {
+          width: width ?? (height === undefined ? natural?.width : undefined) ?? 0,
+          ...(height !== undefined
+            ? { height }
+            : ratio !== undefined
+              ? // `auto` over the height React Native's Image puts in its base
+                // style for a sized source, which would win over the ratio
+                { aspectRatio: ratio, height: "auto" as const }
+              : { height: 0 }),
+        },
+        style,
+      )}
     />
   );
 }
@@ -1249,15 +1244,14 @@ function NativeImage(p: ImageDisplayRenderProps): Rendered {
   const live = liveRegion(p.announce, p.tone);
   if (p.regionOnly || !source) return rendered(<View {...live} />);
   return rendered(
-    <View {...live} className={shell.className} style={shell.box}>
+    <View {...live} {...sp(shell.box)}>
       <SizedImage
         source={source}
         alt={getProp(rc, p.alt) ?? ""}
         width={getProp(rc, p.width)}
         height={getProp(rc, p.height)}
         fit={getProp(rc, p.fit)}
-        className={cx(t.className, control.className)}
-        look={{ ...control.box, ...own.box }}
+        style={[t.style, control.box, own.box]}
       />
     </View>,
   );
@@ -1291,7 +1285,7 @@ function shifted(words: string, map: Record<string, string>): string | undefined
 
 /**
  * Rich text as nested `Text`, which inherits what it sits in: emphasis by
- * class, a link pressed open through `Linking`, a break a newline.
+ * style, a link pressed open through `Linking`, a break a newline.
  */
 function NativeRichText({ nodes }: RichTextRenderProps) {
   const t = useNativeTheme().richText;
@@ -1299,22 +1293,22 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
     <Text>
       {drawRichText(nodes, {
         strong: (ch, k) => (
-          <Text key={k} className={t.strong}>
+          <Text key={k} {...sp(t.strong)}>
             {ch}
           </Text>
         ),
         em: (ch, k) => (
-          <Text key={k} className={t.em}>
+          <Text key={k} {...sp(t.em)}>
             {ch}
           </Text>
         ),
         sup: (ch, k, n) => (
-          <Text key={k} className={t.sup}>
+          <Text key={k} {...sp(t.sup)}>
             {shifted(richTextWords(n.children), SUPER) ?? ch}
           </Text>
         ),
         sub: (ch, k, n) => (
-          <Text key={k} className={t.sub}>
+          <Text key={k} {...sp(t.sub)}>
             {shifted(richTextWords(n.children), SUB) ?? ch}
           </Text>
         ),
@@ -1322,7 +1316,7 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
           <Text
             key={k}
             role="link"
-            className={t.link}
+            {...sp(t.link)}
             onPress={() => void Linking.openURL(n.href)}
             {...webOnly({ href: n.href, hrefAttrs: n.target ? { target: n.target, rel: "noopener noreferrer" } : undefined })}
           >
@@ -1337,7 +1331,7 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
             alt={n.alt}
             width={n.width}
             height={n.height}
-            className={t.image}
+            style={[t.image]}
           />
         ),
       })}
@@ -1355,7 +1349,7 @@ function NativeAction(p: ActionRenderProps) {
   const control = lookPart("control", st);
   const own = lookPart.own(p.style);
   const words = lookPart("text", st, undefined, true);
-  const wordStyle = [control.text, words.text, own.text] as never;
+  const wordStyle = [control.text, words.text, own.text];
   const iconPart = lookPart("icon", st);
   // The spinner is decoration: on Android a spinner inside a button gave the
   // button its own "busy" description, which then outlived the spinner and
@@ -1369,12 +1363,12 @@ function NativeAction(p: ActionRenderProps) {
   ) : (
     p.icon
   );
-  const textClass = cx(t.textClassName, words.className);
+  const textStyle = [t.textStyle, wordStyle];
   // A glyph is drawn in the text's look, since React Native text inherits
   // nothing from the button: that is how it takes the button's colour.
   const icon = shown != null && shown !== false && (
-    <View className={cx(t.iconClassName, iconPart.className)}>
-      {wrapText(shown, cx(textClass, t.iconTextClassName), wordStyle)}
+    <View {...sp(t.iconStyle, iconPart.box)}>
+      {wrapText(shown, textStyle, t.iconTextStyle)}
     </View>
   );
   const button = (
@@ -1386,15 +1380,16 @@ function NativeAction(p: ActionRenderProps) {
       onPress={() => p.onClick()}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      className={
-        control.replace ? undefined : cx(t.className, control.className, p.disabled && t.disabled)
-      }
-      style={[control.box, own.box] as never}
+      {...sp(
+        unless(control.replace, [t.style, p.disabled && t.disabled]),
+        control.box,
+        own.box,
+      )}
     >
       {p.iconPlacement !== "after" && icon}
       {p.iconPlacement !== "replace" &&
         (p.children ?? (
-          <Text className={textClass} style={wordStyle}>
+          <Text {...sp(textStyle)}>
             {p.text}
           </Text>
         ))}
@@ -1402,7 +1397,7 @@ function NativeAction(p: ActionRenderProps) {
     </Pressable>
   );
   // The wrapper exists only when a look or the author styles it.
-  return shell.box ? <View style={shell.box}>{button}</View> : button;
+  return shell.box ? <View {...sp(shell.box)}>{button}</View> : button;
 }
 
 // ── Containers ────────────────────────────────────────────────────────
@@ -1414,11 +1409,8 @@ function NativeTabs(p: TabsRenderProps) {
   const tabId = (key: string) => `${base}-tab-${key}`;
   const panelId = (key: string) => `${base}-panel-${key}`;
   return (
-    <View
-      className={t.className}
-      style={p.hidden ? { display: "none" } : undefined}
-    >
-      <View role="tablist" className={t.list}>
+    <View {...sp(t.style, p.hidden && { display: "none" })}>
+      <View role="tablist" {...sp(t.list)}>
         {p.items
           .filter((i) => !i.hidden)
           .map((i) => (
@@ -1428,12 +1420,12 @@ function NativeTabs(p: TabsRenderProps) {
               role="tab"
               aria-selected={i.active}
               onPress={() => p.setActive(i.key)}
-              className={cx(t.tab, i.active ? t.active : t.inactive)}
+              {...sp(t.tab, i.active ? t.active : t.inactive)}
               {...webOnly({ "aria-controls": panelId(i.key) })}
             >
-              <Text className={cx(t.tabText, i.active && t.activeText)}>{i.title}</Text>
+              <Text {...sp(t.tabText, i.active && t.activeText)}>{i.title}</Text>
               {i.invalid && (
-                <Text aria-hidden className={t.invalidMarker}>
+                <Text aria-hidden {...sp(t.invalidMarker)}>
                   {"●"}
                 </Text>
               )}
@@ -1445,8 +1437,7 @@ function NativeTabs(p: TabsRenderProps) {
           key={i.key}
           id={panelId(i.key)}
           role="tabpanel"
-          className={t.panel}
-          style={i.active ? undefined : { display: "none" }}
+          {...sp(t.panel, !i.active && { display: "none" })}
           {...webOnly({ "aria-labelledby": i.hidden ? undefined : tabId(i.key) })}
         >
           {i.content}
@@ -1461,9 +1452,9 @@ function NativeWizard(p: WizardRenderProps) {
   // `none`: the pages only — the host's own actions move the wizard.
   const nav = p.navigation === "builtin";
   return (
-    <View style={p.hidden ? { display: "none" } : undefined}>
+    <View {...sp(p.hidden && { display: "none" })}>
       {nav && (
-        <View className={t.steps}>
+        <View {...sp(t.steps)}>
           {/* Steps over the shown pages only, numbered among themselves. */}
           {p.items
             .map((i, n) => ({ i, n }))
@@ -1474,9 +1465,9 @@ function NativeWizard(p: WizardRenderProps) {
                 role="button"
                 aria-current={n === p.index ? "step" : undefined}
                 onPress={() => p.goTo(n)}
-                className={cx(t.step, n === p.index && t.active)}
+                {...sp(t.step, n === p.index && t.active)}
               >
-                <Text className={t.stepText}>
+                <Text {...sp(t.stepText)}>
                   {step + 1}{i.title != null && <>. {i.title}</>}
                 </Text>
               </Pressable>
@@ -1487,14 +1478,13 @@ function NativeWizard(p: WizardRenderProps) {
       {p.items.map((i) => (
         <View
           key={i.key}
-          className={t.page}
-          style={i.active ? undefined : { display: "none" }}
+          {...sp(t.page, !i.active && { display: "none" })}
         >
           {i.content}
         </View>
       ))}
       {nav && (
-        <View className={t.nav}>
+        <View {...sp(t.nav)}>
           <Action
             actionId={StandardActionIds.back}
             text="Back"
@@ -1527,15 +1517,15 @@ function NativeDialog(p: DialogRenderProps) {
   const t = useNativeTheme().dialog;
   if (p.inline)
     return (
-      <View className={t.inline}>
-        {p.title != null && <Text className={t.title}>{p.title}</Text>}
+      <View {...sp(t.inline)}>
+        {p.title != null && <Text {...sp(t.title)}>{p.title}</Text>}
         {p.content}
       </View>
     );
   if (!p.open)
     return (
       <View
-        style={{ display: "none" }}
+        {...sp({ display: "none" })}
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
       >
@@ -1544,15 +1534,15 @@ function NativeDialog(p: DialogRenderProps) {
     );
   return (
     <Modal transparent visible animationType="fade" onRequestClose={p.onClose}>
-      <View className={t.backdrop} style={p.hidden ? { display: "none" } : undefined}>
-        <View role="dialog" aria-modal className={t.surface}>
+      <View {...sp(t.backdrop, p.hidden && { display: "none" })}>
+        <View role="dialog" aria-modal {...sp(t.surface)}>
           {p.title != null && (
-            <Text role="heading" className={t.title}>
+            <Text role="heading" {...sp(t.title)}>
               {p.title}
             </Text>
           )}
           {p.content}
-          <View className={t.actions}>
+          <View {...sp(t.actions)}>
             <Action
               actionId={StandardActionIds.close}
               text="Close"
@@ -1570,32 +1560,29 @@ function NativeDialog(p: DialogRenderProps) {
 function NativeDisclosure(p: DisclosureRenderProps) {
   const t = useNativeTheme().disclosure;
   const icon = (
-    <View aria-hidden style={p.open ? { transform: [{ rotate: "90deg" }] } : undefined}>
-      <Text className={t.title}>{t.icon}</Text>
+    <View aria-hidden {...sp(p.open && { transform: [{ rotate: "90deg" }] })}>
+      <Text {...sp(t.title)}>{t.icon}</Text>
     </View>
   );
   return (
-    <View
-      className={t.className}
-      style={p.hidden ? { display: "none" } : undefined}
-    >
+    <View {...sp(t.style, p.hidden && { display: "none" })}>
       <Pressable
         role="button"
         aria-expanded={p.open}
         onPress={() => p.setOpen(!p.open)}
-        className={t.toggle}
+        {...sp(t.toggle)}
         {...webOnly({ "aria-controls": p.id })}
       >
         {t.iconPlacement !== "after" && icon}
-        <Text className={t.title}>{p.title}</Text>
+        <Text {...sp(t.title)}>{p.title}</Text>
         {t.iconPlacement === "after" && icon}
         {p.invalid && (
-          <Text aria-hidden className={t.invalidMarker}>
+          <Text aria-hidden {...sp(t.invalidMarker)}>
             {"●"}
           </Text>
         )}
       </Pressable>
-      <View id={p.id} className={t.content} style={p.open ? undefined : { display: "none" }}>
+      <View id={p.id} {...sp(t.content, !p.open && { display: "none" })}>
         {p.content}
       </View>
     </View>
@@ -1619,7 +1606,7 @@ function NativeElements(p: CollectionRenderProps<unknown>) {
       look={p.look}
       style={p.shellStyle}
     >
-      <View className={t.className}>
+      <View {...sp(t.style)}>
         {p.elements.length ? p.elements.map((e) => <View key={e.key}>{e.node}</View>) : p.empty}
       </View>
     </Shell>
@@ -1640,10 +1627,11 @@ function NativeForm(p: FormElementProps) {
 
 /**
  * The React Native implementation: every registry slot, drawn with React
- * Native's own components and styled through {@link NativeTheme} (NativeWind
- * classes). Pass it to `FormProvider`.
+ * Native's own components and styled through {@link NativeTheme} (React Native
+ * styles, handed to each element through `styleProps.ts`). Pass it to
+ * `FormProvider`.
  *
- * Behaviour never depends on a class: hidden regions, inactive tabs and
+ * Behaviour never depends on the theme: hidden regions, inactive tabs and
  * wizard pages, closed disclosures and closed dialogs are off screen by
  * style, with no stylesheet at all.
  *

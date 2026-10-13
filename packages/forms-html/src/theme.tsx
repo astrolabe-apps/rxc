@@ -5,7 +5,12 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { useFormLooks, type ClassValue, type Tone } from "@rx-controls/forms-react";
+import {
+  useFormLooks,
+  type LookState,
+  type PortableStyle,
+  type Tone,
+} from "@rx-controls/forms-react";
 
 /**
  * Every class the HTML implementation emits, one slot per element.
@@ -483,19 +488,46 @@ export interface HtmlTheme {
  * @group Theming
  */
 export interface HtmlLook {
-  shell?: ClassValue;
-  control?: ClassValue;
-  text?: ClassValue;
-  label?: ClassValue;
-  labelText?: ClassValue;
-  icon?: ClassValue;
+  shell?: HtmlLookPart;
+  control?: HtmlLookPart;
+  text?: HtmlLookPart;
+  label?: HtmlLookPart;
+  labelText?: HtmlLookPart;
+  icon?: HtmlLookPart;
   /** A radio's option wrapper, on every option. */
-  entry?: ClassValue;
+  entry?: HtmlLookPart;
   /** A radio's option wrapper while it is the chosen one. */
-  selected?: ClassValue;
+  selected?: HtmlLookPart;
   /** A radio's option wrapper while it is not. */
-  notSelected?: ClassValue;
+  notSelected?: HtmlLookPart;
 }
+
+/**
+ * What a look gives one element: **classes**, or **portable styles** drawn
+ * inline, or both from different looks in a list.
+ *
+ * - a **string** is classes, added to the slot's own — what a Tailwind or
+ *   Bootstrap theme writes;
+ * - a **style** (`{ padding: 8 }`) is {@link PortableStyle}, drawn as an inline
+ *   style — what a look written once for every platform writes;
+ * - a **function of the state** returns one (`(s) => ({ opacity: s.pressed ? 0.7 : 1 })`),
+ *   and may ask for `pressed`, `hovered`, `focused`, `invalid`, `disabled` or
+ *   `width` (the window's, for a layout per screen size — `0` on a server
+ *   render, so the narrowest, then the real one after hydration). The
+ *   implementation only tracks what a function in the look is there to read;
+ * - `{ replace }` of any of these stands in for the slot's own classes and
+ *   for every part before it, styles included.
+ *
+ * An inline style beats a class, and one that is not portable — `:hover`, a
+ * media query, a grid — is a class look, named in the theme.
+ *
+ * @group Theming
+ */
+export type HtmlLookPart =
+  | string
+  | PortableStyle
+  | ((state: LookState) => PortableStyle)
+  | { replace: string | PortableStyle | ((state: LookState) => PortableStyle) };
 
 /**
  * Every property optional, recursively — except functions and React nodes,
