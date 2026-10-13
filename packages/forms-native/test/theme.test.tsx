@@ -59,6 +59,9 @@ describe("the native theme", () => {
   const byId = (id: string) => document.getElementById(id)!;
   const style = (e: Element | null) => (e as HTMLElement).style;
   const button = (name: string) => el.querySelector<HTMLElement>(`[aria-label="${name}"]`)!;
+  // react-native-web draws `role="link"` as an anchor.
+  const link = (name: string) =>
+    [...el.querySelectorAll<HTMLElement>("a, [role=link]")].find((e) => e.textContent === name)!;
   const options = [
     { name: "One", value: "1" },
     { name: "Two", value: "2" },
@@ -301,7 +304,7 @@ describe("the native theme", () => {
       </InlineGroup>,
       { looks: { pill: { shell: { borderRadius: 9999 } } } },
     );
-    const wrapper = button("Inside").parentElement!;
+    const wrapper = link("Inside").parentElement!;
     expect(style(wrapper).borderRadius).toBe("9999px");
   });
 
@@ -313,7 +316,10 @@ describe("the native theme", () => {
         <TextDisplay text="menu to update it." inline />
       </InlineGroup>,
     );
-    const wrapper = button("profile").parentElement!;
+    // the link is words in the sentence's text, not a view embedded in it (Android's \uFFFC)
+    expect(link("profile").tagName).not.toBe("DIV");
+    expect(el.querySelector("[role=button]")).toBeNull();
+    const wrapper = link("profile").parentElement!;
     // the sentence and the link share one parent, and it is not a flex row (a row made each
     // child a block, so a long sentence pushed the link onto a line of its own)
     expect(wrapper.textContent).toBe("Go to the" + "profile" + "menu to update it.");

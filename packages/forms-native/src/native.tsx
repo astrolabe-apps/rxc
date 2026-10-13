@@ -273,6 +273,14 @@ const LabelPressContext = createContext<(() => void) | undefined>(undefined);
  * included) lands on the control under explore-by-touch, as a web `<label>`
  * does for a pointer.
  */
+/**
+ * Inside an inline group's one `Text`. A view nested in text is an embedded
+ * object to Android — `\uFFFC` in the accessibility tree, a sentence read in
+ * pieces, the view sitting on the line above the words — so an action there
+ * draws as a pressable `Text` that flows with the sentence.
+ */
+const InTextContext = createContext(false);
+
 const RowA11yContext = createContext<Record<string, unknown> | undefined>(undefined);
 
 function NativeFieldShell(p: FieldShellProps) {
@@ -1138,7 +1146,7 @@ function NativeInline(p: GroupRenderProps) {
         p.hidden && { display: "none" },
       )}
     >
-      {p.children}
+      <InTextContext.Provider value={true}>{p.children}</InTextContext.Provider>
     </Text>
   );
 }
@@ -1462,6 +1470,7 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
 
 function NativeAction(p: ActionRenderProps) {
   const drawIcon = useIcon();
+  const inText = useContext(InTextContext);
   const t = useNativeTheme().action;
   const [pressed, setPressed] = useState(false);
   // A role the theme does not name draws as the default emphasis.
@@ -1491,6 +1500,23 @@ function NativeAction(p: ActionRenderProps) {
   const icon = shown != null && shown !== false && (
     <View {...sp(t.iconStyle, iconPart.box)}>{shown}</View>
   );
+  if (inText)
+    return (
+      // A link in prose: words that press, nested in the sentence's `Text`.
+      <Text
+        role="link"
+        aria-disabled={p.disabled || undefined}
+        accessibilityState={{ busy: !!p.busy, disabled: !!p.disabled }}
+        onPress={p.disabled ? undefined : () => p.onClick()}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        {...sp(textStyle)}
+      >
+        {p.iconPlacement !== "after" && shown}
+        {p.iconPlacement !== "replace" && (p.children ?? p.text)}
+        {p.iconPlacement === "after" && shown}
+      </Text>
+    );
   const button = (
     <Pressable
       role="button"

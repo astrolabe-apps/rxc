@@ -27,6 +27,8 @@ function SwitchImpl(p: FieldRenderProps<boolean | undefined | null>): Rendered {
       required={p.required}
       disabled={ctl.state.disabled}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}

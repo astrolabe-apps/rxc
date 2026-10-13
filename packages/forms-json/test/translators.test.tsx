@@ -439,14 +439,62 @@ describe("CheckListField", () => {
 });
 
 describe("CheckboxField", () => {
-  it("is the widget for a Bool", () => {
+  it("is the widget for a Bool drawn as a Checkbox", () => {
     const { data } = h.load(
-      [{ type: "Data", field: "ok", title: "OK" }],
+      [{ type: "Data", field: "ok", title: "OK", renderOptions: { type: "Checkbox" } }],
       [{ field: "ok", type: "Bool" }],
       { ok: false },
     );
     click($("input[type=checkbox]"));
     expect(rc.getValue(data).ok).toBe(true);
+  });
+
+  it("is not the widget for a Standard Bool, which is legacy's Yes / No select — unless boolOptions is null", () => {
+    const load = (opts?: { boolOptions?: null | { name: string; value: boolean }[] }) =>
+      h.load([{ type: "Data", field: "ok", title: "OK" }], [{ field: "ok", type: "Bool" }], { ok: null }, opts);
+    const { data } = load();
+    expect($$("input[type=checkbox]")).toHaveLength(0);
+    expect($$("select option").map((o) => o.textContent)).toEqual(expect.arrayContaining(["Yes", "No"]));
+    // An unanswered Bool shows as unanswered, not as No.
+    expect($<HTMLSelectElement>("select").value).toBe("");
+    act(() => {
+      const sel = $<HTMLSelectElement>("select");
+      sel.value = [...sel.options].find((o) => o.textContent === "No")!.value;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(rc.getValue(data).ok).toBe(false);
+
+    load({ boolOptions: [{ name: "Oui", value: true }, { name: "Non", value: false }] });
+    expect($$("select option").map((o) => o.textContent)).toEqual(expect.arrayContaining(["Oui", "Non"]));
+
+    load({ boolOptions: null });
+    expect($$("select")).toHaveLength(0);
+    expect($$("input[type=checkbox]")).toHaveLength(1);
+    expect(h.console).toEqual([]);
+  });
+
+  it("is not the widget for a Bool drawn as a Radio or a Dropdown: legacy's Yes / No are", () => {
+    const { data, warnings } = h.load(
+      [
+        { type: "Data", field: "ok", title: "OK", renderOptions: { type: "Radio" } },
+        { type: "Data", field: "sure", title: "Sure", renderOptions: { type: "Dropdown" } },
+      ],
+      [
+        { field: "ok", type: "Bool" },
+        { field: "sure", type: "Bool" },
+      ],
+      { ok: undefined, sure: undefined },
+    );
+    expect(warnings).toEqual([]);
+    expect($$("input[type=checkbox]")).toHaveLength(0);
+    const radios = $$("input[type=radio]") as HTMLInputElement[];
+    expect(radios.map((r) => r.closest("label")?.textContent?.trim())).toEqual(["Yes", "No"]);
+    click(radios[1]!);
+    expect(rc.getValue(data).ok).toBe(false);
+    click(radios[0]!);
+    expect(rc.getValue(data).ok).toBe(true);
+    expect($$("select option").map((o) => o.textContent)).toEqual(expect.arrayContaining(["Yes", "No"]));
+    expect(h.console).toEqual([]);
   });
 });
 
@@ -985,7 +1033,7 @@ describe("LayoutStyle", () => {
   it("makes a display toggle silent: off screen, still validating, never cleared", async () => {
     const { data, warnings } = h.load(
       [
-        { type: "Data", field: "on" },
+        { type: "Data", field: "on", renderOptions: { type: "Checkbox" } },
         {
           type: "Group",
           groupOptions: { type: "Standard" },
@@ -1027,7 +1075,7 @@ describe("LayoutStyle", () => {
 describe("meta fields", () => {
   it("bind a side control, never the submitted value", () => {
     const { data } = h.load(
-      [{ type: "Data", field: "showMore" }],
+      [{ type: "Data", field: "showMore", renderOptions: { type: "Checkbox" } }],
       [{ field: "showMore", type: "Bool", meta: true }],
       {} as Record<string, unknown>,
     );

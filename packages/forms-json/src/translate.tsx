@@ -58,6 +58,7 @@ import {
   asDef,
   asField,
   schemaOptions,
+  isPlainBool,
   str,
   type AnyDef,
   type AnyExpr,
@@ -74,6 +75,7 @@ import {
 import type { LoaderOptions, LoaderWarning } from "./loader.js";
 import { legacyIconClassSlot, legacyLook } from "./looks.js";
 import { iconRefOf } from "./icons.js";
+import { defaultBoolOptions } from "./boolOptions.js";
 import type {
   CompoundCycleProps,
   DisplayTextTranslator,
@@ -474,6 +476,17 @@ const builtins: Builtin[] = [
     },
   },
   {
+    // Before the option translators: a Bool given options (`boolOptions`) is still a
+    // checkbox when the author asked for one, as legacy's render type switch had it.
+    match: (d, s) =>
+      d.type === "Data" &&
+      s?.type === "Bool" &&
+      !s.collection &&
+      (d.renderOptions?.type === "Checkbox" || !s.options?.length),
+    renderTypes: ["Standard", "Checkbox"],
+    render: ({ props }) => <CheckboxField {...props} />,
+  },
+  {
     // Radio, with legacy's per-option children: the definition's children
     // are translated once per **resolved** option — the list after
     // `AllowedOptions`, as legacy expanded them — against the *parent*
@@ -557,11 +570,6 @@ const builtins: Builtin[] = [
         options={optionsFor(schema, dynamicValue)}
       />
     ),
-  },
-  {
-    match: (d, s) => d.type === "Data" && s?.type === "Bool",
-    renderTypes: ["Standard", "Checkbox"],
-    render: ({ props }) => <CheckboxField {...props} />,
   },
   {
     match: (d) => d.type === "Data",
@@ -1315,7 +1323,12 @@ export function translate(
   // `a/b` and `../x` resolve here — data and schema together, legacy's
   // `dataRef` — so a translator only ever sees a control.
   const ref = def.field ? resolveRef(scope, def.field) : undefined;
-  const schema = asField(ref?.schema);
+  // Legacy's renderers gave an option-less Bool `booleanOptions` before choosing its widget.
+  const bools = opts.boolOptions === undefined ? defaultBoolOptions : opts.boolOptions;
+  const schema =
+    bools && isPlainBool(asField(ref?.schema))
+      ? asField({ ...ref!.schema!, options: bools.map((o) => ({ ...o })) })
+      : asField(ref?.schema);
   const at: Warn = (w) =>
     collect({ ...w, subject: w.subject ?? undefined, path: key });
   // A custom display is addressed by id, not matched by shape: the host's

@@ -64,6 +64,11 @@ export const childrenOf = (f: SchemaField | undefined): SchemaField[] =>
  * A schema's options as the contract takes them. The format allows `null`
  * for an absent `disabled`; the contract does not.
  */
+/** A single Bool with no options of its own — what `LoaderOptions.boolOptions` gives options. */
+export function isPlainBool(f: SchemaField | undefined): boolean {
+  return f?.type === "Bool" && !f.collection && !f.options?.length;
+}
+
 export function schemaOptions(f: SchemaField | undefined): FieldOption[] {
   return (f?.options ?? []).map((o) => ({
     name: o.name,

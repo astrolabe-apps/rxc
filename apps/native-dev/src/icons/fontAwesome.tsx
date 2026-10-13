@@ -21,7 +21,8 @@ const prefixes: Record<string, IconPrefix> = {
 const chrome: Record<ChromeIcon, IconRef> = {
   // RNHelpTextRenderer: FontAwesome5 `info-circle`, solid.
   info: { family: "fa-solid", name: "circle-info" },
-  calendar: { family: "fa-regular", name: "calendar" },
+  // The app's date button: FontAwesome5 `calendar-alt` (\uf073), `calendar-days` in 6.
+  calendar: { family: "fa-regular", name: "calendar-days" },
   // RNCheckbox: FontAwesome `check`.
   check: { family: "fa-solid", name: "check" },
   "chevron-right": { family: "fa-solid", name: "chevron-right" },

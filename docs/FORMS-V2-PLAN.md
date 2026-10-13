@@ -959,6 +959,12 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   asks for itself (`info`, `calendar`, `check`, the chevrons). Theme slots that held a glyph
   (`helpButton.icon`, `date.icon`, `checkbox.markIcon`, a disclosure's `icon` / `iconOpen`) are now
   `IconSpec`s naming those. Typed names: declare them on `FormIcons`, as looks on `FormLooks`.
+- **`LoaderOptions.boolOptions`** (legacy's `booleanOptions`): a Bool with no options of its own is given
+  these (default `defaultBoolOptions`, Yes / No) before its translator is chosen, so a `Standard` or
+  `Dropdown` Bool is a select and a `Radio` one radios; only `Checkbox` is a checkbox, unless it is `null`.
+  **A plain Bool is no longer a checkbox** — write `renderOptions: { type: "Checkbox" }`, or pass
+  `boolOptions: null`. The contract is unchanged: `CheckboxField` stays two-state, and a nullable Bool in
+  JSX is a `RadioField` / `SelectField` with `true` / `false` options.
 - The loader passes the format's `IconReference` on as `{ family: library, name }` (`iconRefOf`);
   `LoaderOptions.icon`, `IconTranslator` and forms-json's `legacyIconClass` are gone. A web host that
   loads the icon font mounts `forms-html`'s `legacyWebIcons` (legacy's `<i>` classes, `legacyIconClass`).
@@ -974,10 +980,25 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   as names, with the playground drawing the app's Font Awesome (Pro from a local ServiceTas checkout).
 - **Scope of the comparison:** the 45 forms the React Native app draws (`tools/forms-corpus/sidecar/rn-forms.json`);
   the other 23 ServiceTas forms are not referenced by it, and the 12 from other apps are not
-  ServiceTas's. **Compared so far (8):** AccountDetails, Address, MyAccount, PersonalDetails, ContactUs, AccountPreferences, NotificationPreferences, Services. **Still to compare (37):**
-  About, BiometricOnboarding, ContactUsEnquiry, DeactivateAccount, Error, Home, InboxDocuments, InboxMessages, LinkMastWizard, LinkMrsWizard, LinkedServices, MRSReceiptConfirmation, MRSReceiptFailure, MastLicenceSummary, MastMooringPermitSummary, MastRegistrationsSummary, MessageDetails, MrsAllRegistrations, MrsDemeritsSummary, MrsLicenceDetails, MrsLicenceRenewal, MrsLicenceSummary, MrsRegistrationDetails, MrsRegistrationRenewal, MrsRegistrationsSummary, MyProfile, PlatesPlusRegistrationWizard, PushNotificationsOnboarding, RWVPInterim, RWVPReceiptConfirmation, RWVPVerificationWizard, SecurityPreferences, ServiceNotAvailable, ServiceProviderListing, ShortTermPermit, TUP, TuoPreferences. All with empty data and fake actions so far.
-- **Next:** widen the comparison over the 37 (with data, and with the actions and custom displays a
-  form needs); DateTime and Time pickers.
+  ServiceTas's. **All 45 compared** (empty data, fake actions; `corpus/compare/report.md`). What it found
+  and fixed: a Bool drawn as a `Radio` was a checkbox. Legacy gives an option-less Bool its renderers'
+  `booleanOptions` (Yes / No) before choosing a widget by render type, and the loader now does the same
+  through `LoaderOptions.boolOptions` (default `defaultBoolOptions`, `null` for none): `Radio` is Yes / No
+  radios, `Standard` and `Dropdown` a Yes / No select — so an unanswered Bool shows as unanswered rather
+  than as No — and only `Checkbox` a checkbox (or every Bool, under `null`); a link in an inline group was a view
+  embedded in the sentence's text — `\uFFFC` to Android's accessibility, the sentence read in pieces and
+  the link drawn above the line — and is now pressable text in the sentence. **Still different:** `ScrollList`
+  (InboxDocuments, InboxMessages, MrsAllRegistrations) falls back to an editable collection with Add, where
+  legacy draws a read-only feed with "No results found", pull-to-refresh and load-more (`bottomActionId` /
+  `refreshActionId`) — a contract decision, not a translation; ServiceTas's custom displays (`icon`,
+  `goToMASTPortalButton`, `BPayLogo`, `PlatformPaymentButton`, `payTo`) and Quickstream payment render types
+  have no stand-in on native ("Unsupported: Display"); a link in a toned display takes the tone's colour
+  where legacy's stays the accent; a disclosure's title still nests views in text (`\uFFFC` before the
+  words); spacing — an alert's top padding, a Switch row's height, a heading's gap to the next paragraph;
+  React Native's own Switch, smaller than the app's. The legacy harness shows a "VirtualizedLists should
+  never be nested" warning on 35 forms (noise in the report, the harness's to fix).
+- **Next:** compare with data, and with the actions and custom displays a form needs; decide
+  `ScrollList`; DateTime and Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,
   and its release note is the "for the `alpha.9` notes" list above. Nothing in production depends on it.
 - **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the

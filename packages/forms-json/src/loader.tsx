@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import type { Control, ControlContext } from "@rx-controls/core";
 import { useControlContext, type Rendered } from "@rx-controls/react";
-import { FormLooksProvider, type ClassLooks } from "@rx-controls/forms-react";
+import { FormLooksProvider, type ClassLooks, type FieldOption } from "@rx-controls/forms-react";
 import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 import type {
   ActionHandler,
@@ -94,6 +94,16 @@ export interface LoaderOptions {
   adornments?: Record<string, AdornmentTranslator>;
   /** Keyed by a custom display's `customId`. */
   displays?: Record<string, DisplayTranslator>;
+  /**
+   * The options a Bool with none of its own is given before its widget is
+   * chosen — legacy's `booleanOptions`. With them, a `Standard` or `Dropdown`
+   * Bool is a select of them and a `Radio` one radios, so an unanswered
+   * (`null`) Bool shows as unanswered; only a `Checkbox` Bool is a checkbox.
+   * `null`: none, and a `Standard` Bool is a checkbox, as for a legacy host
+   * that set `booleanOptions: null`. Default {@link defaultBoolOptions}
+   * (Yes → `true`, No → `false`); pass your own for other words.
+   */
+  boolOptions?: readonly FieldOption[] | null;
   /** What a label's and a help text's string becomes. Default: the string. */
   displayText?: DisplayTextTranslator;
   /** What to render for a definition no translator matched. Default: a placeholder naming it. */

@@ -66,7 +66,7 @@ const controls = [
     labelTextClass: "demo-label-text",
     layoutClass: "@ demo-shell",
   },
-  { type: "Data", field: "hasPets" },
+  { type: "Data", field: "hasPets", renderOptions: { type: "Checkbox" } },
   // An async jsonata expression, which can only become a `FormProp` by
   // evaluating into a control.
   {
