@@ -1,10 +1,20 @@
 # Forms v2 — looks
 
-**Status: built.** A boundary is styled by a **name**, and each implementation's theme says what
+**Status: built, and shown to hold across the implementations.** A boundary is styled by a **name**, and each implementation's theme says what
 the name looks like. This replaced the contract's class slots (`className`, `textClassName`,
 `shellClassName`, `labelClassName`, `labelTextClassName`, and a radio's per-option three), which
 are **retired** — Forms v2 had no real adopters, so they went outright, with no alias. The legacy
-JSON loader turns each control's class slots into a look as it loads the form.
+JSON loader turns each control's class slots into a look as it loads the form, and an offline step
+(`rushx convert-looks`) can do it ahead of time (below).
+
+**What has been shown, and what has not.** Shown: the 80-form local corpus, converted to named looks,
+draws identically to the raw legacy forms under html (160 of 160 runs, and it was identical through
+looks as through class slots before the slots were retired); the generated native table renders real
+forms on an Android emulator; one look table drawn under html, native, MUI, Ant and Fluent reads as the
+same design, including state and width; and a named look reaches all six field widgets in every
+implementation. Not shown: fidelity to a real app's theme on native, anything in a production app
+(Forms v2 has no adopters yet), and the C# side (`look` is not in the server's schema). See "Not
+built, and open" at the end.
 
 ## The idea in one paragraph
 
@@ -100,14 +110,18 @@ on the web, so the bridge is proven rather than invented.
 
 Values follow React Native: a **number is a logical unit**, a string is a `%` or a colour.
 "Logical unit" is deliberate: React Native's density-independent units and CSS's reference pixels
-are both nominally 1:1 and neither fixes a physical size, so one number serves both. Two rules
-keep it honest, and html's `portableCss` applies both:
+are both nominally 1:1 and neither fixes a physical size, so one number serves both. Three rules
+keep it honest, and html's `portableCss` applies them:
 
 - **Box model.** React Native is always `border-box`, so html sets `box-sizing: border-box` on a
   styled element, and draws a border that has a width and no style as `solid`, as React Native does.
 - **Text scales with the user.** React Native text follows the OS font setting; a CSS `px` font
   size ignores the browser's. So html emits `px` for layout and **`rem` for `fontSize`,
   `lineHeight` and `letterSpacing`** (16 is `1rem`), as legacy's `rem`-based classes did.
+- **Every view is a flex container.** On React Native `gap`, `justifyContent` and
+  `flexDirection: "row"` just work; on the web an element is a block and they are ignored. So html
+  makes an element given any flex-container property a `display: flex` **column** unless it says
+  otherwise (and leaves one with none a block).
 
 Not in the subset, because they do not mean the same: `grid`, selectors, media queries, `:hover`,
 `calc()`, `var()`, `whiteSpace`, `display: block`. Those are a theme's to write in its own terms —
@@ -131,7 +145,8 @@ looks: Record<string, NativeLook> // parts are portable styles,
                                   // a function of state (incl. `width`), or { replace }.
                                   // Style-only: `src/styleProps.ts` is the one adapter
                                   // point a NativeWind build could bridge through
-// forms-mui / -antd / -fluent: a *LooksProvider of the library's props, `sx` or style, per kind
+// forms-mui / -antd / -fluent: a *LooksProvider of the library's own props, `sx` or style, per kind
+//   (a field's parts are `shell` / `label` / `control` / `text`; see "Field looks" below)
 ```
 
 **The parts**, named for the elements they style:
@@ -145,6 +160,9 @@ looks: Record<string, NativeLook> // parts are portable styles,
 | `icon` | around an action's icon |
 | `entry` / `selected` / `notSelected` | a radio's option wrapper, and its two states |
 
+That is html's and native's part set. MUI, Ant and Fluent name fewer parts, in their own terms: a
+field's are `shell` / `label` / `control` / `text`, a group's `wrapper` / `title` / `body` (below).
+
 `control` and `text` stay two parts because on React Native text styles do not cascade from a
 `View`: the words need their own. A web implementation merges them onto one element where the
 markup has one.
@@ -153,9 +171,14 @@ markup has one.
 - `{ replace }` stands in for them — and for any part of an earlier look in a list. It is legacy's
   `"@ "`, in the theme where it belongs.
 - A group's `control` is the body's layout, and replaces the theme's default layout.
-- Native's parts may be a **function of the element's state** (`invalid`, `disabled`, `focused`,
-  `pressed`). State is data the implementation passes in, so a look never needs a variant a platform
-  lacks (`active:` on the web, a pressed callback on a device).
+- A part may be a **function of the element's state**, in every implementation. State is data the
+  implementation passes in (`LookState`: `invalid`, `disabled`, `focused`, `pressed`, `hovered`,
+  `width`), so a look never needs a variant a platform lacks (`active:` on the web, a pressed callback
+  on a device). What each fills in: html and native, the element's own state (a field's `invalid` /
+  `focused` / `disabled`, an action's `pressed`, html's `hovered`) and `width`; MUI, Ant and Fluent,
+  `width` everywhere and `invalid` on a field — their components do hover and focus themselves.
+  `width` is tracked only while some part of a look is a function, and is `0` before it is read and on
+  the server, the narrowest.
 
 ```ts
 const htmlLooks = {
@@ -189,8 +212,8 @@ This is what the JSON loader uses.
    draws the base look, with a development warning once per kind and name.
 3. For each part: the implementation's base styling, then the look's part (added, or `replace`),
    layered in order for a list, then the boundary's `style` / `shellStyle`.
-4. On the web the outermost element of a boundary carries `data-look="name"`, so the name is a
-   hook for a host's own stylesheet.
+4. On the web an element of the boundary carries `data-look="name"` (the control, the shell or a
+   library's inner row — not always the outermost), so the name is a hook for a host's own stylesheet.
 
 ## Legacy conversion
 
@@ -274,8 +297,10 @@ containers and collections too; a **list** (an action has an emphasis *and* clas
   the wrapper always, or only when styled.
 - **A prop named `shellStyle` already existed** inside `forms-html/shared` (a tone's colour from
   tokens); it is now `toneStyle`.
-- **On Android**, a function-of-state look tracks press and focus, and text properties given on a
-  control reach its `TextInput` (checked before NativeWind was removed; re-check on a device).
+- **On Android**, `invalid` and `width` reaching a look were re-checked on an emulator after
+  NativeWind was removed (the portable-looks screen: an invalid border, a group that flips at 686 dp).
+  Press and focus reaching a function look, and text properties reaching a `TextInput`, were checked
+  before the removal and not since — re-check them on a device.
 - **Responsive is state**, not syntax: `LookState.width` (0 = SSR / unknown, so narrowest first).
   Portable looks on the web are inline styles with state as data; hover, focus rings and
   breakpoint-heavy styling belong in a class look in the theme.
@@ -287,16 +312,18 @@ containers and collections too; a **list** (an action has an emphasis *and* clas
 - **Suites resolve a package's built `lib/`**, so a suite edit (`tools/forms-conformance`) shows in
   another package's tests only after that package is rebuilt.
 
-## One look table on two renderers
+## One look table, five implementations
 
 `rxc-forms-conformance/portable` holds one form (`PortableLooksDemo`) and one look table of portable
-styles (`portableLooks`), written once. Storybook draws it under html (`Boundaries/Portable looks`) and
-the native playground draws the same source on a device (the **Portable** screen), so one look can be
-compared across the two. It covers a card (border, radius, padding, gap), a tag (token colours with
+styles (`portableLooks`), written once. Storybook draws it under every implementation
+(`Boundaries/Portable looks`; html and native from the portable table, MUI, Ant and Fluent from the
+same names mapped by hand) and the native playground draws the same source on a device (the
+**Portable** screen), so one look can be compared across them. It was first compared as html against
+native, which is what the first findings below are about. It covers a card (border, radius, padding, gap), a tag (token colours with
 alpha, text transform, letter spacing), a field whose border is a function of `focused` / `invalid`, a
 pill button that is a function of `pressed`, a row (`flexDirection`, `justifyContent`, wrap) and a group
-that is a function of `width`. Compared at 411 px, and at 700 px / 686 dp, they agree, with these
-findings:
+that is a function of `width`. Compared at 411 px, and at 700 px / 686 dp, html and native agree, with
+these findings:
 
 - **A flex container on the web.** Every React Native view is a flex column, so `gap`, `justifyContent`
   and `flexDirection: "row"` just work there; on the web an element is a block and they are silently
@@ -316,7 +343,8 @@ findings:
 ### Field looks under MUI, Ant, Fluent and native
 
 Every implementation takes a named look on all six field widgets — text field, select, radio group,
-check list, checkbox, display-only — in its own terms, with the same four parts:
+check list, checkbox, display-only — in its own terms. MUI, Ant and Fluent take four parts (html and
+native take those and more, above):
 
 | part | the element |
 |---|---|
@@ -327,10 +355,11 @@ check list, checkbox, display-only — in its own terms, with the same four part
 
 - **MUI** `MuiLooks.field[name]` — each part MUI's `sx`, so a look reaches the theme (`(t) => …`) and
   the component's states (`"&.Mui-focused fieldset"`, `"&.Mui-error fieldset"`).
-- **Ant** `AntdLooks.field[name]` — each part a style or a function of the tokens.
-- **Fluent** `FluentLooks.field[name]` — each part a plain style; Fluent's tokens are CSS values.
-- **Native** — the theme's `looks` (`NativeLook`), the same parts as html; the widgets now pass the
-  look to their shell and read `control` and `text`, which only the text field and radio did before.
+- **Ant** `AntdLooks.field[name]` — each part a style, or a function of the tokens and the state.
+- **Fluent** `FluentLooks.field[name]` — each part a style, or a function of the state; Fluent's
+  tokens are CSS values, usable as they are.
+- **Native** — the theme's `looks` (`NativeLook`), the same parts as html. Every field widget passes
+  its look and `shellStyle` to its shell and reads `control` and `text`.
 
 A field hands its look to the shell and the frame over a small context in MUI, Ant and Fluent, as it
 already hands over MUI's label for the outline's notch: the pair are components the field does not own.
@@ -357,8 +386,23 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
 - **Running the converter in ServiceTas's publish step**, and a `Look` field in the C# schema; until
   then a raw legacy form's class looks are warned and skipped on native, and the loader's runtime
   derivation stays as the bridge.
-- **State on a field**: whether `invalid` / `disabled` reach a look automatically, or only when it
-  asks (a function of state). Today native passes them; html relies on its `data-*` attributes.
+- **State on a field in MUI, Ant and Fluent** beyond `width` and `invalid`: `disabled`, `focused`,
+  `pressed` and `hovered` do not reach their function parts (the components style those themselves).
+  A look that must read them needs them passed in.
+- **Text and action looks in MUI** are `sx`, MUI's own type, so a function there gets the theme only,
+  not the look's state; MUI's `sx` has its own breakpoints for that.
+- **Class looks on native.** A form that brings class looks (the runtime-derived path) draws them
+  nowhere but html: native warns once per name and skips them. Pre-conversion is the way across, and
+  25 corpus class tokens (child selectors, `grid`, `w-fit`, …) are not expressible on native yet.
+- **Placement across the web's wrappers**: a child's own `alignSelf` / `flex` does not reach the flex
+  item behind a visibility wrapper (see above); whether those wrappers become transparent to layout is
+  undecided.
+- **Fidelity to a real theme.** Native has been drawn only under its default theme: the converted
+  ServiceTas forms render, but not as the ServiceTas app does. A native ServiceTas theme fixture is the
+  missing piece, as html has.
+- **The other design documents.** `FORMS-V2-GOALS.md` and `FORMS-V2-INTERFACES.md` carry a
+  "superseded in part — styling" banner but their bodies still describe the class slots and `variant`;
+  `FORMS-V2-PLAN.md` has no banner and describes them throughout. All three want a rewrite.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably
   folds into them.
 - **Structural names** for layout-only looks (`col-gap-16`) instead of a hash.
