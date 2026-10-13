@@ -13,14 +13,16 @@ import { useBoundScope, useInternalScope } from "./scope.js";
 import { bailout, boundaryName, resolveImpl } from "./boundaryParts.js";
 
 /**
- * A button's look: one of the three emphases every implementation draws —
- * `primary`, `secondary`, `link` — or any {@link LookName} the implementation's
+ * A button's look: one of the four emphases every implementation draws —
+ * `primary`, `secondary`, `link`, and `group`, which draws no button at all:
+ * the action is only a pressable wrapper around its children (legacy's
+ * `actionStyle: "Group"`, a card that is a button) — or any {@link LookName} the implementation's
  * theme names ("quiet", "inlineLink"). A name the theme does not know draws as
  * `secondary`, with a warning in development. See {@link warnUnknownLook}.
  *
  * @group Authoring
  */
-export type ActionLook = "primary" | "secondary" | "link" | LookName;
+export type ActionLook = "primary" | "secondary" | "link" | "group" | LookName;
 
 /**
  * Where a button's icon goes relative to its text; `replace` draws the icon

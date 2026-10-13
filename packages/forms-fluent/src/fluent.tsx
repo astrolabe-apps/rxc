@@ -725,7 +725,16 @@ function FluentTabs(p: TabsRenderProps) {
 }
 
 /** The three emphases as Fluent's own button appearances. */
-const emphasis = { primary: "primary", secondary: "secondary", link: "transparent" } as const;
+const emphasis = { primary: "primary", secondary: "secondary", link: "transparent", group: "transparent" } as const;
+
+/** The `group` emphasis: no button, only a pressable wrapper around its children. */
+const groupStyle = {
+  padding: 0,
+  minWidth: 0,
+  height: "auto",
+  justifyContent: "flex-start",
+  textAlign: "left",
+} as const;
 
 function FluentAction(p: ActionRenderProps) {
   const css = useCss();
@@ -743,7 +752,7 @@ function FluentAction(p: ActionRenderProps) {
         size="small"
         {...lookup}
         data-look={lookAttr(p.look)}
-        style={css(p.style)}
+        style={{ ...(lookNames(p.look).includes("group") ? groupStyle : {}), ...css(p.style) }}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         icon={icon == null ? undefined : <>{icon}</>}

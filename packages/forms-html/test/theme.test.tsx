@@ -106,6 +106,8 @@ describe("the themes", () => {
     // String slots that are not classes.
     const notClasses = /(^|\.)(text|note|emptyText|classNameOn|hideWith|iconPlacement)$/;
     const walk = (t: unknown, path: string): void => {
+      // A look part given as portable styles (`{ replace: { … } }`) is not a class.
+      if (/(^|\.)replace$/.test(path) && t && typeof t === "object") return;
       if (typeof t === "string") {
         if (notClasses.test(path) || !t) return;
         for (const c of t.split(/\s+/))

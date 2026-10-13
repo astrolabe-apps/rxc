@@ -1138,7 +1138,9 @@ function formatFor(
 }
 
 function actionLookOf(s: AnyDef["actionStyle"]) {
-  return s === "Secondary" ? "secondary" : s === "Link" ? "link" : "primary";
+  // `Group` is a wrapper around its children, not a button: legacy gave it its
+  // own class (`groupClass`) and none of the button's.
+  return s === "Secondary" ? "secondary" : s === "Link" ? "link" : s === "Group" ? "group" : "primary";
 }
 
 /**

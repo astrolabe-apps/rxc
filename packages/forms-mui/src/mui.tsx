@@ -578,7 +578,18 @@ function MuiTabs(p: TabsRenderProps) {
 }
 
 /** The three emphases as MUI's own button variants. */
-const emphasis = { primary: "contained", secondary: "outlined", link: "text" } as const;
+const emphasis = { primary: "contained", secondary: "outlined", link: "text", group: "text" } as const;
+
+/** The `group` emphasis: no button, only a pressable wrapper around its children. */
+const groupSx = {
+  p: 0,
+  minWidth: 0,
+  textTransform: "none",
+  justifyContent: "flex-start",
+  textAlign: "left",
+  color: "inherit",
+  "&:hover": { backgroundColor: "transparent" },
+} as const;
 
 function MuiAction(p: ActionRenderProps) {
   const css = useCss();
@@ -592,6 +603,7 @@ function MuiAction(p: ActionRenderProps) {
       <Button
         variant={builtin ?? "outlined"}
         size="small"
+        sx={lookNames(p.look).includes("group") ? groupSx : undefined}
         {...named}
         data-look={lookAttr(p.look)}
         style={css(p.style)}

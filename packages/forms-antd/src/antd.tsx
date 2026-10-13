@@ -625,7 +625,10 @@ function AntTabs(p: TabsRenderProps) {
 }
 
 /** The three emphases as Ant's own button types. */
-const emphasis = { primary: "primary", secondary: "default", link: "link" } as const;
+const emphasis = { primary: "primary", secondary: "default", link: "link", group: "text" } as const;
+
+/** The `group` emphasis: no button, only a pressable wrapper around its children. */
+const groupStyle = { padding: 0, height: "auto", textAlign: "left" } as const;
 
 function AntAction(p: ActionRenderProps) {
   const css = useCss();
@@ -642,7 +645,11 @@ function AntAction(p: ActionRenderProps) {
         type={builtin ?? "default"}
         size="small"
         {...named}
-        style={{ ...(atToken(style, token)), ...css(p.style) }}
+        style={{
+          ...(lookNames(p.look).includes("group") ? groupStyle : {}),
+          ...(atToken(style, token)),
+          ...css(p.style),
+        }}
         data-look={lookAttr(p.look)}
         disabled={p.disabled}
         loading={p.busy}

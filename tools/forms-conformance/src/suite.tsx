@@ -1435,6 +1435,21 @@ export function describeConformance(impl: Implementation): void {
       expect(buttonNamed("Save")!.disabled).toBe(false);
     });
 
+    it("draws a group action as a pressable wrapper around its children, not as a button", () => {
+      const clicked = vi.fn();
+      mount(
+        <Action actionId="open" look="group" onClick={clicked}>
+          <TextDisplay text="My profile" />
+        </Action>,
+      );
+      const pressable = [...container.querySelectorAll("button, [role='button']")].find((e) =>
+        e.textContent?.includes("My profile"),
+      ) as HTMLElement;
+      expect(pressable).toBeTruthy();
+      click(pressable);
+      expect(clicked).toHaveBeenCalledOnce();
+    });
+
     it("draws a collection's rows, and one element's edit re-renders into its row", () => {
       const pets = ctx.newControl([{ name: "Rex" }, { name: "Tiddles" }]);
       mount(

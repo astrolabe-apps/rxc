@@ -918,6 +918,21 @@ describe("looks: layering, replace and the slots they share with className", () 
   });
 });
 
+describe("the group action emphasis", () => {
+  it("draws no button chrome: no emphasis class, the UA button chrome cleared by styles or by Tailwind", () => {
+    mount(<Action actionId="open" look="group">card</Action>);
+    const b = $<HTMLButtonElement>("button")!;
+    expect(b.className).not.toContain("rxf-btn--primary");
+    expect(b.style.backgroundColor).toBe("transparent");
+    expect(b.style.padding === "0px" || b.style.padding === "0").toBe(true);
+    expect(b.textContent).toBe("card");
+    mount(<Action actionId="open" look="group">card</Action>, { theme: tailwindHtmlTheme });
+    const t = $<HTMLButtonElement>("button")!;
+    expect(t.className).toContain("bg-transparent");
+    expect(t.className).not.toContain("bg-blue-600");
+  });
+});
+
 describe("looks given as portable styles", () => {
   const theme = (looks: NonNullable<PartialHtmlTheme["looks"]>): PartialHtmlTheme => ({
     tokens: { colors: { accent: "#ff0000" } },

@@ -268,7 +268,7 @@ export interface HtmlTheme {
    *
    * Added, not merged: see {@link HtmlTheme}.
    */
-  looks: Record<"primary" | "secondary" | "link", HtmlLook> & Record<string, HtmlLook>;
+  looks: Record<"primary" | "secondary" | "link" | "group", HtmlLook> & Record<string, HtmlLook>;
   /**
    * What a style's `$name` refers to (`style={{ color: "$accent" }}`):
    * `colors` maps a token to a colour value. `$accent/10` is that colour at
@@ -632,6 +632,13 @@ export const defaultHtmlTheme: HtmlTheme = {
     primary: { control: "rxf-btn--primary" },
     secondary: { control: "rxf-btn--secondary" },
     link: { control: "rxf-btn--link" },
+    // No button: the action's children are the content. Styles, not a class,
+    // since this theme must work with no stylesheet.
+    group: {
+      control: {
+        replace: { backgroundColor: "transparent", borderWidth: 0, padding: 0, textAlign: "left" },
+      },
+    },
   },
   visibility: { transitions: true, fade: "rxf-fade" },
   elements: { className: "rxf-elements" },
@@ -825,6 +832,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
         "rxf-btn--secondary border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50",
     },
     link: { control: "rxf-btn--link bg-transparent text-blue-600 underline" },
+    group: { control: { replace: "rxf-btn--group border-0 bg-transparent p-0 text-left" } },
   },
   visibility: {
     transitions: true,

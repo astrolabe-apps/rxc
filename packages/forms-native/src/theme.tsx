@@ -344,11 +344,12 @@ export interface NativeTheme {
    *
    * A name not here draws the base look, with a warning in development.
    *
-   * The three emphases every theme draws for an action — `primary`,
-   * `secondary`, `link` — are looks, and `secondary` is the fallback for an
+   * The four emphases every theme draws for an action — `primary`,
+   * `secondary`, `link`, and `group` (no button: a wrapper around its
+   * children) — are looks, and `secondary` is the fallback for an
    * action's unknown name.
    */
-  looks: Record<"primary" | "secondary" | "link", NativeLook> & Record<string, NativeLook>;
+  looks: Record<"primary" | "secondary" | "link" | "group", NativeLook> & Record<string, NativeLook>;
   /**
    * What a look's `$name` refers to: `colors` maps a token (`accent`) to a
    * colour value. `$accent/10` is that colour at 10%, for a `#rgb` / `#rrggbb`
@@ -594,6 +595,8 @@ export const defaultNativeTheme: NativeTheme = {
       control: { paddingHorizontal: 0, paddingVertical: 0 },
       text: { color: blue600, textDecorationLine: "underline" },
     },
+    // No button: the action's children are the content.
+    group: { control: { replace: {} } },
   },
   tokens: { colors: {} },
   elements: { style: { gap: 8 } },

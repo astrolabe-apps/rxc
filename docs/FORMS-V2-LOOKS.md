@@ -59,8 +59,11 @@ control, the label and its text. The author never says which part. The theme doe
 **No cascade.** A look styles the boundary it is on, not its descendants. React Native has no
 cascade, and a look written for one platform has to mean the same on the other.
 
-**An action's emphases are looks.** `primary`, `secondary` and `link` are looks every
+**An action's emphases are looks.** `primary`, `secondary`, `link` and `group` are looks every
 implementation ships; `secondary` is the default and the fallback for an action's unknown name.
+`group` draws **no button**: the action is a pressable wrapper around its children — legacy's
+`actionStyle: "Group"`, which had its own `groupClass` and none of the button's chrome. (Found on a
+device: the loader had mapped it to `primary`, so a card drew as a blue slab with the card on it.)
 
 ### The escape hatch
 

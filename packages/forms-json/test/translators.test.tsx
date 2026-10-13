@@ -149,6 +149,27 @@ describe("TextField", () => {
     expect(b.classList.contains("wide")).toBe(true);
   });
 
+  it("draws a Group action as a wrapper around its children, with none of a button's chrome", () => {
+    h.load(
+      [
+        {
+          type: "Action",
+          actionId: "open",
+          actionStyle: "Group",
+          title: "Open",
+          children: [{ type: "Display", displayData: { type: "Text", text: "Card" } }],
+        },
+      ],
+      [],
+      {},
+      { actionHandler: () => () => {} },
+    );
+    const b = $<HTMLButtonElement>("button");
+    expect(b.getAttribute("data-look")).toBe("group");
+    expect(b.className).not.toContain("rxf-btn--primary");
+    expect(b.textContent).toContain("Card");
+  });
+
   it("recognises the same classes written in another order, and tells a replace from a merge", () => {
     const a = legacyLookKey("Data", { styleClass: "b a  c" }, true);
     expect(a).toBe(legacyLookKey("Data", { styleClass: "c a b b" }, true));
