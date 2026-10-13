@@ -190,10 +190,12 @@ function AntFieldShell(p: FieldShellProps) {
       <Button
         type="text"
         size="small"
-        aria-label={helpButtonName("Help", p.label)}
+        aria-label={helpButtonName("Help", p.label, p.helpLabel)}
         icon={<span aria-hidden="true">ⓘ</span>}
         style={{ color: token.colorTextDescription }}
-      />
+      >
+        {p.helpLabel}
+      </Button>
     </AntTooltip>
   );
   const ownLabel = labelEnd && p.labelPosition !== "after" && p.label != null && !p.hideLabel;
@@ -466,6 +468,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -554,6 +557,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -594,6 +598,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -646,6 +651,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -991,6 +997,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -1061,6 +1068,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -1156,9 +1164,12 @@ function AntWizard(p: WizardRenderProps) {
 function AntDisclosure(p: DisclosureRenderProps) {
   const css = useCss();
   const { token } = theme.useToken();
+  // A disclosure's look is a group's: the wrapper around it, the toggle row (its title), the content.
+  const look = useGroupStyle(p.look);
+  useLookLayers("disclosure", p.look, useAntdLooks().group);
   return (
     <Collapse
-      style={{ ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
+      style={{ ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
       activeKey={p.open ? ["panel"] : []}
       onChange={(keys) => p.setOpen((Array.isArray(keys) ? keys : [keys]).length > 0)}
       destroyOnHidden={false}
@@ -1168,9 +1179,13 @@ function AntDisclosure(p: DisclosureRenderProps) {
           key: "panel",
           forceRender: true,
           label: (
-            <span style={p.invalid ? { color: token.colorError } : undefined}>{p.title}</span>
+            <span style={{ ...look?.title, ...(p.invalid ? { color: token.colorError } : {}) }}>{p.title}</span>
           ),
-          children: <div id={p.id}>{p.content}</div>,
+          children: (
+            <div id={p.id} style={look?.body}>
+              {p.content}
+            </div>
+          ),
         },
       ]}
     />

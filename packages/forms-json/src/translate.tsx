@@ -809,6 +809,12 @@ function buildProps(
     helpText !== undefined && help?.placement === "LabelEnd"
       ? ("labelEnd" as const)
       : undefined;
+  // The words legacy's hosts put on the trigger (`helpLabel`): the label of the button
+  // `labelEnd` draws, and unused where the help is below.
+  const helpLabel =
+    helpText !== undefined && typeof help?.helpLabel === "string" && help.helpLabel
+      ? asText(help.helpLabel, "help")
+      : undefined;
 
   // An Icon adornment at the control's start or end is the field's
   // `startIcon` / `endIcon`; anywhere else it has no slot and is
@@ -875,6 +881,7 @@ function buildProps(
     requiredMessage: def.requiredErrorText ?? undefined,
     helpText,
     helpPlacement,
+    helpLabel,
     startIcon,
     endIcon,
     hidden: hiddenFromExpr ?? staticHidden ?? undefined,
@@ -1063,6 +1070,7 @@ const propSources: Record<string, (keyof AnyDef)[]> = {
   defaultValue: ["defaultValue"],
   validate: ["validators"],
   helpPlacement: ["adornments"],
+  helpLabel: ["adornments"],
   startIcon: ["adornments"],
   endIcon: ["adornments"],
   look: ["styleClass", "textClass", "layoutClass", "labelClass", "labelTextClass"],

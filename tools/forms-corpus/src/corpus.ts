@@ -20,7 +20,7 @@ export function* walkFiles(p: string): Generator<string> {
     for (const e of readdirSync(p)) {
       if (e === "node_modules" || e.startsWith(".")) continue;
       // what the looks tools write beside the extracted forms is not a form to run
-      if (basename(p) === "corpus" && (e === "looks" || e === "converted")) continue;
+      if (basename(p) === "corpus" && (e === "looks" || e === "converted" || e === "compare")) continue;
       yield* walkFiles(join(p, e));
     }
   } else if (p.endsWith(".json")) yield p;

@@ -939,6 +939,10 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   portable styles in its `NativeTheme`; class looks are warned once per name and not drawn.
 - JSON forms need nothing: the loader derives looks from the class slots as before, and a form
   that names its looks (`look` on a control) is drawn from the host's theme.
+- A field takes `helpLabel`, the words on its `labelEnd` help button (and the button's name, in place of
+  "Help: ‹label›"); a `HelpText` adornment's `helpLabel` reaches it on the JSON path. A disclosure's look
+  has parts: `shell` the container and `control` the toggle row (html's `control` was the container: it
+  moves to `shell`); MUI, Ant and Fluent read it as a group's look.
 - The default icon draws nothing (a React Native host cannot draw an `<i>`); a web host passes
   `legacyIconClass`'s result through its icon translator.
 

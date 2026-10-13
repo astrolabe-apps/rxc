@@ -1036,6 +1036,25 @@ describe("adornments", () => {
     expect($("i.fa.fa-at")).not.toBeNull();
   });
 
+  it("puts a HelpText's helpLabel on its labelEnd button, and names the button by it", () => {
+    const { warnings } = h.load(
+      [
+        {
+          type: "Data",
+          field: "a",
+          adornments: [
+            { type: "HelpText", helpText: "Some help.", placement: "LabelEnd", helpLabel: "Why ask?" },
+          ],
+        },
+      ],
+      [str("a")],
+      { a: "" },
+    );
+    expect(warnings).toEqual([]);
+    const button = $('button[aria-label="Why ask?"]');
+    expect(button.textContent).toContain("Why ask?");
+  });
+
   it("draws HelpText at any other placement below the control", () => {
     h.load(
       [

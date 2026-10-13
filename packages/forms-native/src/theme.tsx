@@ -76,6 +76,8 @@ export interface NativeTheme {
       icon: ReactNode;
       /** Its accessible name — words. */
       text: string;
+      /** The words a field gives it (`helpLabel`), beside the icon. */
+      label?: TextStyle;
     };
   };
   /** The input frame: the box around a text input or a select's trigger. */
@@ -323,6 +325,8 @@ export interface NativeTheme {
     title: TextStyle;
     /** What the toggle shows beside its text; turned while open. */
     icon: ReactNode;
+    /** The icon's text, over `title`'s. */
+    iconStyle: TextStyle;
     /**
      * Which side of the title `icon` sits: `before`, or `after` for a
      * chevron at the title's end. The invalid marker stays last.
@@ -404,7 +408,12 @@ export const defaultNativeTheme: NativeTheme = {
     afterRow: { ...row, gap: 8 },
     labelRow: { flexShrink: 1, ...row, gap: 4 },
     horizontal: { ...row, justifyContent: "space-between", gap: 8 },
-    helpButton: { style: { paddingHorizontal: 4 }, icon: "ⓘ", text: "Help" },
+    helpButton: {
+      style: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 4 },
+      icon: "ⓘ",
+      text: "Help",
+      label: { ...xs, fontWeight: "700", color: gray[700] },
+    },
   },
   frame: {
     style: {
@@ -581,6 +590,7 @@ export const defaultNativeTheme: NativeTheme = {
     toggle: { ...row, gap: 8, paddingVertical: 8 },
     title: { ...base, fontWeight: "500", color: gray[700] },
     icon: "▸",
+    iconStyle: {},
     iconPlacement: "before",
     invalidMarker: { fontSize: 9, color: red600 },
     content: { paddingTop: 8 },

@@ -102,6 +102,11 @@ export interface FieldShellProps {
    * The button stays while an error shows: the help is still worth reading.
    */
   helpPlacement?: HelpPlacement;
+  /**
+   * Words on the `labelEnd` button, beside its icon, and its name: what the
+   * trigger is for ("Why add an alternative number?"). Unused without `labelEnd`.
+   */
+  helpLabel?: ReactNode;
   /** The error to show, under id {@link fieldErrorId}. */
   error?: ReactNode;
   /**

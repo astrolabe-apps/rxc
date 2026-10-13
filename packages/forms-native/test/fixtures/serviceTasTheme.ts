@@ -82,6 +82,25 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     required: { color: "#ef4444" },
     // The help text is a popover component (`createRNHelpTextRenderer`), triggerLabelClass "caption1".
     help: withInk(type.footnote),
+    // labelContainer "flex flex-row gap-[4px] items-baseline flex-wrap shrink": the trigger wraps
+    // under a label too long to share its line.
+    labelRow: { flexShrink: 1, flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: 8, rowGap: 4 },
+    // Its trigger: triggerContainerClass "flex flex-row gap-2 items-center p-[4px] rounded-full self-start",
+    // a `surface-100` pill when it has words (`helpLabel`), the words "text-sm font-bold caption1".
+    helpButton: {
+      style: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        padding: 4,
+        borderRadius: 9999,
+        alignSelf: "flex-start",
+        backgroundColor: serviceTasColors["surface-100"],
+      },
+      icon: "ⓘ",
+      text: "Help",
+      label: { ...withInk(type.caption1), fontSize: 14, fontFamily: F.bold },
+    },
     error: { ...type.footnote, color: serviceTasColors.danger, fontFamily: F.bold },
   },
   frame: {
@@ -165,6 +184,16 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     placeholder: { ...type.body, color: "#9ca3af" },
     optionText: withInk(type.body),
   },
+  // The accordion (adornment.accordion: titleTextClass "subhead"): a chevron at the title's end, `togglerClass` "text-accent !text-[20px]"; the
+  // card around it and the toggle row's layout come from the group's own look. Its icon is a
+  // chevron turned a quarter when open (the app's is down, then up).
+  disclosure: {
+    toggle: { flexDirection: "row", alignItems: "center", gap: 8 },
+    title: withInk(type.subhead),
+    icon: "›",
+    iconStyle: { color: serviceTasColors.accent, fontSize: 20 },
+    iconPlacement: "after",
+  },
   displayOnly: { text: withInk(type.body) },
   contents: {
     // group titles are label text: the label's class plus the group's.
@@ -201,10 +230,6 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     },
     textStyle: { flexShrink: 1, ...withInk(type.body) },
     disabled: { opacity: 0.8 },
-  },
-  disclosure: {
-    // adornment.accordion: titleTextClass "subhead", togglerClass "text-accent !text-[20px]".
-    title: withInk(type.subhead),
   },
   dialog: {
     // group.dialog.classes.containerClass "w-full px-[16px] max-h-[600px] min-h-[200px]".

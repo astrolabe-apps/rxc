@@ -220,7 +220,26 @@ function FluentFieldShell(p: FieldShellProps) {
   // popover shows the help; for assistive technology the help is also
   // rendered visually hidden under its id, as the control's description.
   const labelEnd = labelEndHelp(p);
-  const infoButton = labelEnd && <InfoButton info={{ children: p.helpText }} aria-label={helpButtonName("Help", p.label)} />;
+  // A field's own words go on the button beside the glyph (its children replace the default icon).
+  const helpWords =
+    p.helpLabel != null
+      ? {
+          children: (
+            <>
+              <span aria-hidden="true">ⓘ</span>
+              <span style={{ marginInlineStart: 4, fontWeight: 700 }}>{p.helpLabel}</span>
+            </>
+          ),
+          style: { width: "auto" },
+        }
+      : {};
+  const infoButton = labelEnd && (
+    <InfoButton
+      info={{ children: p.helpText }}
+      {...helpWords}
+      aria-label={helpButtonName("Help", p.label, p.helpLabel)}
+    />
+  );
   return (
     <Field
       orientation={p.orientation}
@@ -247,7 +266,7 @@ function FluentFieldShell(p: FieldShellProps) {
                       disabled={p.disabled}
                       style={fieldLook?.label}
                       info={{ children: p.helpText }}
-                      infoButton={{ "aria-label": helpButtonName("Help", p.label) }}
+                      infoButton={{ ...helpWords, "aria-label": helpButtonName("Help", p.label, p.helpLabel) }}
                     >
                       {labelText}
                     </InfoLabel>
@@ -454,6 +473,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -546,6 +566,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -588,6 +609,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -630,6 +652,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -681,6 +704,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -732,6 +756,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -1147,9 +1172,12 @@ function FluentWizard(p: WizardRenderProps) {
  */
 function FluentDisclosure(p: DisclosureRenderProps) {
   const css = useCss();
+  // A disclosure's look is a group's: the wrapper around it, the toggle row (its title), the content.
+  const look = useGroupStyle(p.look);
+  useLookLayers("disclosure", p.look, useFluentLooks().group);
   return (
     <div
-      style={{ ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
+      style={{ ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
       data-invalid={p.invalid ? "" : undefined}
     >
       <Button
@@ -1159,13 +1187,14 @@ function FluentDisclosure(p: DisclosureRenderProps) {
         icon={<span aria-hidden="true">{p.open ? "\u25BE" : "\u25B8"}</span>}
         style={{
           paddingInline: 0,
+          ...look?.title,
           ...(p.invalid ? { color: tokens.colorStatusDangerForeground1 } : {}),
         }}
         onClick={() => p.setOpen(!p.open)}
       >
         {p.title}
       </Button>
-      <div id={p.id} hidden={!p.open || undefined} style={{ paddingTop: tokens.spacingVerticalS }}>
+      <div id={p.id} hidden={!p.open || undefined} style={{ paddingTop: tokens.spacingVerticalS, ...look?.body }}>
         {p.content}
       </div>
     </div>

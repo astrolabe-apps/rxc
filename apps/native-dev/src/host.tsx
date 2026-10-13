@@ -1,5 +1,7 @@
 import { Switch } from "react-native";
+import type { ReactNode } from "react";
 import type { Rendered } from "@rx-controls/react";
+import { RichText } from "@rx-controls/forms-react";
 import {
   fieldRenderer,
   useCheckbox,
@@ -53,4 +55,22 @@ const switchTranslator: Translator = {
   render: ({ props }) => <SwitchField {...(props as any)} />,
 };
 
-export const nativeStandInHost: Pick<LoaderOptions, "translators"> = { translators: [switchTranslator, ...defaultTranslators] };
+const text = (o: object, k: string) => (o as Record<string, unknown>)[k] as string | undefined;
+
+export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments"> = {
+  translators: [switchTranslator, ...defaultTranslators],
+  adornments: {
+    // ServiceTas's help renderer: a trigger at the label's end, `helpLabel` the words on it.
+    HelpText: {
+      props: (a, props, def) =>
+        def.type === "Data"
+          ? {
+              ...props,
+              helpText: (<RichText html={text(a, "helpText") ?? ""} />) as ReactNode,
+              helpLabel: text(a, "helpLabel"),
+              helpPlacement: [undefined, "LabelEnd"].includes(text(a, "placement")) ? ("labelEnd" as const) : undefined,
+            }
+          : undefined,
+    },
+  },
+};

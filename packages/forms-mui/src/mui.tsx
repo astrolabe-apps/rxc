@@ -188,10 +188,15 @@ function MuiFieldShell(p: FieldShellProps) {
     <Tooltip title={p.helpText} describeChild>
       <IconButton
         size="small"
-        aria-label={helpButtonName("Help", p.label)}
-        sx={{ p: 0.25, fontSize: "1rem" }}
+        aria-label={helpButtonName("Help", p.label, p.helpLabel)}
+        sx={{ p: 0.25, fontSize: "1rem", ...(p.helpLabel != null && { borderRadius: 4, px: 1, gap: 0.5 }) }}
       >
         <span aria-hidden="true">ⓘ</span>
+        {p.helpLabel != null && (
+          <Box component="span" sx={{ fontSize: "0.8125rem", fontWeight: 700 }}>
+            {p.helpLabel}
+          </Box>
+        )}
       </IconButton>
     </Tooltip>
   );
@@ -474,6 +479,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -558,6 +564,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -602,6 +609,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -943,6 +951,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -1016,6 +1025,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -1073,6 +1083,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       style={p.shellStyle}
     >
@@ -1169,18 +1180,22 @@ function MuiWizard(p: WizardRenderProps) {
  */
 function MuiDisclosure(p: DisclosureRenderProps) {
   const css = useCss();
+  // A disclosure's look is a group's: the wrapper around it, the toggle row (its title), the content.
+  const look = useGroupStyle(p.look);
+  useLookLayers("disclosure", p.look, useMuiLooks().group);
   return (
     <Accordion
       expanded={p.open}
       onChange={(_, v) => p.setOpen(v)}
       disableGutters
       style={css(p.style)}
-      sx={p.hidden ? { display: "none" } : undefined}
+      sx={{ ...look?.wrapper, ...(p.hidden ? { display: "none" } : {}) }}
       data-invalid={p.invalid ? "" : undefined}
     >
       <AccordionSummary
         aria-controls={p.id}
         id={`${p.id}-toggle`}
+        sx={look?.title}
         // MUI's own chevron is in @mui/icons-material, not a dependency here.
         expandIcon={<span aria-hidden="true">{"\u25BE"}</span>}
       >
@@ -1188,7 +1203,9 @@ function MuiDisclosure(p: DisclosureRenderProps) {
           {p.title}
         </Typography>
       </AccordionSummary>
-      <AccordionDetails id={p.id}>{p.content}</AccordionDetails>
+      <AccordionDetails id={p.id} sx={look?.body}>
+        {p.content}
+      </AccordionDetails>
     </Accordion>
   );
 }

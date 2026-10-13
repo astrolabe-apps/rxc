@@ -175,23 +175,6 @@ const topLevelGroupTranslator: Translator = {
   ),
 };
 
-function HelpWithLabel({
-  label,
-  text,
-}: {
-  label?: string;
-  text?: string;
-}): ReactNode {
-  return (
-    <span className="demo-help-labelled">
-      {label && <b>{label}</b>}
-      {label && text && " "}
-      {/* ServiceTas writes markup in its help: links, an image. */}
-      {text && <RichText html={text} />}
-    </span>
-  );
-}
-
 export const standInHost: LoaderOptions = {
   // ServiceTas took up legacy's html titles (`1m<sup>3</sup>`).
   displayText: (text) => <RichText html={text} />,
@@ -212,14 +195,14 @@ export const standInHost: LoaderOptions = {
         def.type === "Data"
           ? {
               ...props,
-              helpText: (
-                <HelpWithLabel
-                  label={field<string>(a, "helpLabel")}
-                  text={field<string>(a, "helpText")}
-                />
-              ),
-              helpPlacement:
-                field<string>(a, "placement") === "LabelEnd" ? "labelEnd" : undefined,
+              // ServiceTas's help renderer is a trigger at the label's end unless the adornment
+              // places it elsewhere (which the contract draws below); `helpLabel` is the words
+              // on the trigger.
+              helpText: <RichText html={field<string>(a, "helpText") ?? ""} />,
+              helpLabel: field<string>(a, "helpLabel"),
+              helpPlacement: ["LabelEnd", undefined].includes(field<string>(a, "placement"))
+                ? ("labelEnd" as const)
+                : undefined,
             }
           : undefined,
     },

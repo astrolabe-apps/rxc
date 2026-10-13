@@ -390,6 +390,8 @@ interface FieldProps<T> {
   requiredMessage?: FormProp<string>;
   validate?: Validator<T> | Record<string, Validator<T>>;
   helpText?: FormProp<ReactNode>;
+  helpPlacement?: FormProp<"below" | "labelEnd">;
+  helpLabel?: FormProp<ReactNode>;               // the words on the labelEnd button, and its name
   startIcon?: FormProp<ReactNode>;
   endIcon?: FormProp<ReactNode>;
   look?: FormProp<LookName | readonly LookName[] | undefined>;   // every part of the field — §2
@@ -405,6 +407,8 @@ interface FieldRenderProps<T> {
   required: boolean;
   error?: ReactNode;                             // resolved by the boundary (built)
   helpText?: ReactNode;
+  helpPlacement?: HelpPlacement;
+  helpLabel?: ReactNode;
   startIcon?: ReactNode;
   endIcon?: ReactNode;
   look?: LookRef;                                // names, resolved; the theme says what they draw

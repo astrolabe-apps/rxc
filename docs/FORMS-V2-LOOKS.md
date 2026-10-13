@@ -166,6 +166,11 @@ looks: Record<string, NativeLook> // parts are portable styles,
 | `icon` | around an action's icon |
 | `entry` / `selected` / `notSelected` | a radio's option wrapper, and its two states |
 
+A **disclosure** (a toggle and its content) takes a look too: `shell` is the container, `control` the toggle
+row — what legacy's accordion group styled with its `layoutClass` and `styleClass`, a card around it and the
+row's layout. (MUI, Ant and Fluent read it as a group's look: `wrapper` the container, `title` the toggle row,
+`body` the content.)
+
 That is html's and native's part set. MUI, Ant and Fluent name fewer parts, in their own terms: a
 field's are `shell` / `label` / `control` / `text`, a group's `wrapper` / `title` / `body` (below).
 
@@ -422,17 +427,18 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
   where the app draws 24 accent and 20 primary; and a style slot a theme gives **replaces** the
   base's whole (documented, and easy to forget): restating only a colour had made the checkbox and
   the radio ring and its selected dot vanish. Inputs, buttons, dividers, headings and radios now
-  match the real screens in size, colour and spacing. **Still different, and not ours to fix by
-  restating a style:**
-  - **Help.** The app draws a labelled trigger (a pill with the adornment's `helpLabel`) that shows
-    the text on press; v2 draws the text below, or an icon-only button under `labelEnd`. The
-    contract has one help-button name for a theme, not a label per field.
+  match the real screens in size, colour and spacing. **Two more were gaps in the contract, now closed:**
+  a field's help is a labelled trigger in the app (the adornment's `helpLabel` as the words on a pill
+  that shows the text on press), so `helpLabel` is a field prop, the words on the `labelEnd` button and
+  its name (the loader carries it from a `HelpText` adornment; a host decides that an adornment with no
+  placement is `labelEnd`, as ServiceTas's renderer does); and a disclosure took no look's parts at all
+  on native, MUI, Ant and Fluent (html's `control` was the container), so it now has `shell` and
+  `control` as above — the accordion draws as the bordered card with its toggle row and a chevron at
+  the end. **Still different, and not ours to fix by restating a style:**
   - **A date field.** The app has a date picker with a calendar button; `forms-native` draws a text
     input.
   - **Icons.** The app draws Font Awesome; v2's default icon draws nothing, so the playground has
     none until a host gives it an icon set.
-  - **A disclosure.** The app's accordion is a bordered card with a chevron; v2's is a plain row
-    with a triangle, and the group's border does not reach it.
   - **An empty collection** draws "Nothing yet." in v2 and nothing in the app; a **blank
     display-only value** is a line taller; a **Switch** sits beside its label where the app puts it
     at the row's end; a radio entry is a few units taller. Data-dependent behaviour is unchecked:

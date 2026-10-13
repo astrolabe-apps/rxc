@@ -321,12 +321,17 @@ function NativeFieldShell(p: FieldShellProps) {
   const helpButton = labelEnd && (
     <Pressable
       role="button"
-      aria-label={helpButtonName(t.helpButton.text, p.label)}
+      aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
       aria-expanded={helpOpen}
       onPress={() => setHelpOpen((o) => !o)}
       {...sp(t.helpButton.style)}
     >
       <Text aria-hidden>{t.helpButton.icon}</Text>
+      {p.helpLabel != null && (
+        <Text aria-hidden {...sp(t.helpButton.label)}>
+          {p.helpLabel}
+        </Text>
+      )}
     </Pressable>
   );
   // The row of a label beside its control: on a device, one accessible
@@ -508,6 +513,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       count={count}
       countOver={countOver}
@@ -614,6 +620,7 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -690,6 +697,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -769,6 +777,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -856,6 +865,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -949,6 +959,7 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -1590,18 +1601,22 @@ function NativeDialog(p: DialogRenderProps) {
 /** A toggle and its content; closed, the content is mounted and hidden. */
 function NativeDisclosure(p: DisclosureRenderProps) {
   const t = useNativeTheme().disclosure;
+  const part = useLook("disclosure", p.look);
+  const st: LookState = { ...NO_LOOK_STATE, invalid: !!p.invalid };
+  const shell = part("shell", st, p.style);
+  const toggle = part("control", st);
   const icon = (
     <View aria-hidden {...sp(p.open && { transform: [{ rotate: "90deg" }] })}>
-      <Text {...sp(t.title)}>{t.icon}</Text>
+      <Text {...sp(t.title, t.iconStyle)}>{t.icon}</Text>
     </View>
   );
   return (
-    <View {...sp(t.style, p.hidden && { display: "none" })}>
+    <View {...sp(unless(shell.replace, t.style), shell.box, p.hidden && { display: "none" })}>
       <Pressable
         role="button"
         aria-expanded={p.open}
         onPress={() => p.setOpen(!p.open)}
-        {...sp(t.toggle)}
+        {...sp(unless(toggle.replace, t.toggle), toggle.box)}
         {...webOnly({ "aria-controls": p.id })}
       >
         {t.iconPlacement !== "after" && icon}

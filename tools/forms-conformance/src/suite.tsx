@@ -525,6 +525,34 @@ export function describeConformance(impl: Implementation): void {
       }
     });
 
+    it("puts words of the field's own on its labelEnd help button, and names the button by them (helpLabel)", () => {
+      const opts = [
+        { name: "Ay", value: "a" },
+        { name: "Bee", value: "b" },
+      ];
+      const cases: [string, string, (c: Control<any>) => ReactNode][] = [
+        ["text", "Text name", (c) => <TextField field={c} label="Text name" helpText="Help words" helpPlacement="labelEnd" helpLabel="Why ask?" />],
+        ["select", "Select name", (c) => <SelectField field={c} label="Select name" options={opts} helpText="Help words" helpPlacement="labelEnd" helpLabel="Why ask?" />],
+        ["radio", "Radio name", (c) => <RadioField field={c} label="Radio name" options={opts} helpText="Help words" helpPlacement="labelEnd" helpLabel="Why ask?" />],
+        ["checkbox", "Check name", (c) => <CheckboxField field={c} label="Check name" helpText="Help words" helpPlacement="labelEnd" helpLabel="Why ask?" />],
+      ];
+      for (const [kind, label, ui] of cases) {
+        mount(ui(ctx.newControl<unknown>(undefined)));
+        // The field is still named by its label and described by its help.
+        expect([kind, read().map((r) => [r.name, r.description])]).toEqual([kind, [[label, "Help words"]]]);
+        // The button shows the words and is named by them, not by "Help: ‹label›", outside every label.
+        const buttons = [...document.querySelectorAll('button, [role="button"]')].filter((b) =>
+          b.textContent?.includes("Why ask?"),
+        );
+        expect([
+          kind,
+          buttons.map((b) => b.getAttribute("aria-label")),
+          buttons.some((b) => b.closest("label")),
+        ]).toEqual([kind, ["Why ask?"], false]);
+        act(() => root.render(null));
+      }
+    });
+
     it("draws a checkbox's label on the side it names, help after the label, in the order it is read", () => {
       const order = (id: string) => {
         const control = byId(id)!;
@@ -1295,6 +1323,15 @@ export function describeConformance(impl: Implementation): void {
           <Contents title="Unknown region" look={unknown}>
             <TextDisplay text="in unknown" />
           </Contents>
+          <Disclosure title={<span>Base fold</span>}>
+            <TextDisplay text="in base fold" />
+          </Disclosure>
+          <Disclosure title={<span>Card fold</span>} look="card">
+            <TextDisplay text="in card fold" />
+          </Disclosure>
+          <Disclosure title={<span>Unknown fold</span>} look={unknown}>
+            <TextDisplay text="in unknown fold" />
+          </Disclosure>
           <Action actionId="plain" text="Base button" />
           <Action actionId="quietly" text="Quiet button" look="quiet" />
           <Action actionId="unnamed" text="Unknown button" look={unknown} onClick={clicked} />
@@ -1333,6 +1370,8 @@ export function describeConformance(impl: Implementation): void {
       expect([
         look("Lead words") !== look("Base words"),
         look("Card region") !== look("Base region"),
+        look("Card fold") !== look("Base fold"),
+        look("Unknown fold") === look("Base fold"),
         look("Quiet button") !== look("Base button"),
         look("Unknown words") === look("Base words"),
         look("Unknown region") === look("Base region"),
@@ -1341,16 +1380,16 @@ export function describeConformance(impl: Implementation): void {
         image("Unknown image") === image("Base image"),
         image("Large icon") !== image("Base icon"),
         image("Unknown icon") === image("Base icon"),
-      ]).toEqual([true, true, true, true, true, true, true, true, true, true]);
+      ]).toEqual([true, true, true, true, true, true, true, true, true, true, true, true]);
       // One warning per kind, naming the look — and none again on the
       // next render.
       const warnings = logged.splice(0);
       expect(
-        ["text", "group", "action", "image", "icon"].map(
+        ["text", "group", "disclosure", "action", "image", "icon"].map(
           (kind) => warnings.filter((w) => w.includes(`${kind} look "${unknown}"`)).length,
         ),
-      ).toEqual([1, 1, 1, 1, 1]);
-      expect(warnings).toHaveLength(5);
+      ).toEqual([1, 1, 1, 1, 1, 1]);
+      expect(warnings).toHaveLength(6);
       mount(impl.looks(ui));
       click(buttonNamed("Unknown button")!);
       expect([logged.splice(0), clicked.mock.calls.length]).toEqual([[], 1]);

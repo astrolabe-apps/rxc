@@ -150,6 +150,12 @@ export interface FieldProps<T> {
    * technology reads it with the field.
    */
   helpPlacement?: FormProp<HelpPlacement>;
+  /**
+   * Words on the `labelEnd` help button, beside its icon: a trigger that says what
+   * it is ("Why do we ask?"). They are the button's name, in place of "Help: ‹label›".
+   * Without `labelEnd` help there is no button to put them on.
+   */
+  helpLabel?: FormProp<ReactNode>;
   /** Content at the control's leading edge, inside its frame — an icon, a unit. */
   startIcon?: FormProp<ReactNode>;
   /** Content at the control's trailing edge, inside its frame. */
@@ -220,6 +226,8 @@ export interface FieldRenderProps<T> {
   helpText?: ReactNode;
   /** Where the help is drawn — see {@link FieldShellProps.helpPlacement}. */
   helpPlacement?: HelpPlacement;
+  /** The words on the help button — see {@link FieldShellProps.helpLabel}. */
+  helpLabel?: ReactNode;
   /** Content at the control's leading edge. */
   startIcon?: ReactNode;
   /** Content at the control's trailing edge. */
@@ -370,6 +378,7 @@ export function fieldRenderer<T, P extends object = {}>(
       error: state.touched && own.length ? own[0] : undefined,
       helpText: getProp(rc, props.helpText),
       helpPlacement: getProp(rc, props.helpPlacement),
+      helpLabel: getProp(rc, props.helpLabel),
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),
       inline: scope.inline,

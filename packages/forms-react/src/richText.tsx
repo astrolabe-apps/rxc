@@ -394,11 +394,15 @@ export function plainText(node: ReactNode): string {
 /**
  * A `labelEnd` help button's name: the implementation's word for help and
  * the field's label — "Help: Commercial vessel" — so two on a page are told
- * apart. The word alone for a field with no label.
+ * apart. The word alone for a field with no label. A button that shows words of
+ * its own (`helpLabel`) is named by them.
  *
  * @group Implementations
  */
-export function helpButtonName(help: string, label: ReactNode): string {
+export function helpButtonName(help: string, label: ReactNode, helpLabel?: ReactNode): string {
+  // words the button shows are its name: what is seen is what is heard
+  const own = plainText(helpLabel).trim();
+  if (own) return own;
   const words = plainText(label).trim();
   return words ? `${help}: ${words}` : help;
 }

@@ -102,6 +102,8 @@ export interface HtmlTheme {
       icon: ReactNode;
       /** Its accessible name. Words, for assistive technology. */
       text: string;
+      /** The words a field gives it (`helpLabel`), beside the icon. */
+      labelClassName?: string;
     };
     /** A field's character count (`showCount`), within its limit. */
     count: string;

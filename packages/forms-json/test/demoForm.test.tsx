@@ -21,7 +21,6 @@ describe("the fixture form", () => {
     const ctx = createControlContext();
     const { warnings } = translateForm(ctx, ctx.newControl({}), demoSchema, demoControls);
     expect(warnings.map((w) => `${w.path} ${w.kind} ${w.subject}`)).toEqual([
-      "6 unread status",
       "8.3 action greet",
       "17 control Custom",
       "18 control Greeting",

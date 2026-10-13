@@ -870,7 +870,8 @@ export interface DisclosureProps {
   readOnly?: FormProp<boolean>;
   /**
    * A named look the implementation's theme resolves for this container: its
-   * `control` part is the container's own element. A name the theme does
+   * `shell` part is the container, its `control` part the toggle row (what a
+   * card around an accordion, and the row's layout, are). A name the theme does
    * not know draws the base look, with a warning in development.
    */
   look?: FormProp<LookName | readonly LookName[] | undefined>;

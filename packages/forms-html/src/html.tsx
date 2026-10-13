@@ -136,12 +136,13 @@ function HtmlFieldShell(p: FieldShellProps) {
     <button
       type="button"
       className={t.helpButton.className}
-      aria-label={helpButtonName(t.helpButton.text, p.label)}
+      aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
       aria-expanded={helpOpen}
       aria-controls={fieldHelpId(p.id)}
       onClick={() => setHelpOpen((o) => !o)}
     >
       {t.helpButton.icon}
+      {p.helpLabel != null && <span className={t.helpButton.labelClassName}>{p.helpLabel}</span>}
     </button>
   );
   const withHelp = (label: ReactNode) =>
@@ -344,6 +345,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -429,6 +431,7 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -467,6 +470,7 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -523,6 +527,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -594,6 +599,7 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -862,6 +868,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -997,7 +1004,7 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
   );
   return (
     <details
-      className={lookClass(t.className, look?.control)}
+      className={lookClass(t.className, look?.shell)}
       data-look={lookAttr(p.look)}
       open={p.open}
       onToggle={(e) => {
@@ -1005,10 +1012,11 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
       }}
       data-invalid={p.invalid ? "" : undefined}
       data-open={p.open ? "" : undefined}
-      style={{ ...ls.style("control", portableCss(p.style, theme.tokens.colors)), ...(p.hidden ? { display: "none" } : {}) }}
+      style={{ ...ls.style("shell", portableCss(p.style, theme.tokens.colors)), ...(p.hidden ? { display: "none" } : {}) }}
     >
       <summary
-        className={t.summary}
+        className={lookClass(t.summary, look?.control)}
+        style={ls.style("control")}
         onClick={(e) => {
           e.preventDefault();
           p.setOpen(!p.open);
