@@ -124,8 +124,8 @@ describe("the native theme", () => {
   it("draws an action's string icon in its text's look, without the underline", () => {
     mount(
       <>
-        <Action actionId="next" text="Next" icon="→" variant="primary" />
-        <Action actionId="out" text="Elsewhere" icon="↗" iconPlacement="after" variant="link" />
+        <Action actionId="next" text="Next" icon="→" look="primary" />
+        <Action actionId="out" text="Elsewhere" icon="↗" iconPlacement="after" look="link" />
       </>,
     );
     const glyph = (name: string, g: string) =>
@@ -152,7 +152,7 @@ describe("the native theme", () => {
           helpText="Help"
           helpPlacement="labelEnd"
         />
-        <Action actionId="go" text="Go" variant="primary" />
+        <Action actionId="go" text="Go" look="primary" />
       </>,
     );
     const label = byId(fieldLabelId("c"));
@@ -177,12 +177,12 @@ describe("the native theme", () => {
     expect([...toggle.children].map((e) => e.textContent)).toEqual(["How to find this", "›", "●"]);
   });
 
-  it("names a group variant's slot `wrapper`, as html does, for an inline group too", () => {
+  it("lands a look's shell on an inline group's one element, as html's wrapper", () => {
     mount(
-      <InlineGroup variant="pill">
+      <InlineGroup look="pill">
         <Action actionId="a" text="Inside" />
       </InlineGroup>,
-      { inline: { variants: { pill: { wrapper: "rounded-full" } } } },
+      { looks: { pill: { shell: "rounded-full" } } },
     );
     expect(button("Inside").closest(".rounded-full")).not.toBeNull();
   });

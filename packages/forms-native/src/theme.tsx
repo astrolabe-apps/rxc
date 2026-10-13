@@ -6,7 +6,8 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { Tone } from "@rx-controls/forms-react";
+import { useFormLooks, type Tone } from "@rx-controls/forms-react";
+import type { NativeLook } from "./looks.js";
 
 /**
  * Every class the React Native implementation puts on an element, one slot
@@ -19,33 +20,7 @@ import type { Tone } from "@rx-controls/forms-react";
  * implementation, so it never depends on a variant a platform lacks.
  *
  * The app's Tailwind `content` must include this package's built files
- * (`node_modules/@rx-controls/forms-native/lib/**
- * What a group variant adds, per element. Any slot may be left out.
- */
-export interface GroupVariantClasses {
-  /** Added to the wrapper around title and body. */
-  wrapper?: string;
-  /** Added to the title. */
-  title?: string;
-  /** Added to the body. */
-  body?: string;
-}
-
-/**
- * What an action variant adds. Either slot may be left out.
- */
-export interface ActionVariantClasses {
-  /** Added to the button. */
-  className?: string;
-  /**
-   * Added to its text, and to an icon given as a string: React Native text
-   * inherits nothing from the button around it, so this is how a glyph
-   * takes the button's colour.
-   */
-  textClassName?: string;
-}
-
-/**\/*.js`), or none of these
+ * (`node_modules/@rx-controls/forms-native/lib/**\/*.js`), or none of these
  * classes are compiled.
  *
  * @group Theming
@@ -212,23 +187,11 @@ export interface NativeTheme {
     title: string;
     /** The body the children sit in. */
     body: string;
-    /**
-     * Named looks (`GroupProps.variant` — "card", "callout"), each added to
-     * the wrapper, title and body of a group that names it, over the slots
-     * above (merged, so a variant's utility wins over the base's). A name not
-     * here draws the base look, with a warning in development.
-     */
-    variants: Record<string, GroupVariantClasses>;
   };
   /** An inline group: prose. */
   inline: {
     /** Its element. */
     wrapper: string;
-    /**
-     * Named looks for an inline group, as `contents.variants`: `wrapper` is
-     * added to its element (an inline group draws no title or body).
-     */
-    variants: Record<string, GroupVariantClasses>;
   };
   /** The text display. */
   text: {
@@ -246,23 +209,11 @@ export interface NativeTheme {
     };
     /** By tone, on any display's text. */
     tones: Record<Tone, string>;
-    /**
-     * Named looks (`TextDisplay variant` — "lead", "tag"), each merged over
-     * the text's block or heading class, under its tone. A name not here
-     * draws the base look, with a warning in development.
-     */
-    variants: Record<string, string>;
   };
   /** The icon display. */
   icon: {
     /** Its element, and a glyph given as a string. */
     className: string;
-    /**
-     * Named looks (`IconDisplay variant` — "large", "note"), merged over the
-     * base. A name not here draws the base look, with a warning in
-     * development.
-     */
-    variants: Record<string, string>;
   };
   /** Rich text (`RichText`): nested `Text`, inheriting what it sits in. */
   richText: {
@@ -287,12 +238,6 @@ export interface NativeTheme {
   image: {
     /** The `Image`. */
     className: string;
-    /**
-     * Named looks (`ImageDisplay variant` — "rounded"), merged over the
-     * base. A name not here draws the base look, with a warning in
-     * development.
-     */
-    variants: Record<string, string>;
   };
   /** The html display: its markup's text. */
   html: {
@@ -319,13 +264,6 @@ export interface NativeTheme {
     iconTextClassName: string;
     /** Added while disabled. */
     disabled: string;
-    /**
-     * Added by variant: the three emphases every theme draws, and any role a
-     * form names (`ActionVariant`). A name not here draws as `secondary`,
-     * with a warning in development.
-     */
-    variants: Record<"primary" | "secondary" | "link", ActionVariantClasses> &
-      Record<string, ActionVariantClasses>;
   };
   /** The tab strip. */
   tabs: {
@@ -396,6 +334,25 @@ export interface NativeTheme {
     /** Around the content. */
     content: string;
   };
+  /**
+   * Named looks (`look="card"` on a boundary): for each, what it gives the
+   * parts of the boundary it styles — React Native styles with no class and
+   * no NativeWind in the way, or NativeWind classes; see {@link NativeLook}.
+   * A look is *added* to the slots above (a class merged with
+   * `tailwind-merge`, so its utility wins) unless a part says `{ replace }`.
+   * A name not here draws the base look, with a warning in development.
+   *
+   * The three emphases every theme draws for an action — `primary`,
+   * `secondary`, `link` — are looks, and `secondary` is the fallback for an
+   * action's unknown name.
+   */
+  looks: Record<"primary" | "secondary" | "link", NativeLook> & Record<string, NativeLook>;
+  /**
+   * What a look's `$name` refers to: `colors` maps a token (`accent`) to a
+   * colour value. `$accent/10` is that colour at 10%, for a `#rgb` / `#rrggbb`
+   * token.
+   */
+  tokens: { colors: Record<string, string> };
   /** The chrome-less collection. */
   elements: {
     /** Around the rows. */
@@ -472,9 +429,8 @@ export const defaultNativeTheme: NativeTheme = {
     wrapper: "",
     title: "mb-2 text-base font-bold text-gray-900",
     body: "gap-4",
-    variants: {},
   },
-  inline: { wrapper: "flex-row flex-wrap items-baseline gap-1", variants: {} },
+  inline: { wrapper: "flex-row flex-wrap items-baseline gap-1" },
   text: {
     className: "text-base text-gray-800",
     heading: {
@@ -494,10 +450,9 @@ export const defaultNativeTheme: NativeTheme = {
       info: "text-blue-700",
       success: "text-green-700",
     },
-    variants: {},
   },
-  icon: { className: "text-xl", variants: {} },
-  image: { className: "", variants: {} },
+  icon: { className: "text-xl" },
+  image: { className: "" },
   richText: {
     strong: "font-bold",
     em: "italic",
@@ -513,11 +468,6 @@ export const defaultNativeTheme: NativeTheme = {
     iconClassName: "items-center",
     iconTextClassName: "no-underline",
     disabled: "opacity-50",
-    variants: {
-      primary: { className: "bg-blue-600", textClassName: "text-white" },
-      secondary: { className: "border border-gray-300 bg-white", textClassName: "text-gray-800" },
-      link: { className: "px-0 py-0", textClassName: "text-blue-600 underline" },
-    },
   },
   tabs: {
     className: "gap-2",
@@ -554,6 +504,12 @@ export const defaultNativeTheme: NativeTheme = {
     invalidMarker: "text-[9px] text-red-600",
     content: "pt-2",
   },
+  looks: {
+    primary: { control: "bg-blue-600", text: "text-white" },
+    secondary: { control: "border border-gray-300 bg-white", text: "text-gray-800" },
+    link: { control: "px-0 py-0", text: "text-blue-600 underline" },
+  },
+  tokens: { colors: {} },
   elements: { className: "gap-2" },
 };
 
@@ -573,7 +529,10 @@ export type DeepPartial<T> = {
  *
  * @group Theming
  */
-export type PartialNativeTheme = DeepPartial<NativeTheme>;
+export type PartialNativeTheme = Omit<DeepPartial<NativeTheme>, "looks" | "tokens"> & {
+  looks?: Record<string, NativeLook>;
+  tokens?: { colors?: Record<string, string> };
+};
 
 /** `over` onto `base`; a key `base` lacks (a `shellFor` widget) starts empty. */
 function merge<T>(base: T, over: DeepPartial<T> | undefined): T {
@@ -612,5 +571,11 @@ export function NativeThemeProvider({
  * @group Theming
  */
 export function useNativeTheme(): NativeTheme {
-  return useContext(ThemeContext);
+  const theme = useContext(ThemeContext);
+  const form = useFormLooks();
+  // The looks the form brought sit beneath the theme's own: a name the theme defines wins.
+  return useMemo(
+    () => (Object.keys(form).length === 0 ? theme : { ...theme, looks: { ...form, ...theme.looks } }),
+    [theme, form],
+  );
 }

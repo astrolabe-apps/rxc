@@ -21,7 +21,7 @@ export function Screen({ title, children }: { title: string; children: ReactNode
         <Contents>
           <TextDisplay text={title} heading />
           {children}
-          <Action actionId="submit" text="Submit" variant="primary" submit />
+          <Action actionId="submit" text="Submit" look="primary" submit />
           <TextDisplay text={(rc) => rc.getValue(result)} announce tone="success" />
         </Contents>
       </Form>

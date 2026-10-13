@@ -11,7 +11,8 @@ import {
 } from "react";
 import type { Control, ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
-import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { getProp, type FormProp } from "./props.js";
+import type { LookName, PortableStyle, LookRef } from "./looks.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import {
   FormScopeProvider,
@@ -201,8 +202,14 @@ export interface TabsProps {
   disabled?: FormProp<boolean>;
   /** Make every panel read-only. */
   readOnly?: FormProp<boolean>;
-  /** The tab strip's outer element. */
-  className?: FormProp<ClassValue>;
+  /**
+   * A named look the implementation's theme resolves for this container: its
+   * `control` part is the container's own element. A name the theme does
+   * not know draws the base look, with a warning in development.
+   */
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /** CSS for the container, for the rare case a look does not cover; applied after the look. */
+  style?: FormProp<PortableStyle | undefined>;
   /**
    * The tab strip's name in the validation tree. Its tabs are its children,
    * keyed by item key.
@@ -260,8 +267,10 @@ export interface TabsRenderProps {
   stacked: boolean;
   /** Hide the whole strip, without unmounting it. */
   hidden: boolean;
-  /** The outer element. */
-  className?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the container, applied after the look. */
+  style?: PortableStyle;
 }
 
 /**
@@ -343,7 +352,8 @@ export function tabsRenderer(source: TabsImplSource): ComponentType<TabsProps> {
       setActive: (k) => update((wc) => wc.setValue(active, k)),
       stacked,
       hidden: scope.presence(rc) !== "rendered",
-      className: getProp(rc, props.className),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
     };
     return rendered(<Impl {...renderProps} />);
   }
@@ -408,8 +418,14 @@ export interface WizardProps {
   disabled?: FormProp<boolean>;
   /** Make every page read-only. */
   readOnly?: FormProp<boolean>;
-  /** The outer element. */
-  className?: FormProp<ClassValue>;
+  /**
+   * A named look the implementation's theme resolves for this container: its
+   * `control` part is the container's own element. A name the theme does
+   * not know draws the base look, with a warning in development.
+   */
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /** CSS for the container, for the rare case a look does not cover; applied after the look. */
+  style?: FormProp<PortableStyle | undefined>;
   /**
    * The wizard's name in the validation tree. Its pages are its children,
    * keyed by item key — so "is the Who page still checking?" is
@@ -482,8 +498,10 @@ export interface WizardRenderProps {
   navigation: "builtin" | "none";
   /** Hide the whole wizard, without unmounting it. */
   hidden: boolean;
-  /** The outer element. */
-  className?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the container, applied after the look. */
+  style?: PortableStyle;
 }
 
 /**
@@ -678,7 +696,8 @@ export function wizardRenderer(
       stacked,
       navigation: props.navigation ?? "builtin",
       hidden: scope.presence(rc) !== "rendered",
-      className: getProp(rc, props.className),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
     };
     return rendered(
       <WizardContext.Provider value={controller}>
@@ -713,8 +732,14 @@ export interface DialogProps {
   disabled?: FormProp<boolean>;
   /** Make the content read-only. */
   readOnly?: FormProp<boolean>;
-  /** The dialog. */
-  className?: FormProp<ClassValue>;
+  /**
+   * A named look the implementation's theme resolves for this container: its
+   * `control` part is the container's own element. A name the theme does
+   * not know draws the base look, with a warning in development.
+   */
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /** CSS for the container, for the rare case a look does not cover; applied after the look. */
+  style?: FormProp<PortableStyle | undefined>;
   /** The dialog's name in the validation tree. */
   validationKey?: string;
   /** The content. */
@@ -752,8 +777,10 @@ export interface DialogRenderProps {
   onClose(): void;
   /** Hide it entirely, without unmounting. */
   hidden: boolean;
-  /** The dialog. */
-  className?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the container, applied after the look. */
+  style?: PortableStyle;
 }
 
 /**
@@ -805,7 +832,8 @@ export function dialogRenderer(
       invalid: validation.showingErrors(rc),
       onClose: () => props.onClose?.(),
       hidden: scope.presence(rc) !== "rendered",
-      className: getProp(rc, props.className),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
       content: panel(contentScope, validation, props.children),
     };
     return rendered(<Impl {...renderProps} />);
@@ -840,8 +868,14 @@ export interface DisclosureProps {
   disabled?: FormProp<boolean>;
   /** Make the content read-only. */
   readOnly?: FormProp<boolean>;
-  /** The outer element. */
-  className?: FormProp<ClassValue>;
+  /**
+   * A named look the implementation's theme resolves for this container: its
+   * `control` part is the container's own element. A name the theme does
+   * not know draws the base look, with a warning in development.
+   */
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /** CSS for the container, for the rare case a look does not cover; applied after the look. */
+  style?: FormProp<PortableStyle | undefined>;
   /** Its name in the validation tree. */
   validationKey?: string;
   /** The content. */
@@ -874,8 +908,10 @@ export interface DisclosureRenderProps {
   invalid: boolean;
   /** Hide the whole disclosure, without unmounting it. */
   hidden: boolean;
-  /** The outer element. */
-  className?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the container, applied after the look. */
+  style?: PortableStyle;
 }
 
 /**
@@ -943,7 +979,8 @@ export function disclosureRenderer(
       content: panel(contentScope, validation, props.children),
       invalid: validation.showingErrors(rc),
       hidden: scope.presence(rc) !== "rendered",
-      className: getProp(rc, props.className),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
     };
     return rendered(<Impl {...renderProps} />);
   }

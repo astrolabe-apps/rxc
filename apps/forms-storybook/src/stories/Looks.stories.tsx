@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Action, Contents, ImageDisplay, InlineGroup, TextDisplay } from "@rx-controls/forms-react";
 import { HtmlThemeProvider, type PartialHtmlTheme } from "@rx-controls/forms-html";
-import { MuiVariantsProvider, type MuiVariants } from "@rx-controls/forms-mui";
-import { AntdVariantsProvider, type AntdVariants } from "@rx-controls/forms-antd";
-import { FluentVariantsProvider, type FluentVariants } from "@rx-controls/forms-fluent";
+import { MuiLooksProvider, type MuiLooks } from "@rx-controls/forms-mui";
+import { AntdLooksProvider, type AntdLooks } from "@rx-controls/forms-antd";
+import { FluentLooksProvider, type FluentLooks } from "@rx-controls/forms-fluent";
 import { tokens } from "@fluentui/react-components";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import type { ScopeArgs } from "../support";
@@ -16,27 +16,17 @@ import type { ScopeArgs } from "../support";
  * providers differ, and each implementation reads only its own.
  */
 const html: PartialHtmlTheme = {
-  text: {
-    variants: {
-      lead: "text-lg font-semibold",
-      tag: "inline-block rounded bg-blue-100 px-2 py-0.5 text-sm font-bold text-blue-800",
-    },
+  looks: {
+    lead: { control: "text-lg font-semibold" },
+    tag: { control: "inline-block rounded bg-blue-100 px-2 py-0.5 text-sm font-bold text-blue-800" },
+    card: { shell: "rounded-lg bg-gray-100 p-4" },
+    callout: { shell: "border-l-4 border-green-600 pl-4", label: "text-green-800" },
+    quiet: { control: "bg-transparent text-blue-700" },
+    inlineLink: { control: "bg-transparent underline text-blue-700" },
+    rounded: { control: "rounded-xl" },
   },
-  contents: {
-    variants: {
-      card: { wrapper: "rounded-lg bg-gray-100 p-4" },
-      callout: { wrapper: "border-l-4 border-green-600 pl-4", title: "text-green-800" },
-    },
-  },
-  action: {
-    variants: {
-      quiet: { className: "bg-transparent text-blue-700" },
-      inlineLink: { className: "bg-transparent underline text-blue-700" },
-    },
-  },
-  image: { variants: { rounded: "rounded-xl" } },
 };
-const mui: MuiVariants = {
+const mui: MuiLooks = {
   text: {
     lead: { variant: "subtitle1", sx: { fontWeight: 600 } },
     tag: {
@@ -60,7 +50,7 @@ const mui: MuiVariants = {
   },
   image: { rounded: (t) => ({ borderRadius: Number(t.shape.borderRadius) * 3 }) },
 };
-const antd: AntdVariants = {
+const antd: AntdLooks = {
   text: {
     lead: { strong: true, style: (t) => ({ fontSize: t.fontSizeLG }) },
     tag: {
@@ -78,7 +68,7 @@ const antd: AntdVariants = {
   },
   image: { rounded: (t) => ({ borderRadius: t.borderRadiusLG }) },
 };
-const fluent: FluentVariants = {
+const fluent: FluentLooks = {
   text: {
     lead: { size: 400, weight: "semibold" },
     tag: {
@@ -103,37 +93,27 @@ const fluent: FluentVariants = {
 };
 
 const native: PartialNativeTheme = {
-  text: {
-    variants: {
-      lead: "text-lg font-semibold",
-      tag: "self-start rounded bg-blue-100 px-2 py-0.5 text-sm font-bold text-blue-800",
-    },
+  looks: {
+    lead: { control: "text-lg font-semibold" },
+    tag: { control: "self-start rounded bg-blue-100 px-2 py-0.5 text-sm font-bold text-blue-800" },
+    card: { shell: "rounded-lg bg-gray-100 p-4" },
+    callout: { shell: "border-l-4 border-green-600 pl-4", label: "text-green-800" },
+    quiet: { control: "border-0 bg-transparent px-0", text: "text-blue-700" },
+    inlineLink: { control: "border-0 bg-transparent p-0", text: "text-blue-700 underline" },
+    rounded: { control: "rounded-xl" },
   },
-  contents: {
-    variants: {
-      card: { wrapper: "rounded-lg bg-gray-100 p-4" },
-      callout: { wrapper: "border-l-4 border-green-600 pl-4", title: "text-green-800" },
-    },
-  },
-  action: {
-    variants: {
-      quiet: { className: "border-0 bg-transparent px-0", textClassName: "text-blue-700" },
-      inlineLink: { className: "border-0 bg-transparent p-0", textClassName: "text-blue-700 underline" },
-    },
-  },
-  image: { variants: { rounded: "rounded-xl" } },
 };
 
 function Looks({ children }: { children: ReactNode }) {
   return (
     <HtmlThemeProvider theme={html}>
-      <MuiVariantsProvider variants={mui}>
-        <AntdVariantsProvider variants={antd}>
-          <FluentVariantsProvider variants={fluent}>
+      <MuiLooksProvider looks={mui}>
+        <AntdLooksProvider looks={antd}>
+          <FluentLooksProvider looks={fluent}>
             <NativeThemeProvider theme={native}>{children}</NativeThemeProvider>
-          </FluentVariantsProvider>
-        </AntdVariantsProvider>
-      </MuiVariantsProvider>
+          </FluentLooksProvider>
+        </AntdLooksProvider>
+      </MuiLooksProvider>
     </HtmlThemeProvider>
   );
 }
@@ -150,8 +130,8 @@ export const Roles: Story = {
   render: () => (
     <Looks>
       <Contents>
-        <TextDisplay text="Step 1 of 2" variant="tag" />
-        <TextDisplay text="Before you start, check the details we hold for you." variant="lead" />
+        <TextDisplay text="Step 1 of 2" look="tag" />
+        <TextDisplay text="Before you start, check the details we hold for you." look="lead" />
         <ImageDisplay
           source={
             "data:image/svg+xml," +
@@ -162,16 +142,16 @@ export const Roles: Story = {
           alt=""
           width={240}
           height={120}
-          variant="rounded"
+          look="rounded"
         />
-        <Contents title="Your vessel" variant="card">
+        <Contents title="Your vessel" look="card">
           <TextDisplay text="UBER — a 6.2m runabout, registered in Hobart." />
-          <Action actionId="checkAgain" text="I've updated it, check again" variant="quiet" />
+          <Action actionId="checkAgain" text="I've updated it, check again" look="quiet" />
         </Contents>
-        <Contents title="Good to know" variant="callout">
+        <Contents title="Good to know" look="callout">
           <InlineGroup>
             <TextDisplay text="You can change these on your" />
-            <Action actionId="profile" text="profile page" variant="inlineLink" />
+            <Action actionId="profile" text="profile page" look="inlineLink" />
           </InlineGroup>
         </Contents>
       </Contents>

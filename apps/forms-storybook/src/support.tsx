@@ -131,7 +131,7 @@ export function CheckForm(): Rendered {
       <Action
         actionId="submit"
         text="Check form"
-        variant="primary"
+        look="primary"
         onClick={async () => {
           const ok = await root.check();
           setResult(ok ? "passed" : "failed — errors shown");

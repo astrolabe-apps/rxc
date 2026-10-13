@@ -740,6 +740,10 @@ behaviour (under each implementation's declared `limits`) and a story where it i
   variant to the library's props or `sx` / style. Not a `muiRenderers({ variants })` option,
   which would fix the looks per renderer set.
 - N10's two links are then two action variants; nothing link-specific is needed.
+- *Superseded:* `variant` (and `ActionVariant`, `warnUnknownVariant`, `MuiVariantsProvider` and its
+  siblings, the per-kind `variants` theme maps) became `look` — one name on every boundary, one
+  `looks` table per html / native theme, `*LooksProvider` for MUI / Ant / Fluent. See
+  `FORMS-V2-LOOKS.md`; the entries below describe the build as it landed.
 - *Landed:* `TextDisplay.variant`, `GroupProps.variant` (every group kind) and `ActionVariant`
   opened to any name (`"primary" | "secondary" | "link" | (string & {})`), each a `FormProp`.
   html: `text.variants`, `contents.variants` / `inline.variants` (wrapper / title / body) and

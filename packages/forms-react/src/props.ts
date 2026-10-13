@@ -31,15 +31,16 @@ export type ReadContext = CoreReadContext;
 export type FormProp<T> = T | ((rc: ReadContext) => T) | Control<T>;
 
 /**
- * A class for one element. A string is merged onto the implementation's own
- * class for that element; `{ replace }` stands in for it entirely. The JSON
- * format spells replacement with a leading `"@ "`, which the loader turns into
- * `{ replace }`.
+ * The classes one part of a look gives an element, for an implementation whose
+ * looks are class strings (html, and React Native under NativeWind): a string
+ * is added to the implementation's own classes for that element; `{ replace }`
+ * stands in for them — and for any part of an earlier look — entirely. The
+ * JSON format spells replacement with a leading `"@ "`.
  *
- * Only an implementation knows its own class for a slot, so the merge happens
- * there — see {@link mergeClass}.
+ * Only an implementation knows its own class for an element, so layering
+ * happens there — see {@link combineClass}.
  *
- * @group Authoring
+ * @group Implementations
  */
 export type ClassValue =
   | string
@@ -80,26 +81,10 @@ function isControl(x: unknown): x is Control<unknown> {
 }
 
 /**
- * An implementation's own class for an element, with the author's
- * {@link ClassValue} applied: appended when it is a string, substituted when it
- * is `{ replace }`, and `own` alone when it is absent.
- *
- * @group Implementations
- */
-export function mergeClass(
-  own: string | undefined,
-  given: ClassValue | undefined,
-): string | undefined {
-  if (given === undefined) return own;
-  if (typeof given === "object") return given.replace;
-  return [own, given].filter(Boolean).join(" ") || undefined;
-}
-
-/**
- * Two class slots that land on one element — a label drawn as a single
- * element takes both `labelClassName` and `labelTextClassName`. A `{ replace }`
- * on the right wins outright; one on the left stays a replacement with the
- * right appended.
+ * Two parts of a look that land on one element — a label drawn as a single
+ * element takes both the `label` and `labelText` parts — or one look laid over
+ * another. A `{ replace }` on the right wins outright; one on the left stays a
+ * replacement with the right appended.
  *
  * @group Implementations
  */

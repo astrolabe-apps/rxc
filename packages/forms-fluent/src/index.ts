@@ -6,10 +6,10 @@
 
 export { fluentRenderers } from "./fluent.js";
 export {
-  FluentVariantsProvider,
-  type FluentActionVariant,
-  type FluentGroupVariant,
-  type FluentTextVariant,
-  type FluentVariants,
-  type FluentVariantsProviderProps,
-} from "./variants.js";
+  FluentLooksProvider,
+  type FluentActionLook,
+  type FluentGroupLook,
+  type FluentTextLook,
+  type FluentLooks,
+  type FluentLooksProviderProps,
+} from "./looks.js";

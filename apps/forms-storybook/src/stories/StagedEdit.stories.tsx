@@ -42,13 +42,13 @@ function DraftHost({ field }: { field: Control<Pet[]> }): Rendered {
             <Action
               actionId={StandardActionIds.apply}
               text="Apply"
-              variant="primary"
+              look="primary"
               onClick={() => edit.apply()}
             />
             <Action
               actionId={StandardActionIds.cancel}
               text="Cancel"
-              variant="link"
+              look="link"
               onClick={() => edit.cancel()}
             />
           </div>

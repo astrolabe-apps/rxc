@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from "react";
 import type { Control, ControlContext } from "@rx-controls/core";
 import { useControlContext, type Rendered } from "@rx-controls/react";
+import { FormLooksProvider, type ClassLooks } from "@rx-controls/forms-react";
 import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 import type {
   ActionHandler,
@@ -120,6 +121,14 @@ export interface TranslateResult {
   tree: ReactNode[];
   /** Everything that could not be carried across. */
   warnings: LoaderWarning[];
+  /**
+   * The looks the form brought with it, by name: one for each distinct
+   * combination of class slots its controls carry (see {@link legacyLook}).
+   * Mount the tree under a `FormLooksProvider` with these — {@link JsonForm}
+   * does — and an implementation that styles with classes draws them; the
+   * host's theme can restyle a name by defining it.
+   */
+  looks: ClassLooks;
 }
 
 /**
@@ -180,7 +189,7 @@ export function JsonForm<T>({
   // Memoised because translation allocates: an asynchronous expression
   // evaluates into a control and subscribes to the data. The warnings ride
   // the same memo, so they are produced once per translation, not per render.
-  const { tree, warnings } = useMemo(
+  const { tree, warnings, looks } = useMemo(
     () =>
       translateForm(ctx, data as Control<unknown>, schema, controls, options),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,7 +198,7 @@ export function JsonForm<T>({
   return (
     <>
       {warnings.length > 0 && renderWarnings?.(warnings)}
-      {tree}
+      <FormLooksProvider looks={looks}>{tree}</FormLooksProvider>
     </>
   ) as Rendered;
 }

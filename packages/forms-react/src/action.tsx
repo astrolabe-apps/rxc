@@ -6,23 +6,21 @@ import {
   type ReactNode,
 } from "react";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
-import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { getProp, type FormProp } from "./props.js";
+import type { LookName, PortableStyle, LookRef } from "./looks.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope, useInternalScope } from "./scope.js";
 import { bailout, boundaryName, resolveImpl } from "./boundaryParts.js";
 
 /**
- * A button's look. `variant`, not `style`: in React `style` is inline CSS.
- *
- * Every implementation draws the three emphases — `primary`, `secondary`,
- * `link`. Any other name is a role the form names ("quiet", "inlineLink")
- * and the implementation's theme says the look of; a name the theme does not
- * know draws as `secondary`, with a warning in development. See
- * {@link warnUnknownVariant}.
+ * A button's look: one of the three emphases every implementation draws —
+ * `primary`, `secondary`, `link` — or any {@link LookName} the implementation's
+ * theme names ("quiet", "inlineLink"). A name the theme does not know draws as
+ * `secondary`, with a warning in development. See {@link warnUnknownLook}.
  *
  * @group Authoring
  */
-export type ActionVariant = "primary" | "secondary" | "link" | (string & {});
+export type ActionLook = "primary" | "secondary" | "link" | LookName;
 
 /**
  * Where a button's icon goes relative to its text; `replace` draws the icon
@@ -77,14 +75,20 @@ export interface ActionProps {
   disabled?: FormProp<boolean>;
   /** What an asynchronous `onClick` locks while it runs. Default `self`. */
   disableType?: DisableType;
-  /** Its look: an emphasis, or a role the theme names. Default `secondary`. */
-  variant?: FormProp<ActionVariant>;
-  /** The button. */
-  className?: FormProp<ClassValue>;
-  /** Its text. */
-  textClassName?: FormProp<ClassValue>;
-  /** The wrapper it sits in. */
-  shellClassName?: FormProp<ClassValue>;
+  /**
+   * A named look the implementation's theme resolves for this boundary, every
+   * part of it (button, text, wrapper). A name the theme does not know draws the base look,
+   * with a warning in development. See `docs/FORMS-V2-LOOKS.md`.
+   */
+  look?: FormProp<ActionLook | readonly ActionLook[] | undefined>;
+  /**
+   * CSS for the button, for the rare case a look does not cover: a portable
+   * subset, what means the same on the web and on React Native. Applied after
+   * the look, so it wins.
+   */
+  style?: FormProp<PortableStyle | undefined>;
+  /** CSS for the wrapper it sits in, as `style`. */
+  shellStyle?: FormProp<PortableStyle | undefined>;
   /** Content drawn inside the button in place of icon and text, for any style. */
   children?: ReactNode;
 }
@@ -120,15 +124,13 @@ export interface ActionRenderProps {
   busy: boolean;
   /**
    * Its look: one of the three emphases, or a name for the theme to resolve —
-   * drawn as `secondary` when the theme does not know it.
+   * drawn as `secondary` when the theme does not know it. Default `secondary`.
    */
-  variant: ActionVariant;
-  /** The button. */
-  className?: ClassValue;
-  /** Its text. */
-  textClassName?: ClassValue;
-  /** The wrapper it sits in. */
-  shellClassName?: ClassValue;
+  look: LookRef;
+  /** CSS for the button, applied after the look. */
+  style?: PortableStyle;
+  /** CSS for the wrapper it sits in, applied after the look. */
+  shellStyle?: PortableStyle;
   /** Content to draw inside the button in place of icon and text. */
   children?: ReactNode;
 }
@@ -279,14 +281,13 @@ export function actionRenderer(
           text={getProp(rc, props.text)}
           icon={getProp(rc, props.icon)}
           iconPlacement={getProp(rc, props.iconPlacement) ?? "before"}
-          className={getProp(rc, props.className)}
-          textClassName={getProp(rc, props.textClassName)}
-          shellClassName={getProp(rc, props.shellClassName)}
+          look={getProp(rc, props.look) ?? "secondary"}
+          style={getProp(rc, props.style)}
+          shellStyle={getProp(rc, props.shellStyle)}
           onClick={onClick}
           submit={submits}
           disabled={disabled}
           busy={rc.getValue(busy)}
-          variant={getProp(rc, props.variant) ?? "secondary"}
         >
           {props.children}
         </Impl>

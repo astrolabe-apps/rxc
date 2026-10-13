@@ -6,11 +6,11 @@
 
 export { antdRenderers } from "./antd.js";
 export {
-  AntdVariantsProvider,
-  type AntActionVariant,
-  type AntdVariants,
-  type AntdVariantsProviderProps,
-  type AntGroupVariant,
+  AntdLooksProvider,
+  type AntActionLook,
+  type AntdLooks,
+  type AntdLooksProviderProps,
+  type AntGroupLook,
   type AntStyle,
-  type AntTextVariant,
-} from "./variants.js";
+  type AntTextLook,
+} from "./looks.js";

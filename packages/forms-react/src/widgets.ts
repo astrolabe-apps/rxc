@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ClassValue, FormProp } from "./props.js";
+import type { FormProp } from "./props.js";
 import type { FieldRenderProps } from "./field.js";
 
 /**
@@ -175,12 +175,6 @@ export interface RadioExtra extends SelectExtra {
    * validating.
    */
   children?: (option: FieldOption, selected: boolean) => ReactNode;
-  /** The wrapper around each option and its content. */
-  entryClassName?: FormProp<ClassValue>;
-  /** Added to the chosen option's wrapper. */
-  selectedClassName?: FormProp<ClassValue>;
-  /** Added to every other option's wrapper. */
-  notSelectedClassName?: FormProp<ClassValue>;
 }
 
 /**

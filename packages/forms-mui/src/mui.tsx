@@ -53,7 +53,6 @@ import {
   fieldLabelId,
   fieldHelpId,
   getProp,
-  mergeClass,
   useFieldShell,
   useDisplayValue,
   type DisplayOnlyRenderProps,
@@ -84,8 +83,9 @@ import {
   type DialogRenderProps,
   type DisclosureRenderProps,
   type TextFieldRenderProps,
-  combineClass,
-  warnUnknownVariant,
+  type PortableStyle,
+  lookNames,
+  type LookRef,
   type RichTextRenderProps,
   helpButtonName,
   type ImageDisplayRenderProps,
@@ -94,7 +94,10 @@ import {
   ContentsRegion,
   RichTextDom,
   ImageDom,
-  type GroupVariantStyle,
+  useLastLook,
+  pickLook,
+  lookAttr,
+  type GroupLookStyle,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -107,8 +110,16 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  portableCss,
 } from "@rx-controls/forms-html/shared";
-import { useMuiVariants, type MuiStyle } from "./variants.js";
+import { useHtmlTheme } from "@rx-controls/forms-html";
+import { useMuiLooks, type MuiStyle } from "./looks.js";
+
+/** A portable style as inline CSS, its colour tokens from the html theme. */
+function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
+  const { tokens } = useHtmlTheme();
+  return (s) => portableCss(s, tokens.colors);
+}
 
 /**
  * The one thing the library survey predicted would need a private channel: MUI's
@@ -119,6 +130,7 @@ import { useMuiVariants, type MuiStyle } from "./variants.js";
 const MuiLabelContext = createContext<ReactNode>(null);
 
 function MuiFieldShell(p: FieldShellProps) {
+  const css = useCss();
   const legend = p.labelAs === "legend";
   const framed = p.surface === "frame";
   const hasLabel = p.label !== undefined && p.label !== null;
@@ -157,7 +169,7 @@ function MuiFieldShell(p: FieldShellProps) {
         error={!!p.error}
         required={p.required}
         disabled={p.disabled}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
         // Label beside the control — a settings row, its control at the end.
         sx={
           p.orientation === "horizontal"
@@ -208,10 +220,6 @@ function MuiFieldShell(p: FieldShellProps) {
                 <InputLabel
                   htmlFor={p.id}
                   id={fieldLabelId(p.id)}
-                  className={mergeClass(
-                    undefined,
-                    combineClass(p.labelClassName, p.labelTextClassName),
-                  )}
                 >
                   {p.label}
                 </InputLabel>
@@ -221,10 +229,6 @@ function MuiFieldShell(p: FieldShellProps) {
                     component={legend ? "div" : "label"}
                     id={fieldLabelId(p.id)}
                     htmlFor={legend ? undefined : p.id}
-                    className={mergeClass(
-                      undefined,
-                      combineClass(p.labelClassName, p.labelTextClassName),
-                    )}
                   >
                     {p.label}
                   </FormLabel>,
@@ -301,6 +305,7 @@ function MuiSlotBridge({
 }
 
 function MuiInputFrame(p: InputFrameProps) {
+  const css = useCss();
   const label = useContext(MuiLabelContext);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
@@ -339,7 +344,7 @@ function MuiInputFrame(p: InputFrameProps) {
       readOnly={p.readOnly}
       multiline={p.multiline}
       aria-describedby={p.describedBy}
-      className={mergeClass(undefined, p.className)}
+      style={css(p.style)}
       // The frame never sees a value, but `InputBase` drives the label's
       // shrink state from one. `filled` is the contract addition that makes
       // this expressible.
@@ -388,9 +393,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
@@ -404,7 +407,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
+        style={p.style}
         render={(slot, s) => {
           const common = {
             ...slot,
@@ -433,6 +436,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 
 /** MUI's own answer for a trailing label is a different component entirely. */
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, as an adornment sits in a frame.
@@ -452,7 +456,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         id={p.id}
         component="span"
         variant="body2"
-        className={mergeClass(undefined, p.className ?? p.textClassName)}
+        style={css(p.style)}
       >
         {start}
         {ctl.content}
@@ -470,12 +474,12 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
+      style={p.shellStyle}
     >
       <Typography
         id={p.id}
         variant="body1"
-        className={mergeClass(undefined, p.className ?? p.textClassName)}
+        style={css(p.style)}
         sx={{
           display: "flex",
           alignItems: "center",
@@ -507,7 +511,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
+      style={p.shellStyle}
     >
       <Checkbox
         id={p.id}
@@ -577,17 +581,20 @@ function MuiTabs(p: TabsRenderProps) {
 const emphasis = { primary: "contained", secondary: "outlined", link: "text" } as const;
 
 function MuiAction(p: ActionRenderProps) {
-  const named = useMuiVariants().action?.[p.variant];
-  const builtin = emphasis[p.variant as keyof typeof emphasis];
-  if (!named && !builtin) warnUnknownVariant("action", p.variant);
+  const css = useCss();
+  const named = useLastLook("action", p.look, useMuiLooks().action, (n) => n in emphasis);
+  const builtin = lookNames(p.look)
+    .map((n) => emphasis[n as keyof typeof emphasis])
+    .filter(Boolean)
+    .pop();
   return (
-    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+    <DisplayShell inline={true} kind="action" style={css(p.shellStyle)}>
       <Button
         variant={builtin ?? "outlined"}
         size="small"
         {...named}
-        data-variant={p.variant}
-        className={mergeClass(undefined, p.className)}
+        data-look={lookAttr(p.look)}
+        style={css(p.style)}
         disabled={p.disabled}
         loading={p.busy}
         startIcon={
@@ -604,7 +611,7 @@ function MuiAction(p: ActionRenderProps) {
         {p.iconPlacement === "replace"
           ? p.icon
           : (p.children ?? (
-              <span className={mergeClass(undefined, p.textClassName)}>
+              <span>
                 {p.text}
               </span>
             ))}
@@ -634,26 +641,26 @@ function useHeadingType(level: number) {
   };
 }
 
-/** A group's variant as styles, each resolved against the MUI theme. */
-function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefined {
+/** A group's look as styles, each resolved against the MUI theme. */
+function useGroupStyle(look: LookRef | undefined): GroupLookStyle | undefined {
   const theme = useTheme();
-  const group = useMuiVariants().group;
-  const look = variant === undefined ? undefined : group?.[variant];
-  if (!look) return undefined;
+  const group = useMuiLooks().group;
+  const found = pickLook(look, group);
+  if (!found) return undefined;
   const at = (s: MuiStyle | undefined) => (typeof s === "function" ? s(theme) : s);
-  return { wrapper: at(look.wrapper), title: at(look.title), body: at(look.body) };
+  return { wrapper: at(found.wrapper), title: at(found.title), body: at(found.body) };
 }
 
-/** The image as DOM, a variant's style resolved against the MUI theme. */
+/** The image as DOM, a look's style resolved against the MUI theme. */
 function MuiImage(p: ImageDisplayRenderProps) {
   const theme = useTheme();
-  const images = useMuiVariants().image;
+  const images = useMuiLooks().image;
   const toneStyle = useToneStyle(p.tone);
   return (
     <ImageDom
       {...p}
-      shellStyle={toneStyle}
-      variantStyle={(v) => {
+      toneStyle={toneStyle}
+      lookStyle={(v) => {
         const s = images?.[v];
         return typeof s === "function" ? s(theme) : s;
       }}
@@ -676,7 +683,7 @@ function MuiRichText(p: RichTextRenderProps) {
 }
 
 function MuiInline(p: GroupRenderProps) {
-  return <Inline {...p} variantStyle={useGroupStyle(p.variant)} />;
+  return <Inline {...p} lookStyle={useGroupStyle(p.look)} />;
 }
 
 function MuiContents(p: GroupRenderProps) {
@@ -685,7 +692,7 @@ function MuiContents(p: GroupRenderProps) {
   return (
     <ContentsRegion
       {...p}
-      variantStyle={useGroupStyle(p.variant)}
+      lookStyle={useGroupStyle(p.look)}
       // The body's default layout: spacing is the container's, as under html,
       // so a display or a nested region is spaced like a field.
       layoutStyle={{
@@ -704,40 +711,37 @@ function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
 }
 
 function MuiText(p: TextDisplayRenderProps) {
+  const css = useCss();
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
-  const variants = useMuiVariants().text;
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
   const headingType = useHeadingType(p.headingLevel);
-  const variant = getProp(rc, p.variant);
-  const { sx: lookSx, ...look } = (variant === undefined ? undefined : variants?.[variant]) ?? {};
-  if (variant !== undefined && !variants?.[variant]) warnUnknownVariant("text", variant);
-  // The variant's sx over the heading's type, not in place of it.
+  const { sx: lookSx, ...look } = useLastLook("text", p.look, useMuiLooks().text) ?? {};
+  // The look's sx over the heading's type, not in place of it.
   const sx = [
     heading ? { ...headingType, ...(p.tone ? { color: "inherit" } : {}) } : {},
     ...(Array.isArray(lookSx) ? lookSx : [lookSx]),
   ];
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(content)}
-      style={toneStyle}
+      style={{ ...toneStyle, ...css(p.shellStyle) }}
     >
       <Typography
         variant="body2"
         {...look}
         component={p.inline ? "span" : heading ? "div" : "p"}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
         sx={sx}
-        data-variant={variant}
+        data-look={lookAttr(p.look)}
       >
-        <span className={mergeClass(undefined, p.textClassName)}>
+        <span>
           {content}
         </span>
       </Typography>
@@ -747,23 +751,18 @@ function MuiText(p: TextDisplayRenderProps) {
 
 /** MUI makes the name visible through its own Tooltip — its call, not the contract's. */
 function MuiIcon(p: IconDisplayRenderProps) {
+  const css = useCss();
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const theme = useTheme();
-  const icons = useMuiVariants().icon;
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : icons?.[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
+  const look = useLastLook("icon", p.look, useMuiLooks().icon);
   const glyph = (
     <Typography
       component="span"
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(
-        undefined,
-        combineClass(p.className, p.textClassName),
-      )}
-      data-variant={variant}
+      style={css(p.style)}
+      data-look={lookAttr(p.look)}
       sx={{ fontSize: 24, lineHeight: 1, ...(typeof look === "function" ? look(theme) : look) }}
     >
       {getProp(rc, p.icon)}
@@ -771,12 +770,11 @@ function MuiIcon(p: IconDisplayRenderProps) {
   );
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={true}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly}
-      style={toneStyle}
+      style={{ ...toneStyle, ...css(p.shellStyle) }}
     >
       {p.accessibleName ? (
         <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
@@ -788,25 +786,22 @@ function MuiIcon(p: IconDisplayRenderProps) {
 }
 
 function MuiHtml(p: HtmlDisplayRenderProps) {
+  const css = useCss();
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const html = getProp(rc, p.html);
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(html)}
-      style={toneStyle}
+      style={{ ...toneStyle, ...css(p.shellStyle) }}
     >
       <Typography
         variant="body2"
         component="div"
-        className={mergeClass(
-          undefined,
-          combineClass(p.className, p.textClassName),
-        )}
+        style={css(p.style)}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
@@ -829,9 +824,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       {/* MUI's Select draws its own outlined input, so it takes the label
           text directly rather than going through the frame's context. */}
@@ -878,22 +871,15 @@ function MuiSelect(p: SelectRenderProps): Rendered {
 }
 
 function MuiRadio(p: RadioRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
-  const entryCls = getProp(ctl.rc, p.entryClassName);
-  const onCls = getProp(ctl.rc, p.selectedClassName);
-  const offCls = getProp(ctl.rc, p.notSelectedClassName);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   const entries = ctl.options.map((o) => ({
     o,
     selected: ctl.stringValue === String(o.value),
   }));
-  const entryClass = (selected: boolean) =>
-    mergeClass(
-      mergeClass("rxf-radio-entry", entryCls),
-      selected ? onCls : offCls,
-    );
   return ctl.rendered(
     <Shell
       widget="radio"
@@ -907,9 +893,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <RadioGroup
         name={p.id}
@@ -920,10 +904,10 @@ function MuiRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
       >
         {entries.map(({ o, selected }, i) => (
-          <Box key={keys[i]} className={entryClass(selected)}>
+          <Box key={keys[i]} className="rxf-radio-entry">
             <FormControlLabel
               value={String(o.value)}
               control={
@@ -943,6 +927,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
 }
 
 function MuiCheckList(p: CheckListRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -961,16 +946,14 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <FormGroup
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
       >
         {ctl.options.map((o, i) => (
           <FormControlLabel
@@ -1032,14 +1015,14 @@ function MuiWizard(p: WizardRenderProps) {
           <Action
             actionId={StandardActionIds.back}
             text="Back"
-            variant="secondary"
+            look="secondary"
             disabled={!p.canBack}
             onClick={p.back}
           />
           <Action
             actionId={StandardActionIds.next}
             text="Next"
-            variant="primary"
+            look="primary"
             disabled={!p.canNext}
             onClick={p.next}
           />
@@ -1055,12 +1038,13 @@ function MuiWizard(p: WizardRenderProps) {
  * needs that.
  */
 function MuiDisclosure(p: DisclosureRenderProps) {
+  const css = useCss();
   return (
     <Accordion
       expanded={p.open}
       onChange={(_, v) => p.setOpen(v)}
       disableGutters
-      className={mergeClass(undefined, p.className)}
+      style={css(p.style)}
       sx={p.hidden ? { display: "none" } : undefined}
       data-invalid={p.invalid ? "" : undefined}
     >
@@ -1096,7 +1080,7 @@ function MuiDialogImpl(p: DialogRenderProps) {
         <Action
           actionId={StandardActionIds.close}
           text="Close"
-          variant="secondary"
+          look="secondary"
           onClick={p.onClose}
         />
       </DialogActions>

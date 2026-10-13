@@ -17,7 +17,7 @@ import {
   SelectField,
   TextField,
   useFormValidation,
-  warnUnknownVariant,
+  warnUnknownLook,
   type ActionRenderProps,
   type FieldRenderProps,
   type TextDisplayExtra,
@@ -61,7 +61,7 @@ describe("the field boundary", () => {
   it("hands the implementation resolved props, and an id when none is given", () => {
     const c = dom.ctx.newControl("ada");
     const label = dom.ctx.newControl("Name");
-    mount(<Text field={c} label={label} required className="x" />);
+    mount(<Text field={c} label={label} required look="x" />);
     expect($("[data-label]")!.textContent).toBe("Name");
     expect($("[data-required]")).not.toBeNull();
     expect($<HTMLInputElement>("input")!.value).toBe("ada");
@@ -489,26 +489,26 @@ describe("an options field's value follows its options", () => {
 });
 
 describe("named looks", () => {
-  it("hands a group its variant resolved, following the data", () => {
+  it("hands a group its look resolved, following the data", () => {
     const callout = dom.ctx.newControl(false);
     mount(
-      <Group variant={(rc) => (rc.getValue(callout) ? "callout" : "card")}>
+      <Group look={(rc) => (rc.getValue(callout) ? "callout" : "card")}>
         <p />
       </Group>,
     );
-    expect($("[data-group]")!.getAttribute("data-variant")).toBe("card");
+    expect($("[data-group]")!.getAttribute("data-look")).toBe("card");
     set(callout, true);
-    expect($("[data-group]")!.getAttribute("data-variant")).toBe("callout");
+    expect($("[data-group]")!.getAttribute("data-look")).toBe("callout");
   });
 
-  it("warns of an unknown variant once per kind and name", () => {
+  it("warns of an unknown look once per kind and name", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    warnUnknownVariant("text", "nope");
-    warnUnknownVariant("text", "nope");
-    warnUnknownVariant("group", "nope");
+    warnUnknownLook("text", "nope");
+    warnUnknownLook("text", "nope");
+    warnUnknownLook("group", "nope");
     expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
-      expect.stringContaining('text variant "nope"'),
-      expect.stringContaining('group variant "nope"'),
+      expect.stringContaining('text look "nope"'),
+      expect.stringContaining('group look "nope"'),
     ]);
     warn.mockRestore();
   });
@@ -638,9 +638,9 @@ describe("the group boundary", () => {
       ]);
     const page = (Outer: typeof Group) => (
       <Outer>
-        <Group className="header">
+        <Group>
           <Show text="An image" />
-          <Group className="header-text">
+          <Group>
             <Show text="Before you start" heading="group" />
           </Group>
         </Group>
@@ -662,7 +662,7 @@ describe("the group boundary", () => {
     // A named look makes a group a part of the outline: the claim stops there.
     mount(
       <Section>
-        <Group variant="card">
+        <Group look="card">
           <Show text="Card title" heading="group" />
           <Group title="Inside the card">{null}</Group>
         </Group>
@@ -677,7 +677,7 @@ describe("the group boundary", () => {
     // Not past a group with a title of its own: the layout group below it takes it.
     mount(
       <Group title="Address">
-        <Group className="row">
+        <Group>
           <Show text="Postal" heading="group" />
           <Group title="Inside postal">{null}</Group>
         </Group>

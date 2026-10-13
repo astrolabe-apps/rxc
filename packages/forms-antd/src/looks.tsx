@@ -2,7 +2,7 @@ import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import type { ButtonProps, GlobalToken, Typography } from "antd";
 
 type TextProps = ComponentProps<typeof Typography.Text>;
-import { createVariantsContext } from "@rx-controls/forms-html/shared";
+import { createLooksContext } from "@rx-controls/forms-html/shared";
 
 /**
  * A style, or one computed from Ant's theme tokens.
@@ -16,7 +16,7 @@ export type AntStyle = CSSProperties | ((token: GlobalToken) => CSSProperties);
  *
  * @group Theming
  */
-export interface AntTextVariant
+export interface AntTextLook
   extends Pick<TextProps, "type" | "strong" | "italic" | "underline" | "code" | "mark"> {
   /** Over the text's own style. */
   style?: AntStyle;
@@ -27,7 +27,7 @@ export interface AntTextVariant
  *
  * @group Theming
  */
-export interface AntGroupVariant {
+export interface AntGroupLook {
   /** The wrapper around title and body. */
   wrapper?: AntStyle;
   /** The title. */
@@ -41,7 +41,7 @@ export interface AntGroupVariant {
  *
  * @group Theming
  */
-export interface AntActionVariant
+export interface AntActionLook
   extends Pick<ButtonProps, "type" | "color" | "variant" | "danger" | "size" | "shape"> {
   /** Over the button's own style. */
   style?: AntStyle;
@@ -53,50 +53,50 @@ export interface AntActionVariant
  *
  * @group Theming
  */
-export interface AntdVariants {
-  /** A `TextDisplay`'s variants. */
-  text?: Record<string, AntTextVariant>;
-  /** A group's variants. */
-  group?: Record<string, AntGroupVariant>;
+export interface AntdLooks {
+  /** A `TextDisplay`'s looks. */
+  text?: Record<string, AntTextLook>;
+  /** A group's looks. */
+  group?: Record<string, AntGroupLook>;
   /**
-   * An action's variants beyond `primary` / `secondary` / `link`, which Ant
+   * An action's looks beyond `primary` / `secondary` / `link`, which Ant
    * draws as its `primary` / `default` / `link` types. A name given here for
    * one of the three replaces it.
    */
-  action?: Record<string, AntActionVariant>;
-  /** An `ImageDisplay`'s variants: a style on the image. */
+  action?: Record<string, AntActionLook>;
+  /** An `ImageDisplay`'s looks: a style on the image. */
   image?: Record<string, AntStyle>;
-  /** An `IconDisplay`'s variants: a style on the glyph, over its own size. */
+  /** An `IconDisplay`'s looks: a style on the glyph, over its own size. */
   icon?: Record<string, AntStyle>;
 }
 
-const { Provider, useVariants } = createVariantsContext<AntdVariants>("AntdVariantsProvider");
+const { Provider, useLooks } = createLooksContext<AntdLooks>("AntdLooksProvider");
 
 /**
- * The props of {@link AntdVariantsProvider}.
+ * The props of {@link AntdLooksProvider}.
  *
  * @group Theming
  */
-export interface AntdVariantsProviderProps {
+export interface AntdLooksProviderProps {
   /** Looks for this region, merged over any enclosing provider's. */
-  variants: AntdVariants;
+  looks: AntdLooks;
   /** The region. */
   children: ReactNode;
 }
 
 /**
- * Name the form's looks for Ant, for a region of the app. Nests: a variant
+ * Name the form's looks for Ant, for a region of the app. Nests: a look
  * given replaces the one of the same name above it. Pass a module constant
  * or a memoised object, so the region does not re-resolve every render.
  *
  * @group Theming
  */
-export function AntdVariantsProvider(props: AntdVariantsProviderProps): ReactNode {
+export function AntdLooksProvider(props: AntdLooksProviderProps): ReactNode {
   return <Provider {...props} />;
 }
 
-/** The variants in effect here. */
-export const useAntdVariants: () => AntdVariants = useVariants;
+/** The looks in effect here. */
+export const useAntdLooks: () => AntdLooks = useLooks;
 
 /** A style, resolved against the tokens. */
 export function atToken(s: AntStyle | undefined, token: GlobalToken): CSSProperties | undefined {

@@ -20,7 +20,6 @@ import {
   FormProvider,
   FormRenderers as FormRenderersOverride,
   Section,
-  combineClass,
   type GroupRenderProps,
   HtmlDisplay,
   IconDisplay,
@@ -52,8 +51,8 @@ export interface Implementation {
   /** Providers it needs above the form beyond its own `root` — a theme. */
   wrap?: (node: ReactNode) => ReactNode;
   /**
-   * Its theme naming four looks, around `node`: a text variant `lead`, a
-   * group variant `card`, an action variant `quiet` and an image variant
+   * Its theme naming four looks, around `node`: a text look `lead`, a
+   * group look `card`, an action look `quiet` and an image look
    * `rounded`, each drawn differently from the base look — however the
    * implementation says looks.
    */
@@ -639,9 +638,7 @@ export function describeConformance(impl: Implementation): void {
         contents: (p: GroupRenderProps) => (
           <outer.contents
             {...p}
-            shellClassName={
-              p.kind === "section" ? combineClass(p.shellClassName, "bordered") : p.shellClassName
-            }
+            shellStyle={p.kind === "section" ? { ...p.shellStyle, opacity: 0.66 } : p.shellStyle}
           />
         ),
       });
@@ -652,7 +649,7 @@ export function describeConformance(impl: Implementation): void {
           </Section>
         </FormRenderersOverride>,
       );
-      const bordered$ = [...container.querySelectorAll(".bordered")];
+      const bordered$ = [...container.querySelectorAll('[style*="0.66"]')];
       expect(bordered$).toHaveLength(1);
       // The implementation's own region: its heading inside, the plain one
       // nested and not bordered.
@@ -757,34 +754,50 @@ export function describeConformance(impl: Implementation): void {
       expect(onScreen(kept)).toBe(false);
     });
 
-    it("draws each boundary as one element under a body, its shellClassName on it", () => {
+    it("draws each boundary as one element under a body, its shellStyle on it", () => {
       const arr = ctx.newControl(["a"]);
+      const cell = { opacity: 0.77 };
       const boundaries: [string, ReactNode][] = [
-        ["field", <TextField field={ctx.newControl("")} label="F" shellClassName="cell" />],
-        ["display", <TextDisplay text="T" shellClassName="cell" />],
-        ["group", <Contents shellClassName="cell">x</Contents>],
+        ["field", <TextField field={ctx.newControl("")} label="F" shellStyle={cell} />],
+        ["display", <TextDisplay text="T" shellStyle={cell} />],
+        ["group", <Contents shellStyle={cell}>x</Contents>],
         [
           "collection",
-          <Elements field={arr} shellClassName="cell">
+          <Elements field={arr} shellStyle={cell}>
             {() => <TextDisplay text="row" />}
           </Elements>,
         ],
       ];
-      // A class layout on the body sees exactly these elements: what a
-      // grid places, and where a child's `col-span-*` has to land.
+      // A layout on the body sees exactly these elements: what a grid places,
+      // and where a child's span has to land. The body and each boundary's
+      // element are told apart by an opacity no implementation draws itself.
       for (const [kind, ui] of boundaries) {
         mount(
-          <Contents transitions={false} className="layout-body">
+          <Contents transitions={false} style={{ opacity: 0.88 }}>
             {ui}
           </Contents>,
         );
-        const kids = [...document.querySelector(".layout-body")!.children];
-        expect([kind, kids.length, kids[0]?.classList.contains("cell")]).toEqual([
+        const kids = [...document.querySelector('[style*="0.88"]')!.children];
+        expect([kind, kids.length, kids[0]?.getAttribute("style")?.includes("0.77")]).toEqual([
           kind,
           1,
           true,
         ]);
       }
+    });
+
+    it("draws a boundary's `style` on its own element, a display's text and an action's button", () => {
+      mount(
+        <>
+          <TextDisplay text="Styled words" style={{ opacity: 0.55 }} />
+          <Action actionId="styled" text="Styled button" style={{ opacity: 0.55 }} onClick={() => {}} />
+        </>,
+      );
+      // Each carries the style on the element that holds its words, not only on a wrapper.
+      const styled = [...container.querySelectorAll('[style*="0.55"]')];
+      const holding = (words: string) =>
+        styled.some((e) => e.textContent?.trim() === words);
+      expect([holding("Styled words"), holding("Styled button")]).toEqual([true, true]);
     });
 
     it("keeps every tab mounted and validating, and the same node across a switch", () => {
@@ -1024,7 +1037,7 @@ export function describeConformance(impl: Implementation): void {
         return (
           <Form validation={validation} onSubmit={() => void submitted.push(rc.getValue(name))}>
             <TextField field={name} id="sub" label="Name" required requiredMessage="Needed" />
-            <Action actionId="save" text="Save" submit variant="primary" />
+            <Action actionId="save" text="Save" submit look="primary" />
           </Form>
         );
       }
@@ -1092,7 +1105,7 @@ export function describeConformance(impl: Implementation): void {
             <Disclosure title="How to find this">
               <TextField field={where} id="where" label="Where" required />
             </Disclosure>
-            <Action actionId="save" text="Save" submit variant="primary" />
+            <Action actionId="save" text="Save" submit look="primary" />
           </Form>
         );
       }
@@ -1152,7 +1165,7 @@ export function describeConformance(impl: Implementation): void {
                 { key: "two", title: "Second", children: <TextField field={second} id="t2" label="Two" required /> },
               ]}
             />
-            <Action actionId="save" text="Save" submit variant="primary" />
+            <Action actionId="save" text="Save" submit look="primary" />
           </Form>
         );
       }
@@ -1197,7 +1210,7 @@ export function describeConformance(impl: Implementation): void {
             <TextField field={ctx.newControl("")} id="optional" label="Optional" />
             <TextField field={first} id="first" label="First" required />
             <TextField field={second} id="second" label="Second" required />
-            <Action actionId="save" text="Save" submit variant="primary" />
+            <Action actionId="save" text="Save" submit look="primary" />
           </Form>
         );
       }
@@ -1229,7 +1242,7 @@ export function describeConformance(impl: Implementation): void {
         return (
           <Form validation={validation} onSubmit={() => {}}>
             <TextField field={where} id="where" label="Where" required />
-            <Action actionId="save" text="Save" submit disableType="global" variant="primary" />
+            <Action actionId="save" text="Save" submit disableType="global" look="primary" />
           </Form>
         );
       }
@@ -1265,26 +1278,26 @@ export function describeConformance(impl: Implementation): void {
       const ui = (
         <>
           <TextDisplay text="Base words" />
-          <TextDisplay text="Lead words" variant="lead" />
-          <TextDisplay text="Unknown words" variant={unknown} />
+          <TextDisplay text="Lead words" look="lead" />
+          <TextDisplay text="Unknown words" look={unknown} />
           <Contents title="Base region">
             <TextDisplay text="in base" />
           </Contents>
-          <Contents title="Card region" variant="card">
+          <Contents title="Card region" look="card">
             <TextDisplay text="in card" />
           </Contents>
-          <Contents title="Unknown region" variant={unknown}>
+          <Contents title="Unknown region" look={unknown}>
             <TextDisplay text="in unknown" />
           </Contents>
           <Action actionId="plain" text="Base button" />
-          <Action actionId="quietly" text="Quiet button" variant="quiet" />
-          <Action actionId="unnamed" text="Unknown button" variant={unknown} onClick={clicked} />
+          <Action actionId="quietly" text="Quiet button" look="quiet" />
+          <Action actionId="unnamed" text="Unknown button" look={unknown} onClick={clicked} />
           <ImageDisplay source="https://example.test/a.png" alt="Base image" width={40} height={40} />
-          <ImageDisplay source="https://example.test/a.png" alt="Rounded image" width={40} height={40} variant="rounded" />
-          <ImageDisplay source="https://example.test/a.png" alt="Unknown image" width={40} height={40} variant={unknown} />
+          <ImageDisplay source="https://example.test/a.png" alt="Rounded image" width={40} height={40} look="rounded" />
+          <ImageDisplay source="https://example.test/a.png" alt="Unknown image" width={40} height={40} look={unknown} />
           <IconDisplay icon="i" accessibleName="Base icon" />
-          <IconDisplay icon="i" accessibleName="Large icon" variant="large" />
-          <IconDisplay icon="i" accessibleName="Unknown icon" variant={unknown} />
+          <IconDisplay icon="i" accessibleName="Large icon" look="large" />
+          <IconDisplay icon="i" accessibleName="Unknown icon" look={unknown} />
         </>
       );
       mount(impl.looks(ui));
@@ -1323,12 +1336,12 @@ export function describeConformance(impl: Implementation): void {
         image("Large icon") !== image("Base icon"),
         image("Unknown icon") === image("Base icon"),
       ]).toEqual([true, true, true, true, true, true, true, true, true, true]);
-      // One warning per kind, naming the variant — and none again on the
+      // One warning per kind, naming the look — and none again on the
       // next render.
       const warnings = logged.splice(0);
       expect(
         ["text", "group", "action", "image", "icon"].map(
-          (kind) => warnings.filter((w) => w.includes(`${kind} variant "${unknown}"`)).length,
+          (kind) => warnings.filter((w) => w.includes(`${kind} look "${unknown}"`)).length,
         ),
       ).toEqual([1, 1, 1, 1, 1]);
       expect(warnings).toHaveLength(5);
@@ -1407,7 +1420,7 @@ export function describeConformance(impl: Implementation): void {
     it("runs an action, and locks it while an async handler is busy", async () => {
       let finish!: () => void;
       const clicked = vi.fn(() => new Promise<void>((r) => (finish = r)));
-      mount(<Action actionId="save" text="Save" variant="primary" onClick={clicked} />);
+      mount(<Action actionId="save" text="Save" look="primary" onClick={clicked} />);
       click(buttonNamed("Save")!);
       expect(clicked).toHaveBeenCalledOnce();
       expect(buttonNamed("Save")?.disabled ?? true).toBe(true);

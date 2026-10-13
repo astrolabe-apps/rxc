@@ -1,7 +1,7 @@
 import { describeConformance } from "rxc-forms-conformance/suite";
-import { MuiVariantsProvider, muiRenderers, type MuiVariants } from "../src/index";
+import { MuiLooksProvider, muiRenderers, type MuiLooks } from "../src/index";
 
-const variants: MuiVariants = {
+const looks: MuiLooks = {
   text: { lead: { variant: "subtitle1" } },
   group: { card: { wrapper: (t) => ({ padding: t.spacing(2) }) } },
   action: { quiet: { variant: "text" } },
@@ -11,5 +11,5 @@ const variants: MuiVariants = {
 describeConformance({
   name: "MUI",
   renderers: muiRenderers,
-  looks: (node) => <MuiVariantsProvider variants={variants}>{node}</MuiVariantsProvider>,
+  looks: (node) => <MuiLooksProvider looks={looks}>{node}</MuiLooksProvider>,
 });

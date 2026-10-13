@@ -10,7 +10,9 @@ rushx burndown [<dir-or-file>...]       # what the loader cannot carry across; -
 rushx burndown --show unread:layoutClass # every warning of one shape, with the control it came from
 rushx burndown --no-actions              # also report every button no host handler claimed
 rushx parity [--show <form>] [--fixture empty|filled] [--trace <field>]   # legacy vs v2, per path
-rushx gates [--update]                  # both, as gates: fail on a regression
+rushx extract-looks [<dir>...]            # combine the looks of many forms (corpus/looks/): per form and the union
+rushx looks-check                         # every form drawn with the loader's looks, nothing printed
+rushx gates [--update]                  # all three, as gates: fail on a regression
 ```
 
 **The corpus is not in the repository.** It is other repositories' forms and
@@ -26,7 +28,7 @@ rushx extract-corpus forms-app    ~/astrolabe/astrolabe-common/forms-app/src
 rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTemplate/ClientApp/sites/formServer/src
 ```
 
-## The two gates
+## The gates
 
 `gates.json` holds the baseline — counts only, never corpus content.
 
@@ -40,6 +42,24 @@ rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTem
   apart from two classified divergences the summary counts: v2's write-free
   display-only field, and legacy's one shared `jsonata` error key. Anything
   the v2 side prints to the console while it renders fails too.
+
+- **Looks: absolute.** Every form is drawn under html through the loader, which
+  turns each control's class slots into a look and brings the looks with the
+  form (`TranslateResult.looks`, mounted by `JsonForm` under a
+  `FormLooksProvider`). Anything printed to the console fails — a look the
+  implementation could not find, a React warning — and so does a run in which no
+  element names a look. Both themes run (default and Tailwind). (Before the class
+  slots were retired this compared the markup with what the class slots drew, and
+  found them identical on every form.) `extract-looks` is the offline step that
+  combines many forms' looks into one set, for translating to JSX or a new JSON
+  format; its output holds the corpus's class strings, so it stays under the
+  gitignored `corpus/`.
+
+The runs happen in happy-dom with the DOM globals in place **before** React and the
+renderers load, as in a browser (`src/dom.ts`, imported first). Set up after them, the
+run measured an environment no browser has — an asynchronous expression's pending
+interval went unobserved — and hid a real divergence: an `AllowedOptions` answer
+clearing a value legacy keeps.
 
 ## The stand-in host
 

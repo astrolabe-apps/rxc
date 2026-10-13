@@ -40,9 +40,8 @@ function StarsImpl(
       disabled={ctl.state.disabled}
       helpText={p.helpText}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <div
         className="stars"

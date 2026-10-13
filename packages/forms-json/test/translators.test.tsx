@@ -5,6 +5,8 @@ import type { SchemaField } from "@rx-controls/forms-schema";
 import { Contents, RichText, TextField } from "@rx-controls/forms-react";
 import {
   defaultTranslators,
+  legacyLook,
+  legacyLookKey,
   LoaderStrictError,
   translateForm,
   type Translator,
@@ -77,6 +79,63 @@ describe("TextField", () => {
     // The default theme puts the control's class on its frame.
     expect($$(".extra").length).toBe(1);
     expect($$(".only-this").length).toBe(1);
+  });
+
+  it("turns the class slots into a look the form brings, named by its classes", () => {
+    const styled = { type: "Data", field: "name", styleClass: "extra", layoutClass: "@ only-this" };
+    const expected = legacyLook("Data", styled, true)!;
+    const { looks } = translateForm(
+      h.ctx,
+      h.ctx.newControl({ name: "" }),
+      [str("name")],
+      [styled as never],
+    );
+    // the form's own looks: one, with the classes as written and `"@ "` as replace
+    expect(looks).toEqual({ [expected.name]: { control: "extra", shell: { replace: "only-this" } } });
+    h.load([styled, { type: "Data", field: "other", styleClass: "kept" }], [str("name"), str("other")], {
+      name: "",
+      other: "",
+    });
+    // drawn through the loader's provider: the look's parts, and the name as a hook
+    expect($$(".extra").length).toBe(1);
+    expect($$(".only-this").length).toBe(1);
+    expect($$(".kept").length).toBe(1);
+    expect($$(`[data-look="${expected.name}"]`).length).toBe(1);
+    // the host's theme restyles a name by defining it
+    h.load([styled], [str("name")], { name: "" }, { theme: { looks: { [expected.name]: { control: "themed" } } } });
+    expect($$(".themed").length).toBe(1);
+    expect($$(".extra").length).toBe(0);
+  });
+
+  it("names a lone typography slot by its classes, and anything else by a hash of them", () => {
+    expect(legacyLook("Display", { textClass: "body" }, false)!.name).toBe("body");
+    expect(legacyLook("Data", { textClass: "body-bold" }, true)!.name).toBe("body-bold");
+    const a = legacyLook("Data", { styleClass: "p-4", textClass: "body" }, true)!;
+    expect(a.name).toMatch(/^look-[0-9a-f]{12}$/);
+    // content-addressed: the same classes are the same look in any kind, in any order
+    expect(legacyLook("Group", { textClass: "body", styleClass: " p-4" }, true)!.name).toBe(a.name);
+    expect(legacyLook("Data", { styleClass: "p-5", textClass: "body" }, true)!.name).not.toBe(a.name);
+    expect(legacyLook("Data", {}, true)).toBeUndefined();
+  });
+
+  it("layers a look over an action's emphasis", () => {
+    const action = { type: "Action", actionId: "go", actionText: "Go", actionStyle: "Secondary", styleClass: "wide" };
+    h.load([action], [], {}, { actionHandler: () => () => {} });
+    const name = legacyLook("Action", action, false)!.name;
+    const b = $<HTMLButtonElement>("button");
+    expect(b.getAttribute("data-look")).toBe(`secondary ${name}`);
+    expect(b.classList.contains("rxf-btn--secondary")).toBe(true);
+    expect(b.classList.contains("wide")).toBe(true);
+  });
+
+  it("recognises the same classes written in another order, and tells a replace from a merge", () => {
+    const a = legacyLookKey("Data", { styleClass: "b a  c" }, true);
+    expect(a).toBe(legacyLookKey("Data", { styleClass: "c a b b" }, true));
+    expect(a).not.toBe(legacyLookKey("Data", { styleClass: "@ a b c" }, true));
+    expect(a).not.toBe(legacyLookKey("Display", { styleClass: "a b c" }, false));
+    // a label's slots count only for a control that draws a label
+    expect(legacyLookKey("Action", { labelClass: "x" }, false)).toBeUndefined();
+    expect(legacyLookKey("Data", {}, true)).toBeUndefined();
   });
 
   it("keeps a hidden title as the field's name, not drawn, for hideTitle", () => {
@@ -199,6 +258,37 @@ describe("SelectField", () => {
     await flush();
     expect(names()).toContain("Inactive");
   });
+});
+
+describe("options from an AllowedOptions expression", () => {
+  // Legacy keeps a value the list no longer offers. The expression is asynchronous, so
+  // for a moment it is pending, and legacy's rule — an empty answer means every schema
+  // option — hands the widget the schema's list; the answer then replaces it. That is a
+  // list moving away from the value, which `restrictToOptions` clears: the JSON path
+  // would lose data legacy keeps.
+  const allowed = (expression: string) => ({
+    type: "AllowedOptions",
+    expr: { type: "Jsonata", expression },
+  });
+  const other = "[{'name': 'Other', 'value': 'other'}]";
+
+  for (const renderType of ["Radio", "Dropdown"] as const)
+    it(`keeps the value when the answer to a ${renderType}'s expression does not offer it`, async () => {
+      const { data } = h.load(
+        [
+          {
+            type: "Data",
+            field: "status",
+            renderOptions: { type: renderType },
+            dynamic: [allowed(other)],
+          },
+        ],
+        [statusField],
+        { status: "active" as string | undefined },
+      );
+      await flush(20);
+      expect(rc.getValue(data).status).toBe("active");
+    });
 });
 
 describe("RadioField", () => {
@@ -986,13 +1076,16 @@ describe("host translators", () => {
       match: (d) =>
         d.type === "Data" && (d as { renderOptions?: { type?: string } }).renderOptions?.type === "Switch",
       renderTypes: ["Switch"],
-      render: ({ props }) => <TextField {...props} className="host-switch" />,
+      render: ({ props }) => <TextField {...props} look="host-switch" />,
     };
     const { warnings } = h.load(
       [{ type: "Data", field: "a", renderOptions: { type: "Switch" } }],
       [str("a")],
       { a: "" },
-      { translators: [switchTranslator, ...defaultTranslators] },
+      {
+        translators: [switchTranslator, ...defaultTranslators],
+        theme: { looks: { "host-switch": { control: "host-switch" } } },
+      },
     );
     expect(warnings).toEqual([]);
     expect($$(".host-switch").length).toBe(1);
@@ -1028,7 +1121,7 @@ describe("the audit", () => {
     );
     expect(warnings.map((w) => w.detail)).toEqual([
       '"title" was built into the "label" prop, which the translator never read — dropped',
-      '"layoutClass" was built into the "shellClassName" prop, which the translator never read — dropped',
+      '"layoutClass" was built into the "look" prop, which the translator never read — dropped',
     ]);
   });
 

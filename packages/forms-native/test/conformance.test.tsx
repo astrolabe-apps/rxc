@@ -9,11 +9,13 @@ describeConformance({
   looks: (node) => (
     <NativeThemeProvider
       theme={{
-        text: { variants: { lead: "text-lg" } },
-        contents: { variants: { card: { wrapper: "p-4" } } },
-        action: { variants: { quiet: { className: "bg-transparent" } } },
-        image: { variants: { rounded: "rounded-lg" } },
-        icon: { variants: { large: "text-3xl" } },
+        looks: {
+          lead: { control: "text-lg" },
+          card: { shell: "p-4" },
+          quiet: { control: "bg-transparent" },
+          rounded: { control: "rounded-lg" },
+          large: { control: "text-3xl" },
+        },
       }}
     >
       {node}

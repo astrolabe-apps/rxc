@@ -11,11 +11,13 @@ import { describeConformance } from "../src/suite";
 const looks = (node: ReactNode) => (
   <HtmlThemeProvider
     theme={{
-      text: { variants: { lead: "lead" } },
-      contents: { variants: { card: { wrapper: "card" } } },
-      action: { variants: { quiet: { className: "quiet" } } },
-      image: { variants: { rounded: "rounded" } },
-      icon: { variants: { large: "text-3xl" } },
+      looks: {
+        lead: { control: "lead" },
+        card: { shell: "card" },
+        quiet: { control: "quiet" },
+        rounded: { control: "rounded" },
+        large: { control: "text-3xl" },
+      },
     }}
   >
     {node}

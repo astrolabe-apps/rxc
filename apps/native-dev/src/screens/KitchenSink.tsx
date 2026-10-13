@@ -142,7 +142,7 @@ export function KitchenSink(): Rendered {
               <Action
                 actionId="terms"
                 text="terms"
-                variant="link"
+                look="link"
                 onClick={() => update((wc) => wc.setValue(dialogOpen, true))}
               />
               <TextDisplay text="before you submit." />
@@ -154,7 +154,7 @@ export function KitchenSink(): Rendered {
             >
               <TextDisplay text="Your details are used only to process this request." />
             </Dialog>
-            <Action actionId="submit" text="Submit" variant="primary" submit />
+            <Action actionId="submit" text="Submit" look="primary" submit />
             {/* The form's lock held across a check, as ServiceTas's Continue:
                 the refused field is focused once the lock lifts, and every
                 field is enabled again after (the device pass's check). */}

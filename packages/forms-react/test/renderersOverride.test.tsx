@@ -6,7 +6,7 @@ import {
   FormRenderers,
   InlineGroup,
   Section,
-  combineClass,
+  lookNames,
   type GroupRenderProps,
   type FormRenderers as Renderers,
 } from "../src";
@@ -46,9 +46,7 @@ describe("group kind and FormRenderers", () => {
       contents: (p: GroupRenderProps) => (
         <outer.contents
           {...p}
-          className={
-            p.kind === "section" ? combineClass(p.className, "border") : p.className
-          }
+          look={p.kind === "section" ? ["border", ...lookNames(p.look)] : p.look}
         />
       ),
     });
@@ -70,7 +68,7 @@ describe("group kind and FormRenderers", () => {
   it("nests, each level over the one above", () => {
     const tag = (name: string) => (outer: Renderers): Partial<Renderers> => ({
       contents: (p: GroupRenderProps) => (
-        <outer.contents {...p} className={combineClass(p.className, name)} />
+        <outer.contents {...p} look={[...lookNames(p.look), name]} />
       ),
     });
     const a = tag("a");

@@ -9,6 +9,7 @@ import { Fields } from "./screens/Fields";
 import { Options } from "./screens/Options";
 import { Displays } from "./screens/Displays";
 import { Looks } from "./screens/Looks";
+import { NativeLooks } from "./screens/NativeLooks";
 import { Containers } from "./screens/Containers";
 import { Collection } from "./screens/Collection";
 
@@ -22,6 +23,7 @@ const screens: [string, ComponentType][] = [
   ["Options", Options],
   ["Displays", Displays],
   ["Looks", Looks],
+  ["Native looks", NativeLooks],
   ["Containers", Containers],
   ["Collection", Collection],
 ];

@@ -122,26 +122,25 @@ export const serviceTasOverlay: PartialHtmlTheme = {
     // action.buttonClass / textClass (ServiceTas blanks both).
     className: "",
     textClassName: "",
-    variants: {
-      primary: {
-        className:
-          "w-full lg:w-fit bg-accent min-w-[138px] min-h-[54px] hover:bg-[#096946] disabled:opacity-80 disabled:cursor-not-allowed px-[12px] py-[5px]",
-        textClassName: "headline !text-white select-none",
-      },
-      secondary: {
-        className:
-          "w-full lg:w-fit bg-white min-w-[138px] min-h-[54px] px-[15px] py-[10px] border border-border group active:bg-accent hover:bg-accent disabled:opacity-80 disabled:cursor-not-allowed select-none",
-        textClassName:
-          "headline !text-accent group-active:!text-white group-hover:!text-white",
-      },
-      link: {
-        className:
-          "disabled:opacity-80 disabled:cursor-not-allowed cursor-pointer",
-        textClassName: "",
-      },
-    },
     // action.busyIcon (defaultTailwindTheme) + iconBeforeClass.
     busy: <i className="fa-solid fa-spinner fa-spin px-2" />,
+  },
+  // action.buttonClass / textClass per style (ServiceTas blanks the base).
+  looks: {
+    primary: {
+      control:
+        "w-full lg:w-fit bg-accent min-w-[138px] min-h-[54px] hover:bg-[#096946] disabled:opacity-80 disabled:cursor-not-allowed px-[12px] py-[5px]",
+      text: "headline !text-white select-none",
+    },
+    secondary: {
+      control:
+        "w-full lg:w-fit bg-white min-w-[138px] min-h-[54px] px-[15px] py-[10px] border border-border group active:bg-accent hover:bg-accent disabled:opacity-80 disabled:cursor-not-allowed select-none",
+      text: "headline !text-accent group-active:!text-white group-hover:!text-white",
+    },
+    link: {
+      control: "disabled:opacity-80 disabled:cursor-not-allowed cursor-pointer",
+      text: "",
+    },
   },
   // The strip is group.tabs, from the Tailwind theme; only the marker is ours.
   tabs: { invalidMarker: "ml-1 text-danger" },

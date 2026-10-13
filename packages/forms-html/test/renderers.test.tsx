@@ -5,6 +5,7 @@ import {
   Action,
   ActionOverrideProvider,
   CheckboxField,
+  CheckListField,
   Contents,
   Dialog,
   Disclosure,
@@ -112,20 +113,23 @@ describe("TextField", () => {
     expect(untrackedRead.getValue(c)).toBe("0400");
   });
 
-  it("puts the control's className where the theme says the chrome is", () => {
+  it("puts a look's control where the theme says the chrome is", () => {
     const c = dom.ctx.newControl("");
-    mount(<TextField field={c} className="mine" />);
+    const looks = { mine: { control: "mine" } };
+    mount(<TextField field={c} look="mine" />, { theme: { looks } });
     expect($(".rxf-frame")!.className).toContain("mine");
     expect($("input")!.className).not.toContain("mine");
-    mount(<TextField field={c} className="mine" />, {
-      theme: { frame: { classNameOn: "input" } },
+    mount(<TextField field={c} look="mine" />, {
+      theme: { looks, frame: { classNameOn: "input" } },
     });
     expect($("input")!.className).toContain("mine");
   });
 
-  it("merges a string class and substitutes { replace }", () => {
+  it("adds a look's string parts and substitutes { replace }", () => {
     const c = dom.ctx.newControl("");
-    mount(<TextField field={c} shellClassName={{ replace: "only" }} className="extra" />);
+    mount(<TextField field={c} look="both" />, {
+      theme: { looks: { both: { shell: { replace: "only" }, control: "extra" } } },
+    });
     expect($("div.only")).not.toBeNull();
     expect($(".rxf-frame")!.className).toBe("rxf-frame extra");
   });
@@ -298,10 +302,10 @@ describe("hiding with no CSS at all", () => {
   it("collapses through one inner element under hideWith: collapse", () => {
     const hide = dom.ctx.newControl(true);
     mount(
-      <Contents hidden={hide} title="T" className="body">
+      <Contents hidden={hide} title="T" look="body">
         {null}
       </Contents>,
-      { theme: tailwindHtmlTheme },
+      { theme: { ...tailwindHtmlTheme, looks: { ...tailwindHtmlTheme.looks, body: { control: "body" } } } },
     );
     const el = $<HTMLElement>(".rxf-contents")!;
     expect(el.hidden).toBe(false);
@@ -313,9 +317,10 @@ describe("hiding with no CSS at all", () => {
 
   it("puts the title and body straight under the wrapper otherwise", () => {
     mount(
-      <Contents title="T" className="body" shellClassName="flex flex-col gap-4">
+      <Contents title="T" look="body">
         {null}
       </Contents>,
+      { theme: { looks: { body: { control: "body", shell: "flex flex-col gap-4" } } } },
     );
     const el = $<HTMLElement>(".rxf-contents")!;
     expect([...el.children].map((c) => c.className)).toEqual([
@@ -328,11 +333,11 @@ describe("hiding with no CSS at all", () => {
     const hide = dom.ctx.newControl(true);
     mount(
       <Contents transitions={false}>
-        <Contents hidden={hide} className="body" title="T">
+        <Contents hidden={hide} look="body" title="T">
           {null}
         </Contents>
       </Contents>,
-      { theme: tailwindHtmlTheme },
+      { theme: { ...tailwindHtmlTheme, looks: { ...tailwindHtmlTheme.looks, body: { control: "body" } } } },
     );
     const el = $<HTMLElement>(".body")!.parentElement!;
     expect(el.hasAttribute("data-hidden")).toBe(true);
@@ -428,7 +433,7 @@ describe("Action", () => {
       <Action
         actionId="save"
         text="Save"
-        variant="primary"
+        look="primary"
         icon={<i data-icon />}
         onClick={() => new Promise<void>((r) => (resolve = r))}
       />,
@@ -448,16 +453,14 @@ describe("Action", () => {
     let resolve!: () => void;
     mount(
       <>
-        <Action actionId="p" text="P" variant="primary" icon={<i data-icon="p" />} onClick={() => new Promise<void>((r) => (resolve = r))} />
-        <Action actionId="l" text="L" variant="link" icon={<i data-icon="l" />} />
+        <Action actionId="p" text="P" look="primary" icon={<i data-icon="p" />} onClick={() => new Promise<void>((r) => (resolve = r))} />
+        <Action actionId="l" text="L" look="link" icon={<i data-icon="l" />} />
         <Action actionId="none" text="No icon" />
       </>,
       {
         theme: {
-          action: {
-            iconClassName: "icon",
-            variants: { primary: { iconClassName: "icon-24" }, link: { iconClassName: "icon-18" } },
-          },
+          action: { iconClassName: "icon" },
+          looks: { primary: { icon: "icon-24" }, link: { icon: "icon-18" } },
         },
       },
     );
@@ -481,9 +484,10 @@ describe("Action", () => {
 describe("a layout body and TextDisplay", () => {
   it("draws a group's layout as an inline-style flex body", () => {
     mount(
-      <Contents layout={{ direction: "row", gap: 8, justify: "space-between" }} className="b">
+      <Contents layout={{ direction: "row", gap: 8, justify: "space-between" }} look="b">
         <i />
       </Contents>,
+      { theme: { looks: { b: { control: "b" } } } },
     );
     const s = $<HTMLElement>(".b")!;
     expect(s.style.display).toBe("flex");
@@ -604,10 +608,19 @@ describe("what the theme reaches", () => {
     mount(
       <>
         <Contents>plain</Contents>
-        <Contents className="grid grid-cols-2 gap-1">grid</Contents>
-        <Contents className={{ replace: "flex gap-1" }}>replaced</Contents>
+        <Contents look="grid">grid</Contents>
+        <Contents look="replaced">replaced</Contents>
       </>,
-      { theme: tailwindHtmlTheme },
+      {
+        theme: {
+          ...tailwindHtmlTheme,
+          looks: {
+            ...tailwindHtmlTheme.looks,
+            grid: { control: "grid grid-cols-2 gap-1" },
+            replaced: { control: { replace: "flex gap-1" } },
+          },
+        },
+      },
     );
     expect(body("plain")).toBe("rxf-contents-body flex flex-col gap-4");
     // The author's class is the whole layout, the hook kept: no flex-col or
@@ -706,5 +719,201 @@ describe("what the theme reaches", () => {
     expect($(".rxf-fade")).toBeNull();
     set(hide, true);
     expect($("#f")).toBeNull();
+  });
+});
+
+describe("looks on fields", () => {
+  const card = {
+    shell: "k-shell",
+    label: "k-label",
+    labelText: "k-labeltext",
+    control: "k-control",
+    text: "k-text",
+  };
+  const options = [
+    { name: "One", value: "1" },
+    { name: "Two", value: "2" },
+  ];
+  const classes = (e: Element | null) => (e?.getAttribute("class") ?? "").split(/\s+/);
+
+  it("styles a text field's shell, label, frame and the input's own text", () => {
+    mount(<TextField field={dom.ctx.newControl("")} id="t" label="Name" look="card" />, {
+      theme: { looks: { card } },
+    });
+    const input = $("#t")!;
+    const frame = input.parentElement!;
+    const shell = frame.parentElement!.parentElement!;
+    expect(classes(shell)).toContain("k-shell");
+    expect(shell.getAttribute("data-look")).toBe("card");
+    expect(classes($("#t-label"))).toEqual(expect.arrayContaining(["k-label", "k-labeltext"]));
+    // the control lands on the frame (the theme's `classNameOn`), the text on the input
+    expect(classes(frame)).toContain("k-control");
+    expect(classes(input)).toContain("k-text");
+    expect(classes(input)).not.toContain("k-control");
+  });
+
+  it("sends the control to the input where the theme puts the author's className there", () => {
+    mount(<TextField field={dom.ctx.newControl("")} id="t" look="card" />, {
+      theme: { looks: { card }, frame: { classNameOn: "input" } },
+    });
+    expect(classes($("#t"))).toEqual(expect.arrayContaining(["k-control", "k-text"]));
+    expect(classes($("#t")!.parentElement)).not.toContain("k-control");
+  });
+
+  it("applies the look to a select, a radio group, a check list, a checkbox and a display-only field", () => {
+    mount(
+      <>
+        <SelectField field={dom.ctx.newControl("")} id="s" label="S" options={options} look="card" />
+        <RadioField field={dom.ctx.newControl("")} id="r" label="R" options={options} look="card" />
+        <CheckListField field={dom.ctx.newControl<string[]>([])} id="l" label="L" options={options} look="card" />
+        <CheckboxField field={dom.ctx.newControl(false)} id="c" label="C" look="card" />
+        <DisplayOnlyField field={dom.ctx.newControl("v")} id="d" label="D" look="card" />
+      </>,
+      { theme: { looks: { card } } },
+    );
+    expect(classes($("#s")!.parentElement)).toContain("k-control");
+    expect(classes($("#s"))).toContain("k-text");
+    expect(classes($('[role="radiogroup"]'))).toContain("k-control");
+    expect(classes($('[role="radiogroup"] label span'))).toContain("k-text");
+    expect(classes($('[role="group"]'))).toContain("k-control");
+    expect(classes($('[role="group"] label span'))).toContain("k-text");
+    expect(classes($("#c"))).toContain("k-control");
+    expect(classes($("#d"))).toEqual(expect.arrayContaining(["k-control", "k-text"]));
+    // every shell: its part, the name as a hook, the label's two parts
+    const shells = $$("[data-widget]");
+    expect(shells).toHaveLength(5);
+    for (const sh of shells) {
+      expect(classes(sh)).toContain("k-shell");
+      expect(sh.getAttribute("data-look")).toBe("card");
+    }
+    expect(classes($("#s-label"))).toContain("k-labeltext");
+  });
+
+  it("lets a `{ replace }` part drop the theme's own classes and the parts before it", () => {
+    mount(
+      <>
+        <TextField field={dom.ctx.newControl("")} id="a" look="plus" />
+        <TextField field={dom.ctx.newControl("")} id="b" look="only" />
+        <TextField field={dom.ctx.newControl("")} id="c" look={["plus", "only"]} />
+      </>,
+      {
+        theme: {
+          looks: {
+            plus: { control: "mine", shell: "mine-shell" },
+            only: { control: { replace: "only" }, shell: { replace: "only-shell" } },
+          },
+        },
+      },
+    );
+    const frame = (id: string) => $(`#${id}`)!.parentElement!;
+    const shell = (id: string) => frame(id).parentElement!.parentElement!;
+    expect(classes(frame("a"))).toEqual(expect.arrayContaining(["rxf-frame", "mine"]));
+    expect(classes(shell("a"))).toEqual(expect.arrayContaining(["rxf-shell", "mine-shell"]));
+    expect(classes(frame("b")).filter(Boolean)).toEqual(["only"]);
+    expect(classes(shell("b")).filter(Boolean)).toEqual(["only-shell"]);
+    // layered: the later look's replace drops the earlier look's parts as well
+    expect(classes(frame("c")).filter(Boolean)).toEqual(["only"]);
+  });
+
+  it("draws the base look for a name the theme lacks, with one warning per name", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount(
+      <>
+        <TextField field={dom.ctx.newControl("")} id="u" label="Unknown" look="nope" />
+        <SelectField field={dom.ctx.newControl("")} id="v" label="V" options={options} look="nope" />
+        <TextField field={dom.ctx.newControl("")} id="base" label="Base" />
+      </>,
+    );
+    const shellOf = (id: string) => $(`#${id}`)!.closest("[data-widget]")!;
+    expect(shellOf("u").className).toBe(shellOf("base").className);
+    expect(warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes('field look "nope"'))).toHaveLength(1);
+    warn.mockRestore();
+  });
+});
+
+describe("looks: layering, replace and the slots they share with className", () => {
+  const classes = (e: Element | null) => (e?.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
+
+  it("layers a list of looks in order, and lets `{ replace }` drop what came before", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount(
+      <>
+        <Action actionId="a" text="A" look={["primary", "wide"]} />
+        <Action actionId="b" text="B" look={["primary", "alone"]} />
+        <Action actionId="c" text="C" look={["primary", "wide", "nope"]} />
+      </>,
+      { theme: { looks: { wide: { control: "k-wide" }, alone: { control: { replace: "k-alone" } } } } },
+    );
+    const [a, b, c] = $$("button");
+    expect(classes(a)).toEqual(expect.arrayContaining(["rxf-btn", "rxf-btn--primary", "k-wide"]));
+    expect(a.getAttribute("data-look")).toBe("primary wide");
+    // `replace` stands in for the theme's own button classes and the emphasis before it
+    expect(classes(b)).toEqual(["k-alone"]);
+    // a name nobody knows is reported and the rest still draws
+    expect(classes(c)).toContain("k-wide");
+    expect(warn.mock.calls.map((x) => String(x[0]))).toEqual([expect.stringContaining('action look "nope"')]);
+    warn.mockRestore();
+  });
+
+  it("puts a group look's control on a flex body, and in place of the default layout otherwise", () => {
+    mount(
+      <>
+        <Contents look="row" layout={{ direction: "row" }}>
+          <TextDisplay text="x" />
+        </Contents>
+        <Contents look="row">
+          <TextDisplay text="y" />
+        </Contents>
+        <Contents>
+          <TextDisplay text="z" />
+        </Contents>
+      </>,
+      { theme: { looks: { row: { control: "k-row" } }, contents: { layout: "k-default-layout" } } },
+    );
+    const body = (s: string) => $$("p").find((p) => p.textContent === s)!.closest(".rxf-contents-body, .rxf-contents-flex")!;
+    expect(classes(body("x"))).toEqual(expect.arrayContaining(["rxf-contents-flex", "k-row"]));
+    expect(classes(body("y"))).toContain("k-row");
+    expect(classes(body("y"))).not.toContain("k-default-layout");
+    expect(classes(body("z"))).toContain("k-default-layout");
+  });
+
+  it("draws a boundary's `style` as an inline style: lengths in px, fonts in rem, tokens from the theme", () => {
+    mount(
+      <>
+        <TextDisplay
+          text="hi"
+          style={{ paddingTop: 8, fontSize: 24, color: "$accent", borderWidth: 1, marginHorizontal: 4 }}
+          shellStyle={{ opacity: 0.5, flexGrow: 1 }}
+        />
+        <TextField
+          field={dom.ctx.newControl("")}
+          id="t"
+          style={{ borderRadius: 6, color: "$accent/50", padding: 2 }}
+          shellStyle={{ marginTop: 12 }}
+        />
+      </>,
+      { theme: { tokens: { colors: { accent: "#ff0000" } } } },
+    );
+    const p = $("p")!;
+    expect([p.style.paddingTop, p.style.fontSize, p.style.borderStyle, p.style.marginLeft, p.style.marginRight]).toEqual([
+      "8px", "1.5rem", "solid", "4px", "4px",
+    ]);
+    expect(p.style.color).toMatch(/#ff0000|255, 0, 0/);
+    expect([p.parentElement!.style.opacity, p.parentElement!.style.flexGrow]).toEqual(["0.5", "1"]);
+    // a field: the box properties on the frame, the text properties on the input, margin on the shell
+    const input = $("#t")!;
+    expect(input.parentElement!.style.borderRadius).toBe("6px");
+    expect(input.style.color).toMatch(/rgba\(255, 0, 0, 0\.5/);
+    expect(input.style.borderRadius).toBe("");
+    expect($("[data-widget]")!.style.marginTop).toBe("12px");
+  });
+
+  it("reports a colour token the theme lacks, and leaves the colour out", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount(<TextDisplay text="x" style={{ color: "$nope", padding: 2 }} />);
+    expect($("p")!.style.color).toBe("");
+    expect($("p")!.style.padding).toBe("2px");
+    expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([expect.stringContaining('"$nope"')]);
+    warn.mockRestore();
   });
 });

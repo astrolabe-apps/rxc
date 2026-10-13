@@ -5,7 +5,8 @@ import type {
   ReactNode,
   Ref,
 } from "react";
-import type { ClassValue, FormProp } from "./props.js";
+import type { FormProp } from "./props.js";
+import type { PortableStyle, LookRef } from "./looks.js";
 import { useRenderers } from "./registry.js";
 import type { FieldController, FocusTarget } from "./controllers.js";
 import type { CountFormat } from "./widgets.js";
@@ -113,12 +114,10 @@ export interface FieldShellProps {
   countOver?: boolean;
   /** The control. */
   children: ReactNode;
-  /** The wrapper. */
-  className?: ClassValue;
-  /** The label's container. */
-  labelClassName?: ClassValue;
-  /** The label's text. A single-element label applies both label slots. */
-  labelTextClassName?: ClassValue;
+  /** The look the form named: the shell resolves its own parts (wrapper, label, label text). */
+  look?: LookRef;
+  /** CSS for the wrapper, applied after the look. */
+  style?: PortableStyle;
 }
 
 /**
@@ -216,8 +215,10 @@ export interface InputFrameProps {
    * floating and shrinking labels need it.
    */
   filled?: boolean;
-  /** The frame. */
-  className?: ClassValue;
+  /** The look the form named: the frame resolves its own part (the control). */
+  look?: LookRef;
+  /** CSS for the frame, applied after the look. */
+  style?: PortableStyle;
 }
 
 /**

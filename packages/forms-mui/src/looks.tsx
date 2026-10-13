@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { ButtonProps, Theme, TypographyProps } from "@mui/material";
-import { createVariantsContext } from "@rx-controls/forms-html/shared";
+import { createLooksContext } from "@rx-controls/forms-html/shared";
 
 /**
- * A style, or one computed from the MUI theme — what a group variant gives
+ * A style, or one computed from the MUI theme — what a group look gives
  * each of its elements.
  *
  * @group Theming
@@ -15,7 +15,7 @@ export type MuiStyle = CSSProperties | ((theme: Theme) => CSSProperties);
  *
  * @group Theming
  */
-export interface MuiGroupVariant {
+export interface MuiGroupLook {
   /** The wrapper around title and body. */
   wrapper?: MuiStyle;
   /** The title. */
@@ -30,47 +30,47 @@ export interface MuiGroupVariant {
  *
  * @group Theming
  */
-export interface MuiVariants {
-  /** A `TextDisplay`'s variants: props for MUI's `Typography`, over its own. */
+export interface MuiLooks {
+  /** A `TextDisplay`'s looks: props for MUI's `Typography`, over its own. */
   text?: Record<string, Pick<TypographyProps, "variant" | "color" | "sx">>;
-  /** A group's variants: a style per element. */
-  group?: Record<string, MuiGroupVariant>;
+  /** A group's looks: a style per element. */
+  group?: Record<string, MuiGroupLook>;
   /**
-   * An action's variants beyond `primary` / `secondary` / `link`, which MUI
+   * An action's looks beyond `primary` / `secondary` / `link`, which MUI
    * draws as `contained` / `outlined` / `text`: props for MUI's `Button`. A
    * name given here for one of the three replaces it.
    */
   action?: Record<string, Pick<ButtonProps, "variant" | "color" | "size" | "sx">>;
-  /** An `ImageDisplay`'s variants: a style on the image. */
+  /** An `ImageDisplay`'s looks: a style on the image. */
   image?: Record<string, MuiStyle>;
-  /** An `IconDisplay`'s variants: a style on the glyph, over its own size. */
+  /** An `IconDisplay`'s looks: a style on the glyph, over its own size. */
   icon?: Record<string, MuiStyle>;
 }
 
-const { Provider, useVariants } = createVariantsContext<MuiVariants>("MuiVariantsProvider");
+const { Provider, useLooks } = createLooksContext<MuiLooks>("MuiLooksProvider");
 
 /**
- * The props of {@link MuiVariantsProvider}.
+ * The props of {@link MuiLooksProvider}.
  *
  * @group Theming
  */
-export interface MuiVariantsProviderProps {
+export interface MuiLooksProviderProps {
   /** Looks for this region, merged over any enclosing provider's. */
-  variants: MuiVariants;
+  looks: MuiLooks;
   /** The region. */
   children: ReactNode;
 }
 
 /**
- * Name the form's looks for MUI, for a region of the app. Nests: a variant
+ * Name the form's looks for MUI, for a region of the app. Nests: a look
  * given replaces the one of the same name above it. Pass a module constant
  * or a memoised object, so the region does not re-resolve every render.
  *
  * @group Theming
  */
-export function MuiVariantsProvider(props: MuiVariantsProviderProps): ReactNode {
+export function MuiLooksProvider(props: MuiLooksProviderProps): ReactNode {
   return <Provider {...props} />;
 }
 
-/** The variants in effect here. */
-export const useMuiVariants: () => MuiVariants = useVariants;
+/** The looks in effect here. */
+export const useMuiLooks: () => MuiLooks = useLooks;

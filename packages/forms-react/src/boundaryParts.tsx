@@ -137,11 +137,9 @@ export const fieldContractKeys: ReadonlySet<string> = new Set([
   "helpPlacement",
   "startIcon",
   "endIcon",
-  "className",
-  "labelClassName",
-  "labelTextClassName",
-  "shellClassName",
-  "textClassName",
+  "look",
+  "style",
+  "shellStyle",
 ]);
 
 /**

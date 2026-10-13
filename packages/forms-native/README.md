@@ -101,25 +101,46 @@ export function App() {
 `NativeThemeProvider` is optional: with none, `defaultNativeTheme` applies. A
 theme is a set of NativeWind class slots, one per element and state, given
 partially and nesting — a slot given replaces the enclosing theme's. Classes
-merge with `tailwind-merge`, so a state or variant slot wins over the base slot
+merge with `tailwind-merge`, so a state or look slot wins over the base slot
 it overrides.
 
-**Named looks.** A form names a role and the theme says what it looks like:
+**Named looks.** A form names a look and the theme says what it looks like. A
+look is a table entry whose parts (`shell`, `control`, `text`, `label`,
+`labelText`, `icon`, and a radio's `entry`, `selected`, `notSelected`) are NativeWind classes, or React Native styles with no class
+and no NativeWind in the way:
 
 ```tsx
 <NativeThemeProvider
   theme={{
-    text: { variants: { lead: "text-lg font-semibold" } },
-    contents: { variants: { card: { wrapper: "rounded-lg bg-gray-100 p-4" } } },
-    action: { variants: { quiet: { className: "bg-transparent", textClassName: "text-blue-700" } } },
-    image: { variants: { rounded: "rounded-xl" } },
+    tokens: { colors: { accent: "#1d4ed8" } },
+    looks: {
+      // classes
+      lead: { control: "text-lg font-semibold" },
+      card: { shell: "rounded-lg bg-gray-100 p-4" },
+      quiet: { control: "bg-transparent", text: "text-blue-700" },
+      // styles: a colour token, and a function of the element's state
+      pill: {
+        control: (s) => ({
+          backgroundColor: s.pressed ? "$accent/80" : "$accent",
+          borderRadius: 999,
+        }),
+        text: { color: "#fff", fontWeight: "bold" },
+      },
+    },
   }}
 >
 ```
 
 ```tsx
-<TextDisplay text="Before you start" variant="lead" />
+<TextDisplay text="Before you start" look="lead" />
+<Action actionId="go" text="Go" look="pill" />
 ```
+
+The three emphases every theme draws for an action — `primary`, `secondary`,
+`link` — are looks in the same table. A part given as `{ replace }` stands in for
+the theme's own styling of that element instead of merging over it. For a rare
+one-off a boundary also takes `style` and `shellStyle`: a portable subset of CSS,
+laid over the look. See `docs/FORMS-V2-LOOKS.md`.
 
 The slots are named as `forms-html`'s are where the two draw the same thing — a
 group's `wrapper`, `title` and `body`, a field's `shellFor` — so a theme's roles
@@ -144,8 +165,7 @@ third-party widget's own name), as html's does:
 in React Native `flexShrink` is 0, so a long text beside something else in a
 row runs off the screen or out of its button. The default theme's own row
 children shrink — a label, a label row, a button's text — and a theme that
-replaces those slots should keep `shrink` in them. An author's own row in a
-`className` needs `shrink` on the child that should give way (`shrink min-w-0`,
+replaces those slots should keep `shrink` in them. A row in a look's classes needs `shrink` on the child that should give way (`shrink min-w-0`,
 for one that also lays out the same on the web).
 
 ### Metro in a monorepo
@@ -222,9 +242,9 @@ needed for that:
   } satisfies Record<keyof typeof webIcons, unknown>;
   ```
 
-- **Looks are roles, so the theme carries them.** The form names `variant`s
+- **Looks are roles, so the theme carries them.** The form names `look`s
   (`pageTitle`, `taskCard`), and each platform's theme says what they look
   like: an html theme and a `NativeTheme` with the same names. The slot names
   match where the two draw the same thing, so the port is the classes.
-- **A row in an author's `className` needs `shrink`** on the child that should
+- **A row in a look's classes needs `shrink`** on the child that should
   give way (see "Flex items don't shrink", above).

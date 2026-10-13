@@ -15,7 +15,7 @@ export function Collection(): Rendered {
             <Action
               actionId="remove"
               text="Remove"
-              variant="link"
+              look="link"
               disabled={!actions.canRemove}
               onClick={() => actions.remove(i)}
             />

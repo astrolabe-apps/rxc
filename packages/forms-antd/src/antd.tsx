@@ -30,7 +30,6 @@ import {
   fieldLabelId,
   fieldHelpId,
   getProp,
-  mergeClass,
   useFieldShell,
   useDisplayValue,
   type DisplayOnlyRenderProps,
@@ -60,8 +59,9 @@ import {
   type DialogRenderProps,
   type DisclosureRenderProps,
   type TextFieldRenderProps,
-  combineClass,
-  warnUnknownVariant,
+  type PortableStyle,
+  lookNames,
+  type LookRef,
   type RichTextRenderProps,
   helpButtonName,
   type ImageDisplayRenderProps,
@@ -70,7 +70,10 @@ import {
   ContentsRegion,
   RichTextDom,
   ImageDom,
-  type GroupVariantStyle,
+  useLastLook,
+  pickLook,
+  lookAttr,
+  type GroupLookStyle,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -83,8 +86,10 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  portableCss,
 } from "@rx-controls/forms-html/shared";
-import { atToken, useAntdVariants } from "./variants.js";
+import { useHtmlTheme } from "@rx-controls/forms-html";
+import { atToken, useAntdLooks } from "./looks.js";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
 //
@@ -93,6 +98,7 @@ import { atToken, useAntdVariants } from "./variants.js";
 // is precisely the binding the framework has already made.
 
 function AntFieldShell(p: FieldShellProps) {
+  const css = useCss();
   const { token } = theme.useToken();
   const marker = p.required && (
     <span
@@ -165,11 +171,10 @@ function AntFieldShell(p: FieldShellProps) {
           </span>
         ) : undefined
       }
-      className={mergeClass(undefined, p.className)}
       // Spacing is the container's (the group body's gap), as under html.
       // Explicitly none: Ant's own margin is one an error message takes
       // over, which left a display after a field in error flush against it.
-      style={{ marginBottom: 0 }}
+      style={{ ...({ marginBottom: 0 }), ...css(p.style) }}
     >
       <RequiredNote
         id={p.id}
@@ -272,6 +277,7 @@ function AntFieldShell(p: FieldShellProps) {
 // on the control through `style`: there is no class to put a runtime token in.
 
 function AntInputFrame(p: InputFrameProps) {
+  const css = useCss();
   const { token } = theme.useToken();
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -296,10 +302,9 @@ function AntInputFrame(p: InputFrameProps) {
         : token.colorBorder;
   return (
     <span
-      className={mergeClass(undefined, p.className)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
+      style={{ ...({
         display: "inline-flex",
         alignItems: p.multiline ? "flex-start" : "center",
         gap: token.paddingXXS,
@@ -318,7 +323,7 @@ function AntInputFrame(p: InputFrameProps) {
           : token.colorBgContainer,
         color: p.disabled ? token.colorTextDisabled : token.colorText,
         transition: "all .2s",
-      }}
+      }), ...css(p.style) }}
     >
       {p.start !== undefined && (
         <span style={{ color: token.colorTextPlaceholder }}>
@@ -385,9 +390,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
@@ -401,7 +404,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
+        style={p.style}
         render={(slot, s) => {
           const common = {
             ...slot,
@@ -429,6 +432,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
 }
 
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const { token } = theme.useToken();
@@ -453,7 +457,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     return ctl.rendered(
       <Typography.Text
         id={p.id}
-        className={mergeClass(undefined, p.className ?? p.textClassName)}
+        style={css(p.style)}
       >
         {start}
         {ctl.content}
@@ -471,12 +475,11 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
+      style={p.shellStyle}
     >
       <Typography.Text
         id={p.id}
-        className={mergeClass(undefined, p.className ?? p.textClassName)}
-        style={p.noSelection ? { userSelect: "none" } : undefined}
+        style={{ ...(p.noSelection ? { userSelect: "none" } : undefined), ...css(p.style) }}
       >
         {start}
         {ctl.content}
@@ -504,7 +507,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
+      style={p.shellStyle}
     >
       <Checkbox
         ref={ctl.elementRef}
@@ -521,12 +524,19 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
   );
 }
 
+/** A portable style as inline CSS, its colour tokens from the html theme. */
+function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
+  const { tokens } = useHtmlTheme();
+  return (s) => portableCss(s, tokens.colors);
+}
+
 /**
  * Ant's own checkboxes in a labelled group. Not `Checkbox.Group`: it keys its
  * value by option value, which would lose a numeric choice's type, and takes
  * no ids for the shell's name and description.
  */
 function AntCheckList(p: CheckListRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -545,16 +555,14 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <div
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
       >
         <Flex vertical gap={8}>
           {ctl.options.map((o, i) => (
@@ -576,6 +584,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
 }
 
 function AntTabs(p: TabsRenderProps) {
+  const css = useCss();
   const { token } = theme.useToken();
   const id = useId();
   // Ant's items carry label and panel together, so a hidden tab stays in the
@@ -597,7 +606,7 @@ function AntTabs(p: TabsRenderProps) {
       <AntTabList
         activeKey={p.activeKey}
         onChange={p.setActive}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
         items={p.items.map((i) => ({
           key: i.key,
           label: (
@@ -619,20 +628,22 @@ function AntTabs(p: TabsRenderProps) {
 const emphasis = { primary: "primary", secondary: "default", link: "link" } as const;
 
 function AntAction(p: ActionRenderProps) {
+  const css = useCss();
   const { token } = theme.useToken();
-  const lookup = useAntdVariants().action?.[p.variant];
+  const lookup = useLastLook("action", p.look, useAntdLooks().action, (n) => n in emphasis);
   const { style, ...named } = lookup ?? {};
-  const builtin = emphasis[p.variant as keyof typeof emphasis];
-  if (!builtin && !lookup) warnUnknownVariant("action", p.variant);
+  const builtin = lookNames(p.look)
+    .map((n) => emphasis[n as keyof typeof emphasis])
+    .filter(Boolean)
+    .pop();
   return (
-    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+    <DisplayShell inline={true} kind="action" style={css(p.shellStyle)}>
       <Button
         type={builtin ?? "default"}
         size="small"
         {...named}
-        style={atToken(style, token)}
-        data-variant={p.variant}
-        className={mergeClass(undefined, p.className)}
+        style={{ ...(atToken(style, token)), ...css(p.style) }}
+        data-look={lookAttr(p.look)}
         disabled={p.disabled}
         loading={p.busy}
         icon={p.icon}
@@ -647,7 +658,7 @@ function AntAction(p: ActionRenderProps) {
         {p.iconPlacement === "replace"
           ? null
           : (p.children ?? (
-              <span className={mergeClass(undefined, p.textClassName)}>
+              <span>
                 {p.text}
               </span>
             ))}
@@ -682,29 +693,29 @@ function headingStyle(
  * than by that level — level 2 would be Ant's 30px — so the top level takes
  * heading 4's size and anything deeper heading 5's.
  */
-/** A group's variant as styles, each resolved against the tokens. */
-function useGroupStyle(variant: string | undefined): GroupVariantStyle | undefined {
+/** A group's look as styles, each resolved against the tokens. */
+function useGroupStyle(look: LookRef | undefined): GroupLookStyle | undefined {
   const { token } = theme.useToken();
-  const group = useAntdVariants().group;
-  const look = variant === undefined ? undefined : group?.[variant];
-  if (!look) return undefined;
+  const group = useAntdLooks().group;
+  const found = pickLook(look, group);
+  if (!found) return undefined;
   return {
-    wrapper: atToken(look.wrapper, token),
-    title: atToken(look.title, token),
-    body: atToken(look.body, token),
+    wrapper: atToken(found.wrapper, token),
+    title: atToken(found.title, token),
+    body: atToken(found.body, token),
   };
 }
 
-/** The image as DOM, a variant's style resolved against the tokens. */
+/** The image as DOM, a look's style resolved against the tokens. */
 function AntImage(p: ImageDisplayRenderProps) {
   const { token } = theme.useToken();
-  const images = useAntdVariants().image;
+  const images = useAntdLooks().image;
   const toneStyle = useToneStyle(p.tone);
   return (
     <ImageDom
       {...p}
-      shellStyle={toneStyle}
-      variantStyle={(v) => (images?.[v] === undefined ? undefined : atToken(images[v], token))}
+      toneStyle={toneStyle}
+      lookStyle={(v) => (images?.[v] === undefined ? undefined : atToken(images[v], token))}
     />
   );
 }
@@ -724,7 +735,7 @@ function AntRichText(p: RichTextRenderProps) {
 }
 
 function AntInline(p: GroupRenderProps) {
-  return <Inline {...p} variantStyle={useGroupStyle(p.variant)} />;
+  return <Inline {...p} lookStyle={useGroupStyle(p.look)} />;
 }
 
 function AntContents(p: GroupRenderProps) {
@@ -732,7 +743,7 @@ function AntContents(p: GroupRenderProps) {
   return (
     <ContentsRegion
       {...p}
-      variantStyle={useGroupStyle(p.variant)}
+      lookStyle={useGroupStyle(p.look)}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -761,38 +772,34 @@ function useToneStyle(tone: Tone | undefined): CSSProperties | undefined {
 }
 
 function AntText(p: TextDisplayRenderProps) {
+  const css = useCss();
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const { token } = theme.useToken();
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
-  const variants = useAntdVariants().text;
-  const variant = getProp(rc, p.variant);
-  const { style: lookStyle, ...look } = (variant === undefined ? undefined : variants?.[variant]) ?? {};
-  if (variant !== undefined && !variants?.[variant]) warnUnknownVariant("text", variant);
+  const { style: lookStyle, ...look } = useLastLook("text", p.look, useAntdLooks().text) ?? {};
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(content)}
-      style={toneStyle}
+      style={{ ...toneStyle, ...css(p.shellStyle) }}
     >
       <Typography.Text
         {...look}
-        className={mergeClass(undefined, p.className)}
         // Ant's Typography sets its own colour; inherit the shell's tone.
-        style={{
+        style={{ ...({
           ...(heading ? { display: "block", ...headingStyle(token, p.headingLevel) } : {}),
           ...atToken(lookStyle, token),
           ...(p.tone ? { color: "inherit" } : {}),
-        }}
-        data-variant={variant}
+        }), ...css(p.style) }}
+        data-look={lookAttr(p.look)}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
-        <span className={mergeClass(undefined, p.textClassName)}>
+        <span>
           {content}
         </span>
       </Typography.Text>
@@ -801,35 +808,28 @@ function AntText(p: TextDisplayRenderProps) {
 }
 
 function AntIcon(p: IconDisplayRenderProps) {
+  const css = useCss();
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const { token } = theme.useToken();
-  const icons = useAntdVariants().icon;
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : icons?.[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
+  const look = useLastLook("icon", p.look, useAntdLooks().icon);
   const glyph = (
     <span
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(
-        undefined,
-        combineClass(p.className, p.textClassName),
-      )}
-      data-variant={variant}
-      style={{ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token)) }}
+      data-look={lookAttr(p.look)}
+      style={{ ...({ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token)) }), ...css(p.style) }}
     >
       {getProp(rc, p.icon)}
     </span>
   );
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={true}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly}
-      style={toneStyle}
+      style={{ ...toneStyle, ...css(p.shellStyle) }}
     >
       {p.accessibleName ? (
         <AntTooltip title={p.accessibleName}>{glyph}</AntTooltip>
@@ -841,24 +841,20 @@ function AntIcon(p: IconDisplayRenderProps) {
 }
 
 function AntHtml(p: HtmlDisplayRenderProps) {
+  const css = useCss();
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const html = getProp(rc, p.html);
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(html)}
-      style={toneStyle}
+      style={{ ...toneStyle, ...css(p.shellStyle) }}
     >
       <Typography
-        className={mergeClass(
-          undefined,
-          combineClass(p.className, p.textClassName),
-        )}
-        style={p.tone ? { color: "inherit" } : undefined}
+        style={{ ...(p.tone ? { color: "inherit" } : undefined), ...css(p.style) }}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
@@ -881,9 +877,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <AntSelectWithEnd end={p.endIcon}>
         <Select
@@ -927,22 +921,15 @@ function AntSelectWithEnd({ end, children }: { end?: ReactNode; children: ReactN
 }
 
 function AntRadio(p: RadioRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
-  const entryCls = getProp(ctl.rc, p.entryClassName);
-  const onCls = getProp(ctl.rc, p.selectedClassName);
-  const offCls = getProp(ctl.rc, p.notSelectedClassName);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   const entries = ctl.options.map((o) => ({
     o,
     selected: ctl.stringValue === String(o.value),
   }));
-  const entryClass = (selected: boolean) =>
-    mergeClass(
-      mergeClass("rxf-radio-entry", entryCls),
-      selected ? onCls : offCls,
-    );
   return ctl.rendered(
     <Shell
       widget="radio"
@@ -956,9 +943,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <Radio.Group
         name={p.id}
@@ -969,11 +954,11 @@ function AntRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={onFocusLeave(ctl.onBlur)}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
       >
         <Flex vertical gap={8}>
           {entries.map(({ o, selected }, i) => (
-            <div key={keys[i]} className={entryClass(selected)}>
+            <div key={keys[i]} className="rxf-radio-entry">
               <Radio
                 ref={i === 0 ? ctl.elementRef : undefined}
                 value={String(o.value)}
@@ -1025,14 +1010,14 @@ function AntWizard(p: WizardRenderProps) {
           <Action
             actionId={StandardActionIds.back}
             text="Back"
-            variant="secondary"
+            look="secondary"
             disabled={!p.canBack}
             onClick={p.back}
           />
           <Action
             actionId={StandardActionIds.next}
             text="Next"
-            variant="primary"
+            look="primary"
             disabled={!p.canNext}
             onClick={p.next}
           />
@@ -1049,11 +1034,11 @@ function AntWizard(p: WizardRenderProps) {
  * keeps it after a close. `silent` needs both.
  */
 function AntDisclosure(p: DisclosureRenderProps) {
+  const css = useCss();
   const { token } = theme.useToken();
   return (
     <Collapse
-      className={mergeClass(undefined, p.className)}
-      style={p.hidden ? { display: "none" } : undefined}
+      style={{ ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
       activeKey={p.open ? ["panel"] : []}
       onChange={(keys) => p.setOpen((Array.isArray(keys) ? keys : [keys]).length > 0)}
       destroyOnHidden={false}
@@ -1095,7 +1080,7 @@ function AntDialog(p: DialogRenderProps) {
         <Action
           actionId={StandardActionIds.close}
           text="Close"
-          variant="secondary"
+          look="secondary"
           onClick={p.onClose}
         />
       }

@@ -44,9 +44,8 @@ function PetCardsImpl<T>(
       required={p.required}
       helpText={p.helpText}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <div
         className="demo-cards"
@@ -65,14 +64,14 @@ function PetCardsImpl<T>(
                 <Action
                   actionId={StandardActionIds.edit}
                   text="Edit"
-                  variant="secondary"
+                  look="secondary"
                   disabled={false}
                   onClick={() => p.actions.edit(e.index)}
                 />
                 <Action
                   actionId={StandardActionIds.remove}
                   text="Remove"
-                  variant="link"
+                  look="link"
                   disabled={!p.actions.canRemove}
                   onClick={() => p.actions.remove(e.index)}
                 />
@@ -85,7 +84,7 @@ function PetCardsImpl<T>(
         <Action
           actionId={StandardActionIds.add}
           text="Add card"
-          variant="primary"
+          look="primary"
           disabled={!p.actions.canAdd}
           onClick={() => p.actions.add({ name: "" })}
         />

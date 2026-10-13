@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import { useReactive, type Rendered } from "@rx-controls/react";
-import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { getProp, type FormProp } from "./props.js";
+import type { LookName, PortableStyle, LookRef } from "./looks.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope } from "./scope.js";
 import { useCommitEffect } from "./commitEffect.js";
@@ -39,12 +40,20 @@ export interface DisplayProps {
    * shown — a tooltip, a `title` — is the implementation's choice.
    */
   accessibleName?: FormProp<string>;
-  /** The element. */
-  className?: FormProp<ClassValue>;
-  /** Its text. */
-  textClassName?: FormProp<ClassValue>;
-  /** The wrapper it sits in. */
-  shellClassName?: FormProp<ClassValue>;
+  /**
+   * A named look the implementation's theme resolves for this boundary, every
+   * part of it (element, text, wrapper). A name the theme does not know draws the base look,
+   * with a warning in development. See `docs/FORMS-V2-LOOKS.md`.
+   */
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /**
+   * CSS for the element, for the rare case a look does not cover: a portable
+   * subset, what means the same on the web and on React Native. Applied after
+   * the look, so it wins.
+   */
+  style?: FormProp<PortableStyle | undefined>;
+  /** CSS for the wrapper it sits in, as `style`. */
+  shellStyle?: FormProp<PortableStyle | undefined>;
   /**
    * What the display means — drawn in the implementation's colour for it.
    * Derived like any prop: `(rc) => length(rc) > max ? "error" : undefined`.
@@ -80,12 +89,12 @@ export interface DisplayRenderProps {
   accessibleName?: string;
   /** Inside an inline container: an inline element in prose, not a block. */
   inline?: boolean;
-  /** The element. */
-  className?: ClassValue;
-  /** Its text. */
-  textClassName?: ClassValue;
-  /** The wrapper it sits in. */
-  shellClassName?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the element, applied after the look. */
+  style?: PortableStyle;
+  /** CSS for the wrapper it sits in, applied after the look. */
+  shellStyle?: PortableStyle;
   /** What it means: draw it in the implementation's colour for this tone. */
   tone?: Tone;
   /**
@@ -135,7 +144,7 @@ export interface TextDisplayExtra {
    *   a group's `title`, always drawn first, cannot have. Outside any group,
    *   or in prose, it is an ordinary heading.
    *
-   *   A group that is only layout — no `title`, no `variant`, not a section
+   *   A group that is only layout — no `title`, no `look`, not a section
    *   — is no part of the outline, so the claim passes through it to the
    *   group above: a page header laid out in nested groups still titles the
    *   page. It stops at a group that is more than layout, and never passes a
@@ -143,38 +152,6 @@ export interface TextDisplayExtra {
    *   outermost layout group does.
    */
   heading?: FormProp<boolean | "group">;
-  /**
-   * A named look — "lead", "tag", "statLabel" — that the implementation's
-   * theme resolves. The form names a role and never a look, so the same
-   * source draws under every implementation. A name the theme does not know
-   * draws the base look, with a warning in development.
-   */
-  variant?: FormProp<string | undefined>;
-}
-
-declare const process: { env: { NODE_ENV?: string } } | undefined;
-// The literal `process.env.NODE_ENV`, so bundlers fold it (see CLAUDE.md).
-const IS_DEV: boolean =
-  typeof process !== "undefined" && process.env.NODE_ENV !== "production";
-const warned = new Set<string>();
-
-/**
- * Report a `variant` an implementation's theme does not name, once per kind
- * and name, in development only. What every implementation calls when it
- * falls back to the base look, so the message is the same under each.
- *
- * @param kind - what carries it: `text`, `group`, `action`
- * @param variant - the name the form used
- * @group Implementations
- */
-export function warnUnknownVariant(kind: string, variant: string): void {
-  if (!IS_DEV) return;
-  const key = kind + "\u0000" + variant;
-  if (warned.has(key)) return;
-  warned.add(key);
-  console.warn(
-    `Forms v2: no ${kind} variant "${variant}" in this implementation's theme; drawing the base look. Name it in the theme's ${kind} variants.`,
-  );
 }
 
 /**
@@ -199,12 +176,6 @@ export interface IconDisplayExtra {
    * implementation places it and names it.
    */
   icon?: FormProp<ReactNode>;
-  /**
-   * A named look — "large", "note" — that the implementation's theme
-   * resolves. A name the theme does not know draws the base look, with a
-   * warning in development.
-   */
-  variant?: FormProp<string | undefined>;
 }
 
 /**
@@ -253,12 +224,6 @@ export interface ImageDisplayExtra {
   height?: FormProp<number | `${number}%` | undefined>;
   /** How it fills a box both given. */
   fit?: FormProp<ImageFit | undefined>;
-  /**
-   * A named look — "rounded", "hero" — that the implementation's theme
-   * resolves. A name the theme does not know draws the base look, with a
-   * warning in development.
-   */
-  variant?: FormProp<string | undefined>;
 }
 
 /**
@@ -331,9 +296,9 @@ export function displayRenderer<P extends object = {}>(
     const renderProps: DisplayRenderProps = {
       accessibleName: getProp(rc, props.accessibleName),
       inline: scope.inline,
-      className: getProp(rc, props.className),
-      textClassName: getProp(rc, props.textClassName),
-      shellClassName: getProp(rc, props.shellClassName),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
+      shellStyle: getProp(rc, props.shellStyle),
       tone: getProp(rc, props.tone),
       announce,
       regionOnly: announce && presence === "hidden" ? true : undefined,
@@ -364,9 +329,9 @@ export function displayRenderer<P extends object = {}>(
 const displayContractKeys: ReadonlySet<string> = new Set([
   "hidden",
   "accessibleName",
-  "className",
-  "textClassName",
-  "shellClassName",
+  "look",
+  "style",
+  "shellStyle",
   "tone",
   "announce",
   "children",

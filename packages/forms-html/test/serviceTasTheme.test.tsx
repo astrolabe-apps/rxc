@@ -37,16 +37,18 @@ function mount(style?: string) {
     <FormProvider renderers={htmlRenderers}>
       <HtmlThemeProvider theme={tailwindHtmlTheme}>
         <HtmlThemeProvider theme={serviceTasOverlay}>
+          <HtmlThemeProvider theme={{ looks: { "from-def": { control: "from-def" } } }}>
           <HtmlThemeProvider theme={overlayFor(style)}>
             <Form>
               <Contents title="Your details">
-                <TextField field={name} id="name" label="Name" required className="from-def" />
+                <TextField field={name} id="name" label="Name" required look="from-def" />
                 <SelectField field={status} label="Status" options={options} />
                 <RadioField field={status} label="Status" options={options} />
               </Contents>
-              <Action actionId="save" text="Save" variant="primary" />
-              <Action actionId="back" text="Back" variant="secondary" />
+              <Action actionId="save" text="Save" look="primary" />
+              <Action actionId="back" text="Back" look="secondary" />
             </Form>
+          </HtmlThemeProvider>
           </HtmlThemeProvider>
         </HtmlThemeProvider>
       </HtmlThemeProvider>
@@ -71,7 +73,7 @@ describe("the ServiceTas theme", () => {
     expect(input.className).toContain("from-def");
   });
 
-  it("draws the variants' classes and its own error message", () => {
+  it("draws the looks' classes and its own error message", () => {
     const { name } = mount();
     const buttons = [...dom.container.querySelectorAll("button")];
     expect(buttons.find((b) => b.textContent === "Save")!.className).toContain("bg-accent");

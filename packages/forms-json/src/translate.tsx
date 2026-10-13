@@ -32,10 +32,11 @@ import {
   Tabs,
   TextDisplay,
   TextField,
-  type ClassValue,
   type FlexLayout,
   type FieldOption,
   type CheckListValue,
+  type ClassLook,
+  type ClassLooks,
   type FieldProps,
   type FormProp,
   type Validator,
@@ -57,7 +58,6 @@ import {
   asField,
   schemaOptions,
   str,
-  toClassValue,
   type AnyDef,
   type AnyExpr,
   type AnyField,
@@ -71,6 +71,7 @@ import {
   type ResolvedRef,
 } from "./scope.js";
 import type { LoaderOptions, LoaderWarning } from "./loader.js";
+import { legacyLook } from "./looks.js";
 import type {
   CompoundCycleProps,
   IconTranslator,
@@ -80,6 +81,12 @@ import type {
   Translator,
 } from "./translator.js";
 import { displayToggle, Offscreen } from "./layoutStyle.js";
+
+/** How a translation collects the looks its controls' class slots become; internal. */
+const DERIVE = Symbol("derive");
+type Internal = LoaderOptions & {
+  [DERIVE]?: (name: string, parts: ClassLook) => void;
+};
 
 /**
  * Scoped to one definition — the walk supplies the `path`. A subject may be
@@ -185,6 +192,16 @@ export function allowedOptions(
 }
 
 /**
+ * **Options never clear the value on the JSON path.** Legacy keeps a value its
+ * list no longer offers, so the loader turns `restrictToOptions` off for every
+ * options widget it builds: that clearing is a v2 feature for the JSX path.
+ * It also matters here for a reason of timing — an `AllowedOptions` expression
+ * is asynchronous, and while it is pending legacy's own rule (an empty answer
+ * means every schema option) hands the widget the schema's list, which the
+ * answer then replaces; without this, that is a list moving away from the
+ * value, and the value is lost. How soon the answer lands depends on the
+ * environment, which is why the corpus parity run found it only with a DOM.
+ *
  * The options an options widget gets: the schema's, narrowed or replaced by
  * an `AllowedOptions` expression when the definition carries one. A
  * `FormProp`, so a data-driven list re-filters as the data moves.
@@ -213,10 +230,7 @@ const builtins: Builtin[] = [
         onClick={onClick}
         hidden={props.hidden}
         disabled={props.disabled}
-        className={props.className}
-        shellClassName={props.shellClassName}
-        textClassName={props.textClassName}
-        variant={actionVariantOf(def.actionStyle)}
+        look={actionLooks(def.actionStyle, props.look)}
         icon={def.icon?.name ? icon(def.icon) : undefined}
         iconPlacement={
           def.iconPlacement === "AfterText"
@@ -254,7 +268,7 @@ const builtins: Builtin[] = [
           defaultOpen={def.groupOptions?.defaultExpanded === true}
           open={stateRef ? (resolveField(stateRef) as Control<boolean> | undefined) : undefined}
           hidden={props.hidden}
-          className={props.className}
+          look={props.look}
         >
           {body}
         </Disclosure>
@@ -272,7 +286,7 @@ const builtins: Builtin[] = [
     ownsChildren: true,
     render: ({ def, props, retranslate }) => (
       <DialogGroup
-        className={props.className}
+        look={props.look}
         // Read here, at translate time, so the unread audit sees it.
         title={
           typeof def.groupOptions?.title === "string"
@@ -298,9 +312,7 @@ const builtins: Builtin[] = [
             (dynamicValue("Display") as FormProp<ReactNode> | undefined) ?? text
           }
           hidden={props.hidden}
-          className={props.className}
-          shellClassName={props.shellClassName}
-          textClassName={props.textClassName}
+          look={props.look}
         />
       );
     },
@@ -316,9 +328,7 @@ const builtins: Builtin[] = [
             (dynamicValue("Display") as FormProp<string> | undefined) ?? html
           }
           hidden={props.hidden}
-          className={props.className}
-          shellClassName={props.shellClassName}
-          textClassName={props.textClassName}
+          look={props.look}
         />
       );
     },
@@ -335,9 +345,7 @@ const builtins: Builtin[] = [
           icon={ref?.name ? icon(ref, iconClass) : undefined}
           accessibleName={tooltipOf(def)}
           hidden={props.hidden}
-          className={props.className}
-          shellClassName={props.shellClassName}
-          textClassName={props.textClassName}
+          look={props.look}
         />
       );
     },
@@ -383,10 +391,7 @@ const builtins: Builtin[] = [
         hidden: props.hidden,
         disabled: props.disabled,
         title: props.label,
-        className: props.className,
-        shellClassName: props.shellClassName,
-        labelClassName: props.labelClassName,
-        labelTextClassName: props.labelTextClassName,
+        look: props.look,
       };
       // A compound is data too: legacy defaulted it (`{}` on a hidden-then-
       // shown section, so its children have an object to bind into). A
@@ -467,7 +472,7 @@ const builtins: Builtin[] = [
                   <Action
                     actionId={removeActionId}
                     text={removeText}
-                    variant="secondary"
+                    look="secondary"
                     disabled={!actions.canRemove}
                     onClick={() => actions.remove(index)}
                   />
@@ -550,10 +555,8 @@ const builtins: Builtin[] = [
       return (
         <RadioField
           {...props}
+          restrictToOptions={false}
           options={optionsFor(schema, dynamicValue)}
-          entryClassName={toClassValue(ro.entryWrapperClass as string)}
-          selectedClassName={toClassValue(ro.selectedClass as string)}
-          notSelectedClassName={toClassValue(ro.notSelectedClass as string)}
         >
           {hasChildren ? childrenFor : undefined}
         </RadioField>
@@ -569,7 +572,11 @@ const builtins: Builtin[] = [
     renderTypes: ["Standard", "Dropdown"],
     dynamics: ["AllowedOptions"],
     render: ({ props, schema, dynamicValue }) => (
-      <SelectField {...props} options={optionsFor(schema, dynamicValue)} />
+      <SelectField
+        {...props}
+        restrictToOptions={false}
+        options={optionsFor(schema, dynamicValue)}
+      />
     ),
   },
   {
@@ -602,7 +609,7 @@ const builtins: Builtin[] = [
           children: children[i],
         }))}
         hidden={props.hidden}
-        className={props.className}
+        look={props.look}
       />
     ),
   },
@@ -617,10 +624,7 @@ const builtins: Builtin[] = [
         hidden={props.hidden}
         disabled={props.disabled}
         title={props.label}
-        className={props.className}
-        shellClassName={props.shellClassName}
-        labelClassName={props.labelClassName}
-        labelTextClassName={props.labelTextClassName}
+        look={props.look}
       >
         {children}
       </InlineGroup>
@@ -638,10 +642,7 @@ const builtins: Builtin[] = [
         hidden={props.hidden}
         disabled={props.disabled}
         title={props.label}
-        className={props.className}
-        shellClassName={props.shellClassName}
-        labelClassName={props.labelClassName}
-        labelTextClassName={props.labelTextClassName}
+        look={props.look}
         layout={flexLayout(def.groupOptions ?? {})}
       >
         {children}
@@ -656,10 +657,7 @@ const builtins: Builtin[] = [
         hidden={props.hidden}
         disabled={props.disabled}
         title={props.label}
-        className={props.className}
-        shellClassName={props.shellClassName}
-        labelClassName={props.labelClassName}
-        labelTextClassName={props.labelTextClassName}
+        look={props.look}
       >
         {children}
       </Contents>
@@ -687,6 +685,7 @@ function buildProps(
   hostAdornments: Set<string>,
   icon: IconTranslator,
   displayText: DisplayTextTranslator | undefined,
+  derive: ((name: string, parts: ClassLook) => void) | undefined,
 ): FieldProps<any> {
   const asText = (v: unknown, where: "title" | "help"): ReactNode =>
     displayText && typeof v === "string" ? displayText(v, where) : (v as ReactNode);
@@ -845,6 +844,25 @@ function buildProps(
     def.type === "Data" &&
     schema?.type !== "Compound" &&
     !schema?.collection;
+  // The class slots become a look: the form carries its name and brings what it draws (see
+  // `TranslateResult.looks`). Read here so they never look unread.
+  const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
+  const derived = legacyLook(
+    def.type,
+    {
+      styleClass: def.styleClass,
+      textClass: def.textClass,
+      layoutClass: def.layoutClass,
+      labelClass: def.labelClass,
+      labelTextClass: def.labelTextClass,
+      entryWrapperClass: ro.entryWrapperClass,
+      selectedClass: ro.selectedClass,
+      notSelectedClass: ro.notSelectedClass,
+    },
+    labelled,
+  );
+  if (derived) derive?.(derived.name, derived.parts);
+  const look = derived?.name;
   return {
     field: control,
     label:
@@ -869,11 +887,7 @@ function buildProps(
     dontClearHidden: def.dontClearHidden ?? undefined,
     defaultValue,
     validate: Object.keys(validate).length ? validate : undefined,
-    className: toClassValue(def.styleClass),
-    textClassName: toClassValue(def.textClass),
-    shellClassName: toClassValue(def.layoutClass),
-    labelClassName: labelled ? toClassValue(def.labelClass) : undefined,
-    labelTextClassName: labelled ? toClassValue(def.labelTextClass) : undefined,
+    look,
   };
 }
 
@@ -1032,7 +1046,7 @@ function unreadDeep(
 /**
  * The other blind spot: a definition property that
  * `buildProps` *reads* — and so counts as seen — into a prop the translator
- * then never passes on. A group's `layoutClass` became `shellClassName`, and
+ * then never passes on. A group's `layoutClass` became a prop, and
  * every group translator dropped it, silently. So the props handed to a
  * translator are recorded too, and a prop that was built from something and
  * never read is reported against the property it was built from. `field` is
@@ -1052,11 +1066,7 @@ const propSources: Record<string, (keyof AnyDef)[]> = {
   helpPlacement: ["adornments"],
   startIcon: ["adornments"],
   endIcon: ["adornments"],
-  className: ["styleClass"],
-  textClassName: ["textClass"],
-  shellClassName: ["layoutClass"],
-  labelClassName: ["labelClass"],
-  labelTextClassName: ["labelTextClass"],
+  look: ["styleClass", "textClass", "layoutClass", "labelClass", "labelTextClass"],
 };
 
 function recordingProps<T extends object>(props: T, read: Set<string>): T {
@@ -1124,8 +1134,18 @@ function formatFor(
   }
 }
 
-function actionVariantOf(s: AnyDef["actionStyle"]) {
+function actionLookOf(s: AnyDef["actionStyle"]) {
   return s === "Secondary" ? "secondary" : s === "Link" ? "link" : "primary";
+}
+
+/**
+ * An action's looks: the emphasis its `actionStyle` names, and the look the
+ * host gave its class slots (the loader builds that as a plain name), layered
+ * over it.
+ */
+function actionLooks(s: AnyDef["actionStyle"], look: FieldProps<any>["look"]) {
+  const emphasis = actionLookOf(s);
+  return typeof look === "string" ? [emphasis, look] : emphasis;
 }
 
 /**
@@ -1136,13 +1156,13 @@ function DialogGroup({
   title,
   placements,
   hidden,
-  className,
+  look,
   retranslate,
 }: {
   title?: string;
   placements: (string | null | undefined)[];
   hidden?: FormProp<boolean | undefined>;
-  className?: FormProp<ClassValue>;
+  look?: FieldProps<any>["look"];
   retranslate: (opts: Partial<LoaderOptions>) => ReactNode[];
 }) {
   const ctx = useControlContext();
@@ -1172,7 +1192,7 @@ function DialogGroup({
         onClose={() => ctx.update((wc) => wc.setValue(open, false))}
         title={title}
         hidden={hidden}
-        className={className}
+        look={look}
       >
         {kids.body}
       </Dialog>
@@ -1429,6 +1449,7 @@ export function translate(
     hostAdornments,
     icon,
     opts.displayText,
+    (opts as Internal)[DERIVE],
   );
 
   // The host's adornments, both phases. An entry that declines both — or
@@ -1576,13 +1597,22 @@ export function translateForm(
   fields: SchemaField[],
   controls: ControlDefinition[],
   opts: LoaderOptions,
-): { tree: ReactNode[]; warnings: LoaderWarning[] } {
+): { tree: ReactNode[]; warnings: LoaderWarning[]; looks: ClassLooks } {
   const warnings: LoaderWarning[] = [];
+  const looks: Record<string, ClassLook> = {};
+  // A collection translates its children again per element at render time, over definitions
+  // this walk has already seen, so the looks are all derived here.
+  const own: Internal = {
+    ...opts,
+    [DERIVE]: (name, parts) => {
+      looks[name] ??= parts;
+    },
+  };
   const root = rootScope(ctx, data, fields);
   const tree = controls.map((c, i) =>
-    translate(ctx, root, c, String(i), opts, (w) => warnings.push(w)),
+    translate(ctx, root, c, String(i), own, (w) => warnings.push(w)),
   );
-  return { tree, warnings };
+  return { tree, warnings, looks };
 }
 
 /**
@@ -1647,7 +1677,7 @@ function ArrayAdd({
     <Action
       actionId={actionId}
       text={text}
-      variant="primary"
+      look="primary"
       hidden={hidden}
       disabled={!actions.canAdd}
       onClick={() => actions.add(value)}

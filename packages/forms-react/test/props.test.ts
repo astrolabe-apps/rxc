@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createControlContext, untrackedRead } from "@rx-controls/core";
-import { combineClass, getProp, mergeClass } from "../src/index";
+import {
+  combineClass,
+  getProp,
+  lookNames,
+  resolveColor,
+  resolveStyleTokens,
+  splitPortableStyle,
+} from "../src/index";
 
 describe("getProp", () => {
   const ctx = createControlContext();
@@ -19,17 +26,39 @@ describe("getProp", () => {
   });
 });
 
-describe("mergeClass", () => {
-  it("appends a string to the implementation's own class", () => {
-    expect(mergeClass("own", "extra")).toBe("own extra");
+describe("looks", () => {
+  it("lists a look's names in layering order, whether one or several", () => {
+    expect(lookNames("card")).toEqual(["card"]);
+    expect(lookNames(["primary", "wide"])).toEqual(["primary", "wide"]);
+    expect(lookNames(undefined)).toEqual([]);
   });
-  it("replaces it with { replace }", () => {
-    expect(mergeClass("own", { replace: "mine" })).toBe("mine");
+
+  it("resolves a colour token, with an optional tint, and drops one the theme lacks", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const colors = { accent: "#ff0000", short: "#0f0" };
+    expect(resolveColor("#123456", colors)).toBe("#123456");
+    expect(resolveColor("$accent", colors)).toBe("#ff0000");
+    expect(resolveColor("$accent/50", colors)).toBe("rgba(255, 0, 0, 0.5)");
+    expect(resolveColor("$short/10", colors)).toBe("rgba(0, 255, 0, 0.1)");
+    expect(resolveColor("$nope", colors)).toBeUndefined();
+    expect(resolveColor("$nope", colors)).toBeUndefined();
+    // reported once, not per use
+    expect(warn.mock.calls).toHaveLength(1);
+    warn.mockRestore();
   });
-  it("keeps the own class when nothing is given, and drops empties", () => {
-    expect(mergeClass("own", undefined)).toBe("own");
-    expect(mergeClass(undefined, "")).toBeUndefined();
-    expect(mergeClass("", "x")).toBe("x");
+
+  it("resolves the colours in a style and leaves the rest alone", () => {
+    expect(
+      resolveStyleTokens({ color: "$accent", padding: 4, borderColor: "#abc" }, { accent: "#112233" }),
+    ).toEqual({ color: "#112233", padding: 4, borderColor: "#abc" });
+  });
+
+  it("splits a style into what styles the box and what styles the words", () => {
+    expect(splitPortableStyle({ padding: 4, color: "red", fontSize: 12, gap: 2 })).toEqual({
+      box: { padding: 4, gap: 2 },
+      text: { color: "red", fontSize: 12 },
+    });
+    expect(splitPortableStyle(undefined)).toEqual({ box: {}, text: {} });
   });
 });
 

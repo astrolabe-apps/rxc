@@ -193,7 +193,7 @@ export interface FormRenderersProps {
    *   contents: (p: GroupRenderProps) => (
    *     <outer.contents
    *       {...p}
-   *       shellClassName={p.kind === "section" ? combineClass(p.shellClassName, "border") : p.shellClassName}
+   *       look={p.kind === "section" ? ["card", ...lookNames(p.look)] : p.look}
    *     />
    *   ),
    * });

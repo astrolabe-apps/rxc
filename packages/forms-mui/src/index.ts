@@ -6,9 +6,9 @@
 
 export { muiRenderers } from "./mui.js";
 export {
-  MuiVariantsProvider,
-  type MuiGroupVariant,
+  MuiLooksProvider,
+  type MuiGroupLook,
   type MuiStyle,
-  type MuiVariants,
-  type MuiVariantsProviderProps,
-} from "./variants.js";
+  type MuiLooks,
+  type MuiLooksProviderProps,
+} from "./looks.js";

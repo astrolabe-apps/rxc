@@ -50,7 +50,6 @@ import {
   fieldLabelId,
   fieldHelpId,
   getProp,
-  mergeClass,
   useFieldShell,
   useDisplayValue,
   type DisplayOnlyRenderProps,
@@ -81,8 +80,9 @@ import {
   type DialogRenderProps,
   type DisclosureRenderProps,
   type TextFieldRenderProps,
-  combineClass,
-  warnUnknownVariant,
+  type PortableStyle,
+  lookNames,
+  type LookRef,
   type RichTextRenderProps,
   helpButtonName,
   type ImageDisplayRenderProps,
@@ -91,6 +91,9 @@ import {
   ContentsRegion,
   RichTextDom,
   ImageDom,
+  useLastLook,
+  pickLook,
+  lookAttr,
   Inline,
   ElementsList,
   DefaultVisibility,
@@ -103,8 +106,10 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  portableCss,
 } from "@rx-controls/forms-html/shared";
-import { useFluentVariants } from "./variants.js";
+import { useHtmlTheme } from "@rx-controls/forms-html";
+import { useFluentLooks } from "./looks.js";
 
 // ── Root: inherit the host's theme ────────────────────────────────────
 //
@@ -132,9 +137,16 @@ function FluentRoot({ children }: { children: ReactNode }) {
 // would point at an id of its own. The contract's ids are the shell's to
 // render, so the context is cut and the ids go on Field's own slots.
 
+/** A portable style as inline CSS, its colour tokens from the html theme. */
+function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
+  const { tokens } = useHtmlTheme();
+  return (s) => portableCss(s, tokens.colors);
+}
+
 function FluentFieldShell(p: FieldShellProps) {
+  const css = useCss();
   const labelText = (
-    <span className={mergeClass(undefined, p.labelTextClassName)}>
+    <span>
       {p.label}
     </span>
   );
@@ -150,7 +162,7 @@ function FluentFieldShell(p: FieldShellProps) {
   return (
     <Field
       orientation={p.orientation}
-      className={mergeClass(undefined, p.className)}
+      style={css(p.style)}
       label={
         p.labelPosition === "after" || p.label == null || p.hideLabel
           ? undefined
@@ -161,7 +173,6 @@ function FluentFieldShell(p: FieldShellProps) {
               htmlFor: p.labelAs === "legend" ? undefined : p.id,
               required: p.required,
               disabled: p.disabled,
-              className: mergeClass(undefined, p.labelClassName),
               children: labelEnd
                 ? (_: unknown, props: object) => (
                     <InfoLabel
@@ -259,7 +270,6 @@ function FluentFieldShell(p: FieldShellProps) {
             id={fieldLabelId(p.id)}
             required={p.required}
             disabled={p.disabled}
-            className={mergeClass(undefined, p.labelClassName)}
           >
             {labelText}
           </Label>
@@ -285,6 +295,7 @@ function FluentFieldShell(p: FieldShellProps) {
 // `aria-invalid` on the slot's *props*, so it goes there as well.
 
 function FluentInputFrame(p: InputFrameProps) {
+  const css = useCss();
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -315,12 +326,11 @@ function FluentInputFrame(p: InputFrameProps) {
       return p.render(props, state);
     },
   };
-  const className = mergeClass(undefined, p.className);
   if (p.multiline) {
     // Textarea has no content slots: adornments sit beside it.
     const area = (
       <Textarea
-        className={className}
+        style={css(p.style)}
         disabled={p.disabled}
         resize="vertical"
         textarea={control as never}
@@ -338,7 +348,7 @@ function FluentInputFrame(p: InputFrameProps) {
   }
   return (
     <Input
-      className={className}
+      style={css(p.style)}
       disabled={p.disabled}
       contentBefore={p.start !== undefined ? <>{slot(p.start)}</> : undefined}
       contentAfter={p.end !== undefined ? <>{slot(p.end)}</> : undefined}
@@ -375,9 +385,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
@@ -391,7 +399,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
+        style={p.style}
         render={(slot, s) => {
           const common = {
             ...slot,
@@ -419,6 +427,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
 }
 
 function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, spaced as Fluent spaces an
@@ -440,8 +449,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const text = (
     <Text
       id={p.id}
-      className={mergeClass(undefined, p.className ?? p.textClassName)}
-      style={p.noSelection ? { userSelect: "none" } : undefined}
+      style={{ ...(p.noSelection ? { userSelect: "none" } : undefined), ...css(p.style) }}
     >
       {icon(p.startIcon, "start")}
       {ctl.content}
@@ -461,7 +469,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
+      style={p.shellStyle}
     >
       {text}
     </Shell>,
@@ -500,7 +508,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
+      style={p.shellStyle}
     >
       <Checkbox
         ref={ctl.elementRef}
@@ -519,6 +527,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
 
 /** Fluent has no checkbox group: its checkboxes in a labelled `role="group"`. */
 function FluentCheckList(p: CheckListRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -537,17 +546,14 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <div
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        className={mergeClass(undefined, p.className)}
-        style={{ display: "flex", flexDirection: "column" }}
+        style={{ ...({ display: "flex", flexDirection: "column" }), ...css(p.style) }}
       >
         {ctl.options.map((o, i) => (
           <Checkbox
@@ -567,6 +573,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
 
 /** Fluent's `Select` is a native `<select>`: the string round-trip for free. */
 function FluentSelect(p: SelectRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -582,15 +589,13 @@ function FluentSelect(p: SelectRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <BesideSelect start={p.startIcon} end={p.endIcon}>
         <Select
           ref={ctl.elementRef}
           id={p.id}
-          className={mergeClass(undefined, p.className)}
+          style={css(p.style)}
           aria-describedby={describedBy(p)}
           aria-invalid={p.error ? true : undefined}
           aria-required={p.required || undefined}
@@ -613,18 +618,11 @@ function FluentSelect(p: SelectRenderProps): Rendered {
 }
 
 function FluentRadio(p: RadioRenderProps): Rendered {
+  const css = useCss();
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
-  const entryCls = getProp(ctl.rc, p.entryClassName);
-  const onCls = getProp(ctl.rc, p.selectedClassName);
-  const offCls = getProp(ctl.rc, p.notSelectedClassName);
   const locked = ctl.state.disabled || ctl.state.readOnly;
-  const entryClass = (selected: boolean) =>
-    mergeClass(
-      mergeClass("rxf-radio-entry", entryCls),
-      selected ? onCls : offCls,
-    );
   return ctl.rendered(
     <Shell
       widget="radio"
@@ -638,9 +636,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      style={p.shellStyle}
     >
       <RadioGroup
         name={p.id}
@@ -651,12 +647,12 @@ function FluentRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue}
         onChange={(_, d) => ctl.setFromString(d.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
       >
         {ctl.options.map((o, i) => {
           const selected = ctl.stringValue === String(o.value);
           return (
-            <div key={keys[i]} className={entryClass(selected)}>
+            <div key={keys[i]} className="rxf-radio-entry">
               <Radio
                 ref={i === 0 ? ctl.elementRef : undefined}
                 value={String(o.value)}
@@ -681,11 +677,12 @@ function FluentRadio(p: RadioRenderProps): Rendered {
  * Fluent wires no `aria-controls`, so the tab ↔ panel ids are drawn here.
  */
 function FluentTabs(p: TabsRenderProps) {
+  const css = useCss();
   const id = useId();
   const tabId = (key: string) => `${id}-tab-${key}`;
   const panelId = (key: string) => `${id}-panel-${key}`;
   return (
-    <div className={mergeClass(undefined, p.className)} hidden={p.hidden || undefined}>
+    <div style={css(p.style)} hidden={p.hidden || undefined}>
       <TabList
         selectedValue={p.activeKey}
         onTabSelect={(_, d) => p.setActive(String(d.value))}
@@ -731,19 +728,22 @@ function FluentTabs(p: TabsRenderProps) {
 const emphasis = { primary: "primary", secondary: "secondary", link: "transparent" } as const;
 
 function FluentAction(p: ActionRenderProps) {
+  const css = useCss();
   const replace = p.iconPlacement === "replace";
   const icon = p.busy ? <Spinner size="extra-tiny" /> : p.icon;
-  const lookup = useFluentVariants().action?.[p.variant];
-  const builtin = emphasis[p.variant as keyof typeof emphasis];
-  if (!builtin && !lookup) warnUnknownVariant("action", p.variant);
+  const lookup = useLastLook("action", p.look, useFluentLooks().action, (n) => n in emphasis);
+  const builtin = lookNames(p.look)
+    .map((n) => emphasis[n as keyof typeof emphasis])
+    .filter(Boolean)
+    .pop();
   return (
-    <DisplayShell shellClassName={p.shellClassName} inline={true} kind="action">
+    <DisplayShell inline={true} kind="action" style={css(p.shellStyle)}>
       <Button
         appearance={builtin ?? "secondary"}
         size="small"
         {...lookup}
-        data-variant={p.variant}
-        className={mergeClass(undefined, p.className)}
+        data-look={lookAttr(p.look)}
+        style={css(p.style)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         icon={icon == null ? undefined : <>{icon}</>}
@@ -760,7 +760,7 @@ function FluentAction(p: ActionRenderProps) {
         {replace
           ? null
           : (p.children ?? (
-              <span className={mergeClass(undefined, p.textClassName)}>
+              <span>
                 {p.text}
               </span>
             ))}
@@ -774,10 +774,10 @@ function FluentAction(p: ActionRenderProps) {
  * for a form section rather than by the outline's level — the top level takes
  * `subtitle1`, anything deeper `subtitle2`.
  */
-/** The image as DOM, a variant's style from the provider. */
+/** The image as DOM, a look's style from the provider. */
 function FluentImage(p: ImageDisplayRenderProps) {
-  const images = useFluentVariants().image;
-  return <ImageDom {...p} shellStyle={toneStyle(p.tone)} variantStyle={(v) => images?.[v]} />;
+  const images = useFluentLooks().image;
+  return <ImageDom {...p} toneStyle={toneStyle(p.tone)} lookStyle={(v) => images?.[v]} />;
 }
 
 /** Rich text as DOM, its links Fluent's own. */
@@ -795,17 +795,17 @@ function FluentRichText(p: RichTextRenderProps) {
 }
 
 function FluentInline(p: GroupRenderProps) {
-  const group = useFluentVariants().group;
-  return <Inline {...p} variantStyle={p.variant === undefined ? undefined : group?.[p.variant]} />;
+  const group = useFluentLooks().group;
+  return <Inline {...p} lookStyle={pickLook(p.look, group)} />;
 }
 
 function FluentContents(p: GroupRenderProps) {
   const top = (p.headingLevel ?? 2) <= 2;
-  const group = useFluentVariants().group;
+  const group = useFluentLooks().group;
   return (
     <ContentsRegion
       {...p}
-      variantStyle={p.variant === undefined ? undefined : group?.[p.variant]}
+      lookStyle={pickLook(p.look, group)}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -835,28 +835,24 @@ function toneStyle(tone: Tone | undefined): CSSProperties | undefined {
 }
 
 function FluentText(p: TextDisplayRenderProps) {
+  const css = useCss();
   const { rc, rendered } = useReactive();
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
-  const variants = useFluentVariants().text;
-  const variant = getProp(rc, p.variant);
-  const { style: lookStyle, ...look } = (variant === undefined ? undefined : variants?.[variant]) ?? {};
-  if (variant !== undefined && !variants?.[variant]) warnUnknownVariant("text", variant);
+  const { style: lookStyle, ...look } = useLastLook("text", p.look, useFluentLooks().text) ?? {};
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(content)}
-      style={toneStyle(p.tone)}
+      style={{ ...toneStyle(p.tone), ...css(p.shellStyle) }}
     >
       <Text
         {...look}
-        className={mergeClass(undefined, p.className)}
         // Fluent's Text sets its own colour; inherit the shell's tone.
-        style={{
+        style={{ ...({
           ...(heading
             ? {
                 display: "block",
@@ -866,11 +862,11 @@ function FluentText(p: TextDisplayRenderProps) {
             : {}),
           ...lookStyle,
           ...(p.tone ? { color: "inherit" } : {}),
-        }}
-        data-variant={variant}
+        }), ...css(p.style) }}
+        data-look={lookAttr(p.look)}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
-        <span className={mergeClass(undefined, p.textClassName)}>
+        <span>
           {content}
         </span>
       </Text>
@@ -879,33 +875,26 @@ function FluentText(p: TextDisplayRenderProps) {
 }
 
 function FluentIcon(p: IconDisplayRenderProps) {
+  const css = useCss();
   const { rc, rendered } = useReactive();
-  const icons = useFluentVariants().icon;
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : icons?.[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
+  const look = useLastLook("icon", p.look, useFluentLooks().icon);
   const glyph = (
     <span
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(
-        undefined,
-        combineClass(p.className, p.textClassName),
-      )}
-      data-variant={variant}
-      style={{ fontSize: 24, lineHeight: 1, ...look }}
+      data-look={lookAttr(p.look)}
+      style={{ ...({ fontSize: 24, lineHeight: 1, ...look }), ...css(p.style) }}
     >
       {getProp(rc, p.icon)}
     </span>
   );
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={true}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly}
-      style={toneStyle(p.tone)}
+      style={{ ...toneStyle(p.tone), ...css(p.shellStyle) }}
     >
       {p.accessibleName ? (
         // The glyph is already named; a labelling tooltip would name it twice.
@@ -920,23 +909,19 @@ function FluentIcon(p: IconDisplayRenderProps) {
 }
 
 function FluentHtml(p: HtmlDisplayRenderProps) {
+  const css = useCss();
   const { rc, rendered } = useReactive();
   const html = getProp(rc, p.html);
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(html)}
-      style={toneStyle(p.tone)}
+      style={{ ...toneStyle(p.tone), ...css(p.shellStyle) }}
     >
       <div
-        className={mergeClass(
-          undefined,
-          combineClass(p.className, p.textClassName),
-        )}
-        style={{ ...typographyStyles.body1, ...(p.tone ? { color: "inherit" } : undefined) }}
+        style={{ ...({ ...typographyStyles.body1, ...(p.tone ? { color: "inherit" } : undefined) }), ...css(p.style) }}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
@@ -1001,14 +986,14 @@ function FluentWizard(p: WizardRenderProps) {
           <Action
             actionId={StandardActionIds.back}
             text="Back"
-            variant="secondary"
+            look="secondary"
             disabled={!p.canBack}
             onClick={p.back}
           />
           <Action
             actionId={StandardActionIds.next}
             text="Next"
-            variant="primary"
+            look="primary"
             disabled={!p.canNext}
             onClick={p.next}
           />
@@ -1025,10 +1010,10 @@ function FluentWizard(p: WizardRenderProps) {
  * closed — mounted, which is what `silent` needs.
  */
 function FluentDisclosure(p: DisclosureRenderProps) {
+  const css = useCss();
   return (
     <div
-      className={mergeClass(undefined, p.className)}
-      style={p.hidden ? { display: "none" } : undefined}
+      style={{ ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
       data-invalid={p.invalid ? "" : undefined}
     >
       <Button
@@ -1066,6 +1051,7 @@ function FluentDisclosure(p: DisclosureRenderProps) {
  * start validating, on the client.
  */
 function FluentDialog(p: DialogRenderProps) {
+  const css = useCss();
   const opener = useRef<Element | null>(null);
   const wasOpen = useRef(p.open);
   // Set on the element: Fluent filters `inert` out of the surface's props.
@@ -1090,12 +1076,11 @@ function FluentDialog(p: DialogRenderProps) {
   if (p.inline)
     return (
       <div
-        className={mergeClass(undefined, p.className)}
-        style={{
+        style={{ ...({
           border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
           borderRadius: tokens.borderRadiusLarge,
           padding: tokens.spacingHorizontalL,
-        }}
+        }), ...css(p.style) }}
       >
         {p.title && (
           <div style={{ ...typographyStyles.subtitle2, marginBottom: tokens.spacingVerticalS }}>
@@ -1118,7 +1103,7 @@ function FluentDialog(p: DialogRenderProps) {
     >
       <DialogSurface
         ref={surface}
-        className={mergeClass(undefined, p.className)}
+        style={css(p.style)}
       >
         <DialogBody>
           {p.title && <DialogTitle>{p.title}</DialogTitle>}
@@ -1127,7 +1112,7 @@ function FluentDialog(p: DialogRenderProps) {
             <Action
               actionId={StandardActionIds.close}
               text="Close"
-              variant="secondary"
+              look="secondary"
               onClick={p.onClose}
             />
           </DialogActions>

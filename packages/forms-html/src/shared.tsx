@@ -21,7 +21,6 @@ import {
   combineClass,
   describedBy,
   fieldRequiredId,
-  mergeClass,
   useFieldShell,
   type ClassValue,
   type CollectionRenderProps,
@@ -30,7 +29,13 @@ import {
   type FlexLayout,
   type Tone,
   type VisibilityProps,
-  warnUnknownVariant,
+  warnUnknownLook,
+  lookNames,
+  useFormLooks,
+  type LookRef,
+  type PortableStyle,
+  resolveStyleTokens,
+  splitPortableStyle,
   drawRichText,
   type RichTextParts,
   type RichTextRenderProps,
@@ -41,7 +46,7 @@ import { useReactive } from "@rx-controls/react";
 import {
   defaultHtmlTheme,
   useHtmlTheme,
-  type GroupVariantClasses,
+  type HtmlLook,
   type HtmlTheme,
 } from "./theme.js";
 
@@ -114,10 +119,10 @@ export function FadeVisibility({ visible, children }: VisibilityProps) {
 }
 
 /**
- * A group variant as styles, per element — what an implementation whose looks
- * are runtime tokens (MUI, Ant, Fluent) resolves a variant to.
+ * A group look as styles, per element — what an implementation whose looks
+ * are runtime tokens (MUI, Ant, Fluent) resolves a look to.
  */
-export interface GroupVariantStyle {
+export interface GroupLookStyle {
   /** On the wrapper around title and body. */
   wrapper?: CSSProperties;
   /** On the title. */
@@ -135,18 +140,167 @@ function withStyle(
 }
 
 /**
- * A group's variant, as the theme's classes or the implementation's styles —
+ * A look's classes, from the theme's `looks`, for the boundary `kind` — `undefined`
+ * for no look. A name the theme does not know is reported once in development,
+ * unless `styled`: the implementation resolves it to styles of its own.
+ */
+export function lookParts(
+  kind: string,
+  look: LookRef | undefined,
+  looks: HtmlTheme["looks"],
+  styled?: boolean,
+): HtmlLook | undefined {
+  let merged: HtmlLook | undefined;
+  for (const name of lookNames(look)) {
+    const parts = looks[name];
+    if (!parts) {
+      if (!styled) warnUnknownLook(kind, name);
+      continue;
+    }
+    // A later look over an earlier, part by part.
+    merged = merged ? layerLooks(merged, parts) : parts;
+  }
+  return merged;
+}
+
+const LOOK_PARTS = [
+  "shell",
+  "control",
+  "text",
+  "label",
+  "labelText",
+  "icon",
+  "entry",
+  "selected",
+  "notSelected",
+] as const;
+
+/** Two looks, the second over the first: each part's classes combined, a `{ replace }` winning. */
+function layerLooks(a: HtmlLook, b: HtmlLook): HtmlLook {
+  const out: HtmlLook = {};
+  for (const k of LOOK_PARTS) {
+    const v = combineClass(a[k], b[k]);
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
+/**
+ * The entry for the last of a look's names that `table` holds, without a word
+ * about the rest. A library implementation's looks are its own props, which
+ * do not layer the way classes do, so the later look wins whole.
+ */
+export function pickLook<T>(
+  look: LookRef | undefined,
+  table: Record<string, T> | undefined,
+): T | undefined {
+  let found: T | undefined;
+  for (const name of lookNames(look)) {
+    const v = table?.[name];
+    if (v !== undefined) found = v;
+  }
+  return found;
+}
+
+/**
+ * {@link pickLook}, reporting in development each name that none of `table`,
+ * `understood` (the three emphases an action always draws) or the looks the
+ * form brought with it (`useFormLooks`) knows. A form's own looks are classes,
+ * which a library implementation cannot draw — but it is not a mistake that it
+ * does not.
+ */
+export function useLastLook<T>(
+  kind: string,
+  look: LookRef | undefined,
+  table: Record<string, T> | undefined,
+  understood?: (name: string) => boolean,
+): T | undefined {
+  const form = useFormLooks();
+  for (const name of lookNames(look))
+    if (table?.[name] === undefined && !understood?.(name) && form[name] === undefined)
+      warnUnknownLook(kind, name);
+  return pickLook(look, table);
+}
+
+/** The names of a look, as the `data-look` attribute carries them. */
+export function lookAttr(look: LookRef | undefined): string | undefined {
+  const names = lookNames(look);
+  return names.length ? names.join(" ") : undefined;
+}
+
+/** Lengths in a style that scale with the user's font size, as legacy's `rem` classes did. */
+const REM_KEYS: ReadonlySet<string> = new Set(["fontSize", "lineHeight", "letterSpacing"]);
+const SIDES: Record<string, [string, string]> = {
+  marginHorizontal: ["marginLeft", "marginRight"],
+  marginVertical: ["marginTop", "marginBottom"],
+  paddingHorizontal: ["paddingLeft", "paddingRight"],
+  paddingVertical: ["paddingTop", "paddingBottom"],
+};
+
+/**
+ * A {@link PortableStyle} as an inline style: colour tokens resolved against
+ * the theme's `colors`; a number a length in px, but `rem` for the font
+ * properties (so the user's font size still scales text, as React Native's
+ * does); React Native's `*Horizontal` / `*Vertical` shorthands expanded; a
+ * border with a width and no style drawn solid, as React Native's is; and
+ * `border-box`, so a width plus padding means the same on both.
+ *
+ * @group Theming
+ */
+export function portableCss(
+  style: PortableStyle | undefined,
+  colors: Record<string, string>,
+): CSSProperties | undefined {
+  if (!style) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(resolveStyleTokens(style, colors))) {
+    if (SIDES[k]) for (const side of SIDES[k]) out[side] = v;
+    else out[k] = REM_KEYS.has(k) && typeof v === "number" ? `${v / 16}rem` : v;
+  }
+  if (!Object.keys(out).length) return undefined;
+  if (Object.keys(out).some((k) => /^border(Top|Right|Bottom|Left)?Width$/.test(k)) && out.borderStyle === undefined)
+    out.borderStyle = "solid";
+  out.boxSizing = "border-box";
+  return out as CSSProperties;
+}
+
+/** A style's box properties and its text properties, each as an inline style. */
+export function portableCssSplit(
+  style: PortableStyle | undefined,
+  colors: Record<string, string>,
+): { box: CSSProperties | undefined; text: CSSProperties | undefined } {
+  const { box, text } = splitPortableStyle(style);
+  return { box: portableCss(box, colors), text: portableCss(text, colors) };
+}
+
+/**
+ * A slot's own classes with a look's parts laid over them, in order: a
+ * string part is added; a `{ replace }` part stands in for what came before
+ * it, the slot's own classes included. The author's class goes over the
+ * result through {@link mergeClass}.
+ */
+export function lookClass(
+  base: string | undefined,
+  ...parts: (ClassValue | undefined)[]
+): string | undefined {
+  let out = base;
+  for (const p of parts) {
+    if (p === undefined) continue;
+    out = typeof p === "object" ? p.replace : [out, p].filter(Boolean).join(" ");
+  }
+  return out || undefined;
+}
+
+/**
+ * A group's look, as the theme's classes or the implementation's styles —
  * reported once in development when neither names it.
  */
-function useGroupVariant(
-  variant: string | undefined,
-  variants: Record<string, GroupVariantClasses>,
-  style: GroupVariantStyle | undefined,
-): { classes?: GroupVariantClasses; style?: GroupVariantStyle } {
-  if (variant === undefined) return {};
-  const classes = variants[variant];
-  if (!classes && !style) warnUnknownVariant("group", variant);
-  return { classes, style };
+function useGroupLook(
+  look: LookRef | undefined,
+  looks: HtmlTheme["looks"],
+  style: GroupLookStyle | undefined,
+): { classes?: HtmlLook; style?: GroupLookStyle } {
+  return { classes: lookParts("group", look, looks, !!style), style };
 }
 
 /** Join class names, skipping the empty and the false. */
@@ -167,10 +321,8 @@ function cat(...cs: (string | false | undefined)[]): string {
  */
 export function ContentsRegion({
   title,
-  className,
-  shellClassName,
-  labelClassName,
-  labelTextClassName,
+  style: authorStyle,
+  shellStyle,
   hidden,
   invalid,
   layout,
@@ -178,19 +330,22 @@ export function ContentsRegion({
   headingLevel,
   children,
   kind,
-  variant,
+  look: lookName,
   classes = defaultHtmlTheme.contents,
+  looks: looksProp,
   titleStyle,
   layoutStyle,
-  variantStyle,
+  lookStyle,
 }: GroupRenderProps & {
   classes?: HtmlTheme["contents"];
+  /** The theme's looks. */
+  looks?: HtmlTheme["looks"];
   /**
-   * The variant's look as styles, for an implementation whose looks are
-   * runtime tokens rather than classes — passed only when it names this
-   * variant, so a variant neither it nor `classes.variants` knows is reported.
+   * The look as styles, for an implementation whose looks are runtime tokens
+   * rather than classes — passed only when it names this look, so a look
+   * neither it nor `looks` knows is reported.
    */
-  variantStyle?: GroupVariantStyle;
+  lookStyle?: GroupLookStyle;
   /** The title's typography, for an implementation whose styles are runtime tokens. */
   titleStyle?: CSSProperties;
   /**
@@ -201,10 +356,12 @@ export function ContentsRegion({
   layoutStyle?: CSSProperties;
 }) {
   const section = kind === "section";
-  const look = useGroupVariant(variant, classes.variants, variantStyle);
-  // The author's className is the body's layout: the theme's default only
-  // when there is none.
-  const ownLayout = className === undefined;
+  const htmlTheme = useHtmlTheme();
+  const looks = looksProp ?? htmlTheme.looks;
+  const look = useGroupLook(lookName, looks, lookStyle);
+  const colors = htmlTheme.tokens.colors;
+  // A look's `control` is the body's layout: the theme's default only when there is none.
+  const ownLayout = look.classes?.control === undefined;
   // With transitions off the region goes at once, whatever the theme
   // animates: the attribute, and no collapse.
   const mode = transitions ? classes.hideWith : "attribute";
@@ -214,10 +371,11 @@ export function ContentsRegion({
     <div
       role="heading"
       aria-level={headingLevel}
-      className={mergeClass(
-        cat(classes.title, section && classes.section.title, look.classes?.title),
-        combineClass(labelClassName, labelTextClassName),
-      )}
+      className={lookClass(
+          cat(classes.title, section && classes.section.title),
+          look.classes?.label,
+          look.classes?.labelText,
+        )}
       style={titleStyle || look.style?.title ? { ...titleStyle, ...look.style?.title } : undefined}
     >
       {title}
@@ -227,24 +385,22 @@ export function ContentsRegion({
   // attributes and not the tree.
   const body = (
     <div
-      className={mergeClass(
-        layout
-          ? classes.flexBody
-          : cat(
-              classes.body,
-              section && classes.section.body,
-              ownLayout && classes.layout,
-              look.classes?.body,
-            ),
-        className,
-      )}
+      className={lookClass(
+          layout
+            ? classes.flexBody
+            : cat(classes.body, section && classes.section.body, ownLayout && classes.layout),
+          look.classes?.control,
+        )}
       style={withStyle(
-        layout
-          ? flexStyle(layout, classes.flexGap)
-          : ownLayout
-            ? layoutStyle
-            : undefined,
-        look.style?.body,
+        withStyle(
+          layout
+            ? flexStyle(layout, classes.flexGap)
+            : ownLayout
+              ? layoutStyle
+              : undefined,
+          look.style?.body,
+        ),
+        portableCss(authorStyle, colors),
       )}
     >
       {children}
@@ -256,17 +412,16 @@ export function ContentsRegion({
   // A collapse is the one exception: it needs a single child to animate.
   return (
     <div
-      className={mergeClass(
-        cat(
-          classes.wrapper,
-          section && classes.section.wrapper,
-          mode === "collapse" && classes.collapse,
-          hidden && mode === "class" && classes.hidden,
-          look.classes?.wrapper,
-        ),
-        shellClassName,
-      )}
-      data-variant={variant}
+      className={lookClass(
+          cat(
+            classes.wrapper,
+            section && classes.section.wrapper,
+            mode === "collapse" && classes.collapse,
+            hidden && mode === "class" && classes.hidden,
+          ),
+          look.classes?.shell,
+        )}
+      data-look={lookAttr(lookName)}
       data-hidden={hidden ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
@@ -274,7 +429,7 @@ export function ContentsRegion({
       // from the wrapper's classes beats the attribute without preflight.
       hidden={(hidden && mode === "attribute") || undefined}
       style={withStyle(
-        look.style?.wrapper,
+        withStyle(look.style?.wrapper, portableCss(shellStyle, colors)),
         hidden && mode === "attribute" ? { display: "none" } : undefined,
       )}
     >
@@ -330,42 +485,48 @@ export function flexStyle(
  */
 export function Inline({
   title,
-  className,
-  shellClassName,
-  labelClassName,
-  labelTextClassName,
+  style: authorStyle,
+  shellStyle,
   hidden,
   children,
-  variant,
+  look: lookName,
   classes = defaultHtmlTheme.inline,
-  variantStyle,
+  looks: looksProp,
+  lookStyle,
 }: GroupRenderProps & {
   classes?: HtmlTheme["inline"];
+  /** The theme's looks. */
+  looks?: HtmlTheme["looks"];
   /** As {@link ContentsRegion}'s. */
-  variantStyle?: GroupVariantStyle;
+  lookStyle?: GroupLookStyle;
 }) {
-  const look = useGroupVariant(variant, classes.variants, variantStyle);
+  const htmlTheme = useHtmlTheme();
+  const looks = looksProp ?? htmlTheme.looks;
+  const look = useGroupLook(lookName, looks, lookStyle);
+  const colors = htmlTheme.tokens.colors;
   return (
     <span
-      className={mergeClass(cat(classes.wrapper, look.classes?.wrapper), shellClassName)}
-      style={look.style?.wrapper}
-      data-variant={variant}
+      className={lookClass(classes.wrapper, look.classes?.shell)}
+      style={withStyle(look.style?.wrapper, portableCss(shellStyle, colors))}
+      data-look={lookAttr(lookName)}
       data-hidden={hidden ? "" : undefined}
       inert={hidden || undefined}
       hidden={hidden || undefined}
     >
       {title !== undefined && title !== null && (
         <span
-          className={mergeClass(
-            cat(classes.title, look.classes?.title),
-            combineClass(labelClassName, labelTextClassName),
-          )}
+          className={lookClass(classes.title, look.classes?.label, look.classes?.labelText)}
           style={look.style?.title}
         >
           {title}{" "}
         </span>
       )}
-      <span className={mergeClass(undefined, className)}>{children}</span>
+      <span
+        className={lookClass(undefined, look.classes?.control)}
+        style={portableCss(authorStyle, colors)}
+      >
+        {children}
+      </span>
     </span>
   );
 }
@@ -477,7 +638,7 @@ export function DisplayShell({
   if (announce && regionOnly) return <Tag role={role} style={visuallyHiddenStyle} />;
   return (
     <Tag
-      className={mergeClass(
+      className={lookClass(
         cat(
           classes[kind],
           // One colour, by precedence, never two competing by CSS order: an
@@ -507,9 +668,16 @@ export function DisplayShell({
  * nothing.
  */
 export function ElementsList(
-  p: CollectionRenderProps<unknown> & { classes?: HtmlTheme["elements"] },
+  p: CollectionRenderProps<unknown> & {
+    classes?: HtmlTheme["elements"];
+    /** The theme's looks. */
+    looks?: HtmlTheme["looks"];
+  },
 ) {
   const classes = p.classes ?? defaultHtmlTheme.elements;
+  const htmlTheme = useHtmlTheme();
+  const look = lookParts("collection", p.look, p.looks ?? htmlTheme.looks);
+  const colors = htmlTheme.tokens.colors;
   const Shell = useFieldShell();
   return (
     <Shell
@@ -521,11 +689,13 @@ export function ElementsList(
       required={p.required}
       helpText={p.helpText}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
-      <div className={classes.className}>
+      <div
+        className={lookClass(classes.className, look?.control)}
+        style={portableCss(p.style, colors)}
+      >
         {p.elements.length ? p.elements.map((e) => e.node) : p.empty}
       </div>
     </Shell>
@@ -567,30 +737,30 @@ export function onFocusLeave(
 /**
  * A nesting context of named looks, for an implementation whose looks are
  * its library's props rather than classes (MUI, Ant, Fluent): one record of
- * variants per kind — `text`, `group`, `action` — and a provider that merges
- * a region's over the enclosing one's, a variant given replacing the one of
+ * looks per kind — `text`, `group`, `action` — and a provider that merges
+ * a region's over the enclosing one's, a look given replacing the one of
  * that name above it.
  */
-export function createVariantsContext<V extends object>(
+export function createLooksContext<V extends object>(
   name: string,
 ): {
-  Provider: (props: { variants: V; children: ReactNode }) => ReactNode;
-  useVariants: () => V;
+  Provider: (props: { looks: V; children: ReactNode }) => ReactNode;
+  useLooks: () => V;
 } {
   const Ctx = createContext<V>({} as V);
-  function Provider({ variants, children }: { variants: V; children: ReactNode }) {
+  function Provider({ looks, children }: { looks: V; children: ReactNode }) {
     const parent = useContext(Ctx);
     const merged = useMemo(() => {
       const above = parent as Record<string, object | undefined>;
       const out: Record<string, object | undefined> = { ...above };
-      for (const [k, v] of Object.entries(variants) as [string, object | undefined][])
+      for (const [k, v] of Object.entries(looks) as [string, object | undefined][])
         if (v) out[k] = { ...(above[k] ?? {}), ...v };
       return out as V;
-    }, [parent, variants]);
+    }, [parent, looks]);
     return <Ctx.Provider value={merged}>{children}</Ctx.Provider>;
   }
   Provider.displayName = name;
-  return { Provider, useVariants: () => useContext(Ctx) };
+  return { Provider, useLooks: () => useContext(Ctx) };
 }
 
 /**
@@ -690,37 +860,43 @@ function dimension(v: number | string | undefined): { attr?: number; style?: str
 export function ImageDom({
   classes = defaultHtmlTheme.image,
   displayShell,
-  variantStyle,
-  shellStyle,
+  looks: looksProp,
+  lookStyle,
+  toneStyle,
   ...p
 }: ImageDisplayRenderProps & {
   classes?: HtmlTheme["image"];
+  /** The theme's looks. */
+  looks?: HtmlTheme["looks"];
   displayShell?: HtmlTheme["displayShell"];
-  /** A variant's look as a style, for an implementation whose looks are tokens. */
-  variantStyle?: (variant: string) => CSSProperties | undefined;
+  /** A look as a style, for an implementation whose looks are tokens. */
+  lookStyle?: (look: string) => CSSProperties | undefined;
   /** The wrapper's style: a tone's colour from tokens. */
-  shellStyle?: CSSProperties;
+  toneStyle?: CSSProperties;
 }) {
   const { rc, rendered } = useReactive();
   const img = webImage(getProp(rc, p.source));
   const alt = getProp(rc, p.alt) ?? "";
   const fit = getProp(rc, p.fit);
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : classes.variants[variant];
-  const lookStyle = variant === undefined ? undefined : variantStyle?.(variant);
-  if (variant !== undefined && look === undefined && lookStyle === undefined)
-    warnUnknownVariant("image", variant);
+  const htmlTheme = useHtmlTheme();
+  const looks = looksProp ?? htmlTheme.looks;
+  const colors = htmlTheme.tokens.colors;
+  const lookName = p.look;
+  const styled = lookNames(lookName)
+    .map((n) => lookStyle?.(n))
+    .reduce<CSSProperties | undefined>((a, b) => (a && b ? { ...a, ...b } : (a ?? b)), undefined);
+  const look = lookParts("image", lookName, looks, styled !== undefined);
   const w = dimension(getProp(rc, p.width) ?? img.width);
   const h = dimension(getProp(rc, p.height) ?? (getProp(rc, p.width) === undefined ? img.height : undefined));
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
+      shellClassName={look?.shell}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || !img.src}
       classes={displayShell}
-      style={shellStyle}
+      style={withStyle(toneStyle, portableCss(p.shellStyle, colors))}
     >
       {img.src && (
         <img
@@ -728,8 +904,8 @@ export function ImageDom({
           alt={alt}
           width={w.attr}
           height={h.attr}
-          className={mergeClass(cat(classes.className, look), p.className)}
-          data-variant={variant}
+          className={lookClass(classes.className, look?.control)}
+          data-look={lookAttr(lookName)}
           style={{
             ...(w.style ? { width: w.style } : {}),
             ...(h.style ? { height: h.style } : {}),
@@ -737,7 +913,8 @@ export function ImageDom({
             // height on img says.
             ...(w.attr !== undefined && h.attr === undefined && !h.style ? { height: "auto" } : {}),
             ...(fit ? { objectFit: fit } : {}),
-            ...lookStyle,
+            ...styled,
+            ...portableCss(p.style, colors),
           }}
         />
       )}

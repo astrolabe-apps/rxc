@@ -18,7 +18,7 @@ function Continue() {
     <Action
       actionId="continue"
       text="Continue"
-      variant="primary"
+      look="primary"
       onClick={async () => {
         // Refused, it focuses the field in error and stays.
         if (!(await wizard.check())) return;

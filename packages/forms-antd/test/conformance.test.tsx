@@ -1,7 +1,7 @@
 import { describeConformance } from "rxc-forms-conformance/suite";
-import { AntdVariantsProvider, antdRenderers, type AntdVariants } from "../src/index";
+import { AntdLooksProvider, antdRenderers, type AntdLooks } from "../src/index";
 
-const variants: AntdVariants = {
+const looks: AntdLooks = {
   text: { lead: { strong: true, style: (t) => ({ fontSize: t.fontSizeLG }) } },
   group: { card: { wrapper: (t) => ({ padding: t.paddingMD }) } },
   action: { quiet: { type: "text" } },
@@ -11,5 +11,5 @@ const variants: AntdVariants = {
 describeConformance({
   name: "Ant",
   renderers: antdRenderers,
-  looks: (node) => <AntdVariantsProvider variants={variants}>{node}</AntdVariantsProvider>,
+  looks: (node) => <AntdLooksProvider looks={looks}>{node}</AntdLooksProvider>,
 });

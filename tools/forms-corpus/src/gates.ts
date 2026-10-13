@@ -1,6 +1,6 @@
 /**
- * The two corpus gates, run together: the burndown may not rise and parity
- * must stay identical. Local, not CI — the corpus is another repository's
+ * The three corpus gates, run together: the burndown may not rise, parity
+ * must stay identical, and naming the class slots must change nothing drawn. Local, not CI — the corpus is another repository's
  * forms and schemas, which a public repository cannot carry — so run it
  * before a change to the loader, a translator or an implementation lands.
  *
@@ -17,6 +17,10 @@
  *   console while it rendered. The classified divergences' counts are
  *   reported beside it, since a change there is worth a look even though it
  *   does not fail the gate.
+ * - **Looks** is absolute. Every form is drawn under html through the loader,
+ *   which turns each control's class slots into a look and brings it with the
+ *   form: anything printed to the console fails, as does a run in which no
+ *   element names a look, since a check that never used one proves nothing.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -24,6 +28,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 interface Baseline {
   burndown: { warnings: number };
   parity: { runs: number };
+  looks: { runs: number };
 }
 interface BurndownJson {
   forms: number;
@@ -49,6 +54,12 @@ if (!existsSync("corpus")) {
   process.exit(2);
 }
 
+interface LooksJson {
+  runs: number;
+  failing: number;
+  named: number;
+}
+
 const run = <T>(script: string): T =>
   JSON.parse(
     execFileSync("node", [`lib/${script}.js`, "--json", "corpus"], {
@@ -60,6 +71,7 @@ const run = <T>(script: string): T =>
 const baseline = JSON.parse(readFileSync("gates.json", "utf8")) as Baseline;
 const burndown = run<BurndownJson>("burndown");
 const parity = run<ParityJson>("parity");
+const looks = run<LooksJson>("looks-check");
 
 const failures: string[] = [];
 const notes: string[] = [];
@@ -99,6 +111,21 @@ if (parity.runs !== baseline.parity.runs) {
   if (update) baseline.parity.runs = parity.runs;
 }
 
+// ── looks: absolute ───────────────────────────────────────────────────
+if (looks.failing)
+  failures.push(
+    `looks: ${looks.failing} run(s) printed to the console drawing the loader's looks. \`rushx looks-check\` lists them.`,
+  );
+if (looks.named === 0)
+  failures.push("looks: no element names a look — the check used none, so it proves nothing");
+if (looks.runs !== baseline.looks.runs) {
+  notes.push(
+    `looks: ${looks.runs} runs, where the baseline has ${baseline.looks.runs}` +
+      (update ? "; baseline updated." : "; `--update` to record it."),
+  );
+  if (update) baseline.looks.runs = looks.runs;
+}
+
 if (update) writeFileSync("gates.json", JSON.stringify(baseline, null, 2) + "\n");
 
 const expected = Object.entries(parity.expected)
@@ -107,7 +134,8 @@ const expected = Object.entries(parity.expected)
 console.log(
   `burndown  ${burndown.forms} forms, ${burndown.warnings} warnings (ratchet ${baseline.burndown.warnings})\n` +
     `parity    ${parity.identical} of ${parity.runs} runs identical, ${parity.differences} differences` +
-    (expected ? ` (classified: ${expected})` : ""),
+    (expected ? ` (classified: ${expected})` : "") +
+    `\nlooks     ${looks.runs - looks.failing} of ${looks.runs} runs clean, ${looks.named} elements name a look`,
 );
 for (const n of notes) console.log(`  · ${n}`);
 if (failures.length) {

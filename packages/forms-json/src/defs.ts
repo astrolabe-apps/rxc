@@ -10,7 +10,7 @@ import type {
   SchemaField,
   SchemaValidator,
 } from "@rx-controls/forms-schema";
-import type { ClassValue, FieldOption } from "@rx-controls/forms-react";
+import type { FieldOption } from "@rx-controls/forms-react";
 
 /*
  * The canonical types are a discriminated family keyed on `type`, and most of
@@ -74,13 +74,3 @@ export function str(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-/**
- * The four class slots: `styleClass` → the control, `textClass` → its text,
- * `layoutClass` → the shell, `labelClass` → the label. Legacy spells *replace
- * rather than merge* as an `"@ "` prefix inside the string; the contract
- * types it as `{ replace }`.
- */
-export function toClassValue(s: unknown): ClassValue | undefined {
-  if (typeof s !== "string" || !s) return undefined;
-  return s.startsWith("@ ") ? { replace: s.slice(2) } : s;
-}

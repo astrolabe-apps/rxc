@@ -12,7 +12,8 @@ import {
   useReactive,
   type Rendered,
 } from "@rx-controls/react";
-import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { getProp, type FormProp } from "./props.js";
+import type { LookName, PortableStyle, LookRef } from "./looks.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { FormScopeProvider, useBoundScope } from "./scope.js";
 import {
@@ -153,20 +154,20 @@ export interface FieldProps<T> {
   startIcon?: FormProp<ReactNode>;
   /** Content at the control's trailing edge, inside its frame. */
   endIcon?: FormProp<ReactNode>;
-  /** The control. */
-  className?: FormProp<ClassValue>;
-  /** The label's container. */
-  labelClassName?: FormProp<ClassValue>;
   /**
-   * The label's text. A separate slot from its container because on React
-   * Native text styles do not cascade from a `View`; an implementation whose
-   * label is one element applies both.
+   * A named look the implementation's theme resolves for this boundary, every
+   * part of it (shell, control, label, text). A name the theme does not know draws the base look,
+   * with a warning in development. See `docs/FORMS-V2-LOOKS.md`.
    */
-  labelTextClassName?: FormProp<ClassValue>;
-  /** The wrapper around label, control, help and error. */
-  shellClassName?: FormProp<ClassValue>;
-  /** The control's text. */
-  textClassName?: FormProp<ClassValue>;
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /**
+   * CSS for the control, for the rare case a look does not cover: a portable
+   * subset, what means the same on the web and on React Native. Applied after
+   * the look, so it wins.
+   */
+  style?: FormProp<PortableStyle | undefined>;
+  /** CSS for the wrapper around label, control, help and error, as `style`. */
+  shellStyle?: FormProp<PortableStyle | undefined>;
 }
 
 /**
@@ -225,16 +226,12 @@ export interface FieldRenderProps<T> {
   endIcon?: ReactNode;
   /** Inside an inline container: draw a bare inline element, no shell. */
   inline?: boolean;
-  /** The control. */
-  className?: ClassValue;
-  /** The label's container. */
-  labelClassName?: ClassValue;
-  /** The label's text. */
-  labelTextClassName?: ClassValue;
-  /** The wrapper around label, control, help and error. */
-  shellClassName?: ClassValue;
-  /** The control's text. */
-  textClassName?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the control, applied after the look. */
+  style?: PortableStyle;
+  /** CSS for the wrapper around label, control, help and error, applied after the look. */
+  shellStyle?: PortableStyle;
 }
 
 /**
@@ -376,11 +373,9 @@ export function fieldRenderer<T, P extends object = {}>(
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),
       inline: scope.inline,
-      className: getProp(rc, props.className),
-      labelClassName: getProp(rc, props.labelClassName),
-      labelTextClassName: getProp(rc, props.labelTextClassName),
-      shellClassName: getProp(rc, props.shellClassName),
-      textClassName: getProp(rc, props.textClassName),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
+      shellStyle: getProp(rc, props.shellStyle),
     };
     const Impl = resolveImpl(source as ComponentType<never>, renderers);
     const Visibility = visibilityFor(renderers, scope);

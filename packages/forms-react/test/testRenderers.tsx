@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { useFormEdit, useReactive, type Rendered } from "@rx-controls/react";
 import {
   getProp,
-  mergeClass,
+  lookNames,
+  type LookRef,
   type ActionRenderProps,
   type CollectionRenderProps,
   type DialogRenderProps,
@@ -32,7 +33,8 @@ function useMountCount(id: string) {
   }, [id]);
 }
 
-const cls = (c: unknown) => mergeClass(undefined, c as never);
+/** A look's names as the element's classes: what a test renderer shows of it. */
+const cls = (look: LookRef | undefined) => lookNames(look).join(" ") || undefined;
 
 function TextField(p: TextFieldRenderProps): Rendered {
   const { rc, rendered, update } = useReactive();
@@ -45,7 +47,7 @@ function TextField(p: TextFieldRenderProps): Rendered {
       {p.required && <span data-required>*</span>}
       <input
         id={p.id}
-        className={cls(p.className)}
+        className={cls(p.look)}
         placeholder={placeholder}
         value={rc.getValue(p.field) ?? ""}
         disabled={!!edit.disabled}
@@ -82,10 +84,10 @@ function Contents(p: GroupRenderProps) {
   return (
     <div
       data-group
-      data-variant={p.variant}
+      data-look={p.look}
       data-invalid={p.invalid ? "" : undefined}
       data-layout={p.layout ? JSON.stringify(p.layout) : undefined}
-      className={cls(p.className)}
+      className={cls(p.look)}
       hidden={p.hidden || undefined}
     >
       {p.title !== undefined && (
@@ -117,7 +119,7 @@ function Action(p: ActionRenderProps) {
       type="button"
       data-action={p.actionId}
       data-busy={p.busy ? "" : undefined}
-      data-variant={p.variant}
+      data-look={p.look}
       data-submit={p.submit ? "" : undefined}
       disabled={p.disabled}
       onClick={p.onClick}

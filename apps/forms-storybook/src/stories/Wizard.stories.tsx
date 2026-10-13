@@ -99,7 +99,7 @@ function Verify(): Rendered {
       <Action
         actionId="verify"
         text="Verify licence"
-        variant="primary"
+        look="primary"
         onClick={async () => {
           if (!(await wizard.next())) return;
           await new Promise((r) => setTimeout(r, 600));
@@ -118,7 +118,7 @@ function Outcome(): Rendered {
       <Action
         actionId="none"
         text="No licence"
-        variant="secondary"
+        look="secondary"
         onClick={() => wizard.goTo("none")}
       />
     </InlineGroup>,

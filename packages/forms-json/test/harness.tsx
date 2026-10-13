@@ -8,7 +8,7 @@ import {
   type ControlContext,
 } from "@rx-controls/react";
 import { Form, FormProvider } from "@rx-controls/forms-react";
-import { htmlRenderers } from "@rx-controls/forms-html";
+import { htmlRenderers, HtmlThemeProvider, type PartialHtmlTheme } from "@rx-controls/forms-html";
 import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 import {
   JsonForm,
@@ -36,7 +36,7 @@ export interface Harness {
     controls: object[],
     schema: SchemaField[],
     data: T,
-    opts?: LoaderOptions & { clearHidden?: boolean },
+    opts?: LoaderOptions & { clearHidden?: boolean; theme?: PartialHtmlTheme },
   ): Loaded<T>;
   /** Everything the test printed to console.error / console.warn. */
   console: string[];
@@ -56,13 +56,14 @@ export function setupLoader(): Harness {
     document.body.appendChild(h.container);
     root = createRoot(h.container);
     h.load = (controls, schema, value, opts = {}) => {
-      const { clearHidden, ...loader } = opts;
+      const { clearHidden, theme, ...loader } = opts;
       const data = h.ctx.newControl(value);
       const loaded = { data, warnings: [] as LoaderWarning[] };
       act(() =>
         root!.render(
           <ControlContextProvider value={h.ctx}>
             <FormProvider renderers={htmlRenderers}>
+              <HtmlThemeProvider theme={theme ?? {}}>
               <Form clearHidden={clearHidden}>
                 <JsonForm
                   {...loader}
@@ -75,6 +76,7 @@ export function setupLoader(): Harness {
                   }}
                 />
               </Form>
+              </HtmlThemeProvider>
             </FormProvider>
           </ControlContextProvider>,
         ),

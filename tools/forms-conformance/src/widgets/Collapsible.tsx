@@ -3,13 +3,11 @@ import { useReactive, type Rendered } from "@rx-controls/react";
 import {
   groupRenderer,
   getProp,
-  mergeClass,
   useFormScope,
   useRenderers,
   useValidation,
   type FormProp,
   type GroupRenderProps,
-  combineClass,
 } from "@rx-controls/forms-react";
 
 export interface CollapsibleExtra {
@@ -58,7 +56,7 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
   const summary = getProp(rc, p.summary);
   return rendered(
     <section
-      className={mergeClass("demo-collapsible", p.shellClassName)}
+      className="demo-collapsible"
       data-hidden={p.hidden ? "" : undefined}
       data-invalid={p.invalid ? "" : undefined}
       inert={p.hidden || undefined}
@@ -76,14 +74,7 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
         <span className="demo-collapsible-chevron" aria-hidden>
           {shown ? "▾" : "▸"}
         </span>
-        <span
-          className={mergeClass(
-            "demo-collapsible-title",
-            combineClass(p.labelClassName, p.labelTextClassName),
-          )}
-        >
-          {p.title}
-        </span>
+        <span className="demo-collapsible-title">{p.title}</span>
         {!shown && summary != null && (
           <span className="demo-collapsible-summary">{summary}</span>
         )}
@@ -98,7 +89,8 @@ function CollapsibleImpl(p: GroupRenderProps & CollapsibleExtra): Rendered {
         hidden={!shown}
         transitions={p.transitions}
         headingLevel={p.headingLevel}
-        className={p.className}
+        look={p.look}
+        style={p.style}
       >
         {p.children}
       </Body>

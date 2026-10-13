@@ -44,7 +44,6 @@ import {
   type ActionRenderProps,
   type CheckboxRenderProps,
   type CheckListRenderProps,
-  type ClassValue,
   type CollectionRenderProps,
   type DialogRenderProps,
   type DisclosureRenderProps,
@@ -65,7 +64,12 @@ import {
   type TextFieldRenderProps,
   type Tone,
   type WizardRenderProps,
-  warnUnknownVariant,
+  warnUnknownLook,
+  lookNames,
+  type LookRef,
+  NO_LOOK_STATE,
+  type LookState,
+  type PortableStyle,
   drawRichText,
   helpButtonName,
   plainText,
@@ -76,6 +80,7 @@ import {
 } from "@rx-controls/forms-react";
 import { twMerge } from "tailwind-merge";
 import { useNativeTheme, type NativeTheme } from "./theme.js";
+import { resolvePart, type NativeLook, type NativeLookPartName, type ResolvedPart } from "./looks.js";
 
 // ── Accessibility, for both of React Native's targets ────────────────
 //
@@ -112,11 +117,35 @@ function cx(...cs: (string | false | undefined | null)[]): string {
   return twMerge(cs.filter(Boolean).join(" "));
 }
 
-/** An own slot and an author's class: merged, the author's winning, or replaced. */
-function mergeClass(own: string | undefined, given: ClassValue | undefined): string | undefined {
-  if (given === undefined) return own;
-  if (typeof given === "object") return given.replace;
-  return cx(own, given) || undefined;
+/**
+ * A boundary's look, resolved from the theme's `looks` — React Native
+ * styles, no classes. Returns a function that resolves one part for the
+ * element's state, with the author's own `style` laid over it. A name the
+ * theme lacks draws the base look and warns once.
+ */
+function useLook(kind: string, name: LookRef | undefined, fallback?: string) {
+  const theme = useNativeTheme();
+  const layers: NativeLook[] = [];
+  for (const n of lookNames(name)) {
+    const found = theme.looks[n];
+    if (found) layers.push(found);
+    else warnUnknownLook(kind, n);
+  }
+  // Nothing named is known: draw the fallback, as an action does `secondary`.
+  if (!layers.length && fallback !== undefined && lookNames(name).length)
+    layers.push(theme.looks[fallback]);
+  const part = (
+    name: NativeLookPartName,
+    state: LookState,
+    authored?: PortableStyle,
+    all?: boolean,
+  ): ResolvedPart => resolvePart(layers, name, state, theme.tokens.colors, authored, all);
+  // The author's own `style`, resolved apart from the look's parts so it can
+  // be laid over all of them: it wins over the look, whichever part a
+  // property would have come from.
+  part.own = (style: PortableStyle | undefined, all?: boolean): ResolvedPart =>
+    resolvePart(undefined, "control", NO_LOOK_STATE, theme.tokens.colors, style, all);
+  return part;
 }
 
 /** Nothing to show: no node, or a node with no text in it. */
@@ -228,6 +257,11 @@ const RowA11yContext = createContext<Record<string, unknown> | undefined>(undefi
 
 function NativeFieldShell(p: FieldShellProps) {
   const t = shellOf(useNativeTheme(), p.widget);
+  const part = useLook("field", p.look);
+  const lookState: LookState = { ...NO_LOOK_STATE, invalid: !empty(p.error), disabled: !!p.disabled };
+  const shell = part("shell", lookState, p.style);
+  const lookLabel = part("label", lookState);
+  const lookLabelText = part("labelText", lookState, undefined, true);
   const onLabelPress = useContext(LabelPressContext);
   const row = useContext(RowA11yContext);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -242,7 +276,8 @@ function NativeFieldShell(p: FieldShellProps) {
   const label = hasLabel && !p.hideLabel && (
     <Text
       id={fieldLabelId(p.id)}
-      className={mergeClass(t.label, p.labelClassName)}
+      className={lookLabel.replace || lookLabelText.replace ? undefined : t.label}
+      style={[lookLabel.box, lookLabel.text, lookLabelText.text] as never}
       {...(named
         ? {
             "aria-label": plainText(p.label) || undefined,
@@ -291,7 +326,10 @@ function NativeFieldShell(p: FieldShellProps) {
       <View className={className}>{kids}</View>
     );
   return (
-    <View className={mergeClass(t.className, p.className)}>
+    <View
+      className={shell.replace ? undefined : t.className}
+      style={shell.box}
+    >
       {after ? (
         // A trailing label: the control, its words, then any help button —
         // the order it is read in is the order it is seen in.
@@ -383,12 +421,22 @@ function NativeInputFrame(p: InputFrameProps) {
   };
   const edge = (e: ReactNode | ((s: FrameState) => ReactNode)) =>
     typeof e === "function" ? e(state) : e;
+  const part = useLook("field", p.look);
+  const control = part("control", {
+    ...NO_LOOK_STATE,
+    focused,
+    invalid: !!p.invalid,
+    disabled: !!p.disabled,
+  });
+  const own = part.own(p.style);
   return (
     <View
-      className={mergeClass(
-        cx(t.className, focused && t.focused, p.invalid && t.invalid, p.disabled && t.disabled),
-        p.className,
-      )}
+      className={
+        control.replace
+          ? undefined
+          : cx(t.className, focused && t.focused, p.invalid && t.invalid, p.disabled && t.disabled)
+      }
+      style={[control.box, own.box] as never}
     >
       {/* An icon given as a string ("@") must be in a Text on native. */}
       {p.start !== undefined && wrapText(edge(p.start))}
@@ -404,6 +452,8 @@ function NativeInputFrame(p: InputFrameProps) {
           "aria-describedby": p.describedBy,
           ref: p.controlRef,
           className: t.input,
+          // React Native text styles: the control's words, for the control.
+          style: control.text as never,
         },
         state,
       )}
@@ -426,6 +476,14 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
   const countOver = maxLength !== undefined && ctl.value.length > maxLength;
   const a11y = fieldA11y(p, count);
   const submit = useContext(SubmitContext);
+  const lookPart = useLook("field", p.look);
+  const textLook = lookPart(
+    "text",
+    { ...NO_LOOK_STATE, invalid: !!p.error, disabled: !!ctl.state.disabled },
+    undefined,
+    true,
+  );
+  const ownText = lookPart.own(p.style).text;
   return ctl.rendered(
     <Shell
       widget="textfield"
@@ -440,11 +498,13 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
       error={p.error}
       count={count}
       countOver={countOver}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
+        look={p.look}
+        style={p.style}
         describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
         invalid={!!p.error}
@@ -455,12 +515,12 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
         render={(slot) => (
           <TextInput
             id={slot.id}
             ref={slot.ref as never}
-            className={mergeClass(slot.className, p.textClassName)}
+            className={slot.className}
+            style={[slot.style, textLook.text, ownText] as never}
             value={ctl.value}
             onChangeText={ctl.setValue}
             onFocus={() => (slot.onFocus as (() => void) | undefined)?.()}
@@ -541,8 +601,6 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
     >
       {t.control === "switch" ? (
         <Switch
@@ -598,9 +656,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const t = useNativeTheme().radio;
-  const entryCls = getProp(ctl.rc, p.entryClassName);
-  const onCls = getProp(ctl.rc, p.selectedClassName);
-  const offCls = getProp(ctl.rc, p.notSelectedClassName);
+  const part = useLook("field", p.look);
   const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   const leave = useLeaveGroup(ctl.onBlur);
   const a11y = fieldA11y(p);
@@ -617,23 +673,32 @@ function NativeRadio(p: RadioRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
     >
       <View
         ref={leave.group as never}
         role="radiogroup"
-        className={mergeClass(t.className, p.className)}
+        className={t.className}
         {...a11y}
         aria-labelledby={p.label != null && !p.hideLabel ? fieldLabelId(p.id) : undefined}
         {...webOnly({ "aria-required": p.required || undefined })}
       >
         {ctl.options.map((o, i) => {
           const selected = ctl.stringValue === String(o.value);
+          const entry = part("entry", NO_LOOK_STATE);
+          const state = part(selected ? "selected" : "notSelected", NO_LOOK_STATE);
           return (
             <View
               key={`${i}:${String(o.value)}`}
-              className={mergeClass(mergeClass(t.entry, entryCls), selected ? onCls : offCls)}
+              className={
+                // A `{ replace }` drops what came before it — the theme's own entry class, and
+                // the entry part for a replacing state — and keeps its own classes.
+                state.replace
+                  ? state.className
+                  : entry.replace
+                    ? cx(entry.className, state.className)
+                    : cx(t.entry, entry.className, state.className)
+              }
+              style={[entry.box, state.box] as never}
             >
               <Pressable
                 id={`${p.id}_${i}`}
@@ -652,7 +717,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
                 <View className={cx(t.ring, selected && t.ringSelected)}>
                   {selected && <View className={t.dot} />}
                 </View>
-                <Text className={mergeClass(t.label, p.textClassName)}>{o.name}</Text>
+                <Text className={t.label}>{o.name}</Text>
               </Pressable>
               {p.children?.(o, selected)}
             </View>
@@ -685,13 +750,11 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
     >
       <View
         ref={leave.group as never}
         role="group"
-        className={mergeClass(t.className, p.className)}
+        className={t.className}
         {...a11y}
         aria-labelledby={p.label != null && !p.hideLabel ? fieldLabelId(p.id) : undefined}
       >
@@ -721,7 +784,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
                   </Text>
                 )}
               </View>
-              <Text className={mergeClass(t.label, p.textClassName)}>{o.name}</Text>
+              <Text className={t.label}>{o.name}</Text>
             </Pressable>
           );
         })}
@@ -771,8 +834,6 @@ function NativeSelect(p: SelectRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
     >
       <Frame
         id={p.id}
@@ -785,7 +846,6 @@ function NativeSelect(p: SelectRenderProps): Rendered {
         filled={ctl.stringValue !== ""}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
         render={(slot) => (
           <Pressable
             id={slot.id}
@@ -845,7 +905,7 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   // Inline: the value in prose — no shell, no label.
   if (p.inline)
     return ctl.rendered(
-      <Text id={p.id} className={mergeClass(t.inline, p.className ?? p.textClassName)}>
+      <Text id={p.id} className={t.inline}>
         {ctl.content}
       </Text>,
     );
@@ -860,17 +920,14 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
     >
       <View
         id={p.id}
-        className={mergeClass(t.className, p.className)}
+        className={t.className}
         {...webOnly({ "aria-describedby": describedBy(p) })}
       >
         {start}
         <Text
-          className={mergeClass(undefined, p.textClassName)}
           selectable={!p.noSelection}
         >
           {ctl.content}
@@ -888,39 +945,53 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
  * only inside a `Text`, and an author writes `<Contents>words</Contents>` on
  * the web without a thought.
  */
-function wrapText(children: ReactNode, className?: string): ReactNode {
+function wrapText(children: ReactNode, className?: string, style?: unknown): ReactNode {
   return Children.map(children, (c) =>
-    typeof c === "string" || typeof c === "number" ? <Text className={className}>{c}</Text> : c,
+    typeof c === "string" || typeof c === "number" ? (
+      <Text className={className} style={style as never}>
+        {c}
+      </Text>
+    ) : (
+      c
+    ),
   );
 }
 
 function NativeContents(p: GroupRenderProps) {
   const { contents: t, text } = useNativeTheme();
-  const look = p.variant === undefined ? undefined : t.variants[p.variant];
-  if (p.variant !== undefined && !look) warnUnknownVariant("group", p.variant);
+  const part = useLook("group", p.look);
+  const st: LookState = { ...NO_LOOK_STATE, invalid: !!p.invalid };
+  const shell = part("shell", st, p.shellStyle);
+  const body = part("control", st);
+  const ownBody = part.own(p.style);
+  const words = part("text", st, undefined, true);
+  const title = part("label", st);
+  const titleText = part("labelText", st, undefined, true);
   return (
     // Hiding is a style, not a class: it must work with no stylesheet.
     <View
-      className={mergeClass(cx(t.wrapper, look?.wrapper), p.shellClassName)}
-      style={p.hidden ? { display: "none" } : undefined}
+      className={shell.replace ? undefined : cx(t.wrapper, shell.className)}
+      style={[shell.box, p.hidden ? { display: "none" } : undefined] as never}
     >
       {p.title !== undefined && p.title !== null && (
         <Text
           role="heading"
           aria-level={p.headingLevel}
-          className={mergeClass(cx(t.title, look?.title), p.labelClassName)}
+          className={
+            title.replace || titleText.replace
+              ? undefined
+              : cx(t.title, title.className, titleText.className)
+          }
+          style={[title.box, title.text, titleText.text] as never}
         >
           {p.title}
         </Text>
       )}
-      {/* The author's className is the body's layout, in place of the theme's. */}
       <View
-        className={mergeClass(
-          cx(p.className === undefined ? t.body : undefined, look?.body),
-          p.className,
-        )}
+        className={body.replace ? undefined : cx(t.body, body.className)}
+        style={[body.box, ownBody.box] as never}
       >
-        {wrapText(p.children, text.className)}
+        {wrapText(p.children, cx(text.className, words.className), [body.text, words.text, ownBody.text])}
       </View>
     </View>
   );
@@ -928,14 +999,20 @@ function NativeContents(p: GroupRenderProps) {
 
 function NativeInline(p: GroupRenderProps) {
   const { inline: t, text } = useNativeTheme();
-  const look = p.variant === undefined ? undefined : t.variants[p.variant];
-  if (p.variant !== undefined && look === undefined) warnUnknownVariant("group", p.variant);
+  const part = useLook("group", p.look);
+  const shell = part("shell", NO_LOOK_STATE, p.shellStyle);
+  const control = part("control", NO_LOOK_STATE);
+  const own = part.own(p.style);
+  const words = part("text", NO_LOOK_STATE, undefined, true);
   return (
+    // One element: the look's shell and control both land on it.
     <View
-      className={mergeClass(cx(t.wrapper, look?.wrapper), p.className)}
-      style={p.hidden ? { display: "none" } : undefined}
+      className={
+        shell.replace || control.replace ? undefined : cx(t.wrapper, shell.className, control.className)
+      }
+      style={[shell.box, control.box, own.box, p.hidden ? { display: "none" } : undefined] as never}
     >
-      {wrapText(p.children, text.className)}
+      {wrapText(p.children, cx(text.className, words.className), [control.text, words.text, own.text])}
     </View>
   );
 }
@@ -958,9 +1035,12 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
   const t = useNativeTheme().text;
   const content = getProp(rc, p.text) ?? p.children;
   const heading = !p.inline && !!getProp(rc, p.heading);
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : t.variants[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("text", variant);
+  const lookPart = useLook("text", p.look);
+  const st: LookState = { ...NO_LOOK_STATE };
+  const shell = lookPart("shell", st, p.shellStyle);
+  const control = lookPart("control", st, undefined, true);
+  const words = lookPart("text", st, undefined, true);
+  const ownText = lookPart.own(p.style, true);
   const live = liveRegion(p.announce, p.tone);
   // An announced display hidden, or with nothing to say, keeps only its
   // live region — the same element, so content arriving in it is announced.
@@ -970,8 +1050,9 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
     <Text
       {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       aria-label={p.accessibleName}
-      className={mergeClass(
-        cx(
+      style={[control.text, words.text, ownText.text] as never}
+      className={
+        control.replace || words.replace ? undefined : cx(
           heading
             ? cx(
                 t.heading.className,
@@ -980,11 +1061,11 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
                 ],
               )
             : t.className,
-          look,
+          control.className,
+          words.className,
           p.tone && t.tones[p.tone],
-        ),
-        p.className,
-      )}
+        )
+      }
     >
       {content}
     </Text>
@@ -992,7 +1073,7 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
   // Inline in prose: the text alone.
   if (p.inline && !p.announce) return rendered(text);
   return rendered(
-    <View {...live} className={mergeClass(undefined, p.shellClassName)}>
+    <View {...live} className={shell.className} style={shell.box}>
       {text}
     </View>,
   );
@@ -1001,24 +1082,28 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
 function NativeIcon(p: IconDisplayRenderProps): Rendered {
   const { rc, rendered } = useReactive();
   const { icon: t, text } = useNativeTheme();
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : t.variants[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
+  const lookPart = useLook("icon", p.look);
+  const control = lookPart("control", NO_LOOK_STATE, undefined, true);
+  const words = lookPart("text", NO_LOOK_STATE, undefined, true);
+  const shell = lookPart("shell", NO_LOOK_STATE, p.shellStyle);
+  const ownText = lookPart.own(p.style, true);
   const live = liveRegion(p.announce, p.tone);
   if (p.regionOnly) return rendered(<View {...live} />);
   const glyph = getProp(rc, p.icon);
   // On the view and on a glyph's Text alike, as the base is: a size or a
   // colour reaches a string glyph only on its Text.
-  const cls = cx(t.className, look, p.tone && text.tones[p.tone]);
+  const cls = cx(t.className, control.className, words.className, p.tone && text.tones[p.tone]);
+  const glyphStyle = [control.text, words.text, ownText.text] as never;
   return rendered(
     <View
       {...live}
       role="img"
       aria-label={p.accessibleName}
-      className={mergeClass(cls, p.shellClassName)}
+      className={cx(cls, shell.className)}
+      style={shell.box}
     >
       {typeof glyph === "string" ? (
-        <Text className={mergeClass(cls, p.className)}>
+        <Text className={cls} style={glyphStyle}>
           {glyph}
         </Text>
       ) : (
@@ -1062,8 +1147,8 @@ function NativeHtml(p: HtmlDisplayRenderProps): Rendered {
   const live = liveRegion(p.announce, p.tone);
   if (p.regionOnly || (p.announce && html === "")) return rendered(<View {...live} />);
   return rendered(
-    <View {...live} className={mergeClass(undefined, p.shellClassName)}>
-      <Text className={mergeClass(cx(t.className, p.tone && text.tones[p.tone]), p.className)}>
+    <View {...live}>
+      <Text className={cx(t.className, p.tone && text.tones[p.tone])}>
         {htmlText(html)}
       </Text>
     </View>,
@@ -1097,6 +1182,7 @@ function SizedImage({
   height,
   fit,
   className,
+  look,
 }: {
   source: ImageSourcePropType;
   alt: string;
@@ -1104,6 +1190,8 @@ function SizedImage({
   height?: Dimension;
   fit?: ImageFit;
   className?: string;
+  /** A look's (and the author's) styles, applied after the image's own sizing. */
+  look?: unknown;
 }) {
   const uri = typeof source === "object" && !Array.isArray(source) ? source.uri : undefined;
   const bundled =
@@ -1144,6 +1232,7 @@ function SizedImage({
               // style for a sized source, which would win over the ratio
               { aspectRatio: ratio, height: "auto" as const }
             : { height: 0 }),
+        ...(look as object | undefined),
       }}
     />
   );
@@ -1153,20 +1242,22 @@ function NativeImage(p: ImageDisplayRenderProps): Rendered {
   const { rc, rendered } = useReactive();
   const t = useNativeTheme().image;
   const source = nativeSource(getProp(rc, p.source));
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : t.variants[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("image", variant);
+  const lookPart = useLook("image", p.look);
+  const shell = lookPart("shell", NO_LOOK_STATE, p.shellStyle);
+  const control = lookPart("control", NO_LOOK_STATE);
+  const own = lookPart.own(p.style);
   const live = liveRegion(p.announce, p.tone);
   if (p.regionOnly || !source) return rendered(<View {...live} />);
   return rendered(
-    <View {...live} className={mergeClass(undefined, p.shellClassName)}>
+    <View {...live} className={shell.className} style={shell.box}>
       <SizedImage
         source={source}
         alt={getProp(rc, p.alt) ?? ""}
         width={getProp(rc, p.width)}
         height={getProp(rc, p.height)}
         fit={getProp(rc, p.fit)}
-        className={mergeClass(cx(t.className, look), p.className)}
+        className={cx(t.className, control.className)}
+        look={{ ...control.box, ...own.box }}
       />
     </View>,
   );
@@ -1256,12 +1347,16 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
 
 function NativeAction(p: ActionRenderProps) {
   const t = useNativeTheme().action;
+  const [pressed, setPressed] = useState(false);
   // A role the theme does not name draws as the default emphasis.
-  let variant = t.variants[p.variant];
-  if (!variant) {
-    warnUnknownVariant("action", p.variant);
-    variant = t.variants.secondary;
-  }
+  const lookPart = useLook("action", p.look, "secondary");
+  const st: LookState = { ...NO_LOOK_STATE, disabled: !!p.disabled, pressed };
+  const shell = lookPart("shell", st, p.shellStyle);
+  const control = lookPart("control", st);
+  const own = lookPart.own(p.style);
+  const words = lookPart("text", st, undefined, true);
+  const wordStyle = [control.text, words.text, own.text] as never;
+  const iconPart = lookPart("icon", st);
   // The spinner is decoration: on Android a spinner inside a button gave the
   // button its own "busy" description, which then outlived the spinner and
   // replaced the button's name. The busy state says it.
@@ -1274,31 +1369,40 @@ function NativeAction(p: ActionRenderProps) {
   ) : (
     p.icon
   );
-  const textClass = mergeClass(cx(t.textClassName, variant.textClassName), p.textClassName);
+  const textClass = cx(t.textClassName, words.className);
   // A glyph is drawn in the text's look, since React Native text inherits
   // nothing from the button: that is how it takes the button's colour.
   const icon = shown != null && shown !== false && (
-    <View className={t.iconClassName}>{wrapText(shown, cx(textClass, t.iconTextClassName))}</View>
+    <View className={cx(t.iconClassName, iconPart.className)}>
+      {wrapText(shown, cx(textClass, t.iconTextClassName), wordStyle)}
+    </View>
   );
-  return (
+  const button = (
     <Pressable
       role="button"
       disabled={p.disabled}
       accessibilityState={{ busy: !!p.busy, disabled: !!p.disabled }}
       aria-label={plainText(p.children ?? p.text) || undefined}
       onPress={() => p.onClick()}
-      className={mergeClass(cx(t.className, variant.className, p.disabled && t.disabled), p.className)}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      className={
+        control.replace ? undefined : cx(t.className, control.className, p.disabled && t.disabled)
+      }
+      style={[control.box, own.box] as never}
     >
       {p.iconPlacement !== "after" && icon}
       {p.iconPlacement !== "replace" &&
         (p.children ?? (
-          <Text className={textClass}>
+          <Text className={textClass} style={wordStyle}>
             {p.text}
           </Text>
         ))}
       {p.iconPlacement === "after" && icon}
     </Pressable>
   );
+  // The wrapper exists only when a look or the author styles it.
+  return shell.box ? <View style={shell.box}>{button}</View> : button;
 }
 
 // ── Containers ────────────────────────────────────────────────────────
@@ -1311,7 +1415,7 @@ function NativeTabs(p: TabsRenderProps) {
   const panelId = (key: string) => `${base}-panel-${key}`;
   return (
     <View
-      className={mergeClass(t.className, p.className)}
+      className={t.className}
       style={p.hidden ? { display: "none" } : undefined}
     >
       <View role="tablist" className={t.list}>
@@ -1394,14 +1498,14 @@ function NativeWizard(p: WizardRenderProps) {
           <Action
             actionId={StandardActionIds.back}
             text="Back"
-            variant="secondary"
+            look="secondary"
             disabled={!p.canBack}
             onClick={p.back}
           />
           <Action
             actionId={StandardActionIds.next}
             text="Next"
-            variant="primary"
+            look="primary"
             disabled={!p.canNext}
             onClick={p.next}
           />
@@ -1423,7 +1527,7 @@ function NativeDialog(p: DialogRenderProps) {
   const t = useNativeTheme().dialog;
   if (p.inline)
     return (
-      <View className={mergeClass(t.inline, p.className)}>
+      <View className={t.inline}>
         {p.title != null && <Text className={t.title}>{p.title}</Text>}
         {p.content}
       </View>
@@ -1441,7 +1545,7 @@ function NativeDialog(p: DialogRenderProps) {
   return (
     <Modal transparent visible animationType="fade" onRequestClose={p.onClose}>
       <View className={t.backdrop} style={p.hidden ? { display: "none" } : undefined}>
-        <View role="dialog" aria-modal className={mergeClass(t.surface, p.className)}>
+        <View role="dialog" aria-modal className={t.surface}>
           {p.title != null && (
             <Text role="heading" className={t.title}>
               {p.title}
@@ -1452,7 +1556,7 @@ function NativeDialog(p: DialogRenderProps) {
             <Action
               actionId={StandardActionIds.close}
               text="Close"
-              variant="secondary"
+              look="secondary"
               onClick={p.onClose}
             />
           </View>
@@ -1472,7 +1576,7 @@ function NativeDisclosure(p: DisclosureRenderProps) {
   );
   return (
     <View
-      className={mergeClass(t.className, p.className)}
+      className={t.className}
       style={p.hidden ? { display: "none" } : undefined}
     >
       <Pressable
@@ -1512,10 +1616,10 @@ function NativeElements(p: CollectionRenderProps<unknown>) {
       required={p.required}
       helpText={p.helpText}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
-      <View className={mergeClass(t.className, p.className)}>
+      <View className={t.className}>
         {p.elements.length ? p.elements.map((e) => <View key={e.key}>{e.node}</View>) : p.empty}
       </View>
     </Shell>

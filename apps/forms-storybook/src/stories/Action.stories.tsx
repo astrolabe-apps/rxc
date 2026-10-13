@@ -9,14 +9,14 @@ import {
   TextDisplay,
   TextField,
   type ActionRenderProps,
-  type ActionVariant,
+  type ActionLook,
   type IconPlacement,
 } from "@rx-controls/forms-react";
 import type { ScopeArgs } from "../support";
 
 interface ActionArgs extends ScopeArgs {
   text: string;
-  variant: ActionVariant;
+  look: ActionLook;
   iconPlacement: IconPlacement;
   withIcon: boolean;
   actionDisabled: boolean;
@@ -26,13 +26,13 @@ const meta: Meta<ActionArgs> = {
   title: "Boundaries/Action",
   args: {
     text: "Save",
-    variant: "primary",
+    look: "primary",
     iconPlacement: "before",
     withIcon: false,
     actionDisabled: false,
   },
   argTypes: {
-    variant: { control: "inline-radio", options: ["primary", "secondary", "link"] },
+    look: { control: "inline-radio", options: ["primary", "secondary", "link"] },
     iconPlacement: {
       control: "inline-radio",
       options: ["before", "after", "replace"],
@@ -43,7 +43,7 @@ const meta: Meta<ActionArgs> = {
     <Action
       actionId="save"
       text={a.text}
-      variant={a.variant}
+      look={a.look}
       icon={a.withIcon ? <span aria-hidden>✔</span> : undefined}
       iconPlacement={a.iconPlacement}
       disabled={a.actionDisabled}
@@ -59,9 +59,9 @@ export const Button: Story = {};
 export const Styles: Story = {
   render: () => (
     <div className="flex flex-row gap-2">
-      <Action actionId="a" text="Primary" variant="primary" />
-      <Action actionId="b" text="Secondary" variant="secondary" />
-      <Action actionId="c" text="Link" variant="link" />
+      <Action actionId="a" text="Primary" look="primary" />
+      <Action actionId="b" text="Secondary" look="secondary" />
+      <Action actionId="c" text="Link" look="link" />
     </div>
   ),
 };
@@ -82,7 +82,7 @@ function Busy(): Rendered {
         <Action
           actionId="save"
           text="Save (self)"
-          variant="primary"
+          look="primary"
           onClick={() => wait(1500)}
         />
         <Action
@@ -117,7 +117,7 @@ export const OverrideById: Story = {
   render: () => (
     <ActionOverrideProvider value={{ [StandardActionIds.add]: Fancy }}>
       <div className="flex flex-row gap-2">
-        <Action actionId={StandardActionIds.add} text="Add" variant="primary" />
+        <Action actionId={StandardActionIds.add} text="Add" look="primary" />
         <Action actionId="other" text="Not overridden" />
       </div>
     </ActionOverrideProvider>
@@ -140,7 +140,7 @@ function Submitting(): Rendered {
         <TextField field={f.first} label="First name" required />
         <TextField field={f.last} label="Last name" required />
         <div className="flex flex-row gap-2">
-          <Action actionId="save" text="Save" variant="primary" submit />
+          <Action actionId="save" text="Save" look="primary" submit />
         </div>
         <TextDisplay text={f.sent} />
       </div>

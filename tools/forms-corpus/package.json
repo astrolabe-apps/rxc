@@ -9,7 +9,9 @@
     "extract-corpus": "node lib/extract-corpus.js",
     "burndown": "node lib/burndown.js",
     "parity": "node lib/parity.js",
-    "gates": "node lib/gates.js"
+    "gates": "node lib/gates.js",
+    "extract-looks": "node lib/extract-looks.js",
+    "looks-check": "node lib/looks-check.js"
   },
   "dependencies": {
     "@react-typed-forms/core": "workspace:^",

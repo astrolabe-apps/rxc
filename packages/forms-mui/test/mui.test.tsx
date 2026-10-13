@@ -155,12 +155,12 @@ describe("MUI", () => {
     expect(items(false)).toEqual(["—", "A"]);
   });
 
-  it("maps variants onto MUI's button variants", () => {
+  it("maps the built-in looks onto MUI's button variants", () => {
     mount(
       <>
-        <Action actionId="a" text="Primary" variant="primary" />
-        <Action actionId="b" text="Secondary" variant="secondary" />
-        <Action actionId="c" text="Link" variant="link" />
+        <Action actionId="a" text="Primary" look="primary" />
+        <Action actionId="b" text="Secondary" look="secondary" />
+        <Action actionId="c" text="Link" look="link" />
       </>,
     );
     const cls = (t: string) =>

@@ -15,7 +15,6 @@ import {
   fieldLabelId,
   fieldHelpId,
   getProp,
-  mergeClass,
   useFieldShell,
   useDisplayValue,
   type DisplayOnlyRenderProps,
@@ -47,7 +46,6 @@ import {
   type GroupRenderProps,
   type CollectionRenderProps,
   combineClass,
-  warnUnknownVariant,
   type RichTextRenderProps,
   type ImageDisplayRenderProps,
   helpButtonName,
@@ -69,6 +67,11 @@ import {
   visuallyHiddenStyle,
   RichTextDom,
   ImageDom,
+  lookParts,
+  lookClass,
+  lookAttr,
+  portableCss,
+  portableCssSplit,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -97,7 +100,9 @@ function shellOf(theme: HtmlTheme, widget: string | undefined): ShellTheme {
 }
 
 function HtmlFieldShell(p: FieldShellProps) {
-  const t = shellOf(useHtmlTheme(), p.widget);
+  const theme = useHtmlTheme();
+  const t = shellOf(theme, p.widget);
+  const look = lookParts("field", p.look, theme.looks);
   // A "legend" captions a group the widget draws itself, so it is a plain
   // element the group names by id: a fieldset here would be a second group.
   const legend = p.labelAs === "legend";
@@ -109,10 +114,9 @@ function HtmlFieldShell(p: FieldShellProps) {
       {t.required.text}
     </span>
   );
-  const labelClass = mergeClass(
-    t.label,
-    combineClass(p.labelClassName, p.labelTextClassName),
-  );
+  // One element for the label's container and its words: the look's two
+  // label parts both land on it.
+  const labelClass = lookClass(t.label, look?.label, look?.labelText);
   const labelText = (
     <span className={labelClass}>
       {p.label}
@@ -148,10 +152,9 @@ function HtmlFieldShell(p: FieldShellProps) {
     );
   return (
     <div
-      className={mergeClass(
-        p.orientation === "horizontal" ? t.horizontal : t.vertical,
-        p.className,
-      )}
+      className={lookClass(p.orientation === "horizontal" ? t.horizontal : t.vertical, look?.shell)}
+      style={portableCss(p.style, theme.tokens.colors)}
+      data-look={lookAttr(p.look)}
       data-widget={p.widget}
       data-invalid={p.error ? "" : undefined}
       data-disabled={p.disabled ? "" : undefined}
@@ -238,7 +241,10 @@ function HtmlFieldShell(p: FieldShellProps) {
 // ── Frame: the box the border lives on ───────────────────────────────
 
 function HtmlInputFrame(p: InputFrameProps) {
-  const t = useHtmlTheme().frame;
+  const theme = useHtmlTheme();
+  const t = theme.frame;
+  // The look's control lands where the author's `className` does.
+  const look = lookParts("field", p.look, theme.looks);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -250,13 +256,18 @@ function HtmlInputFrame(p: InputFrameProps) {
   };
   const slot = (s: ReactNode | ((s: FrameState) => ReactNode)) =>
     typeof s === "function" ? s(state) : s;
+  // The author's `style`: its box properties go where the look's control does, its text
+  // properties to the control element, which is what draws the words.
+  const css = portableCssSplit(p.style, theme.tokens.colors);
+  const onInput = t.classNameOn === "input";
   return (
     <div
       className={
         t.classNameOn === "frame"
-          ? mergeClass(t.className, p.className)
+          ? lookClass(t.className, look?.control)
           : t.className || undefined
       }
+      style={onInput ? undefined : css.box}
       data-focused={focused ? "" : undefined}
       data-invalid={p.invalid ? "" : undefined}
       data-disabled={p.disabled ? "" : undefined}
@@ -270,9 +281,10 @@ function HtmlInputFrame(p: InputFrameProps) {
           className: (() => {
             const own = p.multiline ? join(t.input, t.multiline) : t.input;
             return t.classNameOn === "input"
-              ? mergeClass(own, p.className)
+              ? lookClass(own, look?.control)
               : own;
           })(),
+          style: onInput && css.box ? { ...css.box, ...css.text } : css.text,
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
           disabled: p.disabled,
@@ -295,6 +307,8 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
+  const theme = useHtmlTheme();
+  const look = lookParts("field", p.look, theme.looks);
   // Renderer-specific props arrive unresolved; resolve them here, in this
   // window — and before the frame's render prop, which runs in the frame's.
   const placeholder = getProp(ctl.rc, p.placeholder);
@@ -319,9 +333,8 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
@@ -335,12 +348,16 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
         filled={ctl.filled}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
+        look={p.look}
+        style={p.style}
         render={(slot, s) => {
           // This callback runs inside the *frame's* render pass, not ours —
           // never make a reactive read here: resolve first, close over values.
           const common = {
             ...slot,
+            // The look's `text` part: the words the user types.
+            // The control's words: the look's `text` and the author's `textClassName`.
+            className: lookClass(slot.className, look?.text),
             value: ctl.value,
             placeholder,
             inputMode,
@@ -368,7 +385,10 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
 function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
-  const t = useHtmlTheme().displayOnly;
+  const theme = useHtmlTheme();
+  const t = theme.displayOnly;
+  const look = lookParts("field", p.look, theme.looks);
+  const css = portableCss(p.style, theme.tokens.colors);
   const start = p.startIcon != null && <span className={t.icon}>{p.startIcon}</span>;
   const end = p.endIcon != null && <span className={t.icon}>{p.endIcon}</span>;
   // Inline: the value in prose — no shell, no label, a span.
@@ -376,7 +396,9 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     return ctl.rendered(
       <span
         id={p.id}
-        className={mergeClass(t.inline, p.className ?? p.textClassName)}
+        className={lookClass(t.inline, look?.control, look?.text)}
+        style={css}
+        data-look={lookAttr(p.look)}
       >
         {start}
         {ctl.content}
@@ -394,14 +416,13 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <div
         id={p.id}
-        className={mergeClass(t.className, p.className ?? p.textClassName)}
-        style={p.noSelection ? { userSelect: "none" } : undefined}
+        className={lookClass(t.className, look?.control, look?.text)}
+        style={p.noSelection ? { ...css, userSelect: "none" } : css}
         aria-describedby={describedBy(p)}
       >
         {start}
@@ -415,7 +436,9 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
 function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
-  const t = useHtmlTheme().checkbox;
+  const theme = useHtmlTheme();
+  const t = theme.checkbox;
+  const look = lookParts("field", p.look, theme.looks);
   return ctl.rendered(
     <Shell
       widget="checkbox"
@@ -430,15 +453,15 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <input
         ref={ctl.elementRef}
         id={p.id}
         type="checkbox"
-        className={t.input || undefined}
+        className={lookClass(t.input, look?.control)}
+        style={portableCss(p.style, theme.tokens.colors)}
         checked={ctl.checked}
         disabled={ctl.state.disabled || ctl.state.readOnly}
         aria-describedby={describedBy(p)}
@@ -459,18 +482,18 @@ function HtmlCheckbox(p: CheckboxRenderProps): Rendered {
 function HtmlRadio(p: RadioRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
-  const t = useHtmlTheme().radio;
-  const entryCls = getProp(ctl.rc, p.entryClassName);
-  const onCls = getProp(ctl.rc, p.selectedClassName);
-  const offCls = getProp(ctl.rc, p.notSelectedClassName);
+  const theme = useHtmlTheme();
+  const t = theme.radio;
+  const look = lookParts("field", p.look, theme.looks);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   const entries = ctl.options.map((o) => ({
     o,
     selected: ctl.stringValue === String(o.value),
   }));
   const keys = optionKeys(ctl.options);
+  // The look's `entry` is on every option's wrapper; `selected` / `notSelected` on the chosen one and the rest.
   const entryClass = (selected: boolean) =>
-    mergeClass(mergeClass(t.entryWrapper, entryCls), selected ? onCls : offCls);
+    lookClass(t.entryWrapper, look?.entry, selected ? look?.selected : look?.notSelected);
   return ctl.rendered(
     <Shell
       widget="radio"
@@ -484,14 +507,14 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <div
         role="radiogroup"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
-        className={mergeClass(t.className, p.className)}
+        className={lookClass(t.className, look?.control)}
+        style={portableCss(p.style, theme.tokens.colors)}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
         aria-required={p.required || undefined}
@@ -515,7 +538,7 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
                 disabled={locked || o.disabled}
                 onChange={() => ctl.setFromString(String(o.value))}
               />
-              <span className={mergeClass(t.label, p.textClassName)}>
+              <span className={lookClass(t.label, look?.text)}>
                 {o.name}
               </span>
             </label>
@@ -534,7 +557,9 @@ function HtmlRadio(p: RadioRenderProps): Rendered {
 function HtmlCheckList(p: CheckListRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
-  const t = useHtmlTheme().checkList;
+  const theme = useHtmlTheme();
+  const t = theme.checkList;
+  const look = lookParts("field", p.look, theme.looks);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
@@ -551,15 +576,15 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <div
         role="group"
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
-        className={mergeClass(t.className, p.className)}
+        className={lookClass(t.className, look?.control)}
+        style={portableCss(p.style, theme.tokens.colors)}
         onBlur={onFocusLeave(ctl.onBlur)}
       >
         {ctl.options.map((o, i) => (
@@ -575,7 +600,9 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
               disabled={locked || o.disabled}
               onChange={(e) => ctl.setSelected(o, e.target.checked)}
             />
-            <span className={mergeClass(t.label, p.textClassName)}>{o.name}</span>
+            <span className={lookClass(t.label, look?.text)}>
+              {o.name}
+            </span>
           </label>
         ))}
       </div>
@@ -584,13 +611,17 @@ function HtmlCheckList(p: CheckListRenderProps): Rendered {
 }
 
 function HtmlTabs(p: TabsRenderProps) {
-  const t = useHtmlTheme().tabs;
+  const theme = useHtmlTheme();
+  const t = theme.tabs;
+  const look = lookParts("tabs", p.look, theme.looks);
   const id = useId();
   const tabId = (key: string) => `${id}-tab-${key}`;
   const panelId = (key: string) => `${id}-panel-${key}`;
   return (
     <div
-      className={mergeClass(t.className, p.className)}
+      className={lookClass(t.className, look?.control)}
+      style={portableCss(p.style, theme.tokens.colors)}
+      data-look={lookAttr(p.look)}
       data-hidden={p.hidden ? "" : undefined}
       hidden={p.hidden || undefined}
     >
@@ -603,7 +634,7 @@ function HtmlTabs(p: TabsRenderProps) {
             id={tabId(i.key)}
             aria-controls={panelId(i.key)}
             aria-selected={i.active}
-            className={mergeClass(t.tab, i.active ? t.active : t.inactive)}
+            className={join(t.tab, i.active ? t.active : t.inactive)}
             data-invalid={i.invalid ? "" : undefined}
             onClick={() => p.setActive(i.key)}
           >
@@ -635,23 +666,20 @@ function HtmlTabs(p: TabsRenderProps) {
 }
 
 function HtmlAction(p: ActionRenderProps) {
-  const { displayShell, action: t } = useHtmlTheme();
+  const { displayShell, action: t, looks, tokens } = useHtmlTheme();
   // A role the theme does not name draws as the default emphasis.
-  let variant = t.variants[p.variant];
-  if (!variant) {
-    warnUnknownVariant("action", p.variant);
-    variant = t.variants.secondary;
-  }
+  const look = lookParts("action", p.look, looks) ?? looks.secondary;
   const shown = p.busy ? t.busy : p.icon;
   // The icon in a wrapper the theme reaches, whatever element it is.
   const busy = !noContent(shown) && (
-    <span className={join(t.iconClassName, variant.iconClassName) || undefined}>
+    <span className={lookClass(t.iconClassName, look.icon)}>
       {shown}
     </span>
   );
   return (
     <DisplayShell
-      shellClassName={p.shellClassName}
+      shellClassName={look.shell}
+      style={portableCss(p.shellStyle, tokens.colors)}
       inline={true}
       kind="action"
       classes={displayShell}
@@ -660,8 +688,9 @@ function HtmlAction(p: ActionRenderProps) {
         // The default button is a submit, so Enter presses it; the click
         // runs the form's submission and the native one never happens.
         type={p.submit ? "submit" : "button"}
-        className={mergeClass(join(t.className, variant.className), p.className)}
-        data-variant={p.variant}
+        className={lookClass(t.className, look.control)}
+        style={portableCss(p.style, tokens.colors)}
+        data-look={lookAttr(p.look)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         onClick={(e) => {
@@ -673,10 +702,7 @@ function HtmlAction(p: ActionRenderProps) {
         {p.iconPlacement !== "replace" &&
           (p.children ?? (
             <span
-              className={mergeClass(
-                join(t.textClassName, variant.textClassName),
-                p.textClassName,
-              )}
+              className={lookClass(t.textClassName, look.text)}
             >
               {p.text}
             </span>
@@ -689,7 +715,7 @@ function HtmlAction(p: ActionRenderProps) {
 
 function HtmlText(p: TextDisplayRenderProps) {
   const { rc, rendered } = useReactive();
-  const { displayShell, text: t } = useHtmlTheme();
+  const { displayShell, text: t, looks, tokens } = useHtmlTheme();
   // A heading by role, as a group's title is: the level is the outline's,
   // and an h-element's user-agent margins would restyle every theme. Never
   // in prose.
@@ -697,13 +723,12 @@ function HtmlText(p: TextDisplayRenderProps) {
   const level = Math.min(Math.max(p.headingLevel, 1), 6) as 1 | 2 | 3 | 4 | 5 | 6;
   const Tag = p.inline ? "span" : heading ? "div" : "p";
   const content = getProp(rc, p.text) ?? p.children;
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : t.variants[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("text", variant);
+  const look = lookParts("text", p.look, looks);
   // Three slots, three elements: wrapper, element, text.
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
+      shellClassName={look?.shell}
+      style={portableCss(p.shellStyle, tokens.colors)}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
@@ -711,21 +736,19 @@ function HtmlText(p: TextDisplayRenderProps) {
       classes={displayShell}
     >
       <Tag
-        className={mergeClass(
-          join(
+        className={lookClass(
             p.inline
               ? t.inline
               : heading
                 ? join(t.heading.className, t.heading.levels[level])
                 : t.className,
-            look,
-          ),
-          p.className,
-        )}
-        data-variant={variant}
+            look?.control,
+          )}
+        style={portableCss(p.style, tokens.colors)}
+        data-look={lookAttr(p.look)}
         {...(heading ? { role: "heading", "aria-level": level } : {})}
       >
-        <span className={mergeClass(undefined, p.textClassName)}>
+        <span className={lookClass(undefined, look?.text)}>
           {content}
         </span>
       </Tag>
@@ -740,13 +763,12 @@ function HtmlText(p: TextDisplayRenderProps) {
  */
 function HtmlIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
-  const { displayShell, icon: t } = useHtmlTheme();
-  const variant = getProp(rc, p.variant);
-  const look = variant === undefined ? undefined : t.variants[variant];
-  if (variant !== undefined && look === undefined) warnUnknownVariant("icon", variant);
+  const { displayShell, icon: t, looks, tokens } = useHtmlTheme();
+  const look = lookParts("icon", p.look, looks);
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
+      shellClassName={look?.shell}
+      style={portableCss(p.shellStyle, tokens.colors)}
       inline={true}
       tone={p.tone}
       announce={p.announce}
@@ -754,11 +776,9 @@ function HtmlIcon(p: IconDisplayRenderProps) {
       classes={displayShell}
     >
       <span
-        className={mergeClass(
-          join(t.className, look),
-          combineClass(p.className, p.textClassName),
-        )}
-        data-variant={variant}
+        className={lookClass(t.className, look?.control, look?.text)}
+        style={portableCss(p.style, tokens.colors)}
+        data-look={lookAttr(p.look)}
         role="img"
         aria-label={p.accessibleName}
         title={p.accessibleName}
@@ -771,12 +791,14 @@ function HtmlIcon(p: IconDisplayRenderProps) {
 
 function HtmlHtml(p: HtmlDisplayRenderProps) {
   const { rc, rendered } = useReactive();
-  const { displayShell, html: t } = useHtmlTheme();
+  const { displayShell, html: t, looks, tokens } = useHtmlTheme();
   const html = getProp(rc, p.html);
+  const look = lookParts("html", p.look, looks);
   // The html *is* the text, so both slots land on the one element.
   return rendered(
     <DisplayShell
-      shellClassName={p.shellClassName}
+      shellClassName={look?.shell}
+      style={portableCss(p.shellStyle, tokens.colors)}
       inline={p.inline}
       tone={p.tone}
       announce={p.announce}
@@ -784,10 +806,9 @@ function HtmlHtml(p: HtmlDisplayRenderProps) {
       classes={displayShell}
     >
       <div
-        className={mergeClass(
-          t.className,
-          combineClass(p.className, p.textClassName),
-        )}
+        className={lookClass(t.className, look?.control, look?.text)}
+        style={portableCss(p.style, tokens.colors)}
+        data-look={lookAttr(p.look)}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
@@ -799,7 +820,9 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
   const Frame = useInputFrame();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
-  const t = useHtmlTheme().select;
+  const theme = useHtmlTheme();
+  const t = theme.select;
+  const look = lookParts("field", p.look, theme.looks);
   return ctl.rendered(
     <Shell
       widget="select"
@@ -812,9 +835,8 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
-      className={p.shellClassName}
-      labelClassName={p.labelClassName}
-      labelTextClassName={p.labelTextClassName}
+      look={p.look}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
@@ -827,10 +849,12 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
         filled={ctl.stringValue !== ""}
         start={p.startIcon}
         end={p.endIcon}
-        className={p.className}
+        look={p.look}
+        style={p.style}
         render={(slot) => (
           <select
             {...slot}
+            className={lookClass(slot.className, look?.text)}
             value={ctl.stringValue}
             onChange={(e) => ctl.setFromString(e.target.value)}
             onBlur={(e) => {
@@ -859,11 +883,17 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
 }
 
 function HtmlWizard(p: WizardRenderProps) {
-  const t = useHtmlTheme().wizard;
+  const theme = useHtmlTheme();
+  const t = theme.wizard;
+  const look = lookParts("wizard", p.look, theme.looks);
   // `none`: the pages only — the host's own actions move the wizard.
   const nav = p.navigation === "builtin";
   return (
-    <div style={p.hidden ? { display: "none" } : undefined}>
+    <div
+      className={lookClass(undefined, look?.control)}
+      data-look={lookAttr(p.look)}
+      style={{ ...portableCss(p.style, theme.tokens.colors), ...(p.hidden ? { display: "none" } : {}) }}
+    >
       {nav && (
         <ol className={t.steps}>
           {/* Steps over the shown pages only, numbered among themselves. */}
@@ -900,14 +930,14 @@ function HtmlWizard(p: WizardRenderProps) {
           <Action
             actionId={StandardActionIds.back}
             text="Back"
-            variant="secondary"
+            look="secondary"
             disabled={!p.canBack}
             onClick={p.back}
           />
           <Action
             actionId={StandardActionIds.next}
             text="Next"
-            variant="primary"
+            look="primary"
             disabled={!p.canNext}
             onClick={p.next}
           />
@@ -926,7 +956,9 @@ function HtmlWizard(p: WizardRenderProps) {
  * which is what `silent` needs.
  */
 function HtmlDisclosure(p: DisclosureRenderProps) {
-  const t = useHtmlTheme().disclosure;
+  const theme = useHtmlTheme();
+  const t = theme.disclosure;
+  const look = lookParts("disclosure", p.look, theme.looks);
   const icon = t.icon != null && (
     <span className={t.iconClassName || undefined} data-open={p.open ? "" : undefined} aria-hidden="true">
       {t.icon}
@@ -934,14 +966,15 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
   );
   return (
     <details
-      className={mergeClass(t.className, p.className)}
+      className={lookClass(t.className, look?.control)}
+      data-look={lookAttr(p.look)}
       open={p.open}
       onToggle={(e) => {
         if (e.currentTarget.open !== p.open) p.setOpen(e.currentTarget.open);
       }}
       data-invalid={p.invalid ? "" : undefined}
       data-open={p.open ? "" : undefined}
-      style={p.hidden ? { display: "none" } : undefined}
+      style={{ ...portableCss(p.style, theme.tokens.colors), ...(p.hidden ? { display: "none" } : {}) }}
     >
       <summary
         className={t.summary}
@@ -972,7 +1005,9 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
  * closed the UA hides it, mounted, which is what `silent` needs.
  */
 function HtmlDialog(p: DialogRenderProps) {
-  const t = useHtmlTheme().dialog;
+  const theme = useHtmlTheme();
+  const t = theme.dialog;
+  const look = lookParts("dialog", p.look, theme.looks);
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -982,7 +1017,11 @@ function HtmlDialog(p: DialogRenderProps) {
   }, [p.open, p.inline]);
   if (p.inline) {
     return (
-      <div className={mergeClass(t.inline, p.className)}>
+      <div
+        className={lookClass(t.inline, look?.control)}
+        style={portableCss(p.style, theme.tokens.colors)}
+        data-look={lookAttr(p.look)}
+      >
         {p.title && <strong>{p.title}</strong>}
         {p.content}
       </div>
@@ -991,7 +1030,9 @@ function HtmlDialog(p: DialogRenderProps) {
   return (
     <dialog
       ref={ref}
-      className={mergeClass(t.className, p.className)}
+      className={lookClass(t.className, look?.control)}
+      style={portableCss(p.style, theme.tokens.colors)}
+      data-look={lookAttr(p.look)}
       // Not `onClose`: the native `close` event also fires when the effect
       // above closes the dialog because `open` went false, which would tell
       // the author the user dismissed a dialog their own code closed. Escape
@@ -1014,7 +1055,7 @@ function HtmlDialog(p: DialogRenderProps) {
         <Action
           actionId={StandardActionIds.close}
           text="Close"
-          variant="secondary"
+          look="secondary"
           onClick={p.onClose}
         />
       </div>
@@ -1031,19 +1072,22 @@ function join(...cs: (string | undefined)[]): string | undefined {
 // the theme's, and the other three implementations keep the defaults.
 function HtmlImage(p: ImageDisplayRenderProps) {
   const t = useHtmlTheme();
-  return <ImageDom {...p} classes={t.image} displayShell={t.displayShell} />;
+  return <ImageDom {...p} classes={t.image} displayShell={t.displayShell} looks={t.looks} />;
 }
 function HtmlRichText(p: RichTextRenderProps) {
   return <RichTextDom {...p} classes={useHtmlTheme().richText} />;
 }
 function HtmlContents(p: GroupRenderProps) {
-  return <ContentsRegion {...p} classes={useHtmlTheme().contents} />;
+  const t = useHtmlTheme();
+  return <ContentsRegion {...p} classes={t.contents} looks={t.looks} />;
 }
 function HtmlInline(p: GroupRenderProps) {
-  return <Inline {...p} classes={useHtmlTheme().inline} />;
+  const t = useHtmlTheme();
+  return <Inline {...p} classes={t.inline} looks={t.looks} />;
 }
 function HtmlElements(p: CollectionRenderProps<unknown>) {
-  return <ElementsList {...p} classes={useHtmlTheme().elements} />;
+  const t = useHtmlTheme();
+  return <ElementsList {...p} classes={t.elements} looks={t.looks} />;
 }
 
 /**

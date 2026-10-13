@@ -1,5 +1,14 @@
 # Forms v2 — key interfaces
 
+> **Superseded in part — styling.** The class slots this document describes — `className`,
+> `textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`, a radio's
+> `entryClassName` / `selectedClassName` / `notSelectedClassName`, and `ClassValue` / `mergeClass`
+> as the author's styling — have been **retired**. A boundary is styled by `look` (a name, or a
+> list of names), with `style` and `shellStyle` (portable CSS) for the rare one-off; each
+> implementation's theme says what a look is. Where this document shows a class slot, read
+> [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md). (`ClassValue` survives as the value of a *part* of a
+> class-based look.) The sections below are kept as the record of why the slots existed.
+
 Status: **built.** Goals, and the reasoning behind everything here, are in
 [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md). The contract is `@rx-controls/forms-react`, the
 loader `@rx-controls/forms-json`, and the implementations `forms-html`, `forms-mui` and
@@ -80,30 +89,39 @@ control. Drop that arm of the union and async expressions need a second mechanis
 both arms, so inverting a `Visible` expression into a `hidden` prop is just
 `(rc) => !getProp(rc, expr)` and never has to know which kind it wrapped.
 
-## 2. Class values
+## 2. Looks and styles
+
+*(The class slots that were here — `className`, `textClassName`, `shellClassName`,
+`labelClassName`, `labelTextClassName`, and `ClassValue` / `mergeClass` as the author's styling —
+are retired. See [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md) for the design and its reasons.)*
+
+A boundary carries **a name, not a style**:
 
 ```ts
-type ClassValue = string | { replace: string };
-
-/** Only the implementation knows its own class for a slot, so it does the merge. */
-function mergeClass(own: string | undefined, given: ClassValue | undefined): string | undefined;
+look?: FormProp<LookName | readonly LookName[] | undefined>;   // every boundary that draws
+style?: FormProp<PortableStyle | undefined>;                    // the control element, for the rare one-off
+shellStyle?: FormProp<PortableStyle | undefined>;               // its wrapper
 ```
 
-**From JSON (built):** five slots, five props — `styleClass` → `className` (the control),
-`textClass` → `textClassName`, `layoutClass` → `shellClassName`, `labelClass` →
-`labelClassName`, `labelTextClass` → `labelTextClassName`. The legacy `"@ "` prefix, which
-means *replace rather than merge* and accounts for about a third of class usage in the corpus,
-becomes `{ replace }`. Every boundary kind carries the slots it can use — an action has
-`className` and `textClassName`, a display the same, a group `className`.
+- **`look`** is resolved by the implementation's theme, in its own terms: classes on the web,
+  React Native styles on a device, props and `sx` under a component library. A list is layered in
+  order (`["primary", "wide"]`). `LookName` is typed by augmentation of `FormLooks`. A name the
+  theme lacks draws the base look, with a development warning.
+- **A look has parts**, named for the elements they style: `shell`, `control`, `text`, `label`,
+  `labelText`, `icon`, and a radio's `entry` / `selected` / `notSelected`. Container and text stay
+  two parts for the reason they were two slots: on React Native text styles do not cascade from a
+  `View`, so the words need their own.
+- **`style` / `shellStyle`** are a portable subset of CSS — what means the same on the web and on
+  React Native (numbers are logical units; colours may be theme tokens, `$accent`). Applied after
+  the look, so they win.
+- **A form can bring its own looks.** The JSON loader derives one from each distinct combination of
+  a legacy control's class slots and provides it through `FormLooksProvider`; an implementation
+  looks a name up in its theme first and the form's looks second.
 
-**Container and text are two slots wherever there is text (decided, built).** `className` /
-`textClassName` on a control and `labelClassName` / `labelTextClassName` on its label are the
-same split for the same reason: on React Native text styles do not cascade from a `View`, so
-the words need their own class. The contract defines the text slot semantically — *the
-element's text; an implementation whose label is a single text element may apply it together
-with the container's class* — which is what lets every web implementation merge the pair with
-`combineClass` and add no markup, while `forms-native` puts one on the `View` and one on the
-`Text`. Corpus evidence for the label pair: `labelTextClass` 248 uses to `labelClass` 39.
+**From JSON (built):** the five legacy slots (and a radio's three per-option classes) become one
+look, named by the classes (`body`, or `look-` and a hash). The `"@ "` prefix, which means
+*replace rather than merge* and accounts for about a third of class usage in the corpus,
+becomes a `{ replace }` part.
 
 ## 3. The binding
 

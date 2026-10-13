@@ -1,8 +1,8 @@
 import { tokens } from "@fluentui/react-components";
 import { describeConformance } from "rxc-forms-conformance/suite";
-import { FluentVariantsProvider, fluentRenderers, type FluentVariants } from "../src/index";
+import { FluentLooksProvider, fluentRenderers, type FluentLooks } from "../src/index";
 
-const variants: FluentVariants = {
+const looks: FluentLooks = {
   text: { lead: { size: 400, weight: "semibold" } },
   group: { card: { wrapper: { padding: tokens.spacingHorizontalL } } },
   action: { quiet: { appearance: "subtle" } },
@@ -12,5 +12,5 @@ const variants: FluentVariants = {
 describeConformance({
   name: "Fluent",
   renderers: fluentRenderers,
-  looks: (node) => <FluentVariantsProvider variants={variants}>{node}</FluentVariantsProvider>,
+  looks: (node) => <FluentLooksProvider looks={looks}>{node}</FluentLooksProvider>,
 });

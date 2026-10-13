@@ -3,7 +3,6 @@ import type { ReadContext } from "@rx-controls/core";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import {
   CheckboxField,
-  combineClass,
   Contents,
   DisplayOnlyField,
   FormRenderers,
@@ -14,6 +13,8 @@ import {
 } from "@rx-controls/forms-react";
 import { CheckForm, Values, type ScopeArgs } from "../support";
 import type { GroupRenderProps } from "@rx-controls/forms-react";
+import { HtmlThemeProvider, type PartialHtmlTheme } from "@rx-controls/forms-html";
+import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 
 type GroupArgs = ScopeArgs;
 
@@ -102,12 +103,11 @@ function ClassGrid(): Rendered {
   const f = data.fields;
   const noModel = (rc: ReadContext) => !rc.getValue(f.showModel);
   return rendered(
+    <HtmlThemeProvider theme={gridTheme}>
+    <NativeThemeProvider theme={nativeGridTheme}>
     <div className="flex flex-col gap-2">
       <CheckboxField field={f.showModel} label="Show the model" />
-      <Contents
-        transitions={false}
-        className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr_auto_1fr]"
-      >
+      <Contents transitions={false} look="two-column-grid">
         <TextDisplay text="Make" />
         <DisplayOnlyField field={f.make} />
         <TextDisplay text="Model" hidden={noModel} />
@@ -115,26 +115,42 @@ function ClassGrid(): Rendered {
         <TextDisplay text="Colour" />
         <DisplayOnlyField field={f.colour} />
       </Contents>
-    </div>,
+    </div>
+    </NativeThemeProvider>
+    </HtmlThemeProvider>,
   );
 }
 
+/** A grid is not in the portable subset of CSS, so it is a look the html theme defines. */
+const gridTheme: PartialHtmlTheme = {
+  looks: {
+    "two-column-grid": {
+      control: "grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr_auto_1fr]",
+    },
+  },
+};
+
+/** React Native has no grid: the same name is a wrapping row there. */
+const nativeGridTheme: PartialNativeTheme = {
+  looks: { "two-column-grid": { control: { flexDirection: "row", flexWrap: "wrap", gap: 8 } } },
+};
+
 /**
- * A grid is classes on the group's body. With transitions off, each child is
+ * A grid is a look on the group's body. With transitions off, each child is
  * one element and a hidden pair takes no cells, so the pairs after it move up
  * rather than leaving a hole — what legacy's `Grid` did by filtering.
  */
-export const ClassNameGrid: Story = { render: () => <ClassGrid /> };
+export const LookGrid: Story = { render: () => <ClassGrid /> };
 
 /** Every section below gets a border; plain regions and the implementation stay as they are. */
 const borderedSections = (outer: FormRenderers): Partial<FormRenderers> => ({
   contents: (p: GroupRenderProps) => (
     <outer.contents
       {...p}
-      shellClassName={
+      shellStyle={
         p.kind === "section"
-          ? combineClass(p.shellClassName, "rounded-md border border-gray-300 p-4")
-          : p.shellClassName
+          ? { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 6, padding: 16, ...p.shellStyle }
+          : p.shellStyle
       }
     />
   ),

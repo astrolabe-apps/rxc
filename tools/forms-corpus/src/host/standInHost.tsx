@@ -6,12 +6,8 @@ import type {
 } from "@rx-controls/forms-schema";
 import {
   Contents,
-  combineClass,
-  getProp,
   RichText,
   Section,
-  type ClassValue,
-  type FormProp,
 } from "@rx-controls/forms-react";
 import { SwitchField } from "./Switch.js";
 import { TextField } from "@rx-controls/forms-react";
@@ -122,15 +118,6 @@ const textInputTranslator: Translator = {
   },
 };
 
-/** The host's own class under the definition's, resolved per read. */
-const withOwn =
-  (
-    own: string,
-    given: FormProp<ClassValue> | undefined,
-  ): FormProp<ClassValue> =>
-  (rc) =>
-    combineClass(own, getProp(rc, given)) ?? own;
-
 const levelGlyph: Record<string, string> = {
   info: "ℹ",
   warning: "⚠",
@@ -149,13 +136,7 @@ const messageBoxTranslator: Translator = {
         hidden={props.hidden}
         disabled={props.disabled}
         title={props.label}
-        className={withOwn(
-          `demo-message demo-message-${level}`,
-          props.className,
-        )}
-        shellClassName={props.shellClassName}
-        labelClassName={props.labelClassName}
-        labelTextClassName={props.labelTextClassName}
+        look={props.look}
       >
         {opts?.hideIcon !== true && (
           <span className="demo-message-icon" aria-hidden>
@@ -181,10 +162,7 @@ const topLevelGroupTranslator: Translator = {
       hidden={props.hidden}
       disabled={props.disabled}
       title={props.label}
-      className={withOwn("demo-toplevel", props.className)}
-      shellClassName={props.shellClassName}
-      labelClassName={props.labelClassName}
-      labelTextClassName={props.labelTextClassName}
+      look={props.look}
     >
       <CompoundCycle
         control={props.field}

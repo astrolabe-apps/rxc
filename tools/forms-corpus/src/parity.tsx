@@ -37,11 +37,15 @@
  * gate, whatever the values say: parity in the data does not excuse a defect
  * in the rendering.
  */
+// First, so React and the renderers load with a DOM already there, as in a browser. Loaded
+// after them, the run measured an environment no browser has: an asynchronous expression's
+// pending interval went unobserved, and a clear-on-move bug hid behind it (see the options
+// translators in `forms-json`).
+import { win } from "./dom.js";
 import { relative } from "node:path";
 import { existsSync } from "node:fs";
 import { createElement, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { Window } from "happy-dom";
 import {
   createControlContext,
   untrackedRead,
@@ -75,48 +79,7 @@ import { countControls, loadForm, walkFiles, type FormFile } from "./corpus.js";
 
 const rd = untrackedRead;
 
-// ── a DOM for React to mount into ─────────────────────────────────────
-const win = new Window({ url: "http://localhost/" });
-{
-  const g = globalThis as Record<string, unknown>;
-  g.window = win;
-  for (const k of [
-    "document",
-    "navigator",
-    "location",
-    "history",
-    "getComputedStyle",
-    "requestAnimationFrame",
-    "cancelAnimationFrame",
-    "matchMedia",
-    "Node",
-    "Element",
-    "HTMLElement",
-    "SVGElement",
-    "Text",
-    "Comment",
-    "DocumentFragment",
-    "Event",
-    "CustomEvent",
-    "MouseEvent",
-    "KeyboardEvent",
-    "FocusEvent",
-    "InputEvent",
-    "MutationObserver",
-    "ResizeObserver",
-    "IntersectionObserver",
-    "HTMLInputElement",
-    "HTMLTextAreaElement",
-    "HTMLSelectElement",
-    "HTMLButtonElement",
-    "HTMLFormElement",
-    "HTMLDialogElement",
-    "CSSStyleDeclaration",
-    "DOMParser",
-  ])
-    if (g[k] === undefined)
-      g[k] = (win as unknown as Record<string, unknown>)[k];
-}
+// ── a DOM for React to mount into: ./dom.js ─────────────────────────────
 
 // ── args ──────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);

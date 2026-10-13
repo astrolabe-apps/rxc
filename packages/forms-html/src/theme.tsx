@@ -5,7 +5,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { ActionVariant, Tone } from "@rx-controls/forms-react";
+import { useFormLooks, type ClassValue, type Tone } from "@rx-controls/forms-react";
 
 /**
  * Every class the HTML implementation emits, one slot per element.
@@ -33,35 +33,32 @@ import type { ActionVariant, Tone } from "@rx-controls/forms-react";
  * native controls globally, mark the slot's utilities important (`!w-[13px]`)
  * or give the theme a wrapper class to scope them under.
  *
- * **A variant is added beside the base slot, not merged over it.** A named
- * look's classes (`text.variants`, `contents.variants`, `action.variants`,
- * `icon.variants`, `image.variants`) land on the same element as the base
- * slot's, and two utilities of one kind on one element — a base
- * `text-[18px]` and a variant's `text-[40px]` — resolve by stylesheet order,
- * not by which one is the variant's. So shape the base around what the
- * variants change:
+ * **A look is added beside the base slot, not merged over it.** A named
+ * look's classes (`looks`) land on the same element as the base slot's, and
+ * two utilities of one kind on one element — a base `text-[18px]` and a
+ * look's `text-[40px]` — resolve by stylesheet order, not by which one is the
+ * look's. So shape the base around what the looks change:
  *
  * - **Text: put the body look on the wrapper.** Give `displayShell.display`
  *   the base typography (size, weight, line height) and keep `text.className`
- *   to what no variant sets (`m-0`). The text element inherits the body look,
- *   and a variant on the element itself wins by inheritance, whatever the
+ *   to what no look sets (`m-0`). The text element inherits the body look,
+ *   and a look on the element itself wins by inheritance, whatever the
  *   stylesheet order.
- * - **Headings: the level's class is on the element too.** A heading variant
+ * - **Headings: the level's class is on the element too.** A heading look
  *   (`pageTitle`) and `text.heading.levels[n]` share the element, so the
  *   wrapper doesn't help. Keep `text.heading.className` to what no heading
- *   variant changes, put size, weight and leading in `levels`, and mark the
- *   variant's utilities for those important (`!text-[40px]`).
- * - **Groups and actions: leave out of the base what a variant changes.**
- *   The Tailwind theme leaves an action's padding to its variants; a group
- *   variant that only adds a box (background, border, radius, padding) to a
+ *   look changes, put size, weight and leading in `levels`, and mark the
+ *   look's utilities for those important (`!text-[40px]`).
+ * - **Groups and actions: leave out of the base what a look changes.**
+ *   The Tailwind theme leaves an action's padding to its looks; a group
+ *   look that only adds a box (background, border, radius, padding) to a
  *   wrapper whose base sets display and gap never conflicts.
  * - **Icons and images: the same.** A base `icon.className` that sets a size
- *   loses or wins against an `icon.variants` size by stylesheet order; keep
- *   the base to what no variant sets (`inline-flex`) and put sizes in the
- *   variants.
+ *   loses or wins against a look's size by stylesheet order; keep the base to
+ *   what no look sets (`inline-flex`) and put sizes in the looks.
  *
  * React Native's theme merges with `tailwind-merge` instead, so none of this
- * applies there: a variant's utility wins over the base's of the same kind.
+ * applies there: a look's utility wins over the base's of the same kind.
  *
  * @group Theming
  */
@@ -241,14 +238,6 @@ export interface HtmlTheme {
       /** Added to the body. */
       body: string;
     };
-    /**
-     * Named looks (`GroupProps.variant` — "card", "callout"), each added to
-     * the wrapper, title and body of a `contents` or `section` region that
-     * names it, beside the slots above. A name not here draws the base look,
-     * with a warning in development. The wrapper carries the name as
-     * `data-variant` either way.
-     */
-    variants: Record<string, GroupVariantClasses>;
     /** A body with a `layout`: the flex box. */
     flexBody: string;
     /** Its gap when the layout sets none. */
@@ -260,9 +249,27 @@ export interface HtmlTheme {
     wrapper: string;
     /** Its title. */
     title: string;
-    /** Named looks for an inline group, as `contents.variants` (no body slot). */
-    variants: Record<string, GroupVariantClasses>;
   };
+  /**
+   * Named looks (`look="card"` on a boundary), each a set of classes for the
+   * parts of the boundary it styles — see {@link HtmlLook}. A look is *added*
+   * to the slots above, on the same element. A name not here draws the base
+   * look, with a warning in development; every element carries the name as
+   * `data-look` either way, so a host's own stylesheet can hook it.
+   *
+   * The three emphases every theme draws for an action — `primary`,
+   * `secondary`, `link` — are looks, and `secondary` is the fallback for an
+   * action's unknown name.
+   *
+   * Added, not merged: see {@link HtmlTheme}.
+   */
+  looks: Record<"primary" | "secondary" | "link", HtmlLook> & Record<string, HtmlLook>;
+  /**
+   * What a style's `$name` refers to (`style={{ color: "$accent" }}`):
+   * `colors` maps a token to a colour value. `$accent/10` is that colour at
+   * 10%, for a `#rgb` / `#rrggbb` token.
+   */
+  tokens: { colors: Record<string, string> };
   /** The `visibility` slot. */
   visibility: {
     /**
@@ -340,14 +347,6 @@ export interface HtmlTheme {
        */
       levels: Record<1 | 2 | 3 | 4 | 5 | 6, string>;
     };
-    /**
-     * Named looks (`TextDisplay variant` — "lead", "tag"), each added to the
-     * text element beside its block, inline or heading class. A colour here
-     * masks a tone, as one on the base slot would. A name not here draws the
-     * base look, with a warning in development; the element carries the name
-     * as `data-variant` either way.
-     */
-    variants: Record<string, string>;
   };
   /** Rich text (`RichText`): the inline elements its markup draws. */
   richText: {
@@ -368,12 +367,6 @@ export interface HtmlTheme {
   image: {
     /** The `<img>`. */
     className: string;
-    /**
-     * Named looks (`ImageDisplay variant` — "rounded", "hero"), each added to
-     * the `<img>`. A name not here draws the base look, with a warning in
-     * development; the element carries the name as `data-variant` either way.
-     */
-    variants: Record<string, string>;
   };
   /** The HTML display. */
   html: {
@@ -384,13 +377,6 @@ export interface HtmlTheme {
   icon: {
     /** Its element. */
     className: string;
-    /**
-     * Named looks (`IconDisplay variant` — "large", "note"), each added to
-     * the element beside `className`. A name not here draws the base look,
-     * with a warning in development; the element carries the name as
-     * `data-variant` either way.
-     */
-    variants: Record<string, string>;
   };
   /** Buttons. */
   action: {
@@ -404,21 +390,6 @@ export interface HtmlTheme {
      * author's icon is.
      */
     iconClassName: string;
-    /**
-     * Added by variant, on top of the three above: the three emphases every
-     * theme draws, and any role a form names (`ActionVariant`). A name not
-     * here draws as `secondary`, with a warning in development; the button
-     * carries the name as `data-variant` either way.
-     *
-     * Added, not merged: two utilities of one kind — a base `px-3` and a
-     * variant's `px-0` — resolve by stylesheet order, not by which slot is
-     * the variant's. Leave out of the base what a variant changes, as the
-     * Tailwind theme does with padding, or mark the variant's `!`. The same
-     * holds for `text.variants` and `contents.variants` (see
-     * {@link HtmlTheme}).
-     */
-    variants: Record<"primary" | "secondary" | "link", ActionVariantClasses> &
-      Record<string, ActionVariantClasses>;
     /** Shown while an asynchronous handler runs. */
     busy: ReactNode;
   };
@@ -492,31 +463,38 @@ export interface HtmlTheme {
 }
 
 /**
- * What a group variant adds, per element. Any slot may be left out.
+ * One look: the classes it adds to each part of the boundary it styles. Any
+ * part may be left out.
+ *
+ * - `shell` — what sits in the parent: a group's wrapper, a field's shell.
+ * - `control` — the element the author's `className` styles: a group's body,
+ *   a button, an image, a text display's element.
+ * - `text` — the element's words: a button's text, a text display's inner span.
+ * - `label` / `labelText` — a label's container and its words; one element on
+ *   the web, so both land on it. A group's title.
+ * - `icon` — around an action's icon.
+ * - `entry` / `selected` / `notSelected` — a radio's option wrapper, and its two states.
+ *
+ * A part is a class string, added to the slot's own; or `{ replace }`, which
+ * stands in for the slot's own classes and for any part before it — legacy's
+ * `"@ "` prefix. A group's `control` is the body's layout, and replaces the
+ * theme's default layout as the author's `className` does.
  *
  * @group Theming
  */
-export interface GroupVariantClasses {
-  /** Added to the wrapper around title and body. */
-  wrapper?: string;
-  /** Added to the title. */
-  title?: string;
-  /** Added to the body. */
-  body?: string;
-}
-
-/**
- * What an action variant adds, per element. Any slot may be left out.
- *
- * @group Theming
- */
-export interface ActionVariantClasses {
-  /** Added to the button. */
-  className?: string;
-  /** Added to its text. */
-  textClassName?: string;
-  /** Added around its icon. */
-  iconClassName?: string;
+export interface HtmlLook {
+  shell?: ClassValue;
+  control?: ClassValue;
+  text?: ClassValue;
+  label?: ClassValue;
+  labelText?: ClassValue;
+  icon?: ClassValue;
+  /** A radio's option wrapper, on every option. */
+  entry?: ClassValue;
+  /** A radio's option wrapper while it is the chosen one. */
+  selected?: ClassValue;
+  /** A radio's option wrapper while it is not. */
+  notSelected?: ClassValue;
 }
 
 /**
@@ -615,9 +593,14 @@ export const defaultHtmlTheme: HtmlTheme = {
     },
     flexBody: "rxf-contents-flex",
     flexGap: 16,
-    variants: {},
   },
-  inline: { wrapper: "rxf-inline", title: "rxf-group-title", variants: {} },
+  inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
+  tokens: { colors: {} },
+  looks: {
+    primary: { control: "rxf-btn--primary" },
+    secondary: { control: "rxf-btn--secondary" },
+    link: { control: "rxf-btn--link" },
+  },
   visibility: { transitions: true, fade: "rxf-fade" },
   elements: { className: "rxf-elements" },
   displayShell: {
@@ -651,7 +634,6 @@ export const defaultHtmlTheme: HtmlTheme = {
         6: "rxf-heading-6",
       },
     },
-    variants: {},
   },
   richText: {
     strong: "rxf-strong",
@@ -661,18 +643,13 @@ export const defaultHtmlTheme: HtmlTheme = {
     link: "rxf-link",
     image: "rxf-rich-image",
   },
-  image: { className: "rxf-image", variants: {} },
+  image: { className: "rxf-image" },
   html: { className: "rxf-html" },
-  icon: { className: "rxf-icon", variants: {} },
+  icon: { className: "rxf-icon" },
   action: {
     className: "rxf-btn",
     textClassName: "",
     iconClassName: "rxf-btn-icon",
-    variants: {
-      primary: { className: "rxf-btn--primary", textClassName: "", iconClassName: "" },
-      secondary: { className: "rxf-btn--secondary", textClassName: "", iconClassName: "" },
-      link: { className: "rxf-btn--link", textClassName: "", iconClassName: "" },
-    },
     busy: <span className="rxf-spinner" />,
   },
   tabs: {
@@ -805,10 +782,18 @@ export const tailwindHtmlTheme: HtmlTheme = {
     },
     flexBody: "rxf-contents-flex gap-2",
     flexGap: "0.5rem",
-    variants: {},
   },
   // group.inlineClass
-  inline: { wrapper: "rxf-inline", title: "rxf-group-title", variants: {} },
+  inline: { wrapper: "rxf-inline", title: "rxf-group-title" },
+  tokens: { colors: {} },
+  looks: {
+    primary: { control: "rxf-btn--primary bg-blue-600 px-3 py-2 text-white hover:bg-blue-700" },
+    secondary: {
+      control:
+        "rxf-btn--secondary border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50",
+    },
+    link: { control: "rxf-btn--link bg-transparent text-blue-600 underline" },
+  },
   visibility: {
     transitions: true,
     // Inline in prose, where a block wrapper would break the sentence.
@@ -849,7 +834,6 @@ export const tailwindHtmlTheme: HtmlTheme = {
         6: "rxf-heading-6 font-bold",
       },
     },
-    variants: {},
   },
   richText: {
     strong: "rxf-strong font-bold",
@@ -861,35 +845,17 @@ export const tailwindHtmlTheme: HtmlTheme = {
     image: "rxf-rich-image inline-block max-w-full",
   },
   // Never wider than what holds it.
-  image: { className: "rxf-image max-w-full", variants: {} },
+  image: { className: "rxf-image max-w-full" },
   html: { className: "rxf-html" },
-  icon: { className: "rxf-icon", variants: {} },
+  icon: { className: "rxf-icon" },
   // action.buttonClass, over the standard palette in place of `primary-500`.
   action: {
     className:
-      // No padding here: the variants set it, since a variant's `px-0` cannot
+      // No padding here: the looks set it, since a look's `px-0` cannot
       // beat a base `px-3` (Tailwind resolves the two by stylesheet order).
       "rxf-btn inline-flex items-center gap-1.5 rounded-lg border border-transparent text-sm [font:inherit] disabled:cursor-not-allowed disabled:opacity-75",
     textClassName: "",
     iconClassName: "rxf-btn-icon inline-flex items-center",
-    variants: {
-      primary: {
-        className: "rxf-btn--primary bg-blue-600 px-3 py-2 text-white hover:bg-blue-700",
-        textClassName: "",
-        iconClassName: "",
-      },
-      secondary: {
-        className:
-          "rxf-btn--secondary border-gray-300 bg-white px-3 py-2 text-gray-700 hover:bg-gray-50",
-        textClassName: "",
-        iconClassName: "",
-      },
-      link: {
-        className: "rxf-btn--link bg-transparent text-blue-600 underline",
-        textClassName: "",
-        iconClassName: "",
-      },
-    },
     busy: (
       <span className="rxf-spinner inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
     ),
@@ -936,12 +902,19 @@ export const tailwindHtmlTheme: HtmlTheme = {
 };
 
 /**
- * The theme in effect at this position, fully resolved.
+ * The theme in effect at this position, fully resolved — with the looks the
+ * form brought (`useFormLooks`) beneath the theme's own: a name the theme
+ * defines is the host's, and wins.
  *
  * @group Theming
  */
 export function useHtmlTheme(): HtmlTheme {
-  return useContext(ThemeContext);
+  const theme = useContext(ThemeContext);
+  const form = useFormLooks();
+  return useMemo(
+    () => (Object.keys(form).length === 0 ? theme : { ...theme, looks: { ...form, ...theme.looks } }),
+    [theme, form],
+  );
 }
 
 const ThemeContext = createContext<HtmlTheme>(defaultHtmlTheme);

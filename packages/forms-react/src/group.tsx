@@ -4,7 +4,8 @@ import {
   type ReactNode,
 } from "react";
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
-import { getProp, type ClassValue, type FormProp } from "./props.js";
+import { getProp, type FormProp } from "./props.js";
+import type { LookName, PortableStyle, LookRef } from "./looks.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { FormScopeProvider, narrowScope, useBoundScope } from "./scope.js";
 import {
@@ -66,23 +67,22 @@ export interface GroupProps {
   /** A heading over the content. Absent means none. */
   title?: FormProp<ReactNode>;
   /**
-   * A named look — "card", "callout", "pill" — that the implementation's
-   * theme resolves for the region: its wrapper, title and body. The form
-   * names a role and never a look. A name the theme does not know draws the
-   * base look, with a warning in development.
+   * A named look the implementation's theme resolves for this boundary, every
+   * part of it (wrapper, title, body). A name the theme does not know draws the base look,
+   * with a warning in development. See `docs/FORMS-V2-LOOKS.md`.
    */
-  variant?: FormProp<string | undefined>;
-  /** The body. */
-  className?: FormProp<ClassValue>;
-  /** The wrapper around title and body. */
-  shellClassName?: FormProp<ClassValue>;
-  /** The title's container. */
-  labelClassName?: FormProp<ClassValue>;
-  /** The title's text. */
-  labelTextClassName?: FormProp<ClassValue>;
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  /**
+   * CSS for the body, for the rare case a look does not cover: a portable
+   * subset, what means the same on the web and on React Native. Applied after
+   * the look, so it wins.
+   */
+  style?: FormProp<PortableStyle | undefined>;
+  /** CSS for the wrapper around title and body, as `style`. */
+  shellStyle?: FormProp<PortableStyle | undefined>;
   /**
    * Make the body a flex box without CSS — see {@link FlexLayout}. Absent, the
-   * body is the implementation's standard group body, laid out by `className`.
+   * body is the implementation's standard group body, laid out by the look's `control` part.
    */
   layout?: FormProp<FlexLayout | undefined>;
   /**
@@ -132,19 +132,12 @@ export interface GroupRenderProps {
    * level (html: `role="heading"` and `aria-level`, or an `h1`–`h6`).
    */
   headingLevel: number;
-  /**
-   * A named look for the theme to resolve; the base look when it names none
-   * by this name (see {@link warnUnknownVariant}).
-   */
-  variant?: string;
-  /** The body. */
-  className?: ClassValue;
-  /** The wrapper around title and body. */
-  shellClassName?: ClassValue;
-  /** The title's container. A single-element title applies both title slots. */
-  labelClassName?: ClassValue;
-  /** The title's text. */
-  labelTextClassName?: ClassValue;
+  /** The look the form named, for the theme to resolve; the base look when it names none. */
+  look?: LookRef;
+  /** CSS for the body, applied after the look. */
+  style?: PortableStyle;
+  /** CSS for the wrapper around title and body, applied after the look. */
+  shellStyle?: PortableStyle;
   /**
    * Hide the region **without changing the element tree** — a style or the
    * `hidden` attribute on the element already rendered. Rendering something
@@ -217,7 +210,7 @@ export function groupRenderer<P extends object = {}>(
     // option — and reaches the children as a scope facet.
     const { transitions, clearHidden } = props;
     const title = getProp(rc, props.title);
-    const variant = getProp(rc, props.variant);
+    const look = getProp(rc, props.look);
     // A display inside that is this group's title (`heading="group"`) claims
     // it, from its commit effect.
     const claims = useControl(0);
@@ -243,7 +236,8 @@ export function groupRenderer<P extends object = {}>(
     // page. Not past a group with a title of its own, which would then have
     // two: the outermost layout group below it, or below nothing, takes it.
     const above = useGroupHeading();
-    const layoutOnly = !hasTitle && variant === undefined && !options?.scope;
+    const layoutOnly =
+      !hasTitle && look === undefined && !options?.scope;
     const heading = layoutOnly && above && !above.titled ? above : own;
     const scope = useMemo(
       () =>
@@ -277,11 +271,9 @@ export function groupRenderer<P extends object = {}>(
       kind: options?.inline ? "inline" : options?.scope ? "section" : "contents",
       title,
       headingLevel: bound.headingLevel,
-      variant,
-      className: getProp(rc, props.className),
-      shellClassName: getProp(rc, props.shellClassName),
-      labelClassName: getProp(rc, props.labelClassName),
-      labelTextClassName: getProp(rc, props.labelTextClassName),
+      look: getProp(rc, props.look),
+      style: getProp(rc, props.style),
+      shellStyle: getProp(rc, props.shellStyle),
       hidden: presence !== "rendered",
       invalid: validation ? validation.showingErrors(rc) : undefined,
       layout: getProp(rc, props.layout),
@@ -327,11 +319,9 @@ const groupContractKeys: ReadonlySet<string> = new Set([
   "disabled",
   "readOnly",
   "title",
-  "variant",
-  "className",
-  "shellClassName",
-  "labelClassName",
-  "labelTextClassName",
+  "look",
+  "style",
+  "shellStyle",
   "layout",
   "transitions",
   "clearHidden",

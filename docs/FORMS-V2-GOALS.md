@@ -1,5 +1,14 @@
 # Forms v2 — goals
 
+> **Superseded in part — styling.** The class slots this document refers to — `className`,
+> `textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`, a radio's
+> `entryClassName` / `selectedClassName` / `notSelectedClassName`, and `ClassValue` / `mergeClass`
+> as the author's styling — have been **retired**. A boundary is styled by `look` (a name, or a
+> list of names), with `style` and `shellStyle` (portable CSS) for the rare one-off; each
+> implementation's theme says what a look is. Where this document shows a class slot, read
+> [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md). (`ClassValue` survives as the value of a *part* of a
+> class-based look.) The sections below are kept as the record of why the slots existed.
+
 The goal statement. Get this right first; the shape follows.
 
 **Vocabulary.** *Legacy* = the `@react-typed-forms/schemas` + `-html` stack real forms run on

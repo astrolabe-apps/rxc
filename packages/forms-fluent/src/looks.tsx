@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { ButtonProps, TextProps } from "@fluentui/react-components";
-import { createVariantsContext } from "@rx-controls/forms-html/shared";
+import { createLooksContext } from "@rx-controls/forms-html/shared";
 
 /**
  * A `TextDisplay`'s named look: props for Fluent's `Text`, and a style —
@@ -9,7 +9,7 @@ import { createVariantsContext } from "@rx-controls/forms-html/shared";
  *
  * @group Theming
  */
-export interface FluentTextVariant
+export interface FluentTextLook
   extends Pick<TextProps, "size" | "weight" | "italic" | "underline" | "font"> {
   /** Over the text's own style. */
   style?: CSSProperties;
@@ -20,7 +20,7 @@ export interface FluentTextVariant
  *
  * @group Theming
  */
-export interface FluentGroupVariant {
+export interface FluentGroupLook {
   /** The wrapper around title and body. */
   wrapper?: CSSProperties;
   /** The title. */
@@ -34,7 +34,7 @@ export interface FluentGroupVariant {
  *
  * @group Theming
  */
-export interface FluentActionVariant extends Pick<ButtonProps, "appearance" | "shape" | "size"> {
+export interface FluentActionLook extends Pick<ButtonProps, "appearance" | "shape" | "size"> {
   /** Over the button's own style. */
   style?: CSSProperties;
 }
@@ -45,48 +45,48 @@ export interface FluentActionVariant extends Pick<ButtonProps, "appearance" | "s
  *
  * @group Theming
  */
-export interface FluentVariants {
-  /** A `TextDisplay`'s variants. */
-  text?: Record<string, FluentTextVariant>;
-  /** A group's variants. */
-  group?: Record<string, FluentGroupVariant>;
+export interface FluentLooks {
+  /** A `TextDisplay`'s looks. */
+  text?: Record<string, FluentTextLook>;
+  /** A group's looks. */
+  group?: Record<string, FluentGroupLook>;
   /**
-   * An action's variants beyond `primary` / `secondary` / `link`, which
+   * An action's looks beyond `primary` / `secondary` / `link`, which
    * Fluent draws as its `primary` / `secondary` / `transparent` appearances.
    * A name given here for one of the three replaces it.
    */
-  action?: Record<string, FluentActionVariant>;
-  /** An `ImageDisplay`'s variants: a style on the image. */
+  action?: Record<string, FluentActionLook>;
+  /** An `ImageDisplay`'s looks: a style on the image. */
   image?: Record<string, CSSProperties>;
-  /** An `IconDisplay`'s variants: a style on the glyph, over its own size. */
+  /** An `IconDisplay`'s looks: a style on the glyph, over its own size. */
   icon?: Record<string, CSSProperties>;
 }
 
-const { Provider, useVariants } = createVariantsContext<FluentVariants>("FluentVariantsProvider");
+const { Provider, useLooks } = createLooksContext<FluentLooks>("FluentLooksProvider");
 
 /**
- * The props of {@link FluentVariantsProvider}.
+ * The props of {@link FluentLooksProvider}.
  *
  * @group Theming
  */
-export interface FluentVariantsProviderProps {
+export interface FluentLooksProviderProps {
   /** Looks for this region, merged over any enclosing provider's. */
-  variants: FluentVariants;
+  looks: FluentLooks;
   /** The region. */
   children: ReactNode;
 }
 
 /**
  * Name the form's looks for Fluent, for a region of the app. Nests: a
- * variant given replaces the one of the same name above it. Pass a module
+ * look given replaces the one of the same name above it. Pass a module
  * constant or a memoised object, so the region does not re-resolve every
  * render.
  *
  * @group Theming
  */
-export function FluentVariantsProvider(props: FluentVariantsProviderProps): ReactNode {
+export function FluentLooksProvider(props: FluentLooksProviderProps): ReactNode {
   return <Provider {...props} />;
 }
 
-/** The variants in effect here. */
-export const useFluentVariants: () => FluentVariants = useVariants;
+/** The looks in effect here. */
+export const useFluentLooks: () => FluentLooks = useLooks;
