@@ -15,8 +15,7 @@ draws identically to the raw legacy forms under html (160 of 160 runs, and it wa
 looks as through class slots before the slots were retired); the generated native table renders real
 forms on an Android emulator; one look table drawn under html, native, MUI, Ant and Fluent reads as the
 same design, including state and width; and a named look reaches all six field widgets in every
-implementation. Not shown: native checked against the real ServiceTas app (a theme fixture restates it, but it has
-not been compared to the app running), anything in a production app
+implementation. Not shown: native matching the real ServiceTas app everywhere (compared on eight forms with empty data; the differences are listed under "Not built, and open"), anything in a production app
 (Forms v2 has no adopters yet), and the C# side (`look` is not in the server's schema). See "Not
 built, and open" at the end.
 
@@ -409,12 +408,35 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
 - **Placement across the web's wrappers**: a child's own `alignSelf` / `flex` does not reach the flex
   item behind a visibility wrapper (see above); whether those wrappers become transparent to layout is
   undecided.
-- **Fidelity to the real app.** `forms-native` has a ServiceTas theme fixture
-  (`test/fixtures/serviceTasTheme.ts`, restating `defaultRNRenderOptions` over schemas-rn's base and
-  `global.css`'s typography, as html's restates the web options), and the playground draws the converted
-  forms under it with Nunito loaded. It is restated from source, not compared against the app running:
-  no screenshot of the real app has been set beside it, so two choices (an input's padding, the focus
-  colour) are ours and marked, and anything the source does not state is the default theme's.
+- **Fidelity to the real app — compared on a device, partly closed.** `forms-native` has a ServiceTas
+  theme fixture (`test/fixtures/serviceTasTheme.ts`) and the playground draws the converted forms
+  under it with Nunito. It is now compared against the real renderers: the same forms drawn on one
+  emulator through `servicetas-rn`'s own `createDefaultRenderer` and `defaultRNRenderOptions` (a
+  harness on the ServiceTas repo's `feature/forms-v2-compare-harness`, no app shell) and through
+  `forms-native`, with `tools/forms-corpus/scripts/device-compare.mjs` diffing what each put on
+  screen (README there). Eight forms so far, with empty data. **What it found in our restatement,
+  now fixed:** the host's font names in `classNames.json` were `ExtraBold`, not
+  `Nunito_800ExtraBold`, so every ServiceTas text style fell back to the system font; an input's
+  size is schemas-rn's `RNTextInput` (54 minimum height, 12 / 6 padding, 18 text), which the
+  restatement had as ours; the checkbox and radio ring were drawn from the default theme (20, grey)
+  where the app draws 24 accent and 20 primary; and a style slot a theme gives **replaces** the
+  base's whole (documented, and easy to forget): restating only a colour had made the checkbox and
+  the radio ring and its selected dot vanish. Inputs, buttons, dividers, headings and radios now
+  match the real screens in size, colour and spacing. **Still different, and not ours to fix by
+  restating a style:**
+  - **Help.** The app draws a labelled trigger (a pill with the adornment's `helpLabel`) that shows
+    the text on press; v2 draws the text below, or an icon-only button under `labelEnd`. The
+    contract has one help-button name for a theme, not a label per field.
+  - **A date field.** The app has a date picker with a calendar button; `forms-native` draws a text
+    input.
+  - **Icons.** The app draws Font Awesome; v2's default icon draws nothing, so the playground has
+    none until a host gives it an icon set.
+  - **A disclosure.** The app's accordion is a bordered card with a chevron; v2's is a plain row
+    with a triangle, and the group's border does not reach it.
+  - **An empty collection** draws "Nothing yet." in v2 and nothing in the app; a **blank
+    display-only value** is a line taller; a **Switch** sits beside its label where the app puts it
+    at the row's end; a radio entry is a few units taller. Data-dependent behaviour is unchecked:
+    the forms were drawn with empty data.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably
   folds into them.
 - **Structural names** for layout-only looks (`col-gap-16`) instead of a hash.

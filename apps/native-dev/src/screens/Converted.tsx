@@ -4,6 +4,7 @@ import { Form, RichText } from "@rx-controls/forms-react";
 import { useControl } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
+import { nativeStandInHost } from "../host";
 import { serviceTasNativeTheme } from "../../../../packages/forms-native/test/fixtures/serviceTasTheme";
 
 /**
@@ -46,13 +47,13 @@ export function Converted() {
   const theme: PartialNativeTheme = { tokens: { colors: data.tokens }, looks: data.looks };
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView horizontal style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 6, padding: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 8 }}>
         {names.map((n) => (
           <Pressable key={n} onPress={() => setAt(n)} style={{ padding: 6, borderRadius: 6, backgroundColor: n === at ? "#111827" : "#e5e7eb" }}>
             <Text style={{ color: n === at ? "#fff" : "#111827" }}>{n}</Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
       <NativeThemeProvider theme={serviceTasNativeTheme}>
         <NativeThemeProvider theme={theme}>
           <ConvertedForm key={at} form={data.forms[at]!} />
@@ -71,7 +72,7 @@ function ConvertedForm({ form }: { form: { controls: any[]; fields?: any[] } }) 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>
       <Form clearHidden>
-        <JsonForm controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
+        <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
       </Form>
     </ScrollView>
   );

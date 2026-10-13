@@ -73,7 +73,8 @@ const runApp = async (app, names) => {
   const result = {};
   for (const name of names) {
     const chip = await waitFor(name, 60000);
-    tap(chip);
+    // the dev-menu gear covers the right end of the screen: tap the chip's left part
+    tap(chip, Math.min(chip.w >> 1, 40));
     await sleep(3000);
     const all = nodes(dump());
     const chipBottom = Math.max(...names.map((n) => all.find((x) => x.text === n)).filter(Boolean).map((n) => n.y + n.h));

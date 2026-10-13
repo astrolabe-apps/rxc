@@ -106,8 +106,21 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     input: { ...withInk(type.body), fontSize: 18, lineHeight: 22.5, flex: 1, padding: 0 },
   },
   checkbox: {
-    box: { borderColor: serviceTasColors.border, borderRadius: 4 },
-    checked: { backgroundColor: serviceTasColors.accent, borderColor: serviceTasColors.accent },
+    // schemas-rn's RNCheckbox: "native:h-[24px] native:w-[24px] native:rounded border border-accent", a
+    // tick of `text-accent text-[18px]` on no fill.
+    // (a style given replaces the base's whole, so each restates what it keeps)
+    box: {
+      height: 24,
+      width: 24,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: serviceTasColors.accent,
+      backgroundColor: "transparent",
+    },
+    checked: { borderColor: serviceTasColors.accent, backgroundColor: "transparent" },
+    mark: { fontSize: 18, fontWeight: "400", color: serviceTasColors.accent },
   },
   radio: {
     // data.radioOptions: className "flex items-start gap-[24px]".
@@ -126,8 +139,21 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     },
     // labelClass "body shrink".
     label: { ...withInk(type.body), flexShrink: 1 },
-    ringSelected: { borderColor: serviceTasColors.accent },
-    dot: { backgroundColor: serviceTasColors.accent },
+    // The option row has no padding of its own (the entry's `p-[16px]` is all); the ring is
+    // schemas-rn's RNRadioItem: 20 round, `border border-primary`, a 10 dot `bg-primary`.
+    option: { flexDirection: "row", alignItems: "center", gap: 8 },
+    ring: {
+      height: 20,
+      width: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: serviceTasColors.primary,
+      backgroundColor: "transparent",
+    },
+    ringSelected: { borderColor: serviceTasColors.primary },
+    dot: { height: 10, width: 10, borderRadius: 9999, backgroundColor: serviceTasColors.primary },
   },
   checkList: {
     // data.checkOptions (schemas-rn): entryClass "flex flex-row items-center gap-[8px]", labelClass "body shrink".

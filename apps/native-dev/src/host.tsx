@@ -1,0 +1,56 @@
+import { Switch } from "react-native";
+import type { Rendered } from "@rx-controls/react";
+import {
+  fieldRenderer,
+  useCheckbox,
+  useFieldShell,
+  type FieldRenderProps,
+} from "@rx-controls/forms-react";
+import { defaultTranslators, type LoaderOptions, type Translator } from "@rx-controls/forms-json";
+
+/**
+ * The playground standing in for ServiceTas's host on a device: the corpus's own stand-in host
+ * (`rxc-forms-corpus/host`) draws DOM, so what a device needs of it is here — ServiceTas's
+ * `Switch` render type, a boolean drawn as React Native's `Switch`.
+ */
+function SwitchImpl(p: FieldRenderProps<boolean | undefined | null>): Rendered {
+  const Shell = useFieldShell();
+  const ctl = useCheckbox(p.field);
+  const locked = ctl.state.disabled || ctl.state.readOnly;
+  return ctl.rendered(
+    <Shell
+      id={p.id}
+      label={p.label}
+      surface="custom"
+      required={p.required}
+      disabled={ctl.state.disabled}
+      helpText={p.helpText}
+      error={p.error}
+      look={p.look}
+      style={p.shellStyle}
+      orientation="horizontal"
+      labelPosition="before"
+    >
+      <Switch
+        accessibilityLabel={typeof p.label === "string" ? p.label : undefined}
+        value={ctl.checked}
+        disabled={locked}
+        onValueChange={ctl.setChecked}
+        onBlur={ctl.onBlur}
+        trackColor={{ true: "#267151", false: "#d1d5db" }}
+      />
+    </Shell>,
+  );
+}
+const SwitchField = fieldRenderer<boolean | undefined | null>(SwitchImpl);
+
+type Options = { type?: string; [k: string]: unknown };
+const ro = (d: object) => (d as { renderOptions?: unknown }).renderOptions as Options | null | undefined;
+
+const switchTranslator: Translator = {
+  match: (d, s) => d.type === "Data" && s?.type === "Bool" && ro(d)?.type === "Switch",
+  renderTypes: ["Switch"],
+  render: ({ props }) => <SwitchField {...(props as any)} />,
+};
+
+export const nativeStandInHost: Pick<LoaderOptions, "translators"> = { translators: [switchTranslator, ...defaultTranslators] };
