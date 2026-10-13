@@ -924,8 +924,9 @@ that does not exist.
 
 *Exit:* met for the contract, the five implementations and the converter. **Not met, and listed in
 the looks doc's open list rather than here:** native compared against the real ServiceTas app;
-`look` in the C# schema and the canonical `forms-schema` types, and the converter in ServiceTas's
-publish step (both the user's call); a device re-check of press and focus reaching a function look.
+how ServiceTas's forms move from classes to looks — one conversion and keep the designer, or on to
+JSX — and so whether `look` needs a place in the C# schema and `forms-schema` (undecided, and the
+proof does not depend on it); a device re-check of press and focus reaching a function look.
 
 **For the `alpha.9` notes — what a consumer changes** (a breaking release, said as such):
 - Every `className`, `textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`,

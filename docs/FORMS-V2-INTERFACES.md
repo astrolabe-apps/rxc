@@ -1489,8 +1489,9 @@ defeats a memo.
 ## Still open
 
 - **Base UI** (family 3, the shape the primitives are modelled on) has not been built against.
-- **Looks** (§2): the open list is in [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md) — `look` in the
-  C# schema and the canonical `forms-schema` types, the converter in ServiceTas's publish step,
+- **Looks** (§2): the open list is in [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md) — whether `look` goes in the
+  C# schema and the canonical `forms-schema` types (it depends on how ServiceTas's forms move to
+  looks, which is undecided),
   state beyond `width` and `invalid` reaching a field look in MUI, Ant and Fluent, native checked
   against the real ServiceTas app, whether `layout` folds into the portable flex properties, and
   placement across html's visibility wrappers.

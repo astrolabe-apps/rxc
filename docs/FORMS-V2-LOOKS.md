@@ -390,9 +390,14 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
 
 ## Not built, and open
 
-- **Running the converter in ServiceTas's publish step**, and a `Look` field in the C# schema; until
-  then a raw legacy form's class looks are warned and skipped on native, and the loader's runtime
-  derivation stays as the bridge.
+- **How ServiceTas's forms get from classes to looks — undecided, and it does not need deciding
+  for the idea to work.** The converter is a one-off or a step in whatever pipeline results; the
+  forms might be converted once to named looks and still be edited in the designer, or move
+  fully to JSX, where looks are just names in source. Whichever lands, what has to hold is shown:
+  a form that names its looks draws from each renderer's table, and legacy JSON converts. If forms
+  stay JSON, `look` needs a field in the C# schema and the canonical `forms-schema` types. Until a
+  route is chosen, a raw legacy form's class looks are warned and skipped on native, and the
+  loader's runtime derivation stays as the bridge.
 - **State on a field in MUI, Ant and Fluent** beyond `width` and `invalid`: `disabled`, `focused`,
   `pressed` and `hovered` do not reach their function parts (the components style those themselves).
   A look that must read them needs them passed in.
