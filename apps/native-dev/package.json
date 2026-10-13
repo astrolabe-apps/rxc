@@ -7,11 +7,13 @@
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",
     "dev": "expo start --go --localhost",
-    "android": "expo start --go --localhost --android"
+    "android": "expo start --go --localhost --android",
+    "sync-converted": "node scripts/sync-converted.mjs"
   },
   "dependencies": {
     "@react-typed-forms/core": "workspace:^",
     "@rx-controls/core": "workspace:^",
+    "@rx-controls/forms-json": "workspace:^",
     "@rx-controls/forms-native": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",
     "@rx-controls/react": "workspace:^",

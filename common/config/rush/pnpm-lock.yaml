@@ -307,6 +307,9 @@ importers:
       '@rx-controls/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@rx-controls/forms-json':
+        specifier: workspace:^
+        version: link:../../packages/forms-json
       '@rx-controls/forms-native':
         specifier: workspace:^
         version: link:../../packages/forms-native

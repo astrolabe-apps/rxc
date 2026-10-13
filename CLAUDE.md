@@ -317,6 +317,10 @@ is silent staleness in production exactly as much as in development; and a dupli
 appears in the *production* dependency graph first, which a dev-only guard cannot catch by
 construction. Anything else dev-only stays behind `IS_DEV`.
 
+## Running the native playground on the emulator
+
+`apps/native-dev` runs in Expo Go on the Android emulator (`~/Android/Sdk`, AVD `Medium_Phone_API_35`; `adb` is not on PATH). Start Metro **without `CI=1`** — `CI=1 npx expo start` disables the file watcher, so edits never reach the device and Expo Go keeps showing the first bundle, which looks exactly like "my change did nothing": `npx expo start --go --localhost --port 8082 < /dev/null`. Before debugging a device result, prove the device runs current code (a `console.warn` marker appears in Metro's log; a full `Bundled … (N modules)` follows `adb shell pm clear host.exp.exponent`). The Converted screen's data is a gitignored copy: `rushx sync-converted` here after `rushx convert-looks` in `tools/forms-corpus`.
+
 ## React version support
 
 **React 19 only.** Every package's peer range is `react: ^19` (decided 2026-09-30: every client

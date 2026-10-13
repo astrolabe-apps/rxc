@@ -12,6 +12,7 @@ import { Looks } from "./screens/Looks";
 import { NativeLooks } from "./screens/NativeLooks";
 import { Containers } from "./screens/Containers";
 import { Collection } from "./screens/Collection";
+import { Converted } from "./screens/Converted";
 
 /**
  * A screen per story kind, as the Storybook has them — the same contract,
@@ -26,6 +27,7 @@ const screens: [string, ComponentType][] = [
   ["Native looks", NativeLooks],
   ["Containers", Containers],
   ["Collection", Collection],
+  ["Converted", Converted],
 ];
 
 export function App() {
