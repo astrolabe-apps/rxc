@@ -13,6 +13,7 @@ import { NativeLooks } from "./screens/NativeLooks";
 import { Containers } from "./screens/Containers";
 import { Collection } from "./screens/Collection";
 import { Converted } from "./screens/Converted";
+import { Portable } from "./screens/Portable";
 
 /**
  * A screen per story kind, as the Storybook has them — the same contract,
@@ -24,6 +25,7 @@ const screens: [string, ComponentType][] = [
   ["Options", Options],
   ["Displays", Displays],
   ["Looks", Looks],
+  ["Portable", Portable],
   ["Native looks", NativeLooks],
   ["Containers", Containers],
   ["Collection", Collection],

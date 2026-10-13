@@ -287,6 +287,32 @@ containers and collections too; a **list** (an action has an emphasis *and* clas
 - **Suites resolve a package's built `lib/`**, so a suite edit (`tools/forms-conformance`) shows in
   another package's tests only after that package is rebuilt.
 
+## One look table on two renderers
+
+`rxc-forms-conformance/portable` holds one form (`PortableLooksDemo`) and one look table of portable
+styles (`portableLooks`), written once. Storybook draws it under html (`Boundaries/Portable looks`) and
+the native playground draws the same source on a device (the **Portable** screen), so one look can be
+compared across the two. It covers a card (border, radius, padding, gap), a tag (token colours with
+alpha, text transform, letter spacing), a field whose border is a function of `focused` / `invalid`, a
+pill button that is a function of `pressed`, a row (`flexDirection`, `justifyContent`, wrap) and a group
+that is a function of `width`. Compared at 411 px, and at 700 px / 686 dp, they agree, with these
+findings:
+
+- **A flex container on the web.** Every React Native view is a flex column, so `gap`, `justifyContent`
+  and `flexDirection: "row"` just work there; on the web an element is a block and they are silently
+  ignored. `portableCss` now makes an element given any flex-container property a `display: flex`
+  column unless it says otherwise (a test pins it). Found by this comparison: the card had no gaps and
+  a row stacked on the web.
+- **Placement belongs to the parent.** A child's own `alignSelf` / `flex` reaches the flex item on a
+  device, but on the web a wrapper (the visibility wrapper around every boundary) is the item, so the
+  same style does nothing. Write `alignItems` on the parent instead, as the demo does; that holds on
+  both. Whether the html wrappers should become transparent to layout (`display: contents`, which the
+  fade transition rules out) is open.
+- **Theme chrome is not a look.** Fonts, the title's margin and the error colour differ because the two
+  default themes differ, not because a look was read differently. The default html theme, with no
+  stylesheet, also lets the browser's input and button chrome show; the Tailwind theme is the one to
+  compare.
+
 ## Not built, and open
 
 - **Running the converter in ServiceTas's publish step**, and a `Look` field in the C# schema; until

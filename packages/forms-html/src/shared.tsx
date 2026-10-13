@@ -241,13 +241,28 @@ const SIDES: Record<string, [string, string]> = {
   paddingVertical: ["paddingTop", "paddingBottom"],
 };
 
+/** The properties that only mean something on a flex container. */
+const FLEX_CONTAINER: ReadonlySet<string> = new Set([
+  "flexDirection",
+  "flexWrap",
+  "justifyContent",
+  "alignItems",
+  "alignContent",
+  "gap",
+  "rowGap",
+  "columnGap",
+]);
+
 /**
  * A {@link PortableStyle} as an inline style: colour tokens resolved against
  * the theme's `colors`; a number a length in px, but `rem` for the font
  * properties (so the user's font size still scales text, as React Native's
  * does); React Native's `*Horizontal` / `*Vertical` shorthands expanded; a
- * border with a width and no style drawn solid, as React Native's is; and
- * `border-box`, so a width plus padding means the same on both.
+ * border with a width and no style drawn solid, as React Native's is;
+ * `border-box`, so a width plus padding means the same on both; and a flex
+ * container (a style with `gap`, `flexDirection`, `justifyContent` …) a
+ * `display: flex` column unless it says otherwise, since every React Native
+ * view already is one.
  *
  * @group Theming
  */
@@ -265,6 +280,14 @@ export function portableCss(
   if (Object.keys(out).some((k) => /^border(Top|Right|Bottom|Left)?Width$/.test(k)) && out.borderStyle === undefined)
     out.borderStyle = "solid";
   out.boxSizing = "border-box";
+  // Every React Native view is a flex container whose main axis is the column,
+  // so `gap`, `justifyContent`, `flexDirection: "row"` just work there. An
+  // element on the web is a block: without this they are silently ignored, and
+  // a look drawn on a device fills a row where the same look on the web stacks.
+  if (out.display === undefined && Object.keys(out).some((k) => FLEX_CONTAINER.has(k))) {
+    out.display = "flex";
+    if (out.flexDirection === undefined) out.flexDirection = "column";
+  }
   return out as CSSProperties;
 }
 

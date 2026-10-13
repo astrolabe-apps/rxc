@@ -55,6 +55,10 @@ for (const [path, mod] of Object.entries(modules)) {
       });
       for (const [name, composed] of Object.entries(stories)) {
         const Story = composed as ComponentType;
+        // A story about looks only some implementations draw says which.
+        const only = (composed as { parameters?: { implementations?: string[] } }).parameters
+          ?.implementations;
+        if (only && !only.includes(implementation)) continue;
         it(`${name} (${label})`, async () => {
           const container = document.createElement("div");
           document.body.appendChild(container);

@@ -965,6 +965,34 @@ describe("looks given as portable styles", () => {
     expect($("#t")!.style.color).toMatch(/rgba\(255, 0, 0, 0\.5/);
   });
 
+  it("makes an element given a flex container property a flex column, as every React Native view is", () => {
+    mount(
+      <>
+        <Contents look="stack" title="Stack">
+          <TextDisplay text="a" />
+        </Contents>
+        <Contents look="row">
+          <TextDisplay text="b" />
+        </Contents>
+        <Contents look="block">
+          <TextDisplay text="c" />
+        </Contents>
+      </>,
+      {
+        theme: theme({
+          stack: { control: { gap: 12 } },
+          row: { control: { flexDirection: "row", justifyContent: "space-between" } },
+          block: { control: { padding: 4 } },
+        }),
+      },
+    );
+    const body = (t: string) => [...dom.container.querySelectorAll("div")].filter((d) => d.textContent === t).pop()!.parentElement!;
+    expect([body("a").style.display, body("a").style.flexDirection, body("a").style.gap]).toEqual(["flex", "column", "12px"]);
+    expect([body("b").style.display, body("b").style.flexDirection]).toEqual(["flex", "row"]);
+    // no container property: left a block
+    expect(body("c").style.display).toBe("");
+  });
+
   it("lets a style `{ replace }` drop the earlier classes and styles, and the author's style win", () => {
     mount(
       <>

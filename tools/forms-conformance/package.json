@@ -15,7 +15,11 @@
       "types": "./lib/suite.d.ts",
       "default": "./lib/suite.js"
     },
-    "./widgets.css": "./widgets.css"
+    "./widgets.css": "./widgets.css",
+    "./portable": {
+      "types": "./lib/portable.d.ts",
+      "default": "./lib/portable.js"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
