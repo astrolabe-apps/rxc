@@ -313,13 +313,27 @@ findings:
   stylesheet, also lets the browser's input and button chrome show; the Tailwind theme is the one to
   compare.
 
+### A field look under MUI
+
+MUI names a text field's look in its own terms: `MuiLooks.field[name]` is `{ shell, label, control,
+text }`, each MUI's `sx` — so a look reaches the theme (`(t) => …`) and the component's own states
+(`"&.Mui-focused fieldset"`, `"&.Mui-error fieldset"`) instead of taking a flat style. The field
+hands its look to the shell (`FormControl`, `InputLabel`) and the frame (`OutlinedInput`) over a small
+context, as it already hands over the label for the outline's notch. The story above gives MUI the
+same names mapped by hand — group looks as styles, text and action looks as Typography and Button
+props, the field look as `sx` — and the demo draws recognisably the same under MUI: the same card, tag,
+field border, focus and error colours, pill button and row. What differs is MUI itself: the floating
+outlined label, the contained button's elevation. A responsive group is MUI's breakpoints in `sx`,
+which a group look's plain style cannot express, so that look stays stacked. The select, radio,
+checkbox and display-only fields, and Ant and Fluent, do not take field looks yet.
+
 ## Not built, and open
 
 - **Running the converter in ServiceTas's publish step**, and a `Look` field in the C# schema; until
   then a raw legacy form's class looks are warned and skipped on native, and the loader's runtime
   derivation stays as the bridge.
-- **Looks on fields under MUI, Ant and Fluent, and on every native widget but the text field**;
-  they accept `look` and ignore it.
+- **Looks on a text field under Ant and Fluent, and on every other widget under MUI, Ant, Fluent and
+  native but the text field**; they accept `look` and ignore it.
 - **State on a field**: whether `invalid` / `disabled` reach a look automatically, or only when it
   asks (a function of state). Today native passes them; html relies on its `data-*` attributes.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably

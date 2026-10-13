@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { ButtonProps, Theme, TypographyProps } from "@mui/material";
+import type { ButtonProps, SxProps, Theme, TypographyProps } from "@mui/material";
 import { createLooksContext } from "@rx-controls/forms-html/shared";
 
 /**
@@ -25,6 +25,24 @@ export interface MuiGroupLook {
 }
 
 /**
+ * A text field's named look: MUI's own `sx` for each of its elements, so a look
+ * can reach the theme (`(t) => …`) and the component's states
+ * (`"&.Mui-focused"`, `"&.Mui-error"`) the way MUI styling does.
+ *
+ * @group Theming
+ */
+export interface MuiFieldLook {
+  /** The `FormControl` around label, frame and message. */
+  shell?: SxProps<Theme>;
+  /** The label. */
+  label?: SxProps<Theme>;
+  /** The outlined frame (`OutlinedInput`'s root). */
+  control?: SxProps<Theme>;
+  /** The input's own text, inside the frame. */
+  text?: SxProps<Theme>;
+}
+
+/**
  * What the form's named looks are under MUI — the form names a role
  * ("lead", "card", "quiet"), and this says what MUI draws for it.
  *
@@ -35,6 +53,8 @@ export interface MuiLooks {
   text?: Record<string, Pick<TypographyProps, "variant" | "color" | "sx">>;
   /** A group's looks: a style per element. */
   group?: Record<string, MuiGroupLook>;
+  /** A text field's looks: `sx` per element. */
+  field?: Record<string, MuiFieldLook>;
   /**
    * An action's looks beyond `primary` / `secondary` / `link`, which MUI
    * draws as `contained` / `outlined` / `text`: props for MUI's `Button`. A

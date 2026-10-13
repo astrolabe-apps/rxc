@@ -16,7 +16,7 @@ import {
   TextField,
   Section,
 } from "@rx-controls/forms-react";
-import { muiRenderers } from "../src/index";
+import { MuiLooksProvider, muiRenderers } from "../src/index";
 
 // React 19 warns unless this is set for `act()`.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -95,6 +95,48 @@ describe("MUI", () => {
     expect(
       [...document.querySelectorAll("button")].some((b) => b.textContent === "Close"),
     ).toBe(true);
+  });
+
+  it("draws a named field look as MUI's own sx on the shell, label, frame and input text", () => {
+    const c = ctx.newControl("");
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={muiRenderers}>
+            <MuiLooksProvider
+              looks={{
+                field: {
+                  tinted: {
+                    shell: { marginBottom: "13px" },
+                    label: (t) => ({ color: t.palette.secondary.main }),
+                    control: { borderRadius: "11px", "&.Mui-focused": { backgroundColor: "rgb(250, 250, 200)" } },
+                    text: { fontStyle: "italic" },
+                  },
+                },
+              }}
+            >
+              <Form>
+                <TextField field={c} id="t" label="Name" look="tinted" />
+                <TextField field={ctx.newControl("")} id="u" label="Plain" />
+              </Form>
+            </MuiLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const css = (el: Element, p: string) => getComputedStyle(el).getPropertyValue(p);
+    const input = document.getElementById("t")!;
+    const frame = input.closest(".MuiOutlinedInput-root")!;
+    const shell = frame.closest(".MuiFormControl-root")!;
+    expect(shell.getAttribute("data-look")).toBe("tinted");
+    expect(css(shell, "margin-bottom")).toBe("13px");
+    expect(css(frame, "border-radius")).toBe("11px");
+    expect(css(input, "font-style")).toBe("italic");
+    expect(css(document.querySelector("label")!, "color")).not.toBe("");
+    // a field with no look is drawn as before
+    const plain = document.getElementById("u")!.closest(".MuiFormControl-root")!;
+    expect(plain.getAttribute("data-look")).toBeNull();
+    expect(css(plain, "margin-bottom")).not.toBe("13px");
   });
 
   it("colours a toned display from the palette", () => {

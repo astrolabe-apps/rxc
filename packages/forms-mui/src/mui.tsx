@@ -10,7 +10,7 @@ import {
   type Ref,
 } from "react";
 import Checkbox from "@mui/material/Checkbox";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, type SxProps, type Theme } from "@mui/material/styles";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormHelperText from "@mui/material/FormHelperText";
@@ -113,7 +113,7 @@ import {
   portableCss,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
-import { useMuiLooks, type MuiStyle } from "./looks.js";
+import { useMuiLooks, type MuiFieldLook, type MuiStyle } from "./looks.js";
 
 /** A portable style as inline CSS, its colour tokens from the html theme. */
 function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
@@ -129,8 +129,32 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
  */
 const MuiLabelContext = createContext<ReactNode>(null);
 
+/**
+ * The look a field was given, for its shell and its frame: they are drawn by
+ * components the field does not own (a host may replace either), so, like the
+ * label, it travels privately — set by the field, read by the pair.
+ */
+const MuiFieldLookContext = createContext<{ look?: MuiFieldLook; attr?: string }>({});
+
+/** An `sx` value under a selector: MUI's `sx` takes no `sx` as a nested value, so it is resolved against the theme. */
+function nestSx(selector: string, sx: SxProps<Theme> | undefined): SxProps<Theme> | undefined {
+  if (!sx) return undefined;
+  return (theme: Theme) => {
+    const one = (x: unknown): object =>
+      typeof x === "function" ? (x as (t: Theme) => object)(theme) : x && typeof x === "object" ? (x as object) : {};
+    return { [selector]: Array.isArray(sx) ? Object.assign({}, ...sx.map(one)) : one(sx) };
+  };
+}
+
+/** `sx` values laid in order, a later one over an earlier (MUI's own array form). */
+function mergeSx(...parts: (SxProps<Theme> | false | undefined)[]): SxProps<Theme> | undefined {
+  const flat = parts.flatMap((p) => (p ? (Array.isArray(p) ? p : [p]) : []));
+  return flat.length ? (flat as SxProps<Theme>) : undefined;
+}
+
 function MuiFieldShell(p: FieldShellProps) {
   const css = useCss();
+  const { look: fieldLook, attr: fieldAttr } = useContext(MuiFieldLookContext);
   const legend = p.labelAs === "legend";
   const framed = p.surface === "frame";
   const hasLabel = p.label !== undefined && p.label !== null;
@@ -170,12 +194,18 @@ function MuiFieldShell(p: FieldShellProps) {
         required={p.required}
         disabled={p.disabled}
         style={css(p.style)}
+        data-look={fieldAttr}
         // Label beside the control — a settings row, its control at the end.
-        sx={
-          p.orientation === "horizontal"
-            ? { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: 1 }
-            : undefined
-        }
+        sx={mergeSx(
+          p.orientation === "horizontal" && {
+            flexDirection: "row",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            columnGap: 1,
+          },
+          fieldLook?.shell,
+        )}
       >
         {hasLabel && p.hideLabel ? (
           // Named, not drawn: a plain label, visually hidden, never wrapping.
@@ -220,6 +250,7 @@ function MuiFieldShell(p: FieldShellProps) {
                 <InputLabel
                   htmlFor={p.id}
                   id={fieldLabelId(p.id)}
+                  sx={fieldLook?.label}
                 >
                   {p.label}
                 </InputLabel>
@@ -229,6 +260,7 @@ function MuiFieldShell(p: FieldShellProps) {
                     component={legend ? "div" : "label"}
                     id={fieldLabelId(p.id)}
                     htmlFor={legend ? undefined : p.id}
+                    sx={fieldLook?.label}
                   >
                     {p.label}
                   </FormLabel>,
@@ -306,6 +338,7 @@ function MuiSlotBridge({
 
 function MuiInputFrame(p: InputFrameProps) {
   const css = useCss();
+  const { look: fieldLook } = useContext(MuiFieldLookContext);
   const label = useContext(MuiLabelContext);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
@@ -345,6 +378,7 @@ function MuiInputFrame(p: InputFrameProps) {
       multiline={p.multiline}
       aria-describedby={p.describedBy}
       style={css(p.style)}
+      sx={mergeSx(fieldLook?.control, nestSx("& .MuiOutlinedInput-input", fieldLook?.text))}
       // The frame never sees a value, but `InputBase` drives the label's
       // shrink state from one. `filled` is the contract addition that makes
       // this expressible.
@@ -366,6 +400,11 @@ function MuiInputFrame(p: InputFrameProps) {
 }
 
 function MuiTextField(p: TextFieldRenderProps): Rendered {
+  const fieldLook = useLastLook("field", p.look, useMuiLooks().field);
+  const lookContext = useMemo(
+    () => ({ look: fieldLook, attr: lookAttr(p.look) }),
+    [fieldLook, p.look],
+  );
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -380,6 +419,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
   const count = countText(ctl.value, getProp(ctl.rc, p.showCount), maxLength);
   const countOver = maxLength !== undefined && ctl.value.length > maxLength;
   return ctl.rendered(
+    <MuiFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="textfield"
       count={count}
@@ -430,7 +470,8 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
           );
         }}
       />
-    </Shell>,
+    </Shell>
+    </MuiFieldLookContext.Provider>,
   );
 }
 
