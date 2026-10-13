@@ -11,6 +11,7 @@ import {
   FormProvider,
   InlineGroup,
   RadioField,
+  TextDisplay,
   TextField,
   fieldLabelId,
 } from "@rx-controls/forms-react";
@@ -190,6 +191,22 @@ describe("the native theme", () => {
       { looks: { pill: { shell: { borderRadius: 9999 } } } },
     );
     const wrapper = button("Inside").parentElement!;
-    expect([style(wrapper).borderRadius, style(wrapper).flexWrap]).toEqual(["9999px", "wrap"]);
+    expect(style(wrapper).borderRadius).toBe("9999px");
+  });
+
+  it("draws an inline group as one text its words and links flow in, not a row of blocks", () => {
+    mount(
+      <InlineGroup>
+        <TextDisplay text="Go to the" inline />
+        <Action actionId="a" text="profile" look="link" />
+        <TextDisplay text="menu to update it." inline />
+      </InlineGroup>,
+    );
+    const wrapper = button("profile").parentElement!;
+    // the sentence and the link share one parent, and it is not a flex row (a row made each
+    // child a block, so a long sentence pushed the link onto a line of its own)
+    expect(wrapper.textContent).toBe("Go to the" + "profile" + "menu to update it.");
+    expect(style(wrapper).flexDirection).not.toBe("row");
+    expect(style(wrapper).flexWrap).not.toBe("wrap");
   });
 });

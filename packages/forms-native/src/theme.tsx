@@ -187,10 +187,10 @@ export interface NativeTheme {
     /** The body the children sit in. */
     body: ViewStyle;
   };
-  /** An inline group: prose. */
+  /** An inline group: prose, drawn as one `Text` its children flow in. */
   inline: {
     /** Its element. */
-    wrapper: ViewStyle;
+    wrapper: TextStyle;
   };
   /** The text display. */
   text: {
@@ -492,7 +492,7 @@ export const defaultNativeTheme: NativeTheme = {
     title: { marginBottom: 8, ...base, fontWeight: "700", color: gray[900] },
     body: { gap: 16 },
   },
-  inline: { wrapper: { ...row, flexWrap: "wrap", alignItems: "baseline", gap: 4 } },
+  inline: { wrapper: {} },
   text: {
     style: { ...base, color: gray[800] },
     heading: {

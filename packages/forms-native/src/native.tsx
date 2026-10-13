@@ -13,6 +13,7 @@ import {
   Image,
   Linking,
   type ImageSourcePropType,
+  type TextStyle,
   Modal,
   Platform,
   Pressable,
@@ -1002,18 +1003,25 @@ function NativeInline(p: GroupRenderProps) {
   const own = part.own(p.style);
   const words = part("text", NO_LOOK_STATE, undefined, true);
   return (
-    // One element: the look's shell and control both land on it.
-    <View
+    // One element: the look's shell and control both land on it. A `Text`,
+    // not a `View`: an inline group is prose, and only text nested in text
+    // flows — each child of a row of views is a block of its own, so a long
+    // sentence filled the row and pushed its link onto a line by itself.
+    <Text
       {...sp(
         unless(shell.replace || control.replace, t.wrapper),
-        shell.box,
-        control.box,
-        own.box,
+        text.style,
+        control.text,
+        words.text,
+        own.text,
+        shell.box as TextStyle,
+        control.box as TextStyle,
+        own.box as TextStyle,
         p.hidden && { display: "none" },
       )}
     >
-      {wrapText(p.children, text.style, control.text, words.text, own.text)}
-    </View>
+      {p.children}
+    </Text>
   );
 }
 
