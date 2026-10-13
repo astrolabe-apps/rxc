@@ -7,7 +7,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { Tone } from "@rx-controls/forms-react";
+import type { IconSpec, Tone } from "@rx-controls/forms-react";
 import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 import type { NativeLook } from "./looks.js";
 
@@ -96,8 +96,8 @@ export interface NativeTheme {
     helpButton: {
       /** Its element. */
       style: ViewStyle;
-      /** What it shows. */
-      icon: ReactNode;
+      /** What it shows: by default the `info` icon. */
+      icon: IconSpec;
       /** Its accessible name — words. */
       text: string;
       /** The words a field gives it (`helpLabel`), beside the icon. */
@@ -140,8 +140,8 @@ export interface NativeTheme {
     row: ViewStyle;
     /** The button that opens the picker. */
     button: ViewStyle;
-    /** What the button shows. */
-    icon: ReactNode;
+    /** What the button shows: by default the `calendar` icon. */
+    icon: IconSpec;
     /** The button's accessible name — words. */
     buttonText: string;
   };
@@ -173,8 +173,8 @@ export interface NativeTheme {
     checked: ViewStyle;
     /** The tick inside a checked box. */
     mark: TextStyle;
-    /** What the tick shows. */
-    markIcon: ReactNode;
+    /** What the tick shows, in `mark`'s style: by default the `check` icon. */
+    markIcon: IconSpec;
   };
   /** The radio group. */
   radio: {
@@ -375,15 +375,15 @@ export interface NativeTheme {
     toggle: ViewStyle;
     /** The toggle's text. */
     title: TextStyle;
-    /** What the toggle shows beside its text; turned while open. */
-    icon: ReactNode;
+    /** What the toggle shows beside its text; turned while open. By default `chevron-right`. */
+    icon: IconSpec;
     /** The icon's text, over `title`'s. */
     iconStyle: TextStyle;
     /**
      * What it shows while open, instead of turning `icon` a quarter: a chevron
      * that flips from down to up. Left out, `icon` turns.
      */
-    iconOpen?: ReactNode;
+    iconOpen?: IconSpec;
     /**
      * Which side of the title `icon` sits: `before`, or `after` for a
      * chevron at the title's end. The invalid marker stays last.
@@ -467,7 +467,7 @@ export const defaultNativeTheme: NativeTheme = {
     horizontal: { ...row, justifyContent: "space-between", gap: 8 },
     helpButton: {
       style: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 4 },
-      icon: "ⓘ",
+      icon: { name: "info" },
       text: "Help",
       label: { ...xs, fontWeight: "700", color: gray[700] },
     },
@@ -502,7 +502,7 @@ export const defaultNativeTheme: NativeTheme = {
       borderColor: gray[300],
       backgroundColor: gray[100],
     },
-    icon: "📅",
+    icon: { name: "calendar" },
     buttonText: "Choose a date",
   },
   checkbox: {
@@ -519,7 +519,7 @@ export const defaultNativeTheme: NativeTheme = {
     },
     checked: { borderColor: blue600, backgroundColor: blue600 },
     mark: { ...xs, fontWeight: "700", color: white },
-    markIcon: "✓",
+    markIcon: { name: "check" },
   },
   radio: {
     style: { gap: 8 },
@@ -664,7 +664,7 @@ export const defaultNativeTheme: NativeTheme = {
     style: {},
     toggle: { ...row, gap: 8, paddingVertical: 8 },
     title: { ...base, fontWeight: "500", color: gray[700] },
-    icon: "▸",
+    icon: { name: "chevron-right" },
     iconStyle: {},
     iconPlacement: "before",
     invalidMarker: { fontSize: 9, color: red600 },
@@ -719,6 +719,7 @@ export type DeepPartial<T> = {
     | ViewStyle
     | TextStyle
     | ImageStyle
+    | IconSpec
     ? T[K]
     : DeepPartial<T[K]>;
 };

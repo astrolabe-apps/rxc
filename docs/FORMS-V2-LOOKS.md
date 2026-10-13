@@ -446,9 +446,13 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
   is down then up (`disclosure.iconOpen`); a help button is a grey pill only when it has words
   (`helpButton.labelled`); and the native Switch host sits at the row's end under the look's row.
   **Still different, and not ours to fix by restating a style:**
-  - **Icons.** The app draws Font Awesome; v2's default icon draws nothing, so the playground has
-    none until a host gives it an icon set. The native Switch is React Native's own, a little smaller
-    than the app's.
+  - **Icons — closed for the Converted screen.** Icons are names in the contract (`IconSpec`), drawn
+    by the icon sets in scope at the look's size and colour. The playground's set
+    (`apps/native-dev/src/icons/fontAwesome.tsx`) is the app's: Font Awesome, Pro when a ServiceTas
+    checkout sits beside the repo (Metro resolves the licensed packs from it; the free set
+    otherwise, which lacks many of the app's icons), with the implementation's own chrome names
+    mapped to the app's (`circle-info`, `check`, the accordion's chevrons). The native Switch is
+    React Native's own, a little smaller than the app's.
   - **Data and actions.** Every form was drawn with empty data and fake actions; what a form does with
     data (hidden fields, options, validation messages) is unchecked on a device.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably

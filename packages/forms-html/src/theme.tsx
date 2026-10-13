@@ -6,7 +6,9 @@ import {
   type ReactNode,
 } from "react";
 import {
+  isIconRef,
   useFormLooks,
+  type IconSpec,
   type LookState,
   type PortableStyle,
   type Tone,
@@ -98,8 +100,8 @@ export interface HtmlTheme {
     helpButton: {
       /** Its element. */
       className: string;
-      /** What it shows — an info glyph, an icon component. */
-      icon: ReactNode;
+      /** What it shows: by default the `info` icon. */
+      icon: IconSpec;
       /** Its accessible name. Words, for assistive technology. */
       text: string;
       /** The words a field gives it (`helpLabel`), beside the icon. */
@@ -446,11 +448,11 @@ export interface HtmlTheme {
     /** The `<summary>` — the toggle. */
     summary: string;
     /**
-     * What the toggle shows beside its title — a chevron, an icon component
-     * — in place of the browser's own marker, which `summary` should then
-     * hide. `null` keeps the browser's marker.
+     * What the toggle shows beside its title — a chevron — in place of the
+     * browser's own marker, which `summary` should then hide. `null` keeps the
+     * browser's marker.
      */
-    icon: ReactNode;
+    icon: IconSpec;
     /**
      * Which side of the title `icon` sits: `before`, or `after` for a
      * chevron at the title's end. The invalid marker stays after the title
@@ -479,7 +481,8 @@ export interface HtmlTheme {
  * - `text` — the element's words: a button's text, a text display's inner span.
  * - `label` / `labelText` — a label's container and its words; one element on
  *   the web, so both land on it. A group's title.
- * - `icon` — around an action's icon.
+ * - `icon` — around an action's icon and a field's start / end icons; on an icon
+ *   display's own element. Where legacy put an `iconClass`.
  * - `entry` / `selected` / `notSelected` — a radio's option wrapper, and its two states.
  *
  * A part is a class string, added to the slot's own; or `{ replace }`, which
@@ -541,7 +544,7 @@ export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends (...args: never[]) => unknown
     ? T[K]
     : T[K] extends object
-      ? T[K] extends ReactNode
+      ? T[K] extends IconSpec
         ? T[K]
         : DeepPartial<T[K]>
       : T[K];
@@ -575,7 +578,7 @@ export const defaultHtmlTheme: HtmlTheme = {
     labelRow: "rxf-label-row",
     helpButton: {
       className: "rxf-help-button",
-      icon: <span aria-hidden="true">ⓘ</span>,
+      icon: { name: "info" },
       text: "Help",
     },
     error: "rxf-error",
@@ -762,7 +765,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
     helpButton: {
       className:
         "rxf-help-button inline-flex cursor-pointer items-center border-0 bg-transparent p-0 leading-none text-gray-500 hover:text-gray-700",
-      icon: <span aria-hidden="true">ⓘ</span>,
+      icon: { name: "info" },
       text: "Help",
     },
     // layout.errorClass
@@ -934,7 +937,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
     // The browser's marker hidden: the theme draws its own, turned when open.
     summary:
       "rxf-disclosure-summary flex cursor-pointer list-none items-center gap-1.5 select-none font-medium text-gray-700 [&::-webkit-details-marker]:hidden",
-    icon: "\u25B8",
+    icon: { name: "chevron-right" },
     iconPlacement: "before",
     iconClassName:
       "rxf-disclosure-icon inline-block transition-transform duration-150 data-[open]:rotate-90",
@@ -963,7 +966,11 @@ const ThemeContext = createContext<HtmlTheme>(defaultHtmlTheme);
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return (
-    typeof v === "object" && v !== null && !Array.isArray(v) && !isValidElement(v)
+    typeof v === "object" &&
+    v !== null &&
+    !Array.isArray(v) &&
+    !isValidElement(v) &&
+    !isIconRef(v as IconSpec)
   );
 }
 

@@ -98,7 +98,6 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       },
       // `label && "bg-surface-100"`: the grey pill is only for a trigger with words.
       labelled: { backgroundColor: serviceTasColors["surface-100"] },
-      icon: "ⓘ",
       text: "Help",
       label: { ...withInk(type.caption1), fontSize: 14, fontFamily: F.bold },
     },
@@ -137,7 +136,6 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       borderColor: serviceTasColors.border,
       backgroundColor: serviceTasColors.lightGrey,
     },
-    icon: "📅",
   },
   checkbox: {
     // schemas-rn's RNCheckbox: "native:h-[24px] native:w-[24px] native:rounded border border-accent", a
@@ -207,8 +205,9 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   disclosure: {
     toggle: { flexDirection: "row", alignItems: "center", gap: 8 },
     title: withInk(type.subhead),
-    icon: "∨",
-    iconOpen: "∧",
+    // Chrome names: a host's icon set draws them as the app does (Font Awesome's chevrons).
+    icon: { name: "chevron-down" },
+    iconOpen: { name: "chevron-up" },
     iconStyle: { color: serviceTasColors.accent, fontSize: 20 },
     iconPlacement: "after",
   },

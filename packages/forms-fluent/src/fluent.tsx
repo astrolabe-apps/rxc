@@ -91,6 +91,7 @@ import {
   type RichTextRenderProps,
   helpButtonName,
   type ImageDisplayRenderProps,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -113,6 +114,7 @@ import {
   visuallyHiddenStyle,
   portableCss,
   useLookWidth,
+  webIcon,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atState, useFluentLooks, type FluentFieldLook, type FluentStyle } from "./looks.js";
@@ -226,7 +228,7 @@ function FluentFieldShell(p: FieldShellProps) {
       ? {
           children: (
             <>
-              <span aria-hidden="true">ⓘ</span>
+              {webIcon({ name: "info" })}
               <span style={{ marginInlineStart: 4, fontWeight: 700 }}>{p.helpLabel}</span>
             </>
           ),
@@ -391,8 +393,8 @@ function FluentInputFrame(p: InputFrameProps) {
     readOnly: !!p.readOnly,
     multiline: !!p.multiline,
   };
-  const slot = (s: ReactNode | ((s: FrameState) => ReactNode)) =>
-    typeof s === "function" ? s(state) : s;
+  const slot = (s: IconSpec | ((s: FrameState) => IconSpec)) =>
+    webIcon(typeof s === "function" ? s(state) : s);
   const control = {
     "aria-invalid": p.invalid || undefined,
     children: (_: unknown, fluent: { className?: string }) => {
@@ -524,8 +526,8 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, spaced as Fluent spaces an
   // `Input`'s content slots.
-  const icon = (node: ReactNode, side: "start" | "end") =>
-    node != null && (
+  const icon = (spec: IconSpec, side: "start" | "end") =>
+    spec != null && (
       <span
         style={{
           display: "inline-flex",
@@ -535,7 +537,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
             tokens.spacingHorizontalXS,
         }}
       >
-        {node}
+        {webIcon(spec)}
       </span>
     );
   const text = (
@@ -708,7 +710,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
       error={p.error}
       style={p.shellStyle}
     >
-      <BesideSelect start={p.startIcon} end={p.endIcon}>
+      <BesideSelect start={webIcon(p.startIcon)} end={webIcon(p.endIcon)}>
         <Select
           ref={ctl.elementRef}
           id={p.id}
@@ -862,7 +864,7 @@ const groupStyle = {
 function FluentAction(p: ActionRenderProps) {
   const css = useCss();
   const replace = p.iconPlacement === "replace";
-  const icon = p.busy ? <Spinner size="extra-tiny" /> : p.icon;
+  const icon = p.busy ? <Spinner size="extra-tiny" /> : webIcon(p.icon);
   const { props: lookup, style: lookStyle, needsState: actionNeeds } = mergeLayers(
     useLookLayers("action", p.look, useFluentLooks().action, (n) => n in emphasis),
   );
@@ -1046,7 +1048,7 @@ function FluentIcon(p: IconDisplayRenderProps) {
       data-look={lookAttr(p.look)}
       style={{ ...({ fontSize: 24, lineHeight: 1, ...look }), ...css(p.style) }}
     >
-      {getProp(rc, p.icon)}
+      {webIcon(getProp(rc, p.icon), false)}
     </span>
   );
   return rendered(
@@ -1184,7 +1186,7 @@ function FluentDisclosure(p: DisclosureRenderProps) {
         appearance="transparent"
         aria-expanded={p.open}
         aria-controls={p.id}
-        icon={<span aria-hidden="true">{p.open ? "\u25BE" : "\u25B8"}</span>}
+        icon={<>{webIcon({ name: p.open ? "chevron-down" : "chevron-right" })}</>}
         style={{
           paddingInline: 0,
           ...look?.title,

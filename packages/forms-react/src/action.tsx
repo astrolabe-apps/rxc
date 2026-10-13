@@ -8,6 +8,7 @@ import {
 import { useControl, useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type FormProp } from "./props.js";
 import type { LookName, PortableStyle, LookRef } from "./looks.js";
+import type { IconSpec } from "./icons.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope, useInternalScope } from "./scope.js";
 import { bailout, boundaryName, resolveImpl } from "./boundaryParts.js";
@@ -54,8 +55,8 @@ export interface ActionProps {
   actionId: string;
   /** The label. */
   text?: FormProp<ReactNode>;
-  /** An icon, as a node. */
-  icon?: FormProp<ReactNode>;
+  /** An icon: a name the icon sets draw, or a node — see {@link IconSpec}. */
+  icon?: FormProp<IconSpec>;
   /** Where the icon goes. Default `before`. */
   iconPlacement?: FormProp<IconPlacement>;
   /**
@@ -108,8 +109,8 @@ export interface ActionRenderProps {
   actionId: string;
   /** The label. */
   text?: ReactNode;
-  /** The icon. */
-  icon?: ReactNode;
+  /** The icon: draw a name with {@link useDrawIcon}. */
+  icon?: IconSpec;
   /** Where the icon goes. Absent means `before`. */
   iconPlacement?: IconPlacement;
   /** Call on click. */

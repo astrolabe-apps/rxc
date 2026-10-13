@@ -582,8 +582,11 @@ kinds — and its take-over of a built-in one, to read a property the loader doe
 (`helpLabel`) — go through `LoaderOptions.adornments`: per type, amend the props before the
 control translates or wrap what translated, declining by returning `undefined`, which the
 loader then reports as dropped. Custom displays go through `LoaderOptions.displays`, keyed
-by `customId` (legacy's `customDisplays`), and icons through `LoaderOptions.icon`, which
-draws every `IconReference` the format names (nothing by default — an icon set is the host's, and an `<i>` is a DOM idea React Native cannot draw; `legacyIconClass` gives a web host legacy's classes — finding 71). A host
+by `customId` (legacy's `customDisplays`). Icons need no hook: the loader passes every
+`IconReference` on by name (`{ family: library, name }`) and the icon sets in scope draw it
+(`FormIconsProvider`; nothing by default, since an icon set is the host's and an `<i>` is a DOM
+idea React Native cannot draw; `forms-html`'s `legacyWebIcons` gives a web host legacy's classes —
+finding 71). A host
 render type needs none of these: a `Translator` already gets the props the loader built.
 README finding 70. `def.hidden` /
 `def.disabled` / `def.readonly` → the three flags, and a `Visible` / `Disabled` dynamic
@@ -664,11 +667,14 @@ interface DisplayProps {
 of it — three, all in `MastRegistrationsSummary` — is on a `Display` whose `displayData` is a
 bare icon, with the tooltip supplying the meaning the glyph does not carry: a `fa-regular
 person` / `fa-regular building` pair switched by Jsonata `Visible` expressions, plus one more.
-The icon itself is a node — `IconDisplayExtra.icon: FormProp<ReactNode>`, the same shape as
-`ActionProps.icon` and a field's `startIcon`/`endIcon` — so the author draws it and the
-implementation places and names it; the loader draws the format's `IconReference` as
-nothing unless `LoaderOptions.icon` says otherwise (README finding 71 had legacy's
-`<i class="{library} fa-{name}">`; a device showed that cannot be the default).
+The icon itself is an `IconSpec` — `IconDisplayExtra.icon: FormProp<IconSpec>`, the same shape as
+`ActionProps.icon` and a field's `startIcon`/`endIcon`: an icon by name, which the icon sets in
+scope draw at the size and colour of the place, or a node the author drew. The implementation places
+and names it; the loader passes the format's `IconReference` on by name, drawn by nothing unless a
+set is mounted (README finding 71 had legacy's `<i class="{library} fa-{name}">`; a device showed
+that cannot be the default, and `legacyWebIcons` is that set for a web host). Names rather than
+nodes because React Native inherits no size or colour: a node built by the host cannot follow the
+look, a name drawn by the implementation does.
 None is on a data field, so nothing is added to `FieldProps`; the loader converts a `Tooltip`
 adornment on a display to this prop.
 

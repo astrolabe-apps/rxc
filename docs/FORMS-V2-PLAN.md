@@ -260,8 +260,8 @@ built, `strict` throwing `LoaderStrictError`, a test per translator plus the sha
 (expressions, validators, dynamic properties, `LayoutStyle`, meta fields, adornments, host
 extensions, the audit), and the fixture form pinned end to end. Its markup is gone: rows are a
 `<Contents layout>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s off-screen region is
-the registry's `contents` slot. No element remains: the default `IconTranslator` draws nothing, so the loader is
-platform-neutral and a host maps icons to its own set.
+the registry's `contents` slot. No element remains: an icon is passed on by name, so the loader is
+platform-neutral and the icon sets in scope draw it (phase 11).
 
 The corpus tooling is `tools/forms-corpus`, over the real packages, with the POC's stand-in host
 (exported as `rxc-forms-corpus/host`). Over the real packages it measures exactly what the POC
@@ -950,20 +950,34 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
 - The loader no longer draws "Nothing yet." for an empty collection (legacy drew nothing).
   `forms-native`'s theme gains `disclosure.iconOpen`, `disclosure.iconStyle` and `shell.helpButton.label`
   / `labelled`.
-- The default icon draws nothing (a React Native host cannot draw an `<i>`); a web host passes
-  `legacyIconClass`'s result through its icon translator.
+- **Icons are names in the contract.** An icon slot (`icon` on an action and an icon display,
+  `startIcon` / `endIcon`, an `InputFrame`'s edges) takes `IconSpec`: an icon by name, `{ family?, name }`,
+  or a node as before (a string is words, never a name). An app supplies icon sets with
+  `<FormIconsProvider set>` (innermost first, `undefined` declines); an implementation draws a name with
+  `useDrawIcon`, handing the set the size and colour of the place — on React Native the look's text
+  style, since nothing there inherits — and falls back to its own glyphs for the `ChromeIcon` names it
+  asks for itself (`info`, `calendar`, `check`, the chevrons). Theme slots that held a glyph
+  (`helpButton.icon`, `date.icon`, `checkbox.markIcon`, a disclosure's `icon` / `iconOpen`) are now
+  `IconSpec`s naming those. Typed names: declare them on `FormIcons`, as looks on `FormLooks`.
+- The loader passes the format's `IconReference` on as `{ family: library, name }` (`iconRefOf`);
+  `LoaderOptions.icon`, `IconTranslator` and forms-json's `legacyIconClass` are gone. A web host that
+  loads the icon font mounts `forms-html`'s `legacyWebIcons` (legacy's `<i>` classes, `legacyIconClass`).
+  An icon's `iconClass` goes in the look's `icon` part (`legacyIconClassSlot`), which html draws on an
+  icon display and a field's edges; the native converter drops an icon font's classes (`fa`, `fa-*`).
+- A native disclosure's title shrinks, so a long one no longer pushes the icon out of the row.
 
 **Where it stands, and what is next** (kept current; the order of work, not a schedule).
 
 - **Done:** the contract, five implementations, the converter and its gates; the device comparison
   against the real ServiceTas renderers (`tools/forms-corpus/README.md`, "Comparing on a device"), with
-  the differences it found closed or listed in `FORMS-V2-LOOKS.md` ("Fidelity to the real app").
+  the differences it found closed or listed in `FORMS-V2-LOOKS.md` ("Fidelity to the real app"); icons
+  as names, with the playground drawing the app's Font Awesome (Pro from a local ServiceTas checkout).
 - **Scope of the comparison:** the 45 forms the React Native app draws (`tools/forms-corpus/sidecar/rn-forms.json`);
   the other 23 ServiceTas forms are not referenced by it, and the 12 from other apps are not
   ServiceTas's. **Compared so far (8):** AccountDetails, Address, MyAccount, PersonalDetails, ContactUs, AccountPreferences, NotificationPreferences, Services. **Still to compare (37):**
   About, BiometricOnboarding, ContactUsEnquiry, DeactivateAccount, Error, Home, InboxDocuments, InboxMessages, LinkMastWizard, LinkMrsWizard, LinkedServices, MRSReceiptConfirmation, MRSReceiptFailure, MastLicenceSummary, MastMooringPermitSummary, MastRegistrationsSummary, MessageDetails, MrsAllRegistrations, MrsDemeritsSummary, MrsLicenceDetails, MrsLicenceRenewal, MrsLicenceSummary, MrsRegistrationDetails, MrsRegistrationRenewal, MrsRegistrationsSummary, MyProfile, PlatesPlusRegistrationWizard, PushNotificationsOnboarding, RWVPInterim, RWVPReceiptConfirmation, RWVPVerificationWizard, SecurityPreferences, ServiceNotAvailable, ServiceProviderListing, ShortTermPermit, TUP, TuoPreferences. All with empty data and fake actions so far.
 - **Next:** widen the comparison over the 37 (with data, and with the actions and custom displays a
-  form needs); give the native host an icon set (the app draws Font Awesome); DateTime and Time pickers.
+  form needs); DateTime and Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,
   and its release note is the "for the `alpha.9` notes" list above. Nothing in production depends on it.
 - **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the

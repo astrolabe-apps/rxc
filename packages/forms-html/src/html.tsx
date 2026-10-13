@@ -49,6 +49,7 @@ import {
   type RichTextRenderProps,
   type ImageDisplayRenderProps,
   helpButtonName,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -73,6 +74,7 @@ import {
   portableCss,
   portableCssSplit,
   useLookStyles,
+  useWebIcon,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -101,6 +103,7 @@ function shellOf(theme: HtmlTheme, widget: string | undefined): ShellTheme {
 }
 
 function HtmlFieldShell(p: FieldShellProps) {
+  const icon = useWebIcon();
   const theme = useHtmlTheme();
   const t = shellOf(theme, p.widget);
   const look = lookParts("field", p.look, theme.looks);
@@ -141,7 +144,7 @@ function HtmlFieldShell(p: FieldShellProps) {
       aria-controls={fieldHelpId(p.id)}
       onClick={() => setHelpOpen((o) => !o)}
     >
-      {t.helpButton.icon}
+      {icon(t.helpButton.icon)}
       {p.helpLabel != null && <span className={t.helpButton.labelClassName}>{p.helpLabel}</span>}
     </button>
   );
@@ -247,6 +250,7 @@ function HtmlFieldShell(p: FieldShellProps) {
 // ── Frame: the box the border lives on ───────────────────────────────
 
 function HtmlInputFrame(p: InputFrameProps) {
+  const icon = useWebIcon();
   const theme = useHtmlTheme();
   const t = theme.frame;
   // The look's control lands where the author's `className` does.
@@ -260,8 +264,8 @@ function HtmlInputFrame(p: InputFrameProps) {
     readOnly: !!p.readOnly,
     multiline: !!p.multiline,
   };
-  const slot = (s: ReactNode | ((s: FrameState) => ReactNode)) =>
-    typeof s === "function" ? s(state) : s;
+  const slot = (s: IconSpec | ((s: FrameState) => IconSpec)) =>
+    icon(typeof s === "function" ? s(state) : s);
   // The author's `style`: its box properties go where the look's control does, its text
   // properties to the control element, which is what draws the words.
   const css = portableCssSplit(p.style, theme.tokens.colors);
@@ -286,7 +290,11 @@ function HtmlInputFrame(p: InputFrameProps) {
       data-readonly={p.readOnly ? "" : undefined}
       data-multiline={p.multiline ? "" : undefined}
     >
-      {p.start !== undefined && <span className={t.slot}>{slot(p.start)}</span>}
+      {p.start !== undefined && (
+        <span className={lookClass(t.slot, look?.icon)} style={ls.style("icon")}>
+          {slot(p.start)}
+        </span>
+      )}
       {p.render(
         {
           id: p.id,
@@ -308,7 +316,11 @@ function HtmlInputFrame(p: InputFrameProps) {
         },
         state,
       )}
-      {p.end !== undefined && <span className={t.slot}>{slot(p.end)}</span>}
+      {p.end !== undefined && (
+        <span className={lookClass(t.slot, look?.icon)} style={ls.style("icon")}>
+          {slot(p.end)}
+        </span>
+      )}
     </div>
   );
 }
@@ -398,6 +410,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
 
 /** Trailing label, rendered by the shell — the widget only draws the box. */
 function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
+  const icon = useWebIcon();
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const theme = useHtmlTheme();
@@ -405,8 +418,14 @@ function HtmlDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const look = lookParts("field", p.look, theme.looks);
   const ls = useLookStyles(look, { invalid: !!p.error, disabled: !!ctl.state.disabled });
   const css = ls.style(["control", "text"], portableCss(p.style, theme.tokens.colors));
-  const start = p.startIcon != null && <span className={t.icon}>{p.startIcon}</span>;
-  const end = p.endIcon != null && <span className={t.icon}>{p.endIcon}</span>;
+  const edge = (e: IconSpec) =>
+    e != null && (
+      <span className={lookClass(t.icon, look?.icon)} style={ls.style("icon")}>
+        {icon(e)}
+      </span>
+    );
+  const start = edge(p.startIcon);
+  const end = edge(p.endIcon);
   // Inline: the value in prose — no shell, no label, a span.
   if (p.inline)
     return ctl.rendered(
@@ -692,11 +711,12 @@ function HtmlTabs(p: TabsRenderProps) {
 }
 
 function HtmlAction(p: ActionRenderProps) {
+  const icon = useWebIcon();
   const { displayShell, action: t, looks, tokens } = useHtmlTheme();
   // A role the theme does not name draws as the default emphasis.
   const look = lookParts("action", p.look, looks) ?? lookParts("action", "secondary", looks);
   const ls = useLookStyles(look, { disabled: !!p.disabled });
-  const shown = p.busy ? t.busy : p.icon;
+  const shown = p.busy ? t.busy : icon(p.icon);
   // The icon in a wrapper the theme reaches, whatever element it is.
   const busy = !noContent(shown) && (
     <span className={lookClass(t.iconClassName, look?.icon)} style={ls.style("icon")}>
@@ -793,6 +813,7 @@ function HtmlText(p: TextDisplayRenderProps) {
  * no library, no provider.
  */
 function HtmlIcon(p: IconDisplayRenderProps) {
+  const icon = useWebIcon();
   const { rc, rendered } = useReactive();
   const { displayShell, icon: t, looks, tokens } = useHtmlTheme();
   const look = lookParts("icon", p.look, looks);
@@ -808,14 +829,14 @@ function HtmlIcon(p: IconDisplayRenderProps) {
       classes={displayShell}
     >
       <span
-        className={lookClass(t.className, look?.control, look?.text)}
-        style={ls.style(["control", "text"], portableCss(p.style, tokens.colors))}
+        className={lookClass(t.className, look?.control, look?.text, look?.icon)}
+        style={ls.style(["control", "text", "icon"], portableCss(p.style, tokens.colors))}
         data-look={lookAttr(p.look)}
         role="img"
         aria-label={p.accessibleName}
         title={p.accessibleName}
       >
-        {getProp(rc, p.icon)}
+        {icon(getProp(rc, p.icon), false)}
       </span>
     </DisplayShell>,
   );
@@ -993,13 +1014,14 @@ function HtmlWizard(p: WizardRenderProps) {
  * which is what `silent` needs.
  */
 function HtmlDisclosure(p: DisclosureRenderProps) {
+  const icon = useWebIcon();
   const theme = useHtmlTheme();
   const t = theme.disclosure;
   const look = lookParts("disclosure", p.look, theme.looks);
   const ls = useLookStyles(look, { invalid: !!p.invalid });
-  const icon = t.icon != null && (
+  const toggleIcon = t.icon != null && (
     <span className={t.iconClassName || undefined} data-open={p.open ? "" : undefined} aria-hidden="true">
-      {t.icon}
+      {icon(t.icon, false)}
     </span>
   );
   return (
@@ -1022,9 +1044,9 @@ function HtmlDisclosure(p: DisclosureRenderProps) {
           p.setOpen(!p.open);
         }}
       >
-        {t.iconPlacement !== "after" && icon}
+        {t.iconPlacement !== "after" && toggleIcon}
         {p.title}
-        {t.iconPlacement === "after" && icon}
+        {t.iconPlacement === "after" && toggleIcon}
         {p.invalid && (
           <span className={t.invalidMarker} aria-hidden="true">
             {"\u25CF"}

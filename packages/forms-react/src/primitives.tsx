@@ -7,6 +7,7 @@ import type {
 } from "react";
 import type { FormProp } from "./props.js";
 import type { PortableStyle, LookRef } from "./looks.js";
+import type { IconSpec } from "./icons.js";
 import { useRenderers } from "./registry.js";
 import type { FieldController, FocusTarget } from "./controllers.js";
 import type { CountFormat } from "./widgets.js";
@@ -196,10 +197,10 @@ export interface InputFrameProps {
    * everything first and close over the values.
    */
   render: (slot: ControlSlotProps, state: FrameState) => ReactNode;
-  /** Content at the leading edge. */
-  start?: ReactNode | ((state: FrameState) => ReactNode);
+  /** Content at the leading edge: an icon by name, drawn at the frame's text size and colour, or a node. */
+  start?: IconSpec | ((state: FrameState) => IconSpec);
   /** Content at the trailing edge. */
-  end?: ReactNode | ((state: FrameState) => ReactNode);
+  end?: IconSpec | ((state: FrameState) => IconSpec);
   /**
    * The widget's {@link FieldController.elementRef}: the frame hands it to the
    * control in `slot.ref`, merged with any ref of its own.

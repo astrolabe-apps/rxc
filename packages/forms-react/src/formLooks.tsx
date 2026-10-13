@@ -16,7 +16,7 @@ import type { ClassValue } from "./props.js";
  * | `control` | the control; a group's body; an action's button |
  * | `text` | the element's words |
  * | `label` / `labelText` | a label's container and its words |
- * | `icon` | around an action's icon |
+ * | `icon` | around an action's icon, a field's start / end icons; an icon display's own element (legacy's `iconClass`) |
  * | `entry` / `selected` / `notSelected` | a radio's option wrapper, and its two states |
  *
  * @group Implementations

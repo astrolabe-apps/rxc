@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isIconRef } from "@rx-controls/forms-react";
 import {
   defaultHtmlTheme,
   HtmlThemeProvider,
@@ -86,7 +87,7 @@ function hooks(t: unknown, path = ""): Map<string, string[]> {
   if (typeof t === "string") {
     const hs = t.split(/\s+/).filter((c) => c.startsWith("rxf-"));
     if (hs.length) out.set(path, hs);
-  } else if (t && typeof t === "object" && !("$$typeof" in t)) {
+  } else if (t && typeof t === "object" && !("$$typeof" in t) && !isIconRef(t)) {
     for (const [k, v] of Object.entries(t))
       for (const [p, h] of hooks(v, path ? `${path}.${k}` : k)) out.set(p, h);
   }
@@ -112,7 +113,7 @@ describe("the themes", () => {
         if (notClasses.test(path) || !t) return;
         for (const c of t.split(/\s+/))
           expect(c.startsWith("rxf-"), `${path}: ${c}`).toBe(true);
-      } else if (t && typeof t === "object" && !("$$typeof" in t))
+      } else if (t && typeof t === "object" && !("$$typeof" in t) && !isIconRef(t))
         for (const [k, v] of Object.entries(t)) walk(v, path ? `${path}.${k}` : k);
     };
     walk(defaultHtmlTheme, "");
@@ -129,7 +130,7 @@ describe("the themes", () => {
           expect(cs, `${path} is w-full with padding or a border`).toContain(
             "box-border",
           );
-      } else if (t && typeof t === "object" && !("$$typeof" in t))
+      } else if (t && typeof t === "object" && !("$$typeof" in t) && !isIconRef(t))
         for (const [k, v] of Object.entries(t)) walk(v, path ? `${path}.${k}` : k);
     };
     walk(tailwindHtmlTheme, "");

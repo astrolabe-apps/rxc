@@ -7,7 +7,7 @@ import {
   createControlContext,
   type ControlContext,
 } from "@rx-controls/react";
-import { Form, FormProvider } from "@rx-controls/forms-react";
+import { Form, FormIconsProvider, FormProvider, type IconSet } from "@rx-controls/forms-react";
 import { htmlRenderers, HtmlThemeProvider, type PartialHtmlTheme } from "@rx-controls/forms-html";
 import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 import {
@@ -36,11 +36,14 @@ export interface Harness {
     controls: object[],
     schema: SchemaField[],
     data: T,
-    opts?: LoaderOptions & { clearHidden?: boolean; theme?: PartialHtmlTheme },
+    opts?: LoaderOptions & { clearHidden?: boolean; theme?: PartialHtmlTheme; icons?: IconSet },
   ): Loaded<T>;
   /** Everything the test printed to console.error / console.warn. */
   console: string[];
 }
+
+/** No host icons: the implementation's own default set alone. */
+const noIcons: IconSet = () => undefined;
 
 export function setupLoader(): Harness {
   const h = { console: [] as string[] } as Harness;
@@ -56,7 +59,7 @@ export function setupLoader(): Harness {
     document.body.appendChild(h.container);
     root = createRoot(h.container);
     h.load = (controls, schema, value, opts = {}) => {
-      const { clearHidden, theme, ...loader } = opts;
+      const { clearHidden, theme, icons, ...loader } = opts;
       const data = h.ctx.newControl(value);
       const loaded = { data, warnings: [] as LoaderWarning[] };
       act(() =>
@@ -65,6 +68,7 @@ export function setupLoader(): Harness {
             <FormProvider renderers={htmlRenderers}>
               <HtmlThemeProvider theme={theme ?? {}}>
               <Form clearHidden={clearHidden}>
+                <FormIconsProvider set={icons ?? noIcons}>
                 <JsonForm
                   {...loader}
                   controls={controls as ControlDefinition[]}
@@ -75,6 +79,7 @@ export function setupLoader(): Harness {
                     return null;
                   }}
                 />
+                </FormIconsProvider>
               </Form>
               </HtmlThemeProvider>
             </FormProvider>

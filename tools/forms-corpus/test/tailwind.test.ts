@@ -53,6 +53,12 @@ describe("tailwindToPart", () => {
     expect(value("native:pl-[8px] web:pt-[8px] p-0")).toEqual({ paddingLeft: 8, padding: 0 });
   });
 
+  it("drops an icon font's classes, which name a glyph and no style", () => {
+    const onUnknown = vi.fn();
+    expect(tailwindToPart("fa fa-regular fa-circle-info text-[5px]", { onUnknown })).toEqual({ fontSize: 5 });
+    expect(onUnknown).not.toHaveBeenCalled();
+  });
+
   it("turns breakpoints and states into a function of the look's state", () => {
     const p = tailwindToPart("flex-col lg:flex-row active:bg-[#DDD] min-[540px]:gap-4");
     expect(typeof p).toBe("function");

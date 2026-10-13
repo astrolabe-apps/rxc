@@ -13,3 +13,4 @@
 export * from "./loader.js";
 export * from "./translator.js";
 export * from "./looks.js";
+export * from "./icons.js";

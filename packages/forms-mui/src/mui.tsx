@@ -91,6 +91,7 @@ import {
   type RichTextRenderProps,
   helpButtonName,
   type ImageDisplayRenderProps,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -114,6 +115,7 @@ import {
   visuallyHiddenStyle,
   portableCss,
   useLookWidth,
+  webIcon,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { useMuiLooks, type MuiFieldLook, type MuiFieldPart, type MuiStyle } from "./looks.js";
@@ -191,7 +193,7 @@ function MuiFieldShell(p: FieldShellProps) {
         aria-label={helpButtonName("Help", p.label, p.helpLabel)}
         sx={{ p: 0.25, fontSize: "1rem", ...(p.helpLabel != null && { borderRadius: 4, px: 1, gap: 0.5 }) }}
       >
-        <span aria-hidden="true">ⓘ</span>
+        {webIcon({ name: "info" })}
         {p.helpLabel != null && (
           <Box component="span" sx={{ fontSize: "0.8125rem", fontWeight: 700 }}>
             {p.helpLabel}
@@ -373,8 +375,8 @@ function MuiInputFrame(p: InputFrameProps) {
     readOnly: !!p.readOnly,
     multiline: !!p.multiline,
   };
-  const slot = (s: ReactNode | ((s: FrameState) => ReactNode)) =>
-    typeof s === "function" ? s(state) : s;
+  const slot = (s: IconSpec | ((s: FrameState) => IconSpec)) =>
+    webIcon(typeof s === "function" ? s(state) : s);
   const render = (cp: ControlSlotProps, s: FrameState) =>
     p.render(
       {
@@ -532,12 +534,12 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   // The icons either side of the value, as an adornment sits in a frame.
   const start = p.startIcon != null && (
     <InputAdornment position="start" component="span">
-      {p.startIcon}
+      {webIcon(p.startIcon)}
     </InputAdornment>
   );
   const end = p.endIcon != null && (
     <InputAdornment position="end" component="span">
-      {p.endIcon}
+      {webIcon(p.endIcon)}
     </InputAdornment>
   );
   if (p.inline)
@@ -712,9 +714,9 @@ function MuiAction(p: ActionRenderProps) {
         disabled={p.disabled}
         loading={p.busy}
         startIcon={
-          (p.iconPlacement ?? "before") === "before" ? p.icon : undefined
+          (p.iconPlacement ?? "before") === "before" ? webIcon(p.icon) : undefined
         }
-        endIcon={p.iconPlacement === "after" ? p.icon : undefined}
+        endIcon={p.iconPlacement === "after" ? webIcon(p.icon) : undefined}
         type={p.submit ? "submit" : "button"}
         onClick={(e) => {
           if (p.submit) e.preventDefault();
@@ -723,7 +725,7 @@ function MuiAction(p: ActionRenderProps) {
         aria-label={p.iconPlacement === "replace" ? String(p.text) : undefined}
       >
         {p.iconPlacement === "replace"
-          ? p.icon
+          ? webIcon(p.icon)
           : (p.children ?? (
               <span>
                 {p.text}
@@ -891,7 +893,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
       data-look={lookAttr(p.look)}
       sx={{ fontSize: 24, lineHeight: 1, ...look }}
     >
-      {getProp(rc, p.icon)}
+      {webIcon(getProp(rc, p.icon), false)}
     </Typography>
   );
   return rendered(
@@ -966,12 +968,12 @@ function MuiSelect(p: SelectRenderProps): Rendered {
         SelectDisplayProps={{ "aria-describedby": describedBy(p) }}
         startAdornment={
           p.startIcon != null ? (
-            <InputAdornment position="start">{p.startIcon}</InputAdornment>
+            <InputAdornment position="start">{webIcon(p.startIcon)}</InputAdornment>
           ) : undefined
         }
         endAdornment={
           p.endIcon != null ? (
-            <InputAdornment position="end">{p.endIcon}</InputAdornment>
+            <InputAdornment position="end">{webIcon(p.endIcon)}</InputAdornment>
           ) : undefined
         }
         value={ctl.stringValue}
@@ -1197,7 +1199,7 @@ function MuiDisclosure(p: DisclosureRenderProps) {
         id={`${p.id}-toggle`}
         sx={look?.title}
         // MUI's own chevron is in @mui/icons-material, not a dependency here.
-        expandIcon={<span aria-hidden="true">{"\u25BE"}</span>}
+        expandIcon={webIcon({ name: "chevron-down" })}
       >
         <Typography component="span" color={p.invalid ? "error" : undefined}>
           {p.title}

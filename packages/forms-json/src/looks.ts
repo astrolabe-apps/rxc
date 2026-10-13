@@ -28,6 +28,8 @@ export interface LegacyClassSlots {
   entryWrapperClass?: unknown;
   selectedClass?: unknown;
   notSelectedClass?: unknown;
+  /** An icon's own classes: an icon display's, or an icon adornment's `iconClass`. */
+  iconClass?: unknown;
 }
 
 /**
@@ -68,6 +70,9 @@ export function legacyLookKey(
     canonicalSlot(slots.selectedClass),
     canonicalSlot(slots.notSelectedClass),
   ];
+  // Last, and only when given, so the keys (and names) of every look without one are unmoved.
+  const icon = canonicalSlot(slots.iconClass);
+  if (icon) parts.push(icon);
   return parts.some(Boolean) ? JSON.stringify([kind, ...parts]) : undefined;
 }
 
@@ -99,8 +104,8 @@ function hash(s: string): string {
  * @group Hosts
  */
 export function legacyLookName(key: string): string {
-  const [, style, text, layout, label, labelText, entry, selected, notSelected] = JSON.parse(key) as string[];
-  const others = [style, layout, label, labelText, entry, selected, notSelected];
+  const [, style, text, ...rest] = JSON.parse(key) as string[];
+  const others = [style, ...rest];
   if (text && !text.startsWith("@ ") && others.every((s) => !s)) {
     const name = text.split(/\s+/).join("-").toLowerCase();
     if (/^[a-z][a-z0-9-]{0,39}$/.test(name)) return name;
@@ -137,5 +142,28 @@ export function legacyLook(
   put("entry", slots.entryWrapperClass);
   put("selected", slots.selectedClass);
   put("notSelected", slots.notSelectedClass);
+  put("icon", slots.iconClass);
   return { name: legacyLookName(key), parts };
+}
+
+/**
+ * The classes a control's icon carried in legacy (`iconClass`), for its look's `icon` part:
+ * an icon display's own, or — on a field — that of the icon adornment drawn at the control's
+ * start or end (the last, as the loader draws it). `undefined` for none.
+ *
+ * @group Hosts
+ */
+export function legacyIconClassSlot(def: {
+  type?: unknown;
+  displayData?: unknown;
+  adornments?: unknown;
+}): unknown {
+  const display = def.displayData as { type?: unknown; iconClass?: unknown } | undefined;
+  if (def.type === "Display") return display?.type === "Icon" ? display.iconClass : undefined;
+  if (def.type !== "Data" || !Array.isArray(def.adornments)) return undefined;
+  let iconClass: unknown;
+  for (const a of def.adornments as { type?: unknown; placement?: unknown; iconClass?: unknown; icon?: { name?: unknown } }[])
+    if (a.type === "Icon" && a.icon?.name && (a.placement === "ControlStart" || a.placement === "ControlEnd"))
+      iconClass = a.iconClass;
+  return iconClass;
 }

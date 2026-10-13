@@ -6,12 +6,12 @@ import { Contents, RichText, TextField } from "@rx-controls/forms-react";
 import {
   defaultTranslators,
   legacyLook,
-  legacyIconClass,
   legacyLookKey,
   LoaderStrictError,
   translateForm,
   type Translator,
 } from "../src/index";
+import { legacyWebIcons } from "@rx-controls/forms-html";
 import { click, flush, setupLoader, typeInto } from "./harness";
 
 /**
@@ -22,8 +22,6 @@ import { click, flush, setupLoader, typeInto } from "./harness";
  * implementation.
  */
 const h = setupLoader();
-/** A web host's icon translator: legacy's `<i>` classes. The loader draws no icon of its own. */
-const webIcon = (ref: Parameters<typeof legacyIconClass>[0]) => <i className={legacyIconClass(ref)} aria-hidden />;
 const $ = <E extends Element = HTMLElement>(sel: string) =>
   h.container.querySelector(sel) as E;
 const $$ = (sel: string) => [...h.container.querySelectorAll(sel)];
@@ -722,6 +720,36 @@ describe("displays", () => {
     expect(warnings).toEqual([]);
   });
 
+  it("passes an icon on by name, and puts its iconClass in the look's icon part", () => {
+    const { warnings } = h.load(
+      [
+        {
+          type: "Display",
+          displayData: { type: "Icon", iconClass: "big", icon: { library: "fa-solid", name: "circle" } },
+        },
+        {
+          type: "Data",
+          field: "a",
+          adornments: [
+            { type: "Icon", placement: "ControlEnd", iconClass: "dot", icon: { library: "fa-regular", name: "at" } },
+          ],
+        },
+      ],
+      [str("a")],
+      { a: "" },
+      { icons: (i) => <i data-family={i.family} data-name={i.name} /> },
+    );
+    expect(warnings).toEqual([]);
+    const shown = $$("i").map((i) => [i.dataset.family, i.dataset.name, i.parentElement!.className]);
+    expect(shown).toEqual([
+      ["fa-solid", "circle", expect.stringContaining("big")],
+      ["fa-regular", "at", ""],
+    ]);
+    // The edge's own wrapper is outside the set's `aria-hidden` span.
+    expect($("i[data-name=at]").parentElement!.parentElement!.className).toContain("dot");
+    expect(h.console).toEqual([]);
+  });
+
   it("draws text, html and an icon named by its Tooltip", () => {
     h.load(
       [
@@ -735,7 +763,7 @@ describe("displays", () => {
       ],
       [],
       {},
-      { icon: webIcon },
+      { icons: legacyWebIcons },
     );
     expect(text()).toContain("plain text");
     expect($("b").textContent).toBe("bold");
@@ -1033,7 +1061,7 @@ describe("adornments", () => {
       ],
       [str("a")],
       { a: "" },
-      { icon: webIcon },
+      { icons: legacyWebIcons },
     );
     // LabelEnd is the contract's labelEnd: behind a Help button beside the
     // label, still the input's description.

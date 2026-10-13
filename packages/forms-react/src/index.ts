@@ -18,6 +18,7 @@
 export * from "./props.js";
 export * from "./looks.js";
 export * from "./formLooks.js";
+export * from "./icons.js";
 // Named, not `*`: scope.tsx also holds the framework's own scope facets.
 export {
   Form,

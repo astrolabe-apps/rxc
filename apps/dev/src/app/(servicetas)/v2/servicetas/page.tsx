@@ -16,11 +16,12 @@ import {
   createControlContext,
   useControl,
 } from "@rx-controls/react";
-import { FormProvider, type FormRenderers } from "@rx-controls/forms-react";
+import { FormIconsProvider, FormProvider, type FormRenderers } from "@rx-controls/forms-react";
 import {
   DefaultVisibility,
   htmlRenderers,
   HtmlThemeProvider,
+  legacyWebIcons,
   tailwindHtmlTheme,
 } from "@rx-controls/forms-html";
 import { JsonForm } from "@rx-controls/forms-json";
@@ -126,6 +127,8 @@ function Page({ forms }: { forms: CorpusForm[] }) {
         </div>
         <div className="rounded-lg bg-white p-6 shadow">
           <FormProvider renderers={serviceTasRenderers}>
+            {/* The portal's Font Awesome kit draws legacy's `<i>` classes. */}
+            <FormIconsProvider set={legacyWebIcons}>
             <HtmlThemeProvider theme={tailwindHtmlTheme}>
               <HtmlThemeProvider theme={serviceTasOverlay}>
                 <HtmlThemeProvider theme={overlayFor(style)}>
@@ -133,6 +136,7 @@ function Page({ forms }: { forms: CorpusForm[] }) {
                 </HtmlThemeProvider>
               </HtmlThemeProvider>
             </HtmlThemeProvider>
+            </FormIconsProvider>
           </FormProvider>
         </div>
       </div>

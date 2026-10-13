@@ -3,7 +3,6 @@ import type { Control, ReadContext } from "@rx-controls/core";
 import type {
   ControlAdornment,
   ControlDefinition,
-  IconReference,
   SchemaField,
 } from "@rx-controls/forms-schema";
 import type { FieldProps, FormProp } from "@rx-controls/forms-react";
@@ -100,8 +99,6 @@ export interface TranslateArgs {
    * reports it dropped.
    */
   dynamicValue: (type: string) => FormProp<unknown> | undefined;
-  /** How icons are drawn: the host's {@link LoaderOptions.icon}, or the default. */
-  icon: IconTranslator;
   /**
    * The control a field reference names, resolved as the definition's own
    * `field` is — against the data the definition sits in — for a property
@@ -186,37 +183,6 @@ export interface AdornmentTranslator {
  * @group Hosts
  */
 export type DisplayTranslator = (args: TranslateArgs) => ReactNode;
-
-/**
- * The classes legacy drew an icon with (`fa fa-user`, `fa-regular fa-user`):
- * for a web host whose `LoaderOptions.icon` draws `<i className={…} />`.
- *
- * @group Hosts
- */
-export function legacyIconClass(icon: IconReference): string {
-  switch (icon.library) {
-    case "FontAwesome":
-      return `fa fa-${icon.name}`;
-    case "Material":
-    case "CssClass":
-      return icon.name;
-    default:
-      return `${icon.library ?? "fa"} fa-${icon.name}`;
-  }
-}
-
-/**
- * What draws an icon the format names. The default draws nothing — an icon
- * set is a host's, and the same loader serves the web and React Native — so
- * a host maps the name to its own set here ({@link legacyIconClass} gives
- * the legacy `<i>` classes, for a web host that wants them).
- *
- * @group Hosts
- */
-export type IconTranslator = (
-  icon: IconReference,
-  className?: string,
-) => ReactNode;
 
 /**
  * What a definition's display text becomes: its `title` where that is a

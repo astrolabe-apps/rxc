@@ -43,6 +43,11 @@ import {
   type RichTextRenderProps,
   type ImageDisplayRenderProps,
   getProp,
+  chromeGlyph,
+  isIconRef,
+  useDrawIcon,
+  type IconSet,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import { useReactive } from "@rx-controls/react";
 import {
@@ -1106,4 +1111,37 @@ export function ImageDom({
       )}
     </DisplayShell>,
   );
+}
+
+/**
+ * The web's default icon set: a chrome name's glyph, sized and coloured by
+ * the CSS around it; nothing for any other name.
+ */
+export const webGlyphs: IconSet = (i) => chromeGlyph(i) ?? null;
+
+/**
+ * Draws an icon slot on the web: a name through the icon sets in scope (no
+ * size or colour given, so the icon follows the CSS around it), wrapped
+ * `aria-hidden` unless `wrap` is false — where the place already hides it or
+ * names it; a node as it is.
+ */
+export function useWebIcon(): (icon: IconSpec, wrap?: boolean) => ReactNode {
+  const draw = useDrawIcon();
+  return (icon, wrap = true) => {
+    if (!isIconRef(icon)) return icon;
+    const drawn = draw(icon, webGlyphs);
+    return wrap && drawn != null ? <span aria-hidden="true">{drawn}</span> : drawn;
+  };
+}
+
+function WebIcon({ icon, wrap }: { icon: IconSpec; wrap: boolean }) {
+  return useWebIcon()(icon, wrap);
+}
+
+/**
+ * {@link useWebIcon} where a hook cannot go — inline in a prop: a name as an
+ * element that draws it, anything else as it is.
+ */
+export function webIcon(icon: IconSpec, wrap = true): ReactNode {
+  return isIconRef(icon) ? <WebIcon icon={icon} wrap={wrap} /> : icon;
 }

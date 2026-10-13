@@ -40,6 +40,7 @@ import {
   type FieldProps,
   type FormProp,
   type Validator,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import { useDefaultValue } from "@rx-controls/forms-react/internal";
 import type {
@@ -71,10 +72,10 @@ import {
   type ResolvedRef,
 } from "./scope.js";
 import type { LoaderOptions, LoaderWarning } from "./loader.js";
-import { legacyLook } from "./looks.js";
+import { legacyIconClassSlot, legacyLook } from "./looks.js";
+import { iconRefOf } from "./icons.js";
 import type {
   CompoundCycleProps,
-  IconTranslator,
   DisplayTextTranslator,
   RetranslateRebuild,
   TranslateArgs,
@@ -120,20 +121,6 @@ interface Builtin {
   dynamics?: string[];
   ownsChildren?: boolean;
 }
-
-/**
- * The default icon draws nothing. An icon is a host's: a font's class on an
- * `<i>` is a DOM idea (React Native cannot render it), and which set the
- * names belong to is the host's too — so the loader emits no element of its
- * own, and a host maps `IconReference` to its set through `LoaderOptions.icon`.
- */
-const defaultIcon: IconTranslator = (icon) => {
-  // Declined, not dropped: read, so the audit does not report every icon of
-  // a host that chose to draw none.
-  void icon.library;
-  void icon.name;
-  return null;
-};
 
 const defaultUnsupported = (def: ControlDefinition) => {
   const ro = asDef(def).renderOptions?.type;
@@ -218,7 +205,7 @@ const hasOptions = (d: AnyDef, s?: AnyField) =>
 const builtins: Builtin[] = [
   {
     match: (d) => d.type === "Action",
-    render: ({ def, props, children, onClick, icon }) => (
+    render: ({ def, props, children, onClick }) => (
       <Action
         actionId={def.actionId ?? "action"}
         text={def.actionText ?? def.title}
@@ -226,7 +213,7 @@ const builtins: Builtin[] = [
         hidden={props.hidden}
         disabled={props.disabled}
         look={actionLooks(def.actionStyle, props.look)}
-        icon={def.icon?.name ? icon(def.icon) : undefined}
+        icon={def.icon?.name ? iconRefOf(def.icon) : undefined}
         iconPlacement={
           def.iconPlacement === "AfterText"
             ? "after"
@@ -332,12 +319,12 @@ const builtins: Builtin[] = [
     // The one display whose accessible name is load-bearing — and where the
     // legacy `Tooltip` adornment lands.
     match: (d) => d.type === "Display" && d.displayData?.type === "Icon",
-    render: ({ def, props, icon }) => {
+    render: ({ def, props }) => {
+      // Its `iconClass` is in the look (`buildProps`).
       const ref = def.displayData?.icon as IconReference | undefined;
-      const iconClass = str(def.displayData?.iconClass);
       return (
         <IconDisplay
-          icon={ref?.name ? icon(ref, iconClass) : undefined}
+          icon={ref?.name ? iconRefOf(ref) : undefined}
           accessibleName={tooltipOf(def)}
           hidden={props.hidden}
           look={props.look}
@@ -677,7 +664,6 @@ function buildProps(
   warn: Warn,
   seen: Set<string>,
   hostAdornments: Set<string>,
-  icon: IconTranslator,
   displayText: DisplayTextTranslator | undefined,
   derive: ((name: string, parts: ClassLook) => void) | undefined,
 ): FieldProps<any> {
@@ -818,15 +804,16 @@ function buildProps(
   // An Icon adornment at the control's start or end is the field's
   // `startIcon` / `endIcon`; anywhere else it has no slot and is
   // reported. Data only — a display has no icon slots of its own.
-  let startIcon: ReactNode | undefined;
-  let endIcon: ReactNode | undefined;
+  // An icon's `iconClass` (legacy put it on the icon's element) goes in the look's `icon`
+  // part (`legacyIconClassSlot`).
+  let startIcon: IconSpec | undefined;
+  let endIcon: IconSpec | undefined;
   if (def.type === "Data" && !hostAdornments.has("Icon"))
     for (const a of def.adornments ?? []) {
       if (a.type !== "Icon") continue;
       const ref = a.icon as IconReference | undefined;
       if (!ref?.name) continue;
-      const node = icon(ref, str(a.iconClass));
-      if (node == null) continue;
+      const node = iconRefOf(ref);
       if (a.placement === "ControlEnd") endIcon = node;
       else if (a.placement === "ControlStart") startIcon = node;
     }
@@ -859,6 +846,8 @@ function buildProps(
       entryWrapperClass: ro.entryWrapperClass,
       selectedClass: ro.selectedClass,
       notSelectedClass: ro.notSelectedClass,
+      // A host that draws Icon adornments itself draws their classes too.
+      iconClass: def.type === "Data" && hostAdornments.has("Icon") ? undefined : legacyIconClassSlot(def),
     },
     labelled,
   );
@@ -1321,7 +1310,6 @@ export function translate(
 ): ReactNode {
   const translators = opts.translators ?? defaultTranslators;
   const hostAdornments = new Set(Object.keys(opts.adornments ?? {}));
-  const icon = opts.icon ?? defaultIcon;
   const seen = new Set<string>();
   const def = recording(asDef(rawDef), seen);
   // `a/b` and `../x` resolve here — data and schema together, legacy's
@@ -1455,7 +1443,6 @@ export function translate(
     at,
     seen,
     hostAdornments,
-    icon,
     opts.displayText,
     (opts as Internal)[DERIVE],
   );
@@ -1570,7 +1557,6 @@ export function translate(
       onClick,
       retranslate,
       dynamicValue,
-      icon,
       resolveField: (r) => resolveRef(scope, r)?.control,
     })),
   );

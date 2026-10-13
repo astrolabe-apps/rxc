@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Form, RichText } from "@rx-controls/forms-react";
+import { Form, FormIconsProvider, RichText } from "@rx-controls/forms-react";
 import { useControl } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import { nativeStandInHost } from "../host";
 import { DatePickerHost } from "../DatePickerHost";
+import { fontAwesomeIcons } from "../icons/fontAwesome";
 import { serviceTasNativeTheme } from "../../../../packages/forms-native/test/fixtures/serviceTasTheme";
 
 /**
@@ -55,11 +56,14 @@ export function Converted() {
           </Pressable>
         ))}
       </View>
-      <NativeThemeProvider theme={serviceTasNativeTheme}>
-        <NativeThemeProvider theme={theme}>
-          <ConvertedForm key={at} form={data.forms[at]!} />
+      {/* The app's icons: Font Awesome (Pro with a ServiceTas checkout beside the repo). */}
+      <FormIconsProvider set={fontAwesomeIcons}>
+        <NativeThemeProvider theme={serviceTasNativeTheme}>
+          <NativeThemeProvider theme={theme}>
+            <ConvertedForm key={at} form={data.forms[at]!} />
+          </NativeThemeProvider>
         </NativeThemeProvider>
-      </NativeThemeProvider>
+      </FormIconsProvider>
     </View>
   );
 }

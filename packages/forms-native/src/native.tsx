@@ -18,6 +18,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -80,6 +81,10 @@ import {
   type ImageDisplayRenderProps,
   type ImageFit,
   type RichTextRenderProps,
+  chromeGlyph,
+  isIconRef,
+  useDrawIcon,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import { sp, type StylePiece, type StylePieces } from "./styleProps.js";
 import { useNativeTheme, type NativeTheme } from "./theme.js";
@@ -271,6 +276,7 @@ const LabelPressContext = createContext<(() => void) | undefined>(undefined);
 const RowA11yContext = createContext<Record<string, unknown> | undefined>(undefined);
 
 function NativeFieldShell(p: FieldShellProps) {
+  const icon = useIcon();
   const t = shellOf(useNativeTheme(), p.widget);
   const part = useLook("field", p.look);
   const lookState: LookState = { ...NO_LOOK_STATE, invalid: !empty(p.error), disabled: !!p.disabled };
@@ -326,7 +332,7 @@ function NativeFieldShell(p: FieldShellProps) {
       onPress={() => setHelpOpen((o) => !o)}
       {...sp(t.helpButton.style, p.helpLabel != null && t.helpButton.labelled)}
     >
-      <Text aria-hidden>{t.helpButton.icon}</Text>
+      {icon(t.helpButton.icon, undefined, true)}
       {p.helpLabel != null && (
         <Text aria-hidden {...sp(t.helpButton.label)}>
           {p.helpLabel}
@@ -424,6 +430,7 @@ function NativeFieldShell(p: FieldShellProps) {
 }
 
 function NativeInputFrame(p: InputFrameProps) {
+  const icon = useIcon();
   const t = useNativeTheme().frame;
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
@@ -434,7 +441,7 @@ function NativeInputFrame(p: InputFrameProps) {
     readOnly: !!p.readOnly,
     multiline: !!p.multiline,
   };
-  const edge = (e: ReactNode | ((s: FrameState) => ReactNode)) =>
+  const edge = (e: IconSpec | ((s: FrameState) => IconSpec)): IconSpec =>
     typeof e === "function" ? e(state) : e;
   const part = useLook("field", p.look);
   const control = part("control", {
@@ -457,8 +464,8 @@ function NativeInputFrame(p: InputFrameProps) {
         own.box,
       )}
     >
-      {/* An icon given as a string ("@") must be in a Text on native. */}
-      {p.start !== undefined && wrapText(edge(p.start))}
+      {/* Words given as an edge ("@") must be in a Text on native. */}
+      {p.start !== undefined && icon(edge(p.start), undefined, false, [t.input, control.text])}
       {p.render(
         {
           id: p.id,
@@ -475,7 +482,7 @@ function NativeInputFrame(p: InputFrameProps) {
         },
         state,
       )}
-      {p.end !== undefined && wrapText(edge(p.end))}
+      {p.end !== undefined && icon(edge(p.end), undefined, false, [t.input, control.text])}
     </View>
   );
 }
@@ -483,6 +490,7 @@ function NativeInputFrame(p: InputFrameProps) {
 // ── Fields ────────────────────────────────────────────────────────────
 
 function NativeTextField(p: TextFieldRenderProps): Rendered {
+  const icon = useIcon();
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -520,7 +528,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             onPress={openPicker}
             {...sp(dateTheme.button)}
           >
-            <Text aria-hidden>{dateTheme.icon}</Text>
+            {icon(dateTheme.icon, undefined, true)}
           </Pressable>
         </View>
         <Picker
@@ -613,6 +621,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
 }
 
 function NativeCheckbox(p: CheckboxRenderProps): Rendered {
+  const icon = useIcon();
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   const t = useNativeTheme().checkbox;
@@ -697,11 +706,7 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           {...hidden}
           {...webOnly({ "aria-required": p.required || undefined })}
         >
-          {ctl.checked && (
-            <Text aria-hidden {...sp(t.mark)}>
-              {t.markIcon}
-            </Text>
-          )}
+          {ctl.checked && icon(t.markIcon, t.mark, true)}
         </Pressable>
       )}
     </Shell>
@@ -794,6 +799,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
 
 /** A set of checkboxes ticking values into an array, named as one group. */
 function NativeCheckList(p: CheckListRenderProps): Rendered {
+  const icon = useIcon();
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const { checkList: t, checkbox: box, shell } = useNativeTheme();
@@ -848,11 +854,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
               {...webOnly({ "aria-invalid": p.error ? true : undefined })}
             >
               <View {...sp(box.box, on && box.checked)}>
-                {on && (
-                  <Text aria-hidden {...sp(box.mark)}>
-                    {box.markIcon}
-                  </Text>
-                )}
+                {on && icon(box.markIcon, box.mark, true)}
               </View>
               <Text {...sp(t.label, control.text, words.text)}>{o.name}</Text>
             </Pressable>
@@ -979,8 +981,11 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const part = useLook("field", p.look);
   const control = part("control", NO_LOOK_STATE, p.style);
   const words = part("text", NO_LOOK_STATE, undefined, true);
-  const start = p.startIcon != null && <View {...sp(t.icon)}>{wrapText(p.startIcon)}</View>;
-  const end = p.endIcon != null && <View {...sp(t.icon)}>{wrapText(p.endIcon)}</View>;
+  const icon = useIcon();
+  const edge = (e: IconSpec) =>
+    e != null && <View {...sp(t.icon)}>{icon(e, undefined, false, [t.text, words.text])}</View>;
+  const start = edge(p.startIcon);
+  const end = edge(p.endIcon);
   // Inline: the value in prose — no shell, no label.
   if (p.inline)
     return ctl.rendered(
@@ -1025,6 +1030,46 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
  * only inside a `Text`, and an author writes `<Contents>words</Contents>` on
  * the web without a thought.
  */
+/**
+ * Draws an icon slot in the text style of its place. A name goes through the
+ * icon sets at that style's size and colour — React Native text inherits
+ * nothing, so a set is told them; `tint` is where they come from when it is
+ * not the style itself (an edge's words take the input's). The default set's
+ * glyph takes the whole style. Words go in a `Text`, an element as it is.
+ * `hidden` keeps chrome out of the accessibility tree.
+ */
+function useIcon() {
+  const draw = useDrawIcon();
+  return (
+    icon: IconSpec,
+    style?: StylePiece | StylePieces,
+    hidden = false,
+    tint: StylePiece | StylePieces = style,
+  ): ReactNode => {
+    if (!isIconRef(icon))
+      return hidden && (typeof icon === "string" || typeof icon === "number") ? (
+        <Text aria-hidden {...sp(style)}>
+          {icon}
+        </Text>
+      ) : (
+        wrapText(icon, style)
+      );
+    const flat = (StyleSheet.flatten(sp(tint).style) ?? {}) as TextStyle;
+    return draw(
+      icon,
+      (i) => {
+        const glyph = chromeGlyph(i);
+        return glyph === undefined ? null : (
+          <Text aria-hidden {...sp(style)}>
+            {glyph}
+          </Text>
+        );
+      },
+      { size: flat.fontSize, color: typeof flat.color === "string" ? flat.color : undefined },
+    );
+  };
+}
+
 function wrapText(children: ReactNode, ...style: (StylePiece | StylePieces)[]): ReactNode {
   return Children.map(children, (c) =>
     typeof c === "string" || typeof c === "number" ? (
@@ -1159,6 +1204,7 @@ function NativeText(p: TextDisplayRenderProps): Rendered {
 }
 
 function NativeIcon(p: IconDisplayRenderProps): Rendered {
+  const icon = useIcon();
   const { rc, rendered } = useReactive();
   const { icon: t, text } = useNativeTheme();
   const lookPart = useLook("icon", p.look);
@@ -1179,13 +1225,7 @@ function NativeIcon(p: IconDisplayRenderProps): Rendered {
       aria-label={p.accessibleName}
       {...sp(look, shell.box)}
     >
-      {typeof glyph === "string" ? (
-        <Text {...sp(look)}>
-          {glyph}
-        </Text>
-      ) : (
-        glyph
-      )}
+      {icon(glyph, look)}
     </View>,
   );
 }
@@ -1421,6 +1461,7 @@ function NativeRichText({ nodes }: RichTextRenderProps) {
 }
 
 function NativeAction(p: ActionRenderProps) {
+  const drawIcon = useIcon();
   const t = useNativeTheme().action;
   const [pressed, setPressed] = useState(false);
   // A role the theme does not name draws as the default emphasis.
@@ -1435,6 +1476,9 @@ function NativeAction(p: ActionRenderProps) {
   // The spinner is decoration: on Android a spinner inside a button gave the
   // button its own "busy" description, which then outlived the spinner and
   // replaced the button's name. The busy state says it.
+  const textStyle = [t.textStyle, wordStyle];
+  // An icon is drawn in the text's look, since React Native text inherits
+  // nothing from the button: that is how it takes the button's colour.
   const shown = p.busy ? (
     <ActivityIndicator
       size="small"
@@ -1442,15 +1486,10 @@ function NativeAction(p: ActionRenderProps) {
       accessibilityElementsHidden
     />
   ) : (
-    p.icon
+    drawIcon(p.icon, [textStyle, t.iconTextStyle])
   );
-  const textStyle = [t.textStyle, wordStyle];
-  // A glyph is drawn in the text's look, since React Native text inherits
-  // nothing from the button: that is how it takes the button's colour.
   const icon = shown != null && shown !== false && (
-    <View {...sp(t.iconStyle, iconPart.box)}>
-      {wrapText(shown, textStyle, t.iconTextStyle)}
-    </View>
+    <View {...sp(t.iconStyle, iconPart.box)}>{shown}</View>
   );
   const button = (
     <Pressable
@@ -1638,7 +1677,10 @@ function NativeDialog(p: DialogRenderProps) {
 }
 
 /** A toggle and its content; closed, the content is mounted and hidden. */
+const SHRINK = { flexShrink: 1 };
+
 function NativeDisclosure(p: DisclosureRenderProps) {
+  const drawIcon = useIcon();
   const t = useNativeTheme().disclosure;
   const part = useLook("disclosure", p.look);
   const st: LookState = { ...NO_LOOK_STATE, invalid: !!p.invalid };
@@ -1647,7 +1689,7 @@ function NativeDisclosure(p: DisclosureRenderProps) {
   const flips = p.open && t.iconOpen != null;
   const icon = (
     <View aria-hidden {...sp(p.open && !flips && { transform: [{ rotate: "90deg" }] })}>
-      <Text {...sp(t.title, t.iconStyle)}>{flips ? t.iconOpen : t.icon}</Text>
+      {drawIcon(flips ? t.iconOpen! : t.icon, [t.title, t.iconStyle], true)}
     </View>
   );
   return (
@@ -1660,7 +1702,8 @@ function NativeDisclosure(p: DisclosureRenderProps) {
         {...webOnly({ "aria-controls": p.id })}
       >
         {t.iconPlacement !== "after" && icon}
-        <Text {...sp(t.title)}>{p.title}</Text>
+        {/* React Native's flex items don't shrink: a long title would push the icon out. */}
+        <Text {...sp(SHRINK, t.title)}>{p.title}</Text>
         {t.iconPlacement === "after" && icon}
         {p.invalid && (
           <Text aria-hidden {...sp(t.invalidMarker)}>

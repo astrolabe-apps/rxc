@@ -70,6 +70,7 @@ import {
   type RichTextRenderProps,
   helpButtonName,
   type ImageDisplayRenderProps,
+  type IconSpec,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -93,6 +94,7 @@ import {
   visuallyHiddenStyle,
   portableCss,
   useLookWidth,
+  webIcon,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atToken, useAntdLooks, type AntFieldLook, type AntStyle } from "./looks.js";
@@ -191,7 +193,7 @@ function AntFieldShell(p: FieldShellProps) {
         type="text"
         size="small"
         aria-label={helpButtonName("Help", p.label, p.helpLabel)}
-        icon={<span aria-hidden="true">ⓘ</span>}
+        icon={webIcon({ name: "info" })}
         style={{ color: token.colorTextDescription }}
       >
         {p.helpLabel}
@@ -361,8 +363,8 @@ function AntInputFrame(p: InputFrameProps) {
     readOnly: !!p.readOnly,
     multiline: !!p.multiline,
   };
-  const slot = (s: ReactNode | ((s: FrameState) => ReactNode)) =>
-    typeof s === "function" ? s(state) : s;
+  const slot = (s: IconSpec | ((s: FrameState) => IconSpec)) =>
+    webIcon(typeof s === "function" ? s(state) : s);
   const borderColor = p.invalid
     ? p.disabled
       ? token.colorBorder
@@ -519,8 +521,8 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const ctl = useDisplayValue(p.field, p);
   const { token } = theme.useToken();
   // The icons either side of the value, spaced as Ant spaces an affix.
-  const icon = (node: ReactNode, side: "start" | "end") =>
-    node != null && (
+  const icon = (spec: IconSpec, side: "start" | "end") =>
+    spec != null && (
       <span
         style={{
           display: "inline-flex",
@@ -529,7 +531,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
             token.marginXXS,
         }}
       >
-        {node}
+        {webIcon(spec)}
       </span>
     );
   const start = icon(p.startIcon, "start");
@@ -754,7 +756,7 @@ function AntAction(p: ActionRenderProps) {
         data-look={lookAttr(p.look)}
         disabled={p.disabled}
         loading={p.busy}
-        icon={p.icon}
+        icon={webIcon(p.icon)}
         iconPlacement={p.iconPlacement === "after" ? "end" : "start"}
         htmlType={p.submit ? "submit" : "button"}
         onClick={(e) => {
@@ -939,7 +941,7 @@ function AntIcon(p: IconDisplayRenderProps) {
       data-look={lookAttr(p.look)}
       style={{ ...({ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token, { ...NO_LOOK_STATE, width: iconWidth })) }), ...css(p.style) }}
     >
-      {getProp(rc, p.icon)}
+      {webIcon(getProp(rc, p.icon), false)}
     </span>
   );
   return rendered(
@@ -1001,12 +1003,12 @@ function AntSelect(p: SelectRenderProps): Rendered {
       error={p.error}
       style={p.shellStyle}
     >
-      <AntSelectWithEnd end={p.endIcon}>
+      <AntSelectWithEnd end={webIcon(p.endIcon)}>
         <Select
           ref={ctl.elementRef}
           style={{ ...part("control"), ...part("text") }}
           id={p.id}
-          prefix={p.startIcon ?? undefined}
+          prefix={webIcon(p.startIcon) ?? undefined}
           aria-describedby={describedBy(p)}
           aria-invalid={p.error ? true : undefined}
           aria-required={p.required || undefined}

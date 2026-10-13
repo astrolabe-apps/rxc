@@ -7,7 +7,6 @@ import type {
   ActionHandler,
   AdornmentTranslator,
   DisplayTranslator,
-  IconTranslator,
   DisplayTextTranslator,
   Translator,
 } from "./translator.js";
@@ -95,8 +94,6 @@ export interface LoaderOptions {
   adornments?: Record<string, AdornmentTranslator>;
   /** Keyed by a custom display's `customId`. */
   displays?: Record<string, DisplayTranslator>;
-  /** Draws every icon the format names. */
-  icon?: IconTranslator;
   /** What a label's and a help text's string becomes. Default: the string. */
   displayText?: DisplayTextTranslator;
   /** What to render for a definition no translator matched. Default: a placeholder naming it. */

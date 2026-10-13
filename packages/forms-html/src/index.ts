@@ -9,3 +9,4 @@
 
 export * from "./renderers.js";
 export * from "./theme.js";
+export * from "./icons.js";

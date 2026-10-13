@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { useReactive, type Rendered } from "@rx-controls/react";
 import { getProp, type FormProp } from "./props.js";
 import type { LookName, PortableStyle, LookRef } from "./looks.js";
+import type { IconSpec } from "./icons.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { useBoundScope } from "./scope.js";
 import { useCommitEffect } from "./commitEffect.js";
@@ -171,11 +172,12 @@ export interface HtmlDisplayExtra {
  */
 export interface IconDisplayExtra {
   /**
-   * The icon, as a node — the same vocabulary as an action's `icon` and a
-   * field's `startIcon` / `endIcon`. What draws it is the author's choice; the
-   * implementation places it and names it.
+   * The icon — the same vocabulary as an action's `icon` and a field's
+   * `startIcon` / `endIcon`: a name the icon sets draw, at the look's size and
+   * colour, or a node ({@link IconSpec}). The implementation places it and
+   * names it.
    */
-  icon?: FormProp<ReactNode>;
+  icon?: FormProp<IconSpec>;
 }
 
 /**

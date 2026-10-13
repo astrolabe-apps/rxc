@@ -14,6 +14,7 @@ import {
 } from "@rx-controls/react";
 import { getProp, type FormProp } from "./props.js";
 import type { LookName, PortableStyle, LookRef } from "./looks.js";
+import type { IconSpec } from "./icons.js";
 import { useRenderers, type RegistrySlot } from "./registry.js";
 import { FormScopeProvider, useBoundScope } from "./scope.js";
 import {
@@ -156,10 +157,13 @@ export interface FieldProps<T> {
    * Without `labelEnd` help there is no button to put them on.
    */
   helpLabel?: FormProp<ReactNode>;
-  /** Content at the control's leading edge, inside its frame — an icon, a unit. */
-  startIcon?: FormProp<ReactNode>;
+  /**
+   * Content at the control's leading edge, inside its frame: an icon by name,
+   * or words such as a unit ({@link IconSpec}).
+   */
+  startIcon?: FormProp<IconSpec>;
   /** Content at the control's trailing edge, inside its frame. */
-  endIcon?: FormProp<ReactNode>;
+  endIcon?: FormProp<IconSpec>;
   /**
    * A named look the implementation's theme resolves for this boundary, every
    * part of it (shell, control, label, text). A name the theme does not know draws the base look,
@@ -228,10 +232,10 @@ export interface FieldRenderProps<T> {
   helpPlacement?: HelpPlacement;
   /** The words on the help button — see {@link FieldShellProps.helpLabel}. */
   helpLabel?: ReactNode;
-  /** Content at the control's leading edge. */
-  startIcon?: ReactNode;
+  /** Content at the control's leading edge: draw a name with {@link useDrawIcon}. */
+  startIcon?: IconSpec;
   /** Content at the control's trailing edge. */
-  endIcon?: ReactNode;
+  endIcon?: IconSpec;
   /** Inside an inline container: draw a bare inline element, no shell. */
   inline?: boolean;
   /** The look the form named, for the theme to resolve; the base look when it names none. */

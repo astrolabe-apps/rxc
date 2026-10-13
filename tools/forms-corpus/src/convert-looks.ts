@@ -30,7 +30,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ClassLook, PortableStyle } from "@rx-controls/forms-react";
-import { legacyLook } from "@rx-controls/forms-json";
+import { legacyIconClassSlot, legacyLook } from "@rx-controls/forms-json";
 import { walkFiles } from "./corpus.js";
 import { tailwindPartCode, tailwindPieces } from "./convert/tailwind.js";
 
@@ -84,6 +84,7 @@ function convert(defs: Def[], form: string): void {
         entryWrapperClass: ro.entryWrapperClass,
         selectedClass: ro.selectedClass,
         notSelectedClass: ro.notSelectedClass,
+        iconClass: legacyIconClassSlot(d),
       },
       labelled,
     );
@@ -101,6 +102,9 @@ function convert(defs: Def[], form: string): void {
     }
     for (const s of SLOTS) delete d[s];
     for (const s of OPTION_SLOTS) delete ro[s];
+    // An icon's classes are in the look's `icon` part now, whichever icon carried them.
+    delete (d.displayData as Record<string, unknown> | undefined)?.iconClass;
+    for (const a of (d.adornments ?? []) as Record<string, unknown>[]) if (a.type === "Icon") delete a.iconClass;
     convert(d.children ?? [], form);
   }
 }

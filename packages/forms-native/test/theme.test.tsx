@@ -8,13 +8,17 @@ import {
   CheckboxField,
   Disclosure,
   Form,
+  FormIconsProvider,
   FormProvider,
+  IconDisplay,
   InlineGroup,
   RadioField,
   TextDisplay,
   TextField,
   fieldLabelId,
 } from "@rx-controls/forms-react";
+import { Text } from "react-native";
+import type { IconDrawArgs, IconSet } from "@rx-controls/forms-react";
 import { NativeThemeProvider, nativeRenderers, type PartialNativeTheme } from "../src/index";
 
 /**
@@ -219,6 +223,49 @@ describe("the native theme", () => {
       false,
       null,
     ]);
+  });
+
+  it("draws a named icon through the icon sets, told the size and colour of its place", () => {
+    const asked: IconDrawArgs[] = [];
+    const set: IconSet = (i) => {
+      asked.push(i);
+      return i.family === "fa" || i.name === "check" ? <Text>{`[${i.name}]`}</Text> : undefined;
+    };
+    mount(
+      <FormIconsProvider set={set}>
+        <IconDisplay icon={{ family: "fa", name: "star" }} accessibleName="Star" />
+        <Action actionId="go" text="Go" icon={{ family: "fa", name: "arrow" }} />
+        <CheckboxField field={ctx.newControl(true)} id="c" label="Ticked" />
+        <TextField field={ctx.newControl("")} id="t" label="Unit" startIcon="kg" />
+      </FormIconsProvider>,
+      {
+        icon: { style: { fontSize: 30, color: "#010203" } },
+        action: { textStyle: { fontSize: 13, color: "#0a0b0c" } },
+      },
+    );
+    expect(asked).toEqual([
+      { family: "fa", name: "star", size: 30, color: "#010203" },
+      // The button's words' colour: the emphasis look's, over the theme's text style.
+      { family: "fa", name: "arrow", size: 13, color: expect.any(String) },
+      expect.objectContaining({ name: "check", family: undefined }),
+    ]);
+    // The theme's tick is a chrome name the set drew; words on an edge stay words.
+    expect(el.textContent).toContain("[star]");
+    expect(el.textContent).toContain("[arrow]");
+    expect(el.textContent).toContain("[check]");
+    expect(el.textContent).not.toContain("\u2713");
+    expect(el.textContent).toContain("kg");
+  });
+
+  it("draws the default glyph for a chrome name no set draws, in the place's whole text style", () => {
+    mount(
+      <FormIconsProvider set={() => undefined}>
+        <CheckboxField field={ctx.newControl(true)} id="c" label="Ticked" />
+      </FormIconsProvider>,
+      { checkbox: { mark: { fontSize: 17, fontWeight: "700" } } },
+    );
+    const tick = [...el.querySelectorAll("*")].filter((e) => e.textContent === "\u2713").pop() as HTMLElement;
+    expect([tick.style.fontSize, tick.style.fontWeight]).toEqual(["17px", "700"]);
   });
 
   it("flips a disclosure's icon to iconOpen while open, in place of turning it", () => {

@@ -125,9 +125,12 @@ const SHADOWS: Record<string, string> = {
   none: "none",
 };
 
-/** Utilities with no meaning for layout or look on a device, dropped silently. */
+/**
+ * Utilities with no meaning for layout or look on a device, dropped silently — and an icon
+ * font's classes (`fa`, `fa-regular fa-gear`), which name a glyph the icon sets draw, not a style.
+ */
 const IGNORED =
-  /^(@|group|peer|text-nowrap|text-wrap|whitespace-.+|truncate|cursor-.+|select-.+|transition.*|duration-.+|ease-.+|pointer-events-.+|outline.*|ring.*|sr-only|appearance-.+|resize.*|list-.+|break-.+|align-.+|object-.+|decoration-.+|underline-offset-.+|animate-.+|web:.+|content-.+)$/;
+  /^(@|fa|fa-.+|group|peer|text-nowrap|text-wrap|whitespace-.+|truncate|cursor-.+|select-.+|transition.*|duration-.+|ease-.+|pointer-events-.+|outline.*|ring.*|sr-only|appearance-.+|resize.*|list-.+|break-.+|align-.+|object-.+|decoration-.+|underline-offset-.+|animate-.+|web:.+|content-.+)$/;
 
 const SIDES: Record<string, string[]> = {
   "": [""],
