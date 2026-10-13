@@ -18,7 +18,7 @@ if (!existsSync(join(from, "looks.native.js"))) {
 const wanted = process.argv.slice(2);
 const names = wanted.length
   ? wanted
-  : ["Home", "Services", "MyAccount", "PersonalDetails", "Address", "ContactUs", "MrsLicenceRenewal", "MrsLicenceSummary", "Fire", "Search", "LinkedServices", "Wallet"];
+  : ["Home", "Services", "MyAccount", "PersonalDetails", "Address", "ContactUs", "ContactUsEnquiry", "Search", "AccountPreferences", "NotificationPreferences", "TempPaymentForm", "MrsLicenceRenewal", "PlatesPlusRegistrationWizard", "LinkMastWizard", "Fire", "Wallet", "AllControls", "CarSearch"];
 
 mkdirSync(out, { recursive: true });
 copyFileSync(join(from, "looks.native.js"), join(out, "looks.local.js"));

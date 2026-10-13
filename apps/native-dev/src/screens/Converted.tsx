@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { Form } from "@rx-controls/forms-react";
+import { Form, RichText } from "@rx-controls/forms-react";
 import { useControl } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
@@ -57,13 +57,16 @@ export function Converted() {
   );
 }
 
+// ServiceTas took up legacy's html titles (`1m<sup>3</sup>`), so a host draws them as rich text.
+const displayText = (text: string) => <RichText html={text} />;
+
 function ConvertedForm({ form }: { form: { controls: any[]; fields?: any[] } }) {
   const value = useControl<unknown>({});
   const action = useMemo(() => () => () => {}, []);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>
       <Form clearHidden>
-        <JsonForm controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} />
+        <JsonForm controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
       </Form>
     </ScrollView>
   );
