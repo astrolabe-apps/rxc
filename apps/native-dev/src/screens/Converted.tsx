@@ -4,10 +4,12 @@ import { Form, RichText } from "@rx-controls/forms-react";
 import { useControl } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
+import { serviceTasNativeTheme } from "../../../../packages/forms-native/test/fixtures/serviceTasTheme";
 
 /**
  * Legacy forms converted offline (`rushx convert-looks` in tools/forms-corpus,
- * then `rushx sync-converted` here), drawn with the generated native looks:
+ * then `rushx sync-converted` here), drawn with the generated native looks under
+ * ServiceTas's own native theme (`forms-native`'s test fixture):
  * the forms name their looks and the theme's table says what each draws.
  * The data is another repository's, gitignored; without it this screen says so.
  */
@@ -40,6 +42,7 @@ export function Converted() {
         No converted forms. In tools/forms-corpus run `rushx convert-looks`, then `rushx sync-converted` here.
       </Text>
     );
+  // ServiceTas's own native theme (a fixture), with the converted forms' looks over it.
   const theme: PartialNativeTheme = { tokens: { colors: data.tokens }, looks: data.looks };
   return (
     <View style={{ flex: 1 }}>
@@ -50,8 +53,10 @@ export function Converted() {
           </Pressable>
         ))}
       </ScrollView>
-      <NativeThemeProvider theme={theme}>
-        <ConvertedForm key={at} form={data.forms[at]!} />
+      <NativeThemeProvider theme={serviceTasNativeTheme}>
+        <NativeThemeProvider theme={theme}>
+          <ConvertedForm key={at} form={data.forms[at]!} />
+        </NativeThemeProvider>
       </NativeThemeProvider>
     </View>
   );

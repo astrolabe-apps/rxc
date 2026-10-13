@@ -11,6 +11,7 @@
     "sync-converted": "node scripts/sync-converted.mjs"
   },
   "dependencies": {
+    "@expo-google-fonts/nunito": "^0.4.0",
     "@react-typed-forms/core": "workspace:^",
     "@rx-controls/core": "workspace:^",
     "@rx-controls/forms-json": "workspace:^",
@@ -18,6 +19,7 @@
     "@rx-controls/forms-react": "workspace:^",
     "@rx-controls/react": "workspace:^",
     "expo": "~57.0.27",
+    "expo-font": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "~19.2.0",
     "react-native": "0.86.3",

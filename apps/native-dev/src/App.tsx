@@ -1,6 +1,13 @@
 import { useState, type ComponentType } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
+import {
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from "@expo-google-fonts/nunito";
 import { ControlContextProvider, getCompatContext } from "@react-typed-forms/core";
 import { FormProvider } from "@rx-controls/forms-react";
 import { nativeRenderers } from "@rx-controls/forms-native";
@@ -34,6 +41,9 @@ const screens: [string, ComponentType][] = [
 
 export function App() {
   const [at, setAt] = useState(0);
+  // The Converted screen draws ServiceTas's typography, which is Nunito.
+  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold });
+  if (!fontsLoaded) return null;
   const Screen = screens[at]![1];
   return (
     <ControlContextProvider value={getCompatContext()}>

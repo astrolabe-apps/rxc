@@ -12,7 +12,8 @@ draws identically to the raw legacy forms under html (160 of 160 runs, and it wa
 looks as through class slots before the slots were retired); the generated native table renders real
 forms on an Android emulator; one look table drawn under html, native, MUI, Ant and Fluent reads as the
 same design, including state and width; and a named look reaches all six field widgets in every
-implementation. Not shown: fidelity to a real app's theme on native, anything in a production app
+implementation. Not shown: native checked against the real ServiceTas app (a theme fixture restates it, but it has
+not been compared to the app running), anything in a production app
 (Forms v2 has no adopters yet), and the C# side (`look` is not in the server's schema). See "Not
 built, and open" at the end.
 
@@ -400,9 +401,12 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
 - **Placement across the web's wrappers**: a child's own `alignSelf` / `flex` does not reach the flex
   item behind a visibility wrapper (see above); whether those wrappers become transparent to layout is
   undecided.
-- **Fidelity to a real theme.** Native has been drawn only under its default theme: the converted
-  ServiceTas forms render, but not as the ServiceTas app does. A native ServiceTas theme fixture is the
-  missing piece, as html has.
+- **Fidelity to the real app.** `forms-native` has a ServiceTas theme fixture
+  (`test/fixtures/serviceTasTheme.ts`, restating `defaultRNRenderOptions` over schemas-rn's base and
+  `global.css`'s typography, as html's restates the web options), and the playground draws the converted
+  forms under it with Nunito loaded. It is restated from source, not compared against the app running:
+  no screenshot of the real app has been set beside it, so two choices (an input's padding, the focus
+  colour) are ours and marked, and anything the source does not state is the default theme's.
 - **The other design documents.** `FORMS-V2-GOALS.md` and `FORMS-V2-INTERFACES.md` carry a
   "superseded in part — styling" banner but their bodies still describe the class slots and `variant`;
   `FORMS-V2-PLAN.md` has no banner and describes them throughout. All three want a rewrite.
