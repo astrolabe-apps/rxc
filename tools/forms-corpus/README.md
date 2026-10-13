@@ -82,3 +82,23 @@ built-in one (`HelpText` + `helpLabel`), ServiceTas's Textfield extension
 counts what they claim as claimed. It is exported as `rxc-forms-corpus/host`,
 which is how the dev app's `/v2/servicetas` page uses the same host the gates
 do.
+
+## Comparing on a device against the real ServiceTas renderers
+
+`scripts/device-compare.mjs` draws the same forms on the Android emulator through the legacy
+renderers as ServiceTas's app builds them and through `forms-native`, then diffs what each put
+on screen (`uiautomator dump`: text, position, enabled, clickable) and keeps a screenshot of
+each. The legacy side is a harness on a branch of the ServiceTas repo
+(`servicetas-rn/harness`, `feature/forms-v2-compare-harness`: the real `createDefaultRenderer`
+and `defaultRNRenderOptions`, no auth, API or maps), the v2 side `apps/native-dev`'s Converted
+screen.
+
+1. `rushx convert-looks` here, then `rushx sync-converted <Form…>` in `apps/native-dev`.
+2. In `servicetas-rn`: `node scripts/sync-harness-forms.mjs <Form…>` (same names).
+3. Metro for each, without `CI=1`: `native-dev` on 8082, the harness on 8083 with
+   `EXPO_PUBLIC_FORMS_HARNESS=1 npx expo start --go --localhost --port 8083 < /dev/null`.
+4. `node scripts/device-compare.mjs <Form…>`: `corpus/compare/report.md` and the screenshots.
+
+Forms are drawn with empty data and the form is one tall screen (`wm size`, reset after).
+A difference is a prompt to look, not a failure: the dump shows where a gap grew or an element
+is missing, the screenshot says whether it matters.

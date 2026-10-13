@@ -14,9 +14,10 @@ import type { PartialNativeTheme } from "../../src/index";
  * fixture: html restates the web options, this the device's.
  *
  * Legacy's classes were NativeWind's; here they are the styles those classes
- * compile to, with the colours tokens where a look can say them. Two choices
- * are ours, not the source's, and are marked: an input's padding (`.form-control`
- * has none; a `TextInput` needs some) and the focus colour.
+ * compile to, with the colours tokens where a look can say them. One choice is
+ * ours, not the source's, and is marked: the focus colour. An input's size is
+ * schemas-rn's `RNTextInput` (`native:min-h-[54px] px-3 native:py-[6px] text-lg
+ * native:leading-[1.25]`) under `.form-control`'s border.
  *
  * Fonts are Nunito, by the names `@expo-google-fonts/nunito` registers
  * (`Nunito_400Regular` …); a host that has not loaded them draws the system
@@ -85,7 +86,7 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   },
   frame: {
     // data.inputClass "form-control" (global.css): border bg-white disabled:bg-neutral-50
-    // border-[#E7E7E8] text-text rounded-none. Padding is ours: the class has none.
+    // border-[#E7E7E8] text-text rounded-none, over schemas-rn's RNTextInput size.
     style: {
       flexDirection: "row",
       alignItems: "center",
@@ -94,14 +95,15 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       borderColor: serviceTasColors.border,
       borderRadius: 0,
       backgroundColor: "#ffffff",
+      minHeight: 54,
       paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingVertical: 6,
     },
     // The focus colour is ours too: the class names none.
     focused: { borderColor: serviceTasColors.accent },
     invalid: { borderColor: serviceTasColors.danger },
     disabled: { backgroundColor: "#fafafa" },
-    input: { ...withInk(type.body), flex: 1, padding: 0 },
+    input: { ...withInk(type.body), fontSize: 18, lineHeight: 22.5, flex: 1, padding: 0 },
   },
   checkbox: {
     box: { borderColor: serviceTasColors.border, borderRadius: 4 },
