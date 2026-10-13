@@ -190,6 +190,44 @@ describe("MUI", () => {
     expect(css(document.getElementById("c")!.closest(".MuiCheckbox-root")!, "border-radius")).toBe("11px");
   });
 
+  it("hands a look's function parts the window's width, for a group and a field, and follows a resize", () => {
+    const width = window.innerWidth;
+    const resize = (w: number) => {
+      Object.defineProperty(window, "innerWidth", { value: w, configurable: true });
+      act(() => void window.dispatchEvent(new Event("resize")));
+    };
+    resize(900);
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={muiRenderers}>
+            <MuiLooksProvider
+              looks={{
+                group: { w: { body: (_t, st) => ({ display: "flex", flexDirection: st.width >= 600 ? "row" : "column" }) } },
+                field: { w: { shell: (_t, st) => ({ marginBottom: st.width >= 600 ? "21px" : "7px" }) } },
+              }}
+            >
+              <Form>
+                <Section title="T" look="w">
+                  <TextDisplay text="x" />
+                </Section>
+                <TextField field={ctx.newControl("")} id="t" label="N" look="w" />
+              </Form>
+            </MuiLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const body = () => document.querySelector('[role="heading"]')!.nextElementSibling as HTMLElement;
+    const shell = () => getComputedStyle(document.getElementById("t")!.closest(".MuiFormControl-root")!);
+    expect(body().style.flexDirection).toBe("row");
+    expect(shell().getPropertyValue("margin-bottom")).toBe("21px");
+    resize(400);
+    expect(body().style.flexDirection).toBe("column");
+    expect(shell().getPropertyValue("margin-bottom")).toBe("7px");
+    resize(width);
+  });
+
   it("colours a toned display from the palette", () => {
     mount(<TextDisplay text="Bad" tone="error" />);
     expect(document.querySelector<HTMLElement>('[data-tone="error"]')!.style.color).not.toBe("");

@@ -21,8 +21,9 @@ const native = { tokens: { colors: portableTokens }, looks: portableLooks } as P
  * MUI does not read portable styles: it names each look in its own terms —
  * `sx` on its own components, its Typography and Button props, its states
  * (`&.Mui-focused`, `&.Mui-error`). The same names, mapped by hand here, so the
- * form above draws under MUI too. (A responsive group is MUI's breakpoints in
- * `sx`, which a group look's plain style cannot express: left stacked.)
+ * form above draws under MUI too. A look that is a function of state gets the
+ * same `LookState` here as under html and native, so the responsive group
+ * below flips at 600 wide under every implementation.
  */
 const ink = portableTokens.ink;
 const accent = portableTokens.accent;
@@ -37,7 +38,7 @@ const mui: MuiLooks = {
     row: {
       body: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "space-between", alignItems: "center" },
     },
-    responsive: { body: { display: "flex", flexDirection: "column", gap: 12 } },
+    responsive: { body: (_t, st) => ({ display: "flex", flexDirection: st.width >= 600 ? "row" : "column", gap: 12 }) },
   },
   text: {
     tag: {
@@ -113,7 +114,7 @@ const ant: AntdLooks = {
     row: {
       body: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "space-between", alignItems: "center" },
     },
-    responsive: { body: { display: "flex", flexDirection: "column", gap: 12 } },
+    responsive: { body: (_t, st) => ({ display: "flex", flexDirection: st.width >= 600 ? "row" : "column", gap: 12 }) },
   },
   text: {
     tag: {
@@ -163,7 +164,7 @@ const fluent: FluentLooks = {
     row: {
       body: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "space-between", alignItems: "center" },
     },
-    responsive: { body: { display: "flex", flexDirection: "column", gap: 12 } },
+    responsive: { body: (st) => ({ display: "flex", flexDirection: st.width >= 600 ? "row" : "column", gap: 12 }) },
   },
   text: {
     tag: {

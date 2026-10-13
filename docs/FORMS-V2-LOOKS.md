@@ -335,11 +335,18 @@ check list, checkbox, display-only — in its own terms, with the same four part
 A field hands its look to the shell and the frame over a small context in MUI, Ant and Fluent, as it
 already hands over MUI's label for the outline's notch: the pair are components the field does not own.
 
+**State reaches a look in every implementation.** A part that is a function is handed the same
+`LookState` everywhere (`width`, the window's, tracked only while a look asks for it; `invalid` where
+the widget knows it): `(theme, state)` in MUI, `(tokens, state)` in Ant, `(state)` in Fluent, as html's
+and native's already were. So one look — "a row from 600 wide" — is written the same way for all five,
+with no breakpoint syntax in the look and none in the format. MUI's `sx` keeps its own breakpoints and
+states (`&.Mui-focused`) beside it, and Ant's and Fluent's controls their own hover and focus.
+
 The shared portable-looks story draws one form (every widget above) under all five implementations —
 html and native from one table of portable styles, MUI, Ant and Fluent from the same names mapped by
 hand. They are recognisably the same design; what differs is each library (MUI's floating outlined
-label and button elevation, Ant's and Fluent's own control chrome). A responsive group is each
-library's breakpoints, which a group look's plain style cannot express, so those stay stacked.
+label and button elevation, Ant's and Fluent's own control chrome), and the responsive group flips at
+600 wide under all five (checked at 411 and 700 px, and on the device at 686 dp).
 
 Found on the way: Ant's frame drew its border with the `border` shorthand, so a look setting only
 `borderWidth` made React warn about shorthand mixed with its parts (the frame now uses longhands); and

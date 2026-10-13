@@ -1,14 +1,26 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { ButtonProps, SxProps, Theme, TypographyProps } from "@mui/material";
+import type { LookState } from "@rx-controls/forms-react";
 import { createLooksContext } from "@rx-controls/forms-html/shared";
 
 /**
- * A style, or one computed from the MUI theme — what a group look gives
- * each of its elements.
+ * A style, or one computed from the MUI theme and the look's state (`width`,
+ * the window's, for a look that depends on the screen) — what a group look
+ * gives each of its elements.
  *
  * @group Theming
  */
-export type MuiStyle = CSSProperties | ((theme: Theme) => CSSProperties);
+export type MuiStyle = CSSProperties | ((theme: Theme, state: LookState) => CSSProperties);
+
+/**
+ * A field look's part: MUI's `sx`, or a function of the theme and the look's
+ * state returning one. `sx` already has MUI's own states (`&.Mui-focused`) and
+ * breakpoints; the state argument is the same `LookState` every implementation
+ * hands a look, so one look reads the same everywhere.
+ *
+ * @group Theming
+ */
+export type MuiFieldPart = SxProps<Theme> | ((theme: Theme, state: LookState) => SxProps<Theme>);
 
 /**
  * A group's named look: a style for each of its elements.
@@ -33,13 +45,13 @@ export interface MuiGroupLook {
  */
 export interface MuiFieldLook {
   /** The `FormControl` around label, frame and message. */
-  shell?: SxProps<Theme>;
+  shell?: MuiFieldPart;
   /** The label. */
-  label?: SxProps<Theme>;
+  label?: MuiFieldPart;
   /** The outlined frame (`OutlinedInput`'s root). */
-  control?: SxProps<Theme>;
+  control?: MuiFieldPart;
   /** The input's own text, inside the frame. */
-  text?: SxProps<Theme>;
+  text?: MuiFieldPart;
 }
 
 /**

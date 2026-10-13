@@ -10,6 +10,7 @@ export {
   type FluentActionLook,
   type FluentFieldLook,
   type FluentGroupLook,
+  type FluentStyle,
   type FluentTextLook,
   type FluentLooks,
   type FluentLooksProviderProps,

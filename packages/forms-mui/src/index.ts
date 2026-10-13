@@ -8,6 +8,7 @@ export { muiRenderers } from "./mui.js";
 export {
   MuiLooksProvider,
   type MuiFieldLook,
+  type MuiFieldPart,
   type MuiGroupLook,
   type MuiStyle,
   type MuiLooks,

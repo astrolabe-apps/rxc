@@ -372,6 +372,26 @@ export interface LookPointer {
 }
 
 /**
+ * The window's width, for a look part that is a function of it: tracked only
+ * while `enabled` (so a look that asks for nothing costs nothing), `0` until it
+ * is read and on the server — the narrowest, as {@link NO_LOOK_STATE} says. What
+ * every implementation's function-form look parts get as `LookState.width`.
+ *
+ * @group Implementations
+ */
+export function useLookWidth(enabled: boolean): number {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    const read = () => setWidth(window.innerWidth);
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, [enabled]);
+  return width;
+}
+
+/**
  * A boundary's look as inline styles, with the state its functions ask for
  * tracked — and **only** that: with no function in the look the hook costs a
  * few `useState`s and listens to nothing. `base` is what the boundary already
@@ -395,14 +415,7 @@ export function useLookStyles(
   const needed = !!look && LOOK_PARTS.some((k) => needsState(look[k]));
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    if (!needed) return;
-    const read = () => setWidth(window.innerWidth);
-    read();
-    window.addEventListener("resize", read);
-    return () => window.removeEventListener("resize", read);
-  }, [needed]);
+  const width = useLookWidth(needed);
   const state: LookState = { ...NO_LOOK_STATE, ...base, hovered, pressed, width };
   return {
     style: (part, authored) => {

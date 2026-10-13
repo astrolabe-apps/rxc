@@ -1,6 +1,21 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { ButtonProps, TextProps } from "@fluentui/react-components";
+import { NO_LOOK_STATE, type LookState } from "@rx-controls/forms-react";
 import { createLooksContext } from "@rx-controls/forms-html/shared";
+
+/**
+ * A style, or one computed from the look's state (`width`, the window's, for a
+ * look that depends on the screen) — the same `LookState` every implementation
+ * hands a look. Fluent's `tokens` are CSS values, usable as they are.
+ *
+ * @group Theming
+ */
+export type FluentStyle = CSSProperties | ((state: LookState) => CSSProperties);
+
+/** A style resolved for a state. */
+export function atState(s: FluentStyle | undefined, state: LookState = NO_LOOK_STATE): CSSProperties | undefined {
+  return typeof s === "function" ? s(state) : s;
+}
 
 /**
  * A `TextDisplay`'s named look: props for Fluent's `Text`, and a style —
@@ -12,7 +27,7 @@ import { createLooksContext } from "@rx-controls/forms-html/shared";
 export interface FluentTextLook
   extends Pick<TextProps, "size" | "weight" | "italic" | "underline" | "font"> {
   /** Over the text's own style. */
-  style?: CSSProperties;
+  style?: FluentStyle;
 }
 
 /**
@@ -22,11 +37,11 @@ export interface FluentTextLook
  */
 export interface FluentGroupLook {
   /** The wrapper around title and body. */
-  wrapper?: CSSProperties;
+  wrapper?: FluentStyle;
   /** The title. */
-  title?: CSSProperties;
+  title?: FluentStyle;
   /** The body. */
-  body?: CSSProperties;
+  body?: FluentStyle;
 }
 
 /**
@@ -39,13 +54,13 @@ export interface FluentGroupLook {
  */
 export interface FluentFieldLook {
   /** The `Field` around label, control and message. */
-  shell?: CSSProperties;
+  shell?: FluentStyle;
   /** The label. */
-  label?: CSSProperties;
+  label?: FluentStyle;
   /** The control. */
-  control?: CSSProperties;
+  control?: FluentStyle;
   /** The control's text. */
-  text?: CSSProperties;
+  text?: FluentStyle;
 }
 
 /**
@@ -55,7 +70,7 @@ export interface FluentFieldLook {
  */
 export interface FluentActionLook extends Pick<ButtonProps, "appearance" | "shape" | "size"> {
   /** Over the button's own style. */
-  style?: CSSProperties;
+  style?: FluentStyle;
 }
 
 /**
@@ -78,9 +93,9 @@ export interface FluentLooks {
    */
   action?: Record<string, FluentActionLook>;
   /** An `ImageDisplay`'s looks: a style on the image. */
-  image?: Record<string, CSSProperties>;
+  image?: Record<string, FluentStyle>;
   /** An `IconDisplay`'s looks: a style on the glyph, over its own size. */
-  icon?: Record<string, CSSProperties>;
+  icon?: Record<string, FluentStyle>;
 }
 
 const { Provider, useLooks } = createLooksContext<FluentLooks>("FluentLooksProvider");

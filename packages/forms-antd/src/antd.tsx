@@ -64,6 +64,8 @@ import {
   type TextFieldRenderProps,
   type PortableStyle,
   lookNames,
+  NO_LOOK_STATE,
+  type LookState,
   type LookRef,
   type RichTextRenderProps,
   helpButtonName,
@@ -90,6 +92,7 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
   portableCss,
+  useLookWidth,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atToken, useAntdLooks, type AntFieldLook } from "./looks.js";
@@ -105,14 +108,27 @@ import { atToken, useAntdLooks, type AntFieldLook } from "./looks.js";
  * components the field does not own (a host may replace either), so it
  * travels privately — set by the field, read by the pair.
  */
-const AntFieldLookContext = createContext<{ look?: AntFieldLook; attr?: string }>({});
+type ResolvedFieldLook = { [P in keyof AntFieldLook]?: CSSProperties };
+const AntFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: string }>({});
+
+const isFn = (v: unknown): boolean => typeof v === "function";
 
 /** A field's named look, and the context value that hands it to its shell and frame. */
-function useAntFieldLook(look: LookRef | undefined) {
+function useAntFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
   const { token } = theme.useToken();
   const found = useLastLook("field", look, useAntdLooks().field);
-  const lookContext = useMemo(() => ({ look: found, attr: lookAttr(look) }), [found, look]);
-  const part = (name: keyof AntFieldLook) => atToken(found?.[name], token);
+  // The window's width only if a part asks for it.
+  const width = useLookWidth(!!found && Object.values(found).some(isFn));
+  const invalid = !!base?.invalid;
+  const resolved = useMemo<ResolvedFieldLook | undefined>(() => {
+    if (!found) return undefined;
+    const state: LookState = { ...NO_LOOK_STATE, invalid, width };
+    const out: ResolvedFieldLook = {};
+    for (const k of Object.keys(found) as (keyof AntFieldLook)[]) out[k] = atToken(found[k], token, state);
+    return out;
+  }, [found, token, width, invalid]);
+  const lookContext = useMemo(() => ({ look: resolved, attr: lookAttr(look) }), [resolved, look]);
+  const part = (name: keyof AntFieldLook) => resolved?.[name];
   return { part, lookContext };
 }
 
@@ -120,8 +136,8 @@ function AntFieldShell(p: FieldShellProps) {
   const css = useCss();
   const { token } = theme.useToken();
   const { look: fieldLook, attr: fieldAttr } = useContext(AntFieldLookContext);
-  const shellStyle = atToken(fieldLook?.shell, token);
-  const labelStyle = atToken(fieldLook?.label, token);
+  const shellStyle = fieldLook?.shell;
+  const labelStyle = fieldLook?.label;
   const marker = p.required && (
     <span
       aria-hidden="true"
@@ -352,7 +368,7 @@ function AntInputFrame(p: InputFrameProps) {
           : token.colorBgContainer,
         color: p.disabled ? token.colorTextDisabled : token.colorText,
         transition: "all .2s",
-      }), ...atToken(fieldLook?.control, token), ...css(p.style) }}
+      }), ...fieldLook?.control, ...css(p.style) }}
     >
       {p.start !== undefined && (
         <span style={{ color: token.colorTextPlaceholder }}>
@@ -372,7 +388,7 @@ function AntInputFrame(p: InputFrameProps) {
             font: "inherit",
             padding: 0,
             resize: "vertical",
-            ...atToken(fieldLook?.text, token),
+            ...fieldLook?.text,
           },
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
@@ -393,7 +409,7 @@ function AntInputFrame(p: InputFrameProps) {
 }
 
 function AntTextField(p: TextFieldRenderProps): Rendered {
-  const { lookContext } = useAntFieldLook(p.look);
+  const { lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -466,7 +482,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
 
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
-  const { part, lookContext } = useAntFieldLook(p.look);
+  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const { token } = theme.useToken();
@@ -532,7 +548,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
 
 /** Ant puts the label *inside* the control — it is the checkbox's child. */
 function AntCheckbox(p: CheckboxRenderProps): Rendered {
-  const { part, lookContext } = useAntFieldLook(p.look);
+  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
@@ -582,7 +598,7 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
  */
 function AntCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
-  const { part, lookContext } = useAntFieldLook(p.look);
+  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -683,6 +699,7 @@ function AntAction(p: ActionRenderProps) {
   const { token } = theme.useToken();
   const lookup = useLastLook("action", p.look, useAntdLooks().action, (n) => n in emphasis);
   const { style, ...named } = lookup ?? {};
+  const actionWidth = useLookWidth(isFn(style));
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
     .filter(Boolean)
@@ -695,7 +712,7 @@ function AntAction(p: ActionRenderProps) {
         {...named}
         style={{
           ...(lookNames(p.look).includes("group") ? groupStyle : {}),
-          ...(atToken(style, token)),
+          ...(atToken(style, token, { ...NO_LOOK_STATE, width: actionWidth })),
           ...css(p.style),
         }}
         data-look={lookAttr(p.look)}
@@ -753,11 +770,13 @@ function useGroupStyle(look: LookRef | undefined): GroupLookStyle | undefined {
   const { token } = theme.useToken();
   const group = useAntdLooks().group;
   const found = pickLook(look, group);
+  const width = useLookWidth(!!found && Object.values(found).some(isFn));
   if (!found) return undefined;
+  const state: LookState = { ...NO_LOOK_STATE, width };
   return {
-    wrapper: atToken(found.wrapper, token),
-    title: atToken(found.title, token),
-    body: atToken(found.body, token),
+    wrapper: atToken(found.wrapper, token, state),
+    title: atToken(found.title, token, state),
+    body: atToken(found.body, token, state),
   };
 }
 
@@ -766,11 +785,13 @@ function AntImage(p: ImageDisplayRenderProps) {
   const { token } = theme.useToken();
   const images = useAntdLooks().image;
   const toneStyle = useToneStyle(p.tone);
+  const width = useLookWidth(lookNames(p.look).some((n) => isFn(images?.[n])));
+  const state: LookState = { ...NO_LOOK_STATE, width };
   return (
     <ImageDom
       {...p}
       toneStyle={toneStyle}
-      lookStyle={(v) => (images?.[v] === undefined ? undefined : atToken(images[v], token))}
+      lookStyle={(v) => (images?.[v] === undefined ? undefined : atToken(images[v], token, state))}
     />
   );
 }
@@ -835,6 +856,7 @@ function AntText(p: TextDisplayRenderProps) {
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
   const { style: lookStyle, ...look } = useLastLook("text", p.look, useAntdLooks().text) ?? {};
+  const textWidth = useLookWidth(isFn(lookStyle));
   return rendered(
     <DisplayShell
       inline={p.inline}
@@ -848,7 +870,7 @@ function AntText(p: TextDisplayRenderProps) {
         // Ant's Typography sets its own colour; inherit the shell's tone.
         style={{ ...({
           ...(heading ? { display: "block", ...headingStyle(token, p.headingLevel) } : {}),
-          ...atToken(lookStyle, token),
+          ...atToken(lookStyle, token, { ...NO_LOOK_STATE, width: textWidth }),
           ...(p.tone ? { color: "inherit" } : {}),
         }), ...css(p.style) }}
         data-look={lookAttr(p.look)}
@@ -868,12 +890,13 @@ function AntIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const { token } = theme.useToken();
   const look = useLastLook("icon", p.look, useAntdLooks().icon);
+  const iconWidth = useLookWidth(isFn(look));
   const glyph = (
     <span
       role="img"
       aria-label={p.accessibleName}
       data-look={lookAttr(p.look)}
-      style={{ ...({ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token)) }), ...css(p.style) }}
+      style={{ ...({ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token, { ...NO_LOOK_STATE, width: iconWidth })) }), ...css(p.style) }}
     >
       {getProp(rc, p.icon)}
     </span>
@@ -917,7 +940,7 @@ function AntHtml(p: HtmlDisplayRenderProps) {
 }
 
 function AntSelect(p: SelectRenderProps): Rendered {
-  const { part, lookContext } = useAntFieldLook(p.look);
+  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -981,7 +1004,7 @@ function AntSelectWithEnd({ end, children }: { end?: ReactNode; children: ReactN
 
 function AntRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
-  const { part, lookContext } = useAntFieldLook(p.look);
+  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);

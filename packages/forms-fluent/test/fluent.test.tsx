@@ -124,6 +124,44 @@ describe("Fluent", () => {
     expect((document.getElementById("c")!.closest(".fui-Checkbox") as HTMLElement).style.borderRadius).toBe("11px");
   });
 
+  it("hands a look's function parts the window's width, for a group, a field and a text, and follows a resize", () => {
+    const width = window.innerWidth;
+    const resize = (w: number) => {
+      Object.defineProperty(window, "innerWidth", { value: w, configurable: true });
+      act(() => void window.dispatchEvent(new Event("resize")));
+    };
+    resize(900);
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={fluentRenderers}>
+            <FluentLooksProvider
+              looks={{
+                group: { w: { body: (st) => ({ display: "flex", flexDirection: st.width >= 600 ? "row" : "column" }) } },
+                field: { w: { shell: (st) => ({ marginBottom: st.width >= 600 ? "21px" : "7px" }) } },
+                text: { w: { style: (st) => ({ letterSpacing: st.width >= 600 ? "3px" : "1px" }) } },
+              }}
+            >
+              <Form>
+                <Section title="T" look="w">
+                  <TextDisplay text="x" look="w" />
+                </Section>
+                <TextField field={ctx.newControl("")} id="t" label="N" look="w" />
+              </Form>
+            </FluentLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const body = () => document.querySelector('[role="heading"]')!.nextElementSibling as HTMLElement;
+    const shell = () => document.querySelector<HTMLElement>('[data-look="w"].fui-Field')!;
+    const text = () => [...document.querySelectorAll<HTMLElement>("span")].find((e) => e.textContent === "x")!;
+    expect([body().style.flexDirection, shell().style.marginBottom, text().style.letterSpacing]).toEqual(["row", "21px", "3px"]);
+    resize(400);
+    expect([body().style.flexDirection, shell().style.marginBottom, text().style.letterSpacing]).toEqual(["column", "7px", "1px"]);
+    resize(width);
+  });
+
   it("draws the frame as Fluent's own Input, the control in its slot", () => {
     mount(
       <TextField

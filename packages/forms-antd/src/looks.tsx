@@ -1,15 +1,18 @@
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import type { ButtonProps, GlobalToken, Typography } from "antd";
+import { NO_LOOK_STATE, type LookState } from "@rx-controls/forms-react";
 
 type TextProps = ComponentProps<typeof Typography.Text>;
 import { createLooksContext } from "@rx-controls/forms-html/shared";
 
 /**
- * A style, or one computed from Ant's theme tokens.
+ * A style, or one computed from Ant's theme tokens and the look's state
+ * (`width`, the window's, for a look that depends on the screen) — the same
+ * `LookState` every implementation hands a look.
  *
  * @group Theming
  */
-export type AntStyle = CSSProperties | ((token: GlobalToken) => CSSProperties);
+export type AntStyle = CSSProperties | ((token: GlobalToken, state: LookState) => CSSProperties);
 
 /**
  * A `TextDisplay`'s named look: props for Ant's `Typography.Text`, and a style.
@@ -119,7 +122,11 @@ export function AntdLooksProvider(props: AntdLooksProviderProps): ReactNode {
 /** The looks in effect here. */
 export const useAntdLooks: () => AntdLooks = useLooks;
 
-/** A style, resolved against the tokens. */
-export function atToken(s: AntStyle | undefined, token: GlobalToken): CSSProperties | undefined {
-  return typeof s === "function" ? s(token) : s;
+/** A style, resolved against the tokens and the look's state. */
+export function atToken(
+  s: AntStyle | undefined,
+  token: GlobalToken,
+  state: LookState = NO_LOOK_STATE,
+): CSSProperties | undefined {
+  return typeof s === "function" ? s(token, state) : s;
 }

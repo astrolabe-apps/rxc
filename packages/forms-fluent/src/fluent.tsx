@@ -85,6 +85,8 @@ import {
   type TextFieldRenderProps,
   type PortableStyle,
   lookNames,
+  NO_LOOK_STATE,
+  type LookState,
   type LookRef,
   type RichTextRenderProps,
   helpButtonName,
@@ -110,9 +112,10 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
   portableCss,
+  useLookWidth,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
-import { useFluentLooks, type FluentFieldLook } from "./looks.js";
+import { atState, useFluentLooks, type FluentFieldLook } from "./looks.js";
 
 // ── Root: inherit the host's theme ────────────────────────────────────
 //
@@ -151,13 +154,26 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
  * components the field does not own (a host may replace either), so it
  * travels privately — set by the field, read by the pair.
  */
-const FluentFieldLookContext = createContext<{ look?: FluentFieldLook; attr?: string }>({});
+type ResolvedFieldLook = { [P in keyof FluentFieldLook]?: CSSProperties };
+const FluentFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: string }>({});
+
+const isFn = (v: unknown): boolean => typeof v === "function";
 
 /** A field's named look, and the context value that hands it to its shell and frame. */
-function useFluentFieldLook(look: LookRef | undefined) {
+function useFluentFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
   const found = useLastLook("field", look, useFluentLooks().field);
-  const lookContext = useMemo(() => ({ look: found, attr: lookAttr(look) }), [found, look]);
-  return { look: found, lookContext };
+  // The window's width only if a part asks for it.
+  const width = useLookWidth(!!found && Object.values(found).some(isFn));
+  const invalid = !!base?.invalid;
+  const resolved = useMemo<ResolvedFieldLook | undefined>(() => {
+    if (!found) return undefined;
+    const state: LookState = { ...NO_LOOK_STATE, invalid, width };
+    const out: ResolvedFieldLook = {};
+    for (const k of Object.keys(found) as (keyof FluentFieldLook)[]) out[k] = atState(found[k], state);
+    return out;
+  }, [found, width, invalid]);
+  const lookContext = useMemo(() => ({ look: resolved, attr: lookAttr(look) }), [resolved, look]);
+  return { look: resolved, lookContext };
 }
 
 function FluentFieldShell(p: FieldShellProps) {
@@ -382,7 +398,7 @@ function FluentInputFrame(p: InputFrameProps) {
 }
 
 function FluentTextField(p: TextFieldRenderProps): Rendered {
-  const { lookContext } = useFluentFieldLook(p.look);
+  const { lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -455,7 +471,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
 
 function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, spaced as Fluent spaces an
@@ -527,7 +543,7 @@ function BesideSelect(p: { start?: ReactNode; end?: ReactNode; children: ReactNo
 }
 
 function FluentCheckbox(p: CheckboxRenderProps): Rendered {
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
@@ -567,7 +583,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
 /** Fluent has no checkbox group: its checkboxes in a labelled `role="group"`. */
 function FluentCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -621,7 +637,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
 /** Fluent's `Select` is a native `<select>`: the string round-trip for free. */
 function FluentSelect(p: SelectRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -670,7 +686,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
 
 function FluentRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -796,6 +812,7 @@ function FluentAction(p: ActionRenderProps) {
   const icon = p.busy ? <Spinner size="extra-tiny" /> : p.icon;
   const { style: lookStyle, ...lookup } =
     useLastLook("action", p.look, useFluentLooks().action, (n) => n in emphasis) ?? {};
+  const actionWidth = useLookWidth(isFn(lookStyle));
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
     .filter(Boolean)
@@ -809,7 +826,7 @@ function FluentAction(p: ActionRenderProps) {
         data-look={lookAttr(p.look)}
         style={{
           ...(lookNames(p.look).includes("group") ? groupStyle : {}),
-          ...lookStyle,
+          ...atState(lookStyle, { ...NO_LOOK_STATE, width: actionWidth }),
           ...css(p.style),
         }}
         disabled={p.disabled}
@@ -845,7 +862,9 @@ function FluentAction(p: ActionRenderProps) {
 /** The image as DOM, a look's style from the provider. */
 function FluentImage(p: ImageDisplayRenderProps) {
   const images = useFluentLooks().image;
-  return <ImageDom {...p} toneStyle={toneStyle(p.tone)} lookStyle={(v) => images?.[v]} />;
+  const width = useLookWidth(lookNames(p.look).some((n) => isFn(images?.[n])));
+  const state: LookState = { ...NO_LOOK_STATE, width };
+  return <ImageDom {...p} toneStyle={toneStyle(p.tone)} lookStyle={(v) => atState(images?.[v], state)} />;
 }
 
 /** Rich text as DOM, its links Fluent's own. */
@@ -862,18 +881,26 @@ function FluentRichText(p: RichTextRenderProps) {
   );
 }
 
-function FluentInline(p: GroupRenderProps) {
+/** A group's look as styles, its function parts given the window's width. */
+function useGroupStyle(look: LookRef | undefined) {
   const group = useFluentLooks().group;
-  return <Inline {...p} lookStyle={pickLook(p.look, group)} />;
+  const found = pickLook(look, group);
+  const width = useLookWidth(!!found && Object.values(found).some(isFn));
+  if (!found) return undefined;
+  const state: LookState = { ...NO_LOOK_STATE, width };
+  return { wrapper: atState(found.wrapper, state), title: atState(found.title, state), body: atState(found.body, state) };
+}
+
+function FluentInline(p: GroupRenderProps) {
+  return <Inline {...p} lookStyle={useGroupStyle(p.look)} />;
 }
 
 function FluentContents(p: GroupRenderProps) {
   const top = (p.headingLevel ?? 2) <= 2;
-  const group = useFluentLooks().group;
   return (
     <ContentsRegion
       {...p}
-      lookStyle={pickLook(p.look, group)}
+      lookStyle={useGroupStyle(p.look)}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -909,6 +936,7 @@ function FluentText(p: TextDisplayRenderProps) {
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
   const { style: lookStyle, ...look } = useLastLook("text", p.look, useFluentLooks().text) ?? {};
+  const textWidth = useLookWidth(isFn(lookStyle));
   return rendered(
     <DisplayShell
       inline={p.inline}
@@ -928,7 +956,7 @@ function FluentText(p: TextDisplayRenderProps) {
                 color: tokens.colorNeutralForeground1,
               }
             : {}),
-          ...lookStyle,
+          ...atState(lookStyle, { ...NO_LOOK_STATE, width: textWidth }),
           ...(p.tone ? { color: "inherit" } : {}),
         }), ...css(p.style) }}
         data-look={lookAttr(p.look)}
@@ -946,12 +974,13 @@ function FluentIcon(p: IconDisplayRenderProps) {
   const css = useCss();
   const { rc, rendered } = useReactive();
   const look = useLastLook("icon", p.look, useFluentLooks().icon);
+  const iconWidth = useLookWidth(isFn(look));
   const glyph = (
     <span
       role="img"
       aria-label={p.accessibleName}
       data-look={lookAttr(p.look)}
-      style={{ ...({ fontSize: 24, lineHeight: 1, ...look }), ...css(p.style) }}
+      style={{ ...({ fontSize: 24, lineHeight: 1, ...atState(look, { ...NO_LOOK_STATE, width: iconWidth }) }), ...css(p.style) }}
     >
       {getProp(rc, p.icon)}
     </span>

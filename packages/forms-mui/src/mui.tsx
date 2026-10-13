@@ -85,6 +85,8 @@ import {
   type TextFieldRenderProps,
   type PortableStyle,
   lookNames,
+  NO_LOOK_STATE,
+  type LookState,
   type LookRef,
   type RichTextRenderProps,
   helpButtonName,
@@ -111,9 +113,10 @@ import {
   labelEndHelp,
   visuallyHiddenStyle,
   portableCss,
+  useLookWidth,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
-import { useMuiLooks, type MuiFieldLook, type MuiStyle } from "./looks.js";
+import { useMuiLooks, type MuiFieldLook, type MuiFieldPart, type MuiStyle } from "./looks.js";
 
 /** A portable style as inline CSS, its colour tokens from the html theme. */
 function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
@@ -134,7 +137,11 @@ const MuiLabelContext = createContext<ReactNode>(null);
  * components the field does not own (a host may replace either), so, like the
  * label, it travels privately — set by the field, read by the pair.
  */
-const MuiFieldLookContext = createContext<{ look?: MuiFieldLook; attr?: string }>({});
+type ResolvedFieldLook = { [P in keyof MuiFieldLook]?: SxProps<Theme> };
+const MuiFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: string }>({});
+
+/** A style part's function form is given the theme and the state; nothing else. */
+const isFn = (v: unknown): v is (...a: never[]) => unknown => typeof v === "function";
 
 /** An `sx` value under a selector: MUI's `sx` takes no `sx` as a nested value, so it is resolved against the theme. */
 function nestSx(selector: string, sx: SxProps<Theme> | undefined): SxProps<Theme> | undefined {
@@ -401,14 +408,27 @@ function MuiInputFrame(p: InputFrameProps) {
 }
 
 /** A field's named look, and the context value that hands it to its shell and frame. */
-function useMuiFieldLook(look: LookRef | undefined) {
-  const fieldLook = useLastLook("field", look, useMuiLooks().field);
+function useMuiFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
+  const found = useLastLook("field", look, useMuiLooks().field);
+  const theme = useTheme();
+  // The window's width only if a part asks for it.
+  const width = useLookWidth(!!found && Object.values(found).some(isFn));
+  const invalid = !!base?.invalid;
+  const disabled = !!base?.disabled;
+  const fieldLook = useMemo<ResolvedFieldLook | undefined>(() => {
+    if (!found) return undefined;
+    const state: LookState = { ...NO_LOOK_STATE, invalid, disabled, width };
+    const out: ResolvedFieldLook = {};
+    for (const [k, v] of Object.entries(found) as [keyof MuiFieldLook, MuiFieldPart | undefined][])
+      if (v !== undefined) out[k] = isFn(v) ? (v as (t: Theme, s: LookState) => SxProps<Theme>)(theme, state) : v;
+    return out;
+  }, [found, theme, width, invalid, disabled]);
   const lookContext = useMemo(() => ({ look: fieldLook, attr: lookAttr(look) }), [fieldLook, look]);
   return { fieldLook, lookContext };
 }
 
 function MuiTextField(p: TextFieldRenderProps): Rendered {
-  const { lookContext } = useMuiFieldLook(p.look);
+  const { lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -482,7 +502,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 /** MUI's own answer for a trailing label is a different component entirely. */
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, as an adornment sits in a frame.
@@ -547,7 +567,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
 }
 
 function MuiCheckbox(p: CheckboxRenderProps): Rendered {
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
@@ -714,8 +734,10 @@ function useGroupStyle(look: LookRef | undefined): GroupLookStyle | undefined {
   const theme = useTheme();
   const group = useMuiLooks().group;
   const found = pickLook(look, group);
+  const width = useLookWidth(!!found && Object.values(found).some(isFn));
   if (!found) return undefined;
-  const at = (s: MuiStyle | undefined) => (typeof s === "function" ? s(theme) : s);
+  const state: LookState = { ...NO_LOOK_STATE, width };
+  const at = (s: MuiStyle | undefined) => (typeof s === "function" ? s(theme, state) : s);
   return { wrapper: at(found.wrapper), title: at(found.title), body: at(found.body) };
 }
 
@@ -724,13 +746,15 @@ function MuiImage(p: ImageDisplayRenderProps) {
   const theme = useTheme();
   const images = useMuiLooks().image;
   const toneStyle = useToneStyle(p.tone);
+  const width = useLookWidth(lookNames(p.look).some((n) => isFn(images?.[n])));
+  const state: LookState = { ...NO_LOOK_STATE, width };
   return (
     <ImageDom
       {...p}
       toneStyle={toneStyle}
       lookStyle={(v) => {
         const s = images?.[v];
-        return typeof s === "function" ? s(theme) : s;
+        return typeof s === "function" ? s(theme, state) : s;
       }}
     />
   );
@@ -824,6 +848,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
   const { rc, rendered } = useReactive();
   const theme = useTheme();
   const look = useLastLook("icon", p.look, useMuiLooks().icon);
+  const width = useLookWidth(isFn(look));
   const glyph = (
     <Typography
       component="span"
@@ -831,7 +856,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
       aria-label={p.accessibleName}
       style={css(p.style)}
       data-look={lookAttr(p.look)}
-      sx={{ fontSize: 24, lineHeight: 1, ...(typeof look === "function" ? look(theme) : look) }}
+      sx={{ fontSize: 24, lineHeight: 1, ...(typeof look === "function" ? look(theme, { ...NO_LOOK_STATE, width }) : look) }}
     >
       {getProp(rc, p.icon)}
     </Typography>
@@ -877,7 +902,7 @@ function MuiHtml(p: HtmlDisplayRenderProps) {
 }
 
 function MuiSelect(p: SelectRenderProps): Rendered {
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -944,7 +969,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
 
 function MuiRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -1004,7 +1029,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
 
 function MuiCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
