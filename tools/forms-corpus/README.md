@@ -103,6 +103,8 @@ Forms are drawn with empty data and the form is one tall screen (`wm size`, rese
 A difference is a prompt to look, not a failure: the dump shows where a gap grew or an element
 is missing, the screenshot says whether it matters.
 
+Where the comparison stands, and what is next: `docs/FORMS-V2-PLAN.md`, phase 11.
+
 ## What lives where, for a second machine
 
 Regenerated from the ServiceTas code (gitignored, never committed): `corpus/` — the forms and

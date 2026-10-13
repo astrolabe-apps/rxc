@@ -953,6 +953,27 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
 - The default icon draws nothing (a React Native host cannot draw an `<i>`); a web host passes
   `legacyIconClass`'s result through its icon translator.
 
+**Where it stands, and what is next** (kept current; the order of work, not a schedule).
+
+- **Done:** the contract, five implementations, the converter and its gates; the device comparison
+  against the real ServiceTas renderers (`tools/forms-corpus/README.md`, "Comparing on a device"), with
+  the differences it found closed or listed in `FORMS-V2-LOOKS.md` ("Fidelity to the real app").
+- **Scope of the comparison:** the 45 forms the React Native app draws (`tools/forms-corpus/sidecar/rn-forms.json`);
+  the other 23 ServiceTas forms are not referenced by it, and the 12 from other apps are not
+  ServiceTas's. **Compared so far (8):** AccountDetails, Address, MyAccount, PersonalDetails, ContactUs, AccountPreferences, NotificationPreferences, Services. **Still to compare (37):**
+  About, BiometricOnboarding, ContactUsEnquiry, DeactivateAccount, Error, Home, InboxDocuments, InboxMessages, LinkMastWizard, LinkMrsWizard, LinkedServices, MRSReceiptConfirmation, MRSReceiptFailure, MastLicenceSummary, MastMooringPermitSummary, MastRegistrationsSummary, MessageDetails, MrsAllRegistrations, MrsDemeritsSummary, MrsLicenceDetails, MrsLicenceRenewal, MrsLicenceSummary, MrsRegistrationDetails, MrsRegistrationRenewal, MrsRegistrationsSummary, MyProfile, PlatesPlusRegistrationWizard, PushNotificationsOnboarding, RWVPInterim, RWVPReceiptConfirmation, RWVPVerificationWizard, SecurityPreferences, ServiceNotAvailable, ServiceProviderListing, ShortTermPermit, TUP, TuoPreferences. All with empty data and fake actions so far.
+- **Next:** widen the comparison over the 37 (with data, and with the actions and custom displays a
+  form needs); give the native host an icon set (the app draws Font Awesome); DateTime and Time pickers.
+- **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,
+  and its release note is the "for the `alpha.9` notes" list above. Nothing in production depends on it.
+- **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the
+  designer, or on to JSX), and with it whether `look` goes in the C# schema and `forms-schema` and where the
+  converter runs; whether help text keeps its inline reveal (the app shows a popover); group `layout`
+  folding into the portable flex properties; whether html's visibility wrappers become transparent to
+  layout; and structural names for layout-only looks.
+- **Elsewhere:** the legacy side of the comparison is the ServiceTas repo's branch
+  `feature/forms-v2-compare-harness` (pushed; no Claude co-author on its commits, by ServiceTas's rule).
+
 ### Later, not blocked on any of this
 
 - **The designer** (goal 7). Needs definitions exposed as live values; reimplemented against the
