@@ -7,6 +7,9 @@ are **retired** — Forms v2 had no real adopters, so they went outright, with n
 JSON loader turns each control's class slots into a look as it loads the form, and an offline step
 (`rushx convert-looks`) can do it ahead of time (below).
 
+The design documents carry it: GOALS decision 4, INTERFACES §2 and PLAN phase 11 (which also lists
+what a consumer changes for the release).
+
 **What has been shown, and what has not.** Shown: the 80-form local corpus, converted to named looks,
 draws identically to the raw legacy forms under html (160 of 160 runs, and it was identical through
 looks as through class slots before the slots were retired); the generated native table renders real
@@ -407,9 +410,6 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
   forms under it with Nunito loaded. It is restated from source, not compared against the app running:
   no screenshot of the real app has been set beside it, so two choices (an input's padding, the focus
   colour) are ours and marked, and anything the source does not state is the default theme's.
-- **The other design documents.** `FORMS-V2-GOALS.md` and `FORMS-V2-INTERFACES.md` carry a
-  "superseded in part — styling" banner but their bodies still describe the class slots and `variant`;
-  `FORMS-V2-PLAN.md` has no banner and describes them throughout. All three want a rewrite.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably
   folds into them.
 - **Structural names** for layout-only looks (`col-gap-16`) instead of a hash.

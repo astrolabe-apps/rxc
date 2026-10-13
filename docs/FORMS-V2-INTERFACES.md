@@ -1,18 +1,9 @@
 # Forms v2 — key interfaces
 
-> **Superseded in part — styling.** The class slots this document describes — `className`,
-> `textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`, a radio's
-> `entryClassName` / `selectedClassName` / `notSelectedClassName`, and `ClassValue` / `mergeClass`
-> as the author's styling — have been **retired**. A boundary is styled by `look` (a name, or a
-> list of names), with `style` and `shellStyle` (portable CSS) for the rare one-off; each
-> implementation's theme says what a look is. Where this document shows a class slot, read
-> [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md). (`ClassValue` survives as the value of a *part* of a
-> class-based look.) The sections below are kept as the record of why the slots existed.
-
 Status: **built.** Goals, and the reasoning behind everything here, are in
 [`FORMS-V2-GOALS.md`](./FORMS-V2-GOALS.md). The contract is `@rx-controls/forms-react`, the
-loader `@rx-controls/forms-json`, and the implementations `forms-html`, `forms-mui` and
-`forms-antd`; their generated reference (`rush docs`) is the API documentation, and this is the
+loader `@rx-controls/forms-json`, and the implementations `forms-html`, `forms-mui`,
+`forms-antd`, `forms-fluent` and `forms-native`; their generated reference (`rush docs`) is the API documentation, and this is the
 design and its reasons.
 
 It was worked out on a throwaway build, `poc/forms-v2`: the boundaries, the containers, the
@@ -43,7 +34,7 @@ implementation is what actually draws.
 ```
 <TextField field={f.$.name} required label="Name" />   ← the boundary (generated)
   │  resolve FormProps · register validators · attach to the nearest validation scope
-  │  apply presence · route class slots · wrap design-mode chrome · resolve the implementation
+  │  apply presence · resolve look and style · wrap design-mode chrome · resolve the implementation
   └── <TextFieldImpl {...resolved} />                  ← the implementation (html / MUI / native)
 ```
 
@@ -91,9 +82,11 @@ both arms, so inverting a `Visible` expression into a `hidden` prop is just
 
 ## 2. Looks and styles
 
-*(The class slots that were here — `className`, `textClassName`, `shellClassName`,
-`labelClassName`, `labelTextClassName`, and `ClassValue` / `mergeClass` as the author's styling —
-are retired. See [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md) for the design and its reasons.)*
+The full design, and what building it found, is [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md); this
+is the contract's side of it. The contract used to carry legacy's class slots (`className`,
+`textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`, a radio's three
+per-option classes) and an action's `variant`; they are retired — a class string is a web
+idea — and Forms v2 had no adopters, so there is no alias.
 
 A boundary carries **a name, not a style**:
 
@@ -114,9 +107,20 @@ shellStyle?: FormProp<PortableStyle | undefined>;               // its wrapper
 - **`style` / `shellStyle`** are a portable subset of CSS — what means the same on the web and on
   React Native (numbers are logical units; colours may be theme tokens, `$accent`). Applied after
   the look, so they win.
+- **A part may be a function of `LookState`** (`invalid`, `disabled`, `focused`, `pressed`,
+  `hovered`, `width`) — state is data the implementation hands in, in every implementation, so a
+  breakpoint or a pressed colour is written one way and never needs a variant a platform lacks.
+  `useLookWidth` tracks the window only for a look that asks.
 - **A form can bring its own looks.** The JSON loader derives one from each distinct combination of
   a legacy control's class slots and provides it through `FormLooksProvider`; an implementation
-  looks a name up in its theme first and the form's looks second.
+  looks a name up in its theme first and the form's looks second. Only a class-based
+  implementation (html) can draw one a form brings as classes.
+- **Not a cascade.** A look styles the boundary it is on, not its descendants; React Native has
+  none, and a look has to mean the same on both.
+- **An action's emphases are looks:** `primary`, `secondary`, `link` and `group` (no button
+  chrome — the action is a pressable wrapper), `secondary` the default and the fallback.
+- **`ClassValue`** survives, but as the value of one *part* of a class-based look (html's), with
+  `{ replace }` for legacy's `"@ "`; `combineClass` layers two. It is no longer an author's prop.
 
 **From JSON (built):** the five legacy slots (and a radio's three per-option classes) become one
 look, named by the classes (`body`, or `look-` and a hash). The `"@ "` prefix, which means
@@ -388,11 +392,9 @@ interface FieldProps<T> {
   helpText?: FormProp<ReactNode>;
   startIcon?: FormProp<ReactNode>;
   endIcon?: FormProp<ReactNode>;
-  className?: FormProp<ClassValue>;
-  labelClassName?: FormProp<ClassValue>;
-  labelTextClassName?: FormProp<ClassValue>;    // the label's text — see §2
-  shellClassName?: FormProp<ClassValue>;
-  textClassName?: FormProp<ClassValue>;
+  look?: FormProp<LookName | readonly LookName[] | undefined>;   // every part of the field — §2
+  style?: FormProp<PortableStyle | undefined>;                    // the control
+  shellStyle?: FormProp<PortableStyle | undefined>;               // the wrapper
 }
 
 /** What an implementation sees. Flat and resolved, so `<Shell {...p}>` composes. */
@@ -405,11 +407,9 @@ interface FieldRenderProps<T> {
   helpText?: ReactNode;
   startIcon?: ReactNode;
   endIcon?: ReactNode;
-  className?: ClassValue;
-  labelClassName?: ClassValue;
-  labelTextClassName?: ClassValue;
-  shellClassName?: ClassValue;
-  textClassName?: ClassValue;
+  look?: LookRef;                                // names, resolved; the theme says what they draw
+  style?: PortableStyle;
+  shellStyle?: PortableStyle;
 }
 ```
 
@@ -456,19 +456,20 @@ can express it.
 
 ```ts
 interface GroupProps  { hidden?; disabled?; readOnly?; title?; children: ReactNode;
-                        className?; shellClassName?; labelClassName?; labelTextClassName?;
+                        look?; style?; shellStyle?;
                         layout?: FormProp<FlexLayout | undefined> }
-// The same slots a field has, for the same anatomy — body, wrapper, title container, title text.
-// Legacy styled groups against all of them (224 / 127 / 39 uses); built, README finding 63.
+// A group's look has the parts its anatomy has — wrapper, title, body (§2). Legacy styled groups
+// against all of them (224 / 127 / 39 uses); built, README finding 63.
 // `title` is a heading the implementation draws when given (built); a JSON group's `title`
 // arrives here unless `groupOptions.hideTitle`, and a control's `hideTitle` empties its `label`.
 
-/** A flex body drawn without CSS (§7, "Layout is classes"). */
+/** A flex body drawn without CSS (§7, "Layout is a look"). */
 interface FlexLayout { direction?; gap?; justify?; align?; wrap? }
 // `layout` makes the group's *body* the flex box (decided, built — README finding 74). Absent,
 // the body is the implementation's standard one. Legacy's Standard and Flex groups differ in
 // exactly this, and in nothing else: one body element, whose class is `standardClassName` or
-// `flexClassName`, with the definition's `styleClass` merged onto it. The first cut nested a
+// `flexClassName`, with the definition's `styleClass` merged onto it (now the look's `control`
+// part). The first cut nested a
 // `<Stack>` inside the body instead, which put `styleClass` on the wrong element — 21 Flex groups
 // in the corpus carry `justify-between` / `items-end` meant for the flex box — gave a theme no
 // way to style the two bodies apart, and forced `flexDirection: row` over a responsive
@@ -493,14 +494,13 @@ interface TextFieldExtra {
 // vocabulary) and `autoComplete` (13). So the host translates them, `keyboardType` onto
 // `inputMode`; the loader does not know them, since they are not the canonical format.
 
-/** The radio's extras — the select's, plus legacy's per-option content and entry classes (built). */
+/** The radio's extras — the select's, plus legacy's per-option content (built). */
 interface RadioExtra extends SelectExtra {
   children?: (option: FieldOption, selected: boolean) => ReactNode;  // called for EVERY option;
                                         // gate with <Contents hidden={!selected}>, never `selected && …`
-  entryClassName?: FormProp<ClassValue>;         // legacy CheckEntryClasses: the option's wrapper …
-  selectedClassName?: FormProp<ClassValue>;      // … and its two states
-  notSelectedClassName?: FormProp<ClassValue>;
 }
+// legacy's CheckEntryClasses — the option's wrapper and its two states — are the look's
+// `entry` / `selected` / `notSelected` parts.
 // `FieldOption.value` is `string | number | boolean` — legacy's is `any`, and its `AllowedOptions`
 // expressions build Yes/No radios over Bool fields with no schema options at all (README finding 59).
 
@@ -523,10 +523,9 @@ interface ActionProps {
   hidden?: FormProp<boolean>;
   disabled?: FormProp<boolean>;
   disableType?: "none" | "self" | "global";     // what a running async handler locks
-  variant?: FormProp<ActionVariant>;           // not `style`: that is inline CSS in React
-  className?: FormProp<ClassValue>;              // the control (the button)
-  textClassName?: FormProp<ClassValue>;          // its text
-  shellClassName?: FormProp<ClassValue>;         // the wrapper it sits in — legacy's layout element (finding 63)
+  look?: FormProp<ActionLook | readonly ActionLook[] | undefined>;  // an emphasis, and/or the form's own: §2
+  style?: FormProp<PortableStyle | undefined>;   // the button
+  shellStyle?: FormProp<PortableStyle | undefined>;  // the wrapper it sits in — legacy's layout element (finding 63)
   children?: ReactNode;                          // any variant, not just Group
 }
 interface ActionRenderProps { /* resolved, plus: */ busy: boolean; onClick: () => void }
@@ -562,7 +561,7 @@ one (`addActionId`) so two grids on a page can be styled apart. Ids name the dee
 every host already has), and the translator builds `onClick` from it — `actionData` static, or
 the `dynamic: ActionData` expression read untracked at click time. Asked at *translate* time,
 `undefined` means nobody claims the id and the loader **warns** rather than shipping a button
-that does nothing, which is what legacy does silently. `actionStyle` → `variant`, `icon` /
+that does nothing, which is what legacy does silently. `actionStyle` → an emphasis look (`Group` → `group`) listed before the look the control's classes became; `icon` /
 `iconPlacement` / `disableType` map one-to-one. Legacy's **Dialog group** is a loader component:
 `placement: "trigger"` children render in place, the rest inside `<Dialog>` (§6), and the
 translator owns the `open` control and claims `openDialog` / `closeDialog` for its subtree with
@@ -638,21 +637,21 @@ implementation with `hidden: true`, which hides with CSS (§8).
 
 **A display is a boundary with the data half removed (built), and nothing else had to change.**
 With no binding there is no field to validate, nothing to clear when hidden, no locks to fold
-and no `state(rc)`; what survives is presence, the class slots, the `visibility` slot and design
+and no `state(rc)`; what survives is presence, the look, the `visibility` slot and design
 chrome. That the guarantees come apart along exactly that line — and that the remaining half
 needed no special casing — is the best evidence so far that the boundary is factored correctly.
 
 One consequence for the loader: prop-building is **field-shaped**, so it has to branch on the
 control's *type* rather than hand every translator the same props. A display takes `hidden`,
-the class slots and one thing more:
+the look and one thing more:
 
 ```ts
 interface DisplayProps {
   hidden?: FormProp<boolean>;
   accessibleName?: FormProp<string>;
-  className?: FormProp<ClassValue>;
-  textClassName?: FormProp<ClassValue>;
-  shellClassName?: FormProp<ClassValue>;   // the wrapper it sits in — legacy's layout element (finding 63)
+  look?: FormProp<LookName | readonly LookName[] | undefined>;
+  style?: FormProp<PortableStyle | undefined>;
+  shellStyle?: FormProp<PortableStyle | undefined>;   // the wrapper it sits in — legacy's layout element (finding 63)
   children?: ReactNode;
 }
 ```
@@ -679,7 +678,7 @@ may do nothing. That is what keeps the Mast rendering reproducible without a por
 tooltip — and a provider requirement — in the contract. It is also why the prop is a `string` rather than a
 `ReactNode`: an accessible name is text, and anything richer is a tooltip renderer's business.
 
-All of them also resolve `FormProp`s, apply presence, route class slots, and wrap design-mode
+All of them also resolve `FormProp`s, apply presence, resolve the look, and wrap design-mode
 chrome.
 
 **The locks fold in one place, and are republished (built).** The boundary ORs its own
@@ -1052,9 +1051,8 @@ interface FieldShellProps {
   helpText?: ReactNode;
   error?: ReactNode;                      // resolved by the boundary, never by the impl
   children: ReactNode;
-  className?: ClassValue;
-  labelClassName?: ClassValue;
-  labelTextClassName?: ClassValue;        // merged with labelClassName when the label is one element
+  look?: LookRef;                         // the shell resolves its own parts: wrapper, label, label text
+  style?: PortableStyle;                  // the wrapper, after the look
 }
 
 interface InputFrameProps {
@@ -1068,7 +1066,8 @@ interface InputFrameProps {
   readOnly?: boolean;
   multiline?: boolean;                    // alignment; Paper v6 passes exactly this
   filled?: boolean;                       // the frame never sees a value, so it is told
-  className?: ClassValue;
+  look?: LookRef;                         // the frame resolves its own part: the control
+  style?: PortableStyle;                  // the frame, after the look
 }
 
 interface ControlSlotProps {
@@ -1122,7 +1121,8 @@ here the widget *is* the control — and Ant's and Mantine's draw their own surf
    label; a textfield wants a `label` and a floating one. Defaults to `"custom"`, so a
    third-party widget that never thinks about it gets the harmless half.
 5. **`style` on the slot** — the slot had `className` only, which assumes an implementation's
-   chrome exists as class names. Ant's is `theme.useToken()`, computed per render, so its
+   chrome exists as class names (the author's styling is a look, but the slot hands the control
+   the frame's own). Ant's is `theme.useToken()`, computed per render, so its
    frame has nothing to put in a class. MUI is fine (emotion generates one), as is the HTML
    default.
 6. **`labelPosition`** — see §5. Ant is the one library whose checkbox wants the label as its
@@ -1185,7 +1185,7 @@ drift.
 emits is a slot of an `HtmlTheme`, provided through nesting context — `forms-html` API, not
 contract (README finding 72). The ServiceTas theme, the worked example, keeps the border on the
 `<input>` because Bootstrap 3's `.form-control` carries `:focus` / `:disabled`, which a `<div>`
-frame cannot; `frame.classNameOn: "input"` then sends the control's `className` there too, where
+frame cannot; `frame.classNameOn: "input"` then sends the look's `control` classes there too, where
 legacy put `styleClass`. So the split above is the default, and a host that has not made the move
 says so in one slot rather than forking the renderer.
 
@@ -1206,22 +1206,26 @@ one mode with an extra element) and a
 One caveat belongs to hosts: Tailwind 4's utilities live in cascade layers, so unlayered global
 CSS — a UI library's reset — beats them, and a v4 host puts such a reset in a layer.
 
-**Layout is classes (decided).** There is no layout primitive and no layout group kind. A
-grid, a flex row, a responsive `flex-col lg:flex-row` — all of it is `className` on a group's
-body (and `shellClassName` for how a group sits in its parent's layout), which is also how the
-corpus already does it: its responsive layouts are Tailwind classes on Standard groups, not
-`Flex` or `Grid` groups, and its `native:` / `web:` variants carry the same classes to React
-Native through NativeWind. Per-breakpoint columns are therefore ordinary breakpoint classes,
-which no typed prop could express without re-inventing them.
+**Layout is a look (decided; was "layout is classes").** There is no layout primitive and no
+layout group kind. A grid, a flex row, a responsive `flex-col lg:flex-row` — all of it is the
+`control` part of a group's look (the body), and `shell` for how the group sits in its parent's
+layout. The corpus already does it that way: its responsive layouts are Tailwind classes on
+Standard groups, not `Flex` or `Grid` groups. On html a look's body is those classes; on a
+device and under MUI, Ant and Fluent it is the portable flex properties, and a breakpoint is a
+function of `LookState.width` — written once, the same in all five (LOOKS, "One look table, five
+implementations"). Per-breakpoint columns are therefore ordinary look state, which no typed prop
+could express without re-inventing it. A look that needs `grid` or a selector stays in an html
+class look; those are not in the portable subset.
 
 What makes that work is that **a body's children are the boundaries' own elements**: no design
 chrome outside design mode, no fade wrapper under `transitions={false}`, no inner element unless
 the theme collapses (§9). Then CSS grid's auto-placement is legacy `GridRenderer`'s
 filter-then-chunk: a hidden child produces no box and takes no cell.
 
-The one thing classes cannot do is reach where no stylesheet is scanned. `layout` on a group
+The one thing a class look cannot do is reach where no stylesheet is scanned. `layout` on a group
 (§5) is a typed flex body drawn without CSS, for exactly that — the JSON loader's `Flex` groups
-and its collection rows, and a platform without CSS. A `Stack` primitive used to sit beside it;
+and its collection rows. It overlaps the portable flex properties and probably folds into them
+(LOOKS, "Not built, and open"). A `Stack` primitive used to sit beside it;
 it was `<Contents layout>` without the scope and is gone.
 
 ## 8. Collections
@@ -1397,11 +1401,11 @@ unmount at once, and a group below it is handed `transitions: false` and must hi
 collapse). It is a facet rather than a nested `FormProvider` with a different slot because that
 would make the form name an implementation, and remount the implementation's `root` mid-page.
 
-It is also what makes **layout by classes** work. A grid or flex body is the author's
-`className` on the group; with transitions off, each child is one element (no transition
+It is also what makes **layout by looks** work on html. A grid or flex body is the look's `control`
+classes on the group; with transitions off, each child is one element (no transition
 wrapper) and a hidden child produces no box, so CSS grid's auto-placement is exactly legacy
 `GridRenderer`'s filter-then-chunk — a hidden pair takes no cells, and responsive column counts
-are ordinary breakpoint classes. The group's own hide follows the scope *it* sits in, so a
+are ordinary breakpoint classes (or, portably, a function of `LookState.width`). The group's own hide follows the scope *it* sits in, so a
 region can fade out while its children appear and disappear at once.
 
 `options` is declared once and pays twice — it is what makes a custom render option
@@ -1485,6 +1489,11 @@ defeats a memo.
 ## Still open
 
 - **Base UI** (family 3, the shape the primitives are modelled on) has not been built against.
+- **Looks** (§2): the open list is in [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md) — `look` in the
+  C# schema and the canonical `forms-schema` types, the converter in ServiceTas's publish step,
+  state beyond `width` and `invalid` reaching a field look in MUI, Ant and Fluent, native checked
+  against the real ServiceTas app, whether `layout` folds into the portable flex properties, and
+  placement across html's visibility wrappers.
 
 Every boundary kind has now been written from outside the package — `Stars` (field), `PetCards`
 (collection), `FancyAdd` (action, through the override map, which receives the same

@@ -27,9 +27,9 @@ import {
 
 /**
  * A group body drawn as a flex box with no CSS — an inline style, or the
- * platform's own flex layout. Classes on `className` are the usual way to lay
- * out a body; this is for where a class cannot reach: the JSON loader, whose
- * output no host stylesheet scans, and a platform without CSS.
+ * platform's own flex layout. A look's `control` part is the usual way to lay
+ * out a body; this is for where a look cannot reach: the JSON loader, whose
+ * output no host stylesheet scans.
  *
  * @group Authoring
  */

@@ -32,10 +32,10 @@ export type FormProp<T> = T | ((rc: ReadContext) => T) | Control<T>;
 
 /**
  * The classes one part of a look gives an element, for an implementation whose
- * looks are class strings (html, and React Native under NativeWind): a string
+ * looks are class strings (html): a string
  * is added to the implementation's own classes for that element; `{ replace }`
  * stands in for them — and for any part of an earlier look — entirely. The
- * JSON format spells replacement with a leading `"@ "`.
+ * legacy JSON format spells replacement with a leading `"@ "`.
  *
  * Only an implementation knows its own class for an element, so layering
  * happens there — see {@link combineClass}.

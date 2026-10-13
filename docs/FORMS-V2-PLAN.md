@@ -40,7 +40,7 @@ Amends *Proposed package layout* in the goals doc (updated to match).
 | package | from | role |
 |---|---|---|
 | `@rx-controls/forms-schema` | `packages/forms-core/src/json/*` | Canonical `ControlDefinition` / `SchemaField` types, builders, `schemaSchemas`. No React. A **move**: the JSON must match the C# server's byte for byte. |
-| `@rx-controls/forms-react` | `poc/forms-v2/src/framework/` | The contract: `FormProp`, scope and presence, the boundaries, validation scopes, collections, actions, tab / wizard / dialog controllers, staged edit, primitive prop types, the registry. No DOM, no class strings. |
+| `@rx-controls/forms-react` | `poc/forms-v2/src/framework/` | The contract: `FormProp`, scope and presence, the boundaries, validation scopes, collections, actions, tab / wizard / dialog controllers, staged edit, primitive prop types, the registry. No DOM, no class strings; look names and the portable style type live here, what a look draws does not (phase 11). |
 | `@rx-controls/forms-json` | `poc/forms-v2/src/loader/` | The loader: translators, expressions + jsonata, the data cursor, host hooks, `<JsonForm>`, `strict`. The only package that reads a `ControlDefinition`. |
 | `@rx-controls/forms-html` | `impls/html.tsx`, `shared.tsx`, `htmlTheme.tsx` | The HTML implementation and its `HtmlTheme`: `defaultHtmlTheme` (`rxf-` hook classes only) and `tailwindHtmlTheme`. No stylesheet. |
 | `@rx-controls/forms-mui` | `impls/mui.tsx` | The MUI implementation, and the contract's regression gate. |
@@ -120,8 +120,8 @@ one.
   direction classes. `GroupProps.layout` (a typed `FlexLayout`) makes the body itself the
   flex box, and the html theme gains `contents.flexBody` / `flexGap`. The markup now matches
   `legacy-compare`. Legacy's `Contents` kind has zero corpus uses and is not carried. Later
-  narrowed further: layout is classes for authors, and `layout` stays only as the no-CSS path the
-  loader needs; the `Stack` primitive is gone (`FORMS-V2-INTERFACES.md` §7).
+  narrowed further: layout is the group's look for authors, and `layout` stays only as the no-CSS
+  path the loader needs; the `Stack` primitive is gone (`FORMS-V2-INTERFACES.md` §7).
 - **`pending` on `GroupRenderProps` — decided, deliberately absent.** Nothing asks for it, and
   adding an optional render prop later breaks no implementation.
 
@@ -608,7 +608,9 @@ as Fluent's did, and answers first:
 
 - **Styling.** NativeWind (which carries the corpus's `native:` / `web:` classes, and the
   "layout is classes" decision) or its own token theme; and what a group's `className` layout
-  means on native.
+  means on native. *(Answered NativeWind, then the other way in phase 11: looks replaced the
+  class slots, `forms-native` is style-only, and the entries below that describe NativeWind are
+  the build as it was.)*
 - **The test environment.** Its suite runs under React Native's renderer, not happy-dom, so
   `describeConformance` — which reads the DOM — needs a native reading or a native half.
 - **What has no native element**: `HtmlDisplay`, a `<form>`'s submit, focus targets, the hidden
@@ -623,7 +625,7 @@ the web for.
 Native 0.86 asks for `^19.2.3`, and its renderer has no exact-version check), so there is one React
 across the repo — with the ServiceTas app's choices for the rest: NativeWind 4.2 on Tailwind 3.4,
 `@rn-primitives` for the composite widgets (as legacy `@react-typed-forms/schemas-rn` uses them),
-`react-native-render-html` and Font Awesome's React Native icons. It declares `react-native >=0.86`;
+`react-native-render-html` and Font Awesome's React Native icons. (NativeWind was dropped in phase 11.) It declares `react-native >=0.86`;
 the ServiceTas app (`servicetas-rn`, Expo 54 / React Native 0.81 / React 19.1) upgrades to Expo 57
 to use it, decided. The first plan — React Native 0.81 to match the app as it stands — split React
 in two (0.81 pins 19.1) and needed a Metro workaround to keep one copy in a bundle.
@@ -655,7 +657,7 @@ in two (0.81 pins 19.1) and needed a Metro workaround to keep one copy in a bund
 - **Some suite assertions are web-shaped**: a `hideLabel` label element clipped by a CSS style,
   a `<form>` element to submit. Native has neither — a hidden label is the control's own name, and
   submission is the submit action's. The suite needs a reading of these that does not assume a DOM.
-- **Styling: NativeWind (decided).** The library compiles its JSX with NativeWind's runtime
+- **Styling: NativeWind (decided; superseded by phase 11, which removed it).** The library compiles its JSX with NativeWind's runtime
   (`jsxImportSource: "nativewind"`), as legacy `schemas-rn` was built — `tsc`'s output carries no
   JSX, so the app's own Babel setting cannot reach it. The look is a `NativeTheme` of class slots
   under `NativeThemeProvider`, like `HtmlTheme`: NativeWind classes only, frame state (focused,
@@ -856,7 +858,7 @@ the page title on a phone).
 
 **`forms-native` published.** ✅ (all but the publish itself, which waits on the `alpha.6` release) Into the `forms-v2-alpha` policy (`shouldPublish`, lock-step) so it
 ships with the others; its README-level doc (NativeWind setup: `jsxImportSource`, the Tailwind
-`content` entry, `NativeThemeProvider`); its stories — `apps/native-dev` grows a screen per story
+`content` entry, `NativeThemeProvider` — the NativeWind part went with phase 11); its stories — `apps/native-dev` grows a screen per story
 kind, and the storybook smoke test gains a native column through react-native-web if it fits.
 `rush docs` covers it.
 - *Landed:* in the `forms-v2-alpha` policy (`shouldPublish`, lock-step — the publish dry run lists
@@ -884,6 +886,60 @@ beside it.
 release, with `@rx-controls/react` 1.1.5 (the React Native commit-effect fix `forms-native`
 needs) and compat 5.1.5. The MAST re-run starts from
 [`FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md`](./archive/FORMS-V2-SERVICETAS-MAST-EOI-ALPHA6-TRIAL-BRIEF.md).
+
+### 11 — `alpha.9`: looks replace the class slots
+
+Phase 10's named looks (`variant`) worked on every implementation, and the class slots beside them
+did not: a class string is a web idea, so `forms-native` carried NativeWind to read one and MUI, Ant
+and Fluent had no way to. The design and what building it found is
+[`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md) — the source of truth; this entry is the order of work
+and what it had to prove. Scoped to the proof: only what shows the idea holds, nothing for an adopter
+that does not exist.
+
+**Landed ✅**
+- **The contract.** `look` (a name or a list, layered in order, typed by augmenting `FormLooks`),
+  `style` and `shellStyle` (`PortableStyle`: React Native's style semantics, colour tokens
+  `$name` / `$name/alpha`) on every boundary that draws. `variant`, `ActionVariant` and every class
+  slot are **gone**, with no alias (Forms v2 has no adopters). `FormLooksProvider` carries looks a
+  form brings; `LookState` (`invalid`, `disabled`, `focused`, `pressed`, `hovered`, `width`) is
+  what a function part is handed.
+- **Five implementations.** html and native resolve a `looks` table in the theme (parts: shell,
+  control, text, label, labelText, icon, entry, selected, notSelected; `{ replace }`); MUI, Ant and
+  Fluent take `*LooksProvider` (`sx` / style per part, groups `wrapper` / `title` / `body`, fields
+  `shell` / `label` / `control` / `text`). Every one takes a look on all six field widgets, a
+  function part in every one, and a list layers in every one. `group` joined `primary`, `secondary`
+  and `link` as an action emphasis (a pressable wrapper, no button chrome).
+- **NativeWind removed** from `forms-native`, which is style-only; a class-based build would be a
+  separate package bridging through `src/styleProps.ts`. A ServiceTas theme fixture restates the
+  app's native theme.
+- **Legacy converts.** The loader derives a look per form from a control's class slots (named by
+  content, `"@ "` → `{ replace }`); `rushx convert-looks` in `tools/forms-corpus` does it ahead of
+  time into forms that name their looks plus a looks table per renderer (html's classes verbatim,
+  native's generated portable styles). `rushx gates` ratchets it: 160 looks runs, 160 converted
+  runs, 25 class tokens native cannot yet express.
+- **Proved** on the 80-form corpus (identical markup through looks as through class slots, before
+  the slots went), on one look table drawn under all five implementations
+  (`rxc-forms-conformance/portable`, the Storybook and the native playground's Portable screen),
+  and on an Android emulator.
+
+*Exit:* met for the contract, the five implementations and the converter. **Not met, and listed in
+the looks doc's open list rather than here:** native compared against the real ServiceTas app;
+`look` in the C# schema and the canonical `forms-schema` types, and the converter in ServiceTas's
+publish step (both the user's call); a device re-check of press and focus reaching a function look.
+
+**For the `alpha.9` notes — what a consumer changes** (a breaking release, said as such):
+- Every `className`, `textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`,
+  and a radio's `entryClassName` / `selectedClassName` / `notSelectedClassName`, becomes a `look`
+  (or `style` / `shellStyle` for a one-off). `ClassValue` remains only inside an html look's parts.
+- `variant` becomes `look`; `ActionVariant` becomes `ActionLook`; `warnUnknownVariant` becomes
+  `warnUnknownLook`; the `*VariantsProvider`s become `*LooksProvider`s and a theme's per-kind
+  `variants` maps one `looks` table.
+- A host that styled with classes under `forms-native` (NativeWind) writes a `looks` table of
+  portable styles in its `NativeTheme`; class looks are warned once per name and not drawn.
+- JSON forms need nothing: the loader derives looks from the class slots as before, and a form
+  that names its looks (`look` on a control) is drawn from the host's theme.
+- The default icon draws nothing (a React Native host cannot draw an `<i>`); a web host passes
+  `legacyIconClass`'s result through its icon translator.
 
 ### Later, not blocked on any of this
 
@@ -914,8 +970,9 @@ then `rushx android`) and check, scripted where it can be:
 
 - **Every screen draws** with nothing in Metro's log after the bundle. Expo Go sends the
   app's console to Metro, not to logcat, so run a Metro whose output you can read (a second one:
-  `CI=1 npx expo start --go --localhost --port 8082`, `adb reverse tcp:8082 tcp:8082`, then open
-  `exp://127.0.0.1:8082`).
+  `npx expo start --go --localhost --port 8082 < /dev/null` — **without `CI=1`**, which turns the
+  file watcher off so the device keeps its first bundle — `adb reverse tcp:8082 tcp:8082`, then
+  open `exp://127.0.0.1:8082`; `CLAUDE.md` has the procedure).
 - **State and names** through `adb shell uiautomator dump`: each control named, and
   `enabled="true"` on every field after a `disableType="global"` action has run and finished.
 - **Focus and the keyboard**: a refused check focuses its field (`focused="true"` in the dump)

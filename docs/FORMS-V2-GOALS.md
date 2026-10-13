@@ -1,14 +1,5 @@
 # Forms v2 — goals
 
-> **Superseded in part — styling.** The class slots this document refers to — `className`,
-> `textClassName`, `shellClassName`, `labelClassName`, `labelTextClassName`, a radio's
-> `entryClassName` / `selectedClassName` / `notSelectedClassName`, and `ClassValue` / `mergeClass`
-> as the author's styling — have been **retired**. A boundary is styled by `look` (a name, or a
-> list of names), with `style` and `shellStyle` (portable CSS) for the rare one-off; each
-> implementation's theme says what a look is. Where this document shows a class slot, read
-> [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md). (`ClassValue` survives as the value of a *part* of a
-> class-based look.) The sections below are kept as the record of why the slots existed.
-
 The goal statement. Get this right first; the shape follows.
 
 **Vocabulary.** *Legacy* = the `@react-typed-forms/schemas` + `-html` stack real forms run on
@@ -39,7 +30,7 @@ inversion of how forms work today, and the goals below are ordered by it: 1–3 
    `FormProp<T> = T | ((rc) => T) | Control<T>`: a literal, a reactive derivation, or a
    control to bind to. Making one prop dynamic never means restructuring the component tree
    around it, and it is the same mechanism for `label`, `disabled`, `options` and
-   `className`. See *Settled structure*, below.
+   `look`. See *Settled structure*, below.
 
 3. **Form semantics are a property of the form, not of what is on screen.** Three
    commitments:
@@ -57,7 +48,10 @@ inversion of how forms work today, and the goals below are ordered by it: 1–3 
    **built-in renderer set**. A host's custom renderer may be platform-specific.
 
 5. **Implementation independence.** No renderer implementation is baked into form source;
-   Tailwind HTML, MUI, RN Paper, or a host's own design system are swapped at the root.
+   Tailwind HTML, MUI, RN Paper, or a host's own design system are swapped at the root. That
+   includes **styling**: form source says `look="card"` and never what a card is — a class
+   string, a React Native style and a component library's props are each an implementation's
+   answer to the same name (decision 4).
 
 6. **JSON loads onto the JSX surface.** Existing `ControlDefinition` / `SchemaField` JSON, as
    emitted by `Astrolabe.Schemas`, renders with **identical semantics to legacy** — the
@@ -86,7 +80,8 @@ else depends on it:
    2. the controllers — `useTextInput`, `useNumberInput`, `useSelectController`, … (already
       extracted in the POC);
    3. flat POJO props — `field`, `id`, `label`, `required`, `helpText`,
-      `startIcon`/`endIcon`, and the four class slots (below), plus renderer-specific. Flat
+      `startIcon`/`endIcon`, and `look` / `style` / `shellStyle` (decision 4), plus
+      renderer-specific. Flat
       because an extension composes with `<Shell {...p}>`;
    4. **structural primitives resolved from the active implementation** —
       `useFieldShell()`, `useInputFrame()`, a layout box. This is what lets a third-party
@@ -128,7 +123,7 @@ else depends on it:
    content mounted, since its children *are* the boundaries (README finding 55).
 
    **The named-prop set is the minimum, decided:** `field, id, label, required, helpText,
-   startIcon, endIcon` + the four class slots. `optional` is out — the survey found it in no
+   startIcon, endIcon` + `look`, `style`, `shellStyle`. `optional` is out — the survey found it in no
    real form, so it is a wrapper until something asks. Every implementation handles every
    named prop and adding one is a contract change, so the set starts small and grows only on
    evidence.
@@ -234,45 +229,41 @@ else depends on it:
    renderer's content escapes the canvas and the designer selects it from the tree. That is a
    designer policy, and the cost is small — a designer already needs the tree for anything
    fiddly. Closed on that basis.
-4. **Class slots — four targets, two merge modes.** Not a build-time question: an
-   implementation assumes its classes are defined somehow. The content is *where each lands*
-   and *how it combines*, and the corpus (~3,700 uses across ~80 forms) shows all four in
-   earnest:
+4. **Styling is a name: looks. Decided, built, and it replaced the class slots.** The contract
+   first carried legacy's class slots — a string per target, merged into the implementation's
+   own, or replacing it. It held against the corpus (~3,700 uses in ~80 forms, a third of them
+   the `"@ "` replace sentinel) and then was retired, because a class string is a web idea:
+   `forms-native` had to carry NativeWind to read one, MUI and Ant style with `sx` and tokens rather than classes, and a
+   class added beside an implementation's own is settled by stylesheet order. What survived the
+   comparison is the **name channel** the contract already had (`variant`, resolved per
+   implementation from a theme), widened to every boundary and every part. Full design, and
+   what was found building it: [`FORMS-V2-LOOKS.md`](./FORMS-V2-LOOKS.md); the contract:
+   interfaces §2.
 
-   | JSON | lands on | uses |
-   |---|---|---|
-   | `styleClass` | the input / control | ~1,500 |
-   | `textClass` | text content — a display value, a button's text | ~1,500 |
-   | `layoutClass` | the shell | ~650 |
-   | `labelClass` | the label container | ~40 |
-
-   Each combines with the implementation's own class for that slot. **Two modes, both real:**
-   *merge* (append to the implementation's class) and *replace*. Replace is spelled today as an
-   `@ ` prefix inside the string (`getOverrideClass` / `rendererClass` in
-   `packages/forms-react-core/src/className.ts`) and appears **~1,200 times** — roughly a third
-   of all class usage. It is a first-class mode expressed as a sentinel, and v2 should type it:
-   `ClassValue = string | { replace: string }`, with the loader converting `"@ foo"`.
-
-   The merge itself has to happen **inside** the implementation, since only it knows its own
-   class for the slot — so the contract ships a helper rather than a pre-merged string.
-   Non-class implementations (MUI's `sx`) map or ignore these, as with `className` generally.
-
-   **Built, and there are five.** Legacy's `labelTextClass` — the label's *text* as distinct
-   from its container, ~250 uses in 30-odd forms — exists because on React Native text styles do
-   not cascade from a `View`, which is the same reason the format has both `styleClass` and
-   `textClass` on a control. The contract already carried that split for the control
-   (`className` / `textClassName`); the label now has it too (`labelClassName` /
-   `labelTextClassName`), defined so a single-element label merges the pair and only
-   `forms-native` separates them. All five map, `"@ "` becomes `{ replace }`, both modes are
-   verified in the DOM (interfaces §2, README findings 48–49). **And they belong to every
-   boundary kind, not only fields (built):** the corpus styled displays, actions and groups
-   against the wrapper and the title slots 712 times, which the loader audit surfaced and
-   README finding 63 closed — `GroupProps` carries all five, `DisplayProps` and `ActionProps`
-   the wrapper.
-
-   Left open, and `forms-html`'s business rather than the contract's: whether to merge with
-   `tailwind-merge` so an appended class actually wins. Authors currently force it with `!`
-   prefixes — `!text-accent` alone appears ~170 times.
+   - **The contract carries a name, or a list of names, layered in order.** `look="card"`,
+     `look={["primary", "wide"]}`, a `FormProp` like any other, typed by augmenting `FormLooks`.
+     Nothing in `forms-react` knows what a card is.
+   - **Each implementation says what a name looks like, in its own terms.** Classes on the web,
+     React Native styles on a device, props and `sx` / styles under MUI, Ant and Fluent. The
+     parts a look styles — shell, control, text, label — are the theme's business; the author
+     says which element's look, never which part.
+   - **A small escape hatch, portable by construction.** `style` and `shellStyle` are a subset
+     of CSS that means the same on the web and on React Native — React Native's own semantics,
+     which react-native-web already implements — so a one-off written for one platform is
+     right on the other. A property outside it is a type error.
+   - **State is data, not syntax.** A part of a look may be a function of `LookState`
+     (`invalid`, `disabled`, `focused`, `pressed`, `hovered`, `width`), so a breakpoint or a
+     pressed colour is written one way for every implementation, and a look never needs a
+     variant a platform lacks.
+   - **Legacy converts.** The loader turns a control's five (and a radio's three) class slots
+     into a look, per form, named by its classes; an offline step can do it ahead of time into
+     forms that name their looks and a table per renderer. `"@ "` is `{ replace }`, where it
+     belongs — in the theme.
+   - **Proved by one look table under five implementations** (html, native, MUI, Ant, Fluent)
+     reading as one design, on the corpus (160 of 160 runs through looks as through class
+     slots, before they were retired), and on an Android emulator. What is not proved —
+     native against the real ServiceTas app, the server's schema — is listed in the looks doc.
+     Forms v2 has no adopters, so the slots went outright, with no alias.
 5. **Does the JSX path need the deferred async queue? Decided: no.** The JSON path's jsonata
    resolution needs `runAsync` deferred to a commit effect or SSR and first hydration disagree
    (the POC hit this with a `Display`-typed script). A JSX form has no async expressions, and
@@ -289,9 +280,10 @@ else depends on it:
    The one thing `forms-html` and `forms-native` could still share is element structure, and
    sharing that means an element-level seam — `div`/`input`/`label` against
    `View`/`TextInput`/`Text` — which is exactly the legacy `HtmlComponents` shape rejected
-   under *The contract is semantic* below. Default Tailwind class strings are theme **data**,
-   and `forms-native` may import them without the packages sharing a component. NativeWind is
-   therefore `forms-native`'s own styling choice, not a design question.
+   under *The contract is semantic* below. Styling is theme **data** per implementation — class strings
+   for html, React Native styles for native — and the two share only the *names* of looks
+   (decision 4). `forms-native` is style-only; NativeWind was removed once looks were portable
+   styles, and a class-based native build, if wanted, would be a separate package.
 
 Settled, and no longer open here: *what carries the cascade in a JSX form*, *does
 `FormStateNode` survive*, and *how adornments behave when a panel renders nothing* (they are
@@ -343,8 +335,8 @@ implementations. Its own list had already sprung a leak — `CheckButtons` sits 
 and is not an element, because a radio/checkbox group could not be expressed as div-plus-class.
 So element-level did not hold even for goal 4 alone.
 
-Two consequences: **NativeWind stops being a prerequisite** (decision 6 — it is `forms-native`'s
-styling choice, and the two packages share a contract, not source), and **platform-specific
+Two consequences: **NativeWind stops being a prerequisite** (decision 6 — and, once looks
+replaced class slots, it left `forms-native` altogether), and **platform-specific
 degradation is normal rather than exceptional**: an implementation draws the built-in as well as
 its platform allows, and a native one that renders a concept more plainly than the web is a
 different renderer, not a broken one.
@@ -623,14 +615,15 @@ here.
 @rx-controls/react          unchanged, published
 @rx-controls/forms-schema   SchemaField + ControlDefinition JSON types, builders. No React.
 @rx-controls/forms-react    THE contract: dispatch components, scope + cascades, validation,
-                            structural primitives, controllers, prop types, the registry.
-                            No DOM, no class strings.
+                            structural primitives, controllers, prop types, the registry,
+                            look names and portable styles. No DOM, no class strings.
 @rx-controls/forms-json     the loader: translators, expressions + jsonata, host hooks.
                             The only package that reads a ControlDefinition.
 @rx-controls/forms-html     the HTML implementation
 @rx-controls/forms-native   the React Native implementation
 @rx-controls/forms-mui      an MUI implementation — the contract's real test
 @rx-controls/forms-antd     an Ant Design implementation — chrome as runtime tokens
+@rx-controls/forms-fluent   a Fluent UI implementation
 ```
 
 A form imports from `forms-react` and nothing else; a JSON form adds `forms-json`.
