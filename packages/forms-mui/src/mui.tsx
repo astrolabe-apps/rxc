@@ -96,8 +96,8 @@ import {
   ContentsRegion,
   RichTextDom,
   ImageDom,
-  useLastLook,
-  pickLook,
+  useLookLayers,
+  pickLooks,
   lookAttr,
   type GroupLookStyle,
   Inline,
@@ -151,6 +151,17 @@ function nestSx(selector: string, sx: SxProps<Theme> | undefined): SxProps<Theme
       typeof x === "function" ? (x as (t: Theme) => object)(theme) : x && typeof x === "object" ? (x as object) : {};
     return { [selector]: Array.isArray(sx) ? Object.assign({}, ...sx.map(one)) : one(sx) };
   };
+}
+
+/**
+ * A look's layers merged, later over earlier: each prop the later layer names
+ * replaces the earlier's, and `sx` is laid in order (MUI's own array form), so
+ * a list of looks layers as it does under html.
+ */
+function mergeProps<T extends { sx?: SxProps<Theme> }>(layers: readonly T[]): T {
+  let out = {} as T;
+  for (const l of layers) out = { ...out, ...l, sx: mergeSx(out.sx, l.sx) };
+  return out;
 }
 
 /** `sx` values laid in order, a later one over an earlier (MUI's own array form). */
@@ -409,21 +420,28 @@ function MuiInputFrame(p: InputFrameProps) {
 
 /** A field's named look, and the context value that hands it to its shell and frame. */
 function useMuiFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
-  const found = useLastLook("field", look, useMuiLooks().field);
+  const table = useMuiLooks().field;
+  const found = useLookLayers("field", look, table);
   const theme = useTheme();
   // The window's width only if a part asks for it.
-  const width = useLookWidth(!!found && Object.values(found).some(isFn));
+  const width = useLookWidth(found.some((l) => Object.values(l).some(isFn)));
   const invalid = !!base?.invalid;
   const disabled = !!base?.disabled;
+  const names = lookNames(look).join("|");
+  // The names' parts laid in order, a later over an earlier.
   const fieldLook = useMemo<ResolvedFieldLook | undefined>(() => {
-    if (!found) return undefined;
+    const layers = pickLooks(names ? names.split("|") : undefined, table);
+    if (!layers.length) return undefined;
     const state: LookState = { ...NO_LOOK_STATE, invalid, disabled, width };
     const out: ResolvedFieldLook = {};
-    for (const [k, v] of Object.entries(found) as [keyof MuiFieldLook, MuiFieldPart | undefined][])
-      if (v !== undefined) out[k] = isFn(v) ? (v as (t: Theme, s: LookState) => SxProps<Theme>)(theme, state) : v;
+    for (const layer of layers)
+      for (const [k, v] of Object.entries(layer) as [keyof MuiFieldLook, MuiFieldPart | undefined][])
+        if (v !== undefined)
+          out[k] = mergeSx(out[k], isFn(v) ? (v as (t: Theme, s: LookState) => SxProps<Theme>)(theme, state) : v);
     return out;
-  }, [found, theme, width, invalid, disabled]);
-  const lookContext = useMemo(() => ({ look: fieldLook, attr: lookAttr(look) }), [fieldLook, look]);
+  }, [table, names, theme, width, invalid, disabled]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const lookContext = useMemo(() => ({ look: fieldLook, attr: lookAttr(look) }), [fieldLook, names]);
   return { fieldLook, lookContext };
 }
 
@@ -669,7 +687,7 @@ const groupSx = {
 
 function MuiAction(p: ActionRenderProps) {
   const css = useCss();
-  const named = useLastLook("action", p.look, useMuiLooks().action, (n) => n in emphasis);
+  const named = mergeProps(useLookLayers("action", p.look, useMuiLooks().action, (n) => n in emphasis));
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
     .filter(Boolean)
@@ -733,12 +751,15 @@ function useHeadingType(level: number) {
 function useGroupStyle(look: LookRef | undefined): GroupLookStyle | undefined {
   const theme = useTheme();
   const group = useMuiLooks().group;
-  const found = pickLook(look, group);
-  const width = useLookWidth(!!found && Object.values(found).some(isFn));
-  if (!found) return undefined;
+  const found = pickLooks(look, group);
+  const width = useLookWidth(found.some((l) => Object.values(l).some(isFn)));
+  if (!found.length) return undefined;
   const state: LookState = { ...NO_LOOK_STATE, width };
-  const at = (s: MuiStyle | undefined) => (typeof s === "function" ? s(theme, state) : s);
-  return { wrapper: at(found.wrapper), title: at(found.title), body: at(found.body) };
+  const part = (k: "wrapper" | "title" | "body") => {
+    const layers = found.map((l) => (typeof l[k] === "function" ? (l[k] as Function)(theme, state) : l[k])).filter(Boolean);
+    return layers.length ? Object.assign({}, ...layers) : undefined;
+  };
+  return { wrapper: part("wrapper"), title: part("title"), body: part("body") };
 }
 
 /** The image as DOM, a look's style resolved against the MUI theme. */
@@ -810,7 +831,7 @@ function MuiText(p: TextDisplayRenderProps) {
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
   const headingType = useHeadingType(p.headingLevel);
-  const { sx: lookSx, ...look } = useLastLook("text", p.look, useMuiLooks().text) ?? {};
+  const { sx: lookSx, ...look } = mergeProps(useLookLayers("text", p.look, useMuiLooks().text));
   // The look's sx over the heading's type, not in place of it.
   const sx = [
     heading ? { ...headingType, ...(p.tone ? { color: "inherit" } : {}) } : {},
@@ -847,8 +868,12 @@ function MuiIcon(p: IconDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const theme = useTheme();
-  const look = useLastLook("icon", p.look, useMuiLooks().icon);
-  const width = useLookWidth(isFn(look));
+  const looks = useLookLayers("icon", p.look, useMuiLooks().icon);
+  const width = useLookWidth(looks.some(isFn));
+  const look = Object.assign(
+    {},
+    ...looks.map((l) => (typeof l === "function" ? l(theme, { ...NO_LOOK_STATE, width }) : l)),
+  );
   const glyph = (
     <Typography
       component="span"
@@ -856,7 +881,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
       aria-label={p.accessibleName}
       style={css(p.style)}
       data-look={lookAttr(p.look)}
-      sx={{ fontSize: 24, lineHeight: 1, ...(typeof look === "function" ? look(theme, { ...NO_LOOK_STATE, width }) : look) }}
+      sx={{ fontSize: 24, lineHeight: 1, ...look }}
     >
       {getProp(rc, p.icon)}
     </Typography>

@@ -228,6 +228,46 @@ describe("MUI", () => {
     resize(width);
   });
 
+  it("layers a list of looks, a later over an earlier, for a group, a field and a text", () => {
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={muiRenderers}>
+            <MuiLooksProvider
+              looks={{
+                group: { a: { body: { display: "flex", flexDirection: "row" } }, b: { body: { gap: "9px" } } },
+                field: {
+                  a: { shell: { marginBottom: "13px" }, control: { borderRadius: "11px" } },
+                  b: { control: { borderRadius: "5px" }, text: { fontStyle: "italic" } },
+                },
+                text: { a: { sx: { letterSpacing: "3px" } }, b: { sx: { fontStyle: "italic" } } },
+              }}
+            >
+              <Form>
+                <Section title="T" look={["a", "b"]}>
+                  <TextDisplay text="x" look={["a", "b"]} />
+                </Section>
+                <TextField field={ctx.newControl("")} id="t" label="N" look={["a", "b"]} />
+              </Form>
+            </MuiLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const css = (el: Element, p: string) => getComputedStyle(el).getPropertyValue(p);
+    const body = document.querySelector('[role="heading"]')!.nextElementSibling as HTMLElement;
+    // both names' parts reached the group's body
+    expect([body.style.flexDirection, body.style.gap]).toEqual(["row", "9px"]);
+    // the field: the shell from the first name, the frame's radius from the later (it wins), the text from the later
+    const input = document.getElementById("t")!;
+    expect(css(input.closest(".MuiFormControl-root")!, "margin-bottom")).toBe("13px");
+    expect(css(input.closest(".MuiOutlinedInput-root")!, "border-radius")).toBe("5px");
+    expect(css(input, "font-style")).toBe("italic");
+    // a text: sx from both
+    const text = [...document.querySelectorAll("p")].find((e) => e.textContent === "x")!;
+    expect([css(text, "letter-spacing"), css(text, "font-style")]).toEqual(["3px", "italic"]);
+  });
+
   it("colours a toned display from the palette", () => {
     mount(<TextDisplay text="Bad" tone="error" />);
     expect(document.querySelector<HTMLElement>('[data-tone="error"]')!.style.color).not.toBe("");

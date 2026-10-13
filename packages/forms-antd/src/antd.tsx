@@ -75,8 +75,8 @@ import {
   ContentsRegion,
   RichTextDom,
   ImageDom,
-  useLastLook,
-  pickLook,
+  useLookLayers,
+  pickLooks,
   lookAttr,
   type GroupLookStyle,
   Inline,
@@ -95,7 +95,7 @@ import {
   useLookWidth,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
-import { atToken, useAntdLooks, type AntFieldLook } from "./looks.js";
+import { atToken, useAntdLooks, type AntFieldLook, type AntStyle } from "./looks.js";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
 //
@@ -113,21 +113,50 @@ const AntFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: str
 
 const isFn = (v: unknown): boolean => typeof v === "function";
 
+/**
+ * A look's layers merged, later over earlier: each prop a later layer names
+ * replaces the earlier's, and the styles are laid in order — so a list of looks
+ * layers as it does under html. `style` comes back as one style (a function
+ * of the tokens and the state), and `needsState` says whether any layer's is
+ * a function.
+ */
+function mergeLayers<T extends { style?: AntStyle }>(
+  layers: readonly T[],
+): { props: Omit<T, "style">; style: AntStyle | undefined; needsState: boolean } {
+  let props = {} as Omit<T, "style">;
+  for (const { style: _s, ...rest } of layers) props = { ...props, ...rest };
+  const styled = layers.filter((l) => l.style !== undefined);
+  return {
+    props,
+    needsState: styled.some((l) => isFn(l.style)),
+    style: styled.length
+      ? (token, state) => Object.assign({}, ...styled.map((l) => atToken(l.style, token, state)))
+      : undefined,
+  };
+}
+
 /** A field's named look, and the context value that hands it to its shell and frame. */
 function useAntFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
   const { token } = theme.useToken();
-  const found = useLastLook("field", look, useAntdLooks().field);
+  const table = useAntdLooks().field;
+  const found = useLookLayers("field", look, table);
   // The window's width only if a part asks for it.
-  const width = useLookWidth(!!found && Object.values(found).some(isFn));
+  const width = useLookWidth(found.some((l) => Object.values(l).some(isFn)));
   const invalid = !!base?.invalid;
+  const names = lookNames(look).join("|");
+  // The names' parts laid in order, a later over an earlier.
   const resolved = useMemo<ResolvedFieldLook | undefined>(() => {
-    if (!found) return undefined;
+    const layers = pickLooks(names ? names.split("|") : undefined, table);
+    if (!layers.length) return undefined;
     const state: LookState = { ...NO_LOOK_STATE, invalid, width };
     const out: ResolvedFieldLook = {};
-    for (const k of Object.keys(found) as (keyof AntFieldLook)[]) out[k] = atToken(found[k], token, state);
+    for (const layer of layers)
+      for (const k of Object.keys(layer) as (keyof AntFieldLook)[])
+        out[k] = { ...out[k], ...atToken(layer[k], token, state) };
     return out;
-  }, [found, token, width, invalid]);
-  const lookContext = useMemo(() => ({ look: resolved, attr: lookAttr(look) }), [resolved, look]);
+  }, [table, names, token, width, invalid]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const lookContext = useMemo(() => ({ look: resolved, attr: lookAttr(look) }), [resolved, names]);
   const part = (name: keyof AntFieldLook) => resolved?.[name];
   return { part, lookContext };
 }
@@ -697,9 +726,10 @@ const groupStyle = { padding: 0, height: "auto", textAlign: "left" } as const;
 function AntAction(p: ActionRenderProps) {
   const css = useCss();
   const { token } = theme.useToken();
-  const lookup = useLastLook("action", p.look, useAntdLooks().action, (n) => n in emphasis);
-  const { style, ...named } = lookup ?? {};
-  const actionWidth = useLookWidth(isFn(style));
+  const { props: named, style, needsState } = mergeLayers(
+    useLookLayers("action", p.look, useAntdLooks().action, (n) => n in emphasis),
+  );
+  const actionWidth = useLookWidth(needsState);
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
     .filter(Boolean)
@@ -769,15 +799,15 @@ function headingStyle(
 function useGroupStyle(look: LookRef | undefined): GroupLookStyle | undefined {
   const { token } = theme.useToken();
   const group = useAntdLooks().group;
-  const found = pickLook(look, group);
-  const width = useLookWidth(!!found && Object.values(found).some(isFn));
-  if (!found) return undefined;
+  const found = pickLooks(look, group);
+  const width = useLookWidth(found.some((l) => Object.values(l).some(isFn)));
+  if (!found.length) return undefined;
   const state: LookState = { ...NO_LOOK_STATE, width };
-  return {
-    wrapper: atToken(found.wrapper, token, state),
-    title: atToken(found.title, token, state),
-    body: atToken(found.body, token, state),
+  const part = (k: "wrapper" | "title" | "body") => {
+    const layers = found.map((l) => atToken(l[k], token, state)).filter(Boolean);
+    return layers.length ? Object.assign({}, ...layers) : undefined;
   };
+  return { wrapper: part("wrapper"), title: part("title"), body: part("body") };
 }
 
 /** The image as DOM, a look's style resolved against the tokens. */
@@ -855,8 +885,10 @@ function AntText(p: TextDisplayRenderProps) {
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
-  const { style: lookStyle, ...look } = useLastLook("text", p.look, useAntdLooks().text) ?? {};
-  const textWidth = useLookWidth(isFn(lookStyle));
+  const { props: look, style: lookStyle, needsState: textNeeds } = mergeLayers(
+    useLookLayers("text", p.look, useAntdLooks().text),
+  );
+  const textWidth = useLookWidth(textNeeds);
   return rendered(
     <DisplayShell
       inline={p.inline}
@@ -889,8 +921,11 @@ function AntIcon(p: IconDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const { token } = theme.useToken();
-  const look = useLastLook("icon", p.look, useAntdLooks().icon);
-  const iconWidth = useLookWidth(isFn(look));
+  const iconLayers = useLookLayers("icon", p.look, useAntdLooks().icon);
+  const iconWidth = useLookWidth(iconLayers.some(isFn));
+  const look: AntStyle | undefined = iconLayers.length
+    ? (t, st) => Object.assign({}, ...iconLayers.map((l) => atToken(l, t, st)))
+    : undefined;
   const glyph = (
     <span
       role="img"

@@ -207,6 +207,41 @@ export function pickLook<T>(
 }
 
 /**
+ * Every entry of a look's names that `table` holds, in layering order — for a
+ * library implementation, which merges them (later over earlier) itself,
+ * since its looks are its own props and styles rather than classes.
+ */
+export function pickLooks<T>(
+  look: LookRef | undefined,
+  table: Record<string, T> | undefined,
+): T[] {
+  const out: T[] = [];
+  for (const name of lookNames(look)) {
+    const v = table?.[name];
+    if (v !== undefined) out.push(v);
+  }
+  return out;
+}
+
+/**
+ * {@link pickLooks}, reporting in development each name that none of `table`,
+ * `understood` or the looks the form brought has. Returns a fresh array each
+ * call: memoise on its entries, not the array.
+ */
+export function useLookLayers<T>(
+  kind: string,
+  look: LookRef | undefined,
+  table: Record<string, T> | undefined,
+  understood?: (name: string) => boolean,
+): T[] {
+  const form = useFormLooks();
+  for (const name of lookNames(look))
+    if (table?.[name] === undefined && !understood?.(name) && form[name] === undefined)
+      warnUnknownLook(kind, name);
+  return pickLooks(look, table);
+}
+
+/**
  * {@link pickLook}, reporting in development each name that none of `table`,
  * `understood` (the three emphases an action always draws) or the looks the
  * form brought with it (`useFormLooks`) knows. A form's own looks are classes,

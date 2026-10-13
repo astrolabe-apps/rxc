@@ -162,6 +162,46 @@ describe("Fluent", () => {
     resize(width);
   });
 
+  it("layers a list of looks, a later over an earlier, for a group, a field, a text and an action", () => {
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={fluentRenderers}>
+            <FluentLooksProvider
+              looks={{
+                group: { a: { body: { display: "flex", flexDirection: "row" } }, b: { body: { gap: "9px" } } },
+                field: {
+                  a: { shell: { marginBottom: "13px" }, control: { borderRadius: "11px" } },
+                  b: { control: { borderRadius: "5px" }, text: { fontStyle: "italic" } },
+                },
+                text: { a: { weight: "bold", style: { letterSpacing: "3px" } }, b: { style: { fontStyle: "italic" } } },
+                action: { a: { shape: "circular", style: { opacity: 0.4 } }, b: { style: { letterSpacing: "2px" } } },
+              }}
+            >
+              <Form>
+                <Section title="T" look={["a", "b"]}>
+                  <TextDisplay text="x" look={["a", "b"]} />
+                </Section>
+                <TextField field={ctx.newControl("")} id="t" label="N" look={["a", "b"]} />
+                <Action actionId="go" text="Go" look={["a", "b"]} />
+              </Form>
+            </FluentLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const body = document.querySelector('[role="heading"]')!.nextElementSibling as HTMLElement;
+    expect([body.style.flexDirection, body.style.gap]).toEqual(["row", "9px"]);
+    const input = document.getElementById("t")!;
+    expect(document.querySelector<HTMLElement>('.fui-Field[data-look="a b"]')!.style.marginBottom).toBe("13px");
+    expect(input.closest(".fui-Input")!.getAttribute("style")).toContain("border-radius: 5px");
+    expect(input.style.fontStyle).toBe("italic");
+    const text = [...document.querySelectorAll<HTMLElement>("span")].find((e) => e.textContent === "x")!;
+    expect([text.style.letterSpacing, text.style.fontStyle]).toEqual(["3px", "italic"]);
+    const go = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Go")!;
+    expect([go.style.opacity, go.style.letterSpacing]).toEqual(["0.4", "2px"]);
+  });
+
   it("draws the frame as Fluent's own Input, the control in its slot", () => {
     mount(
       <TextField

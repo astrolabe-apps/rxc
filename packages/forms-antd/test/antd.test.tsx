@@ -204,6 +204,46 @@ describe("Ant", () => {
     resize(width);
   });
 
+  it("layers a list of looks, a later over an earlier, for a group, a field, a text and an action", () => {
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={antdRenderers}>
+            <AntdLooksProvider
+              looks={{
+                group: { a: { body: { display: "flex", flexDirection: "row" } }, b: { body: { gap: "9px" } } },
+                field: {
+                  a: { shell: { marginBottom: 13 }, control: { borderRadius: 11 } },
+                  b: { control: { borderRadius: 5 }, text: { fontStyle: "italic" } },
+                },
+                text: { a: { strong: true, style: { letterSpacing: "3px" } }, b: { style: { fontStyle: "italic" } } },
+                action: { a: { shape: "round", style: { opacity: 0.4 } }, b: { style: { letterSpacing: "2px" } } },
+              }}
+            >
+              <Form>
+                <Section title="T" look={["a", "b"]}>
+                  <TextDisplay text="x" look={["a", "b"]} />
+                </Section>
+                <TextField field={ctx.newControl("")} id="t" label="N" look={["a", "b"]} />
+                <Action actionId="go" text="Go" look={["a", "b"]} />
+              </Form>
+            </AntdLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const body = document.querySelector('[role="heading"]')!.nextElementSibling as HTMLElement;
+    expect([body.style.flexDirection, body.style.gap]).toEqual(["row", "9px"]);
+    const input = document.getElementById("t")!;
+    expect((input.closest(".ant-form-item") as HTMLElement).style.marginBottom).toBe("13px");
+    expect((input.parentElement as HTMLElement).style.borderRadius).toBe("5px");
+    expect(input.style.fontStyle).toBe("italic");
+    const text = [...document.querySelectorAll<HTMLElement>("span")].find((e) => e.textContent === "x")!;
+    expect([text.style.letterSpacing, text.style.fontStyle]).toEqual(["3px", "italic"]);
+    const go = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Go")!;
+    expect([go.style.opacity, go.style.letterSpacing]).toEqual(["0.4", "2px"]);
+  });
+
   it("colours a toned display from theme tokens, through Typography's own colour", () => {
     mount(<TextDisplay text="Bad" tone="error" />);
     const shell = document.querySelector<HTMLElement>('[data-tone="error"]')!;
