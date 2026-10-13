@@ -121,24 +121,19 @@ interface Builtin {
   ownsChildren?: boolean;
 }
 
-export function legacyIconClass(icon: IconReference): string {
-  switch (icon.library) {
-    case "FontAwesome":
-      return `fa fa-${icon.name}`;
-    case "Material":
-    case "CssClass":
-      return icon.name;
-    default:
-      return `${icon.library ?? "fa"} fa-${icon.name}`;
-  }
-}
-
-const defaultIcon: IconTranslator = (icon, className) => (
-  <i
-    className={[legacyIconClass(icon), className].filter(Boolean).join(" ")}
-    aria-hidden
-  />
-);
+/**
+ * The default icon draws nothing. An icon is a host's: a font's class on an
+ * `<i>` is a DOM idea (React Native cannot render it), and which set the
+ * names belong to is the host's too — so the loader emits no element of its
+ * own, and a host maps `IconReference` to its set through `LoaderOptions.icon`.
+ */
+const defaultIcon: IconTranslator = (icon) => {
+  // Declined, not dropped: read, so the audit does not report every icon of
+  // a host that chose to draw none.
+  void icon.library;
+  void icon.name;
+  return null;
+};
 
 const defaultUnsupported = (def: ControlDefinition) => {
   const ro = asDef(def).renderOptions?.type;
@@ -826,6 +821,7 @@ function buildProps(
       const ref = a.icon as IconReference | undefined;
       if (!ref?.name) continue;
       const node = icon(ref, str(a.iconClass));
+      if (node == null) continue;
       if (a.placement === "ControlEnd") endIcon = node;
       else if (a.placement === "ControlStart") startIcon = node;
     }

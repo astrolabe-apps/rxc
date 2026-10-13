@@ -57,16 +57,13 @@ export function Converted() {
   );
 }
 
-// The loader's default icon is a DOM <i>, which React Native cannot draw: a native host supplies its own.
-const noIcon = () => null;
-
 function ConvertedForm({ form }: { form: { controls: any[]; fields?: any[] } }) {
   const value = useControl<unknown>({});
   const action = useMemo(() => () => () => {}, []);
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>
       <Form clearHidden>
-        <JsonForm controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} icon={noIcon} />
+        <JsonForm controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} />
       </Form>
     </ScrollView>
   );

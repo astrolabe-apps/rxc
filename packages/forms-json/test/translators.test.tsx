@@ -6,6 +6,7 @@ import { Contents, RichText, TextField } from "@rx-controls/forms-react";
 import {
   defaultTranslators,
   legacyLook,
+  legacyIconClass,
   legacyLookKey,
   LoaderStrictError,
   translateForm,
@@ -21,6 +22,8 @@ import { click, flush, setupLoader, typeInto } from "./harness";
  * implementation.
  */
 const h = setupLoader();
+/** A web host's icon translator: legacy's `<i>` classes. The loader draws no icon of its own. */
+const webIcon = (ref: Parameters<typeof legacyIconClass>[0]) => <i className={legacyIconClass(ref)} aria-hidden />;
 const $ = <E extends Element = HTMLElement>(sel: string) =>
   h.container.querySelector(sel) as E;
 const $$ = (sel: string) => [...h.container.querySelectorAll(sel)];
@@ -702,6 +705,23 @@ describe("groups", () => {
 });
 
 describe("displays", () => {
+  it("draws no icon of its own by default — an icon set is the host's — and reports nothing", () => {
+    const { warnings } = h.load(
+      [
+        { type: "Display", displayData: { type: "Icon", icon: { library: "fa-regular", name: "person" } } },
+        {
+          type: "Data",
+          field: "a",
+          adornments: [{ type: "Icon", placement: "ControlStart", icon: { library: "fa", name: "at" } }],
+        },
+      ],
+      [str("a")],
+      { a: "" },
+    );
+    expect(h.container.querySelector("i")).toBeNull();
+    expect(warnings).toEqual([]);
+  });
+
   it("draws text, html and an icon named by its Tooltip", () => {
     h.load(
       [
@@ -715,6 +735,7 @@ describe("displays", () => {
       ],
       [],
       {},
+      { icon: webIcon },
     );
     expect(text()).toContain("plain text");
     expect($("b").textContent).toBe("bold");
@@ -1002,6 +1023,7 @@ describe("adornments", () => {
       ],
       [str("a")],
       { a: "" },
+      { icon: webIcon },
     );
     // LabelEnd is the contract's labelEnd: behind a Help button beside the
     // label, still the input's description.

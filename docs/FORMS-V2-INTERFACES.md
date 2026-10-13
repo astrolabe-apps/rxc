@@ -580,7 +580,7 @@ kinds — and its take-over of a built-in one, to read a property the loader doe
 control translates or wrap what translated, declining by returning `undefined`, which the
 loader then reports as dropped. Custom displays go through `LoaderOptions.displays`, keyed
 by `customId` (legacy's `customDisplays`), and icons through `LoaderOptions.icon`, which
-draws every `IconReference` the format names (legacy's `<i>` by default — finding 71). A host
+draws every `IconReference` the format names (nothing by default — an icon set is the host's, and an `<i>` is a DOM idea React Native cannot draw; `legacyIconClass` gives a web host legacy's classes — finding 71). A host
 render type needs none of these: a `Translator` already gets the props the loader built.
 README finding 70. `def.hidden` /
 `def.disabled` / `def.readonly` → the three flags, and a `Visible` / `Disabled` dynamic
@@ -664,8 +664,8 @@ person` / `fa-regular building` pair switched by Jsonata `Visible` expressions, 
 The icon itself is a node — `IconDisplayExtra.icon: FormProp<ReactNode>`, the same shape as
 `ActionProps.icon` and a field's `startIcon`/`endIcon` — so the author draws it and the
 implementation places and names it; the loader draws the format's `IconReference` as
-legacy's `<i class="{library} fa-{name}">` unless `LoaderOptions.icon` says otherwise
-(README finding 71).
+nothing unless `LoaderOptions.icon` says otherwise (README finding 71 had legacy's
+`<i class="{library} fa-{name}">`; a device showed that cannot be the default).
 None is on a data field, so nothing is added to `FieldProps`; the loader converts a `Tooltip`
 adornment on a display to this prop.
 

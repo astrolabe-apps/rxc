@@ -260,8 +260,8 @@ built, `strict` throwing `LoaderStrictError`, a test per translator plus the sha
 (expressions, validators, dynamic properties, `LayoutStyle`, meta fields, adornments, host
 extensions, the audit), and the fixture form pinned end to end. Its markup is gone: rows are a
 `<Contents layout>`, empty and unsupported are `<TextDisplay>`, and `LayoutStyle`'s off-screen region is
-the registry's `contents` slot. One `<i>` remains — the default `IconTranslator`, which the
-phase 1 surface documents; a host on another platform passes its own.
+the registry's `contents` slot. No element remains: the default `IconTranslator` draws nothing, so the loader is
+platform-neutral and a host maps icons to its own set.
 
 The corpus tooling is `tools/forms-corpus`, over the real packages, with the POC's stand-in host
 (exported as `rxc-forms-corpus/host`). Over the real packages it measures exactly what the POC
