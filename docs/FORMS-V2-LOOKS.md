@@ -48,7 +48,10 @@ CSS properties that mean the same on the web and on React Native.
 `look` is a `FormProp` like every other prop, so it can be derived:
 `look={(rc) => rc.getValue(c.fields.invalid) ? "danger" : "plain"}`. It is **one name or a list**,
 layered in order — `look={["primary", "wide"]}` is the emphasis every theme draws with a look of
-the form's own over it. It is on every boundary that draws: fields, groups, displays, actions,
+the form's own over it. **Layering is html's and native's:** each name's parts are laid in order,
+part by part, a later over an earlier, `{ replace }` dropping what came before. MUI, Ant and Fluent
+do **not** layer: their looks are the library's own props and styles, so given a list they use the
+last name their table knows, whole, and ignore the earlier ones (`pickLook`). It is on every boundary that draws: fields, groups, displays, actions,
 collections, tabs, wizards, dialogs and disclosures.
 
 **It is typed by augmentation.** An app declares the names it has once, and a typo is a compile
@@ -389,6 +392,11 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
 - **State on a field in MUI, Ant and Fluent** beyond `width` and `invalid`: `disabled`, `focused`,
   `pressed` and `hovered` do not reach their function parts (the components style those themselves).
   A look that must read them needs them passed in.
+- **Combining looks in MUI, Ant and Fluent.** A list of names layers on html and native but only the
+  last known name applies on these three, so `look={["card", "wide"]}` loses `card` there. Layering
+  needs a merge per library — `sx` arrays in MUI, spread styles in Ant and Fluent, props merged for a
+  text or action look — and a rule for what `{ replace }` means over props. Not built; until then, a
+  look that must work on every implementation is one name.
 - **Text and action looks in MUI** are `sx`, MUI's own type, so a function there gets the theme only,
   not the look's state; MUI's `sx` has its own breakpoints for that.
 - **Class looks on native.** A form that brings class looks (the runtime-derived path) draws them
