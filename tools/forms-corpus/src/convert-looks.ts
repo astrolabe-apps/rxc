@@ -12,12 +12,12 @@
  * The control JSON carries only a name; what a name draws is each renderer's
  * own table, generated here from the same set. Names are the loader's
  * content-addressed ones (`look-3fa9…`, or a lone typography class as itself)
- * unless `corpus/looks/names.json` maps one to a name you prefer.
+ * unless `sidecar/names.json` maps one to a name you prefer.
  *
  * The native table needs the host's own class names (its typography:
- * `title1`, `body`…) from `corpus/looks/classNames.json` — a map from the
+ * `title1`, `body`…) from `sidecar/classNames.json` — a map from the
  * class to a portable style — and anything the converter cannot express can be
- * written by hand in `corpus/looks/native-overrides.json` (name → part →
+ * written by hand in `sidecar/native-overrides.json` (name → part →
  * style), which wins over the generated part.
  *
  *   rushx convert-looks [<dir-or-file>...]     default ./corpus
@@ -28,6 +28,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ClassLook, PortableStyle } from "@rx-controls/forms-react";
 import { legacyLook } from "@rx-controls/forms-json";
 import { walkFiles } from "./corpus.js";
@@ -43,13 +44,15 @@ if (roots.length === 0) {
 }
 const base = existsSync("corpus") ? "corpus" : ".";
 const outDir = join(base, "converted");
+// The hand-written inputs, committed beside the tool: they are the host's design, not its forms.
+const sidecar = join(dirname(fileURLToPath(import.meta.url)), "..", "sidecar");
 const readJson = <T>(path: string, fallback: T): T =>
   existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as T) : fallback;
 
-const names = readJson<Record<string, string>>(join(base, "looks", "names.json"), {});
-const classNames = readJson<Record<string, PortableStyle>>(join(base, "looks", "classNames.json"), {});
+const names = readJson<Record<string, string>>(join(sidecar, "names.json"), {});
+const classNames = readJson<Record<string, PortableStyle>>(join(sidecar, "classNames.json"), {});
 const overrides = readJson<Record<string, Record<string, PortableStyle>>>(
-  join(base, "looks", "native-overrides.json"),
+  join(sidecar, "native-overrides.json"),
   {},
 );
 
@@ -173,7 +176,7 @@ const report = [
   ...(problems.length ? ["## Problems", "", ...problems.map((p) => `- ${p}`), ""] : []),
   "## Not converted for native",
   "",
-  "Name the host's own classes in `corpus/looks/classNames.json`; hand-write the rest in `native-overrides.json`.",
+  "Name the host's own classes in `sidecar/classNames.json`; hand-write the rest in `native-overrides.json`.",
   "",
   ...unconvertedList.map(([t, u]) => `- \`${t}\` ×${u.uses} — ${u.why}`),
   "",

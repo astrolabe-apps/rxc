@@ -264,12 +264,12 @@ a utility that depends on state or the window (`lg:flex-row`, `active:bg-…`) a
 `LookState`, which is why it is code and not JSON. The control JSON carries only the name; what a
 name draws is each renderer's table, so nothing is shared at runtime but the names.
 
-- **Names** are the loader's content-addressed ones unless `corpus/looks/names.json` maps one to a
+- **Names** are the loader's content-addressed ones unless `tools/forms-corpus/sidecar/names.json` maps one to a
   name you prefer — which is where `look-3fa9…` becomes `card`.
-- **The host's own classes** (ServiceTas's `title1`, `body`) come from `corpus/looks/classNames.json`:
+- **The host's own classes** (ServiceTas's `title1`, `body`) come from `sidecar/classNames.json`:
   a class → portable style map the converter reads, since they are not utilities.
 - **What cannot be expressed** (child selectors `[&>*]:`, `grid`, `w-fit`…) is reported by token in
-  `corpus/converted/report.md`; hand-write those in `corpus/looks/native-overrides.json`. Colour
+  `corpus/converted/report.md`; hand-write those in `sidecar/native-overrides.json`. Colour
   tokens the native theme must define are listed too.
 - **The loader** reads `look` off a control and uses it instead of deriving; a control that names
   its look needs no `TranslateResult.looks`, since the host's theme defines the name. `look` is not

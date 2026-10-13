@@ -29,6 +29,6 @@ for (const n of names) {
   forms[n] = JSON.parse(readFileSync(p, "utf8"));
 }
 writeFileSync(join(out, "forms.local.json"), JSON.stringify(forms));
-const tokens = join(corpus, "looks", "nativeTokens.json");
+const tokens = join(here, "../../../tools/forms-corpus/sidecar/nativeTokens.json");
 writeFileSync(join(out, "tokens.local.json"), existsSync(tokens) ? readFileSync(tokens, "utf8") : "{}");
 console.log(`synced ${Object.keys(forms).length} forms`);

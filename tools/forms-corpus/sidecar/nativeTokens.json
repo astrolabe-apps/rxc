@@ -1,0 +1,22 @@
+{
+  "text": "#343534",
+  "accent": "#267151",
+  "danger": "#A30000",
+  "danger-800": "#991b1b",
+  "primary": "#098851",
+  "primary-200": "#b9e1cb",
+  "primary-500": "#37926a",
+  "primary-600": "#256f50",
+  "surface-100": "#f3f4f6",
+  "surface-200": "#e5e7eb",
+  "gray-200": "#e5e7eb",
+  "border": "#E7E7E8",
+  "foreground": "#343534",
+  "red-500": "#ef4444",
+  "darkGrey": "#404041",
+  "grey": "#C4C4C4",
+  "lightGrey": "#F5F5F5",
+  "lightGreen": "#E6F3EE",
+  "purple-500": "#a855f7",
+  "blue-500": "#3b82f6"
+}

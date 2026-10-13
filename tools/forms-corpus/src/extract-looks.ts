@@ -15,7 +15,7 @@
  * The classes are carried verbatim: no parsing, no rounding. What they mean on
  * another platform is that platform's theme's question.
  *
- * `corpus/looks/names.json`, a map from a derived name to the one you prefer,
+ * `sidecar/names.json` (committed beside the tool), a map from a derived name to the one you prefer,
  * is applied in `union.json` (as `renames`) and survives re-running.
  *
  *   rushx extract-looks [<dir-or-file>...]     default ./corpus
@@ -25,6 +25,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ControlDefinition } from "@rx-controls/forms-schema";
 import type { ClassLook } from "@rx-controls/forms-react";
 import { legacyLook } from "@rx-controls/forms-json";
@@ -96,8 +97,9 @@ for (const root of roots)
     writeFileSync(file, JSON.stringify({ looks }, null, 2) + "\n");
   }
 
-const overrides: Record<string, string> = existsSync(join(outDir, "names.json"))
-  ? (JSON.parse(readFileSync(join(outDir, "names.json"), "utf8")) as Record<string, string>)
+const namesFile = join(dirname(fileURLToPath(import.meta.url)), "..", "sidecar", "names.json");
+const overrides: Record<string, string> = existsSync(namesFile)
+  ? (JSON.parse(readFileSync(namesFile, "utf8")) as Record<string, string>)
   : {};
 const all = [...union.entries()].sort((a, b) => b[1].uses - a[1].uses || a[0].localeCompare(b[0]));
 const looks: Record<string, ClassLook> = {};

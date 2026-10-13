@@ -62,9 +62,9 @@ rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTem
   styles — see `docs/FORMS-V2-LOOKS.md`, "Pre-conversion"). Each converted form drawn under html
   with the generated table must be markup-identical to the original (look names aside), the native
   module must load and evaluate, and the count of class tokens native cannot express may only fall.
-  Inputs, all under the gitignored `corpus/looks/`: `names.json` (derived name → the name you
+  Inputs, hand-written and **committed** in `sidecar/`: `names.json` (derived name → the name you
   want), `classNames.json` (the host's own classes → portable styles), `native-overrides.json`
-  (hand-written native parts). `test/` holds the converter's unit tests, which need no corpus.
+  (hand-written native parts), `nativeTokens.json` (the colour tokens the native theme defines). `test/` holds the converter's unit tests, which need no corpus.
 
 The runs happen in happy-dom with the DOM globals in place **before** React and the
 renderers load, as in a browser (`src/dom.ts`, imported first). Set up after them, the
@@ -102,3 +102,20 @@ screen.
 Forms are drawn with empty data and the form is one tall screen (`wm size`, reset after).
 A difference is a prompt to look, not a failure: the dump shows where a gap grew or an element
 is missing, the screenshot says whether it matters.
+
+## What lives where, for a second machine
+
+Regenerated from the ServiceTas code (gitignored, never committed): `corpus/` — the forms and
+schemas (`rushx extract-corpus`), `corpus/converted/` (`rushx convert-looks`), `corpus/compare/` (the
+device comparison), `apps/native-dev/src/converted/` (`rushx sync-converted <Form…>`) and the
+harness's `harness/forms.local.ts` (`node scripts/sync-harness-forms.mjs <Form…>`).
+
+Committed, because nothing regenerates it: `sidecar/` here (the hand-written inputs above, and
+`rn-forms.json`, the 45 forms the React Native app draws — `node scripts/rn-forms.mjs [path]`
+rebuilds it from the app's source), `scripts/`, and the ServiceTas fixtures in `forms-native`'s tests.
+
+Not in this repo: the harness itself, which is a branch of the ServiceTas repo
+(`feature/forms-v2-compare-harness`, `servicetas-rn/harness/`) — push it, or `git bundle` it, to
+reach another machine. A fresh machine also needs the Android SDK with an emulator and Expo Go 57, and
+`rush install` in the ServiceTas `NewClientApp` (it needs `NPM_AUTH_TOKEN` and
+`FONT_AWESOME_NPM_TOKEN` in the environment).
