@@ -947,6 +947,9 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   Date schema field, so a web Date field is now a `<input type="date">`. `forms-native` draws a date as a
   box and a button opening the theme's `date.picker`, a component the host supplies over a native date
   picker; without one the date is typed as text. DateTime and Time are still text.
+- The loader no longer draws "Nothing yet." for an empty collection (legacy drew nothing).
+  `forms-native`'s theme gains `disclosure.iconOpen`, `disclosure.iconStyle` and `shell.helpButton.label`
+  / `labelled`.
 - The default icon draws nothing (a React Native host cannot draw an `<i>`); a web host passes
   `legacyIconClass`'s result through its icon translator.
 

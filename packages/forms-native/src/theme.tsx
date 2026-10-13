@@ -102,6 +102,8 @@ export interface NativeTheme {
       text: string;
       /** The words a field gives it (`helpLabel`), beside the icon. */
       label?: TextStyle;
+      /** Added to the button when it has those words: a pill, say, where bare it is an icon. */
+      labelled?: ViewStyle;
     };
   };
   /** The input frame: the box around a text input or a select's trigger. */
@@ -377,6 +379,11 @@ export interface NativeTheme {
     icon: ReactNode;
     /** The icon's text, over `title`'s. */
     iconStyle: TextStyle;
+    /**
+     * What it shows while open, instead of turning `icon` a quarter: a chevron
+     * that flips from down to up. Left out, `icon` turns.
+     */
+    iconOpen?: ReactNode;
     /**
      * Which side of the title `icon` sits: `before`, or `after` for a
      * chevron at the title's end. The invalid marker stays last.

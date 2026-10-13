@@ -221,6 +221,32 @@ describe("the native theme", () => {
     ]);
   });
 
+  it("flips a disclosure's icon to iconOpen while open, in place of turning it", () => {
+    mount(
+      <Disclosure title="More">
+        <TextDisplay text="inside" />
+      </Disclosure>,
+      { disclosure: { icon: "v", iconOpen: "^", iconPlacement: "after" } },
+    );
+    const toggle = el.querySelector("[aria-expanded]") as HTMLElement;
+    const glyph = () => [...toggle.querySelectorAll("*")].map((e) => e.textContent).find((t) => t === "v" || t === "^");
+    expect(glyph()).toBe("v");
+    act(() => toggle.click());
+    expect(glyph()).toBe("^");
+  });
+
+  it("styles a help button as labelled only when the field gives it words", () => {
+    mount(
+      <>
+        <TextField field={ctx.newControl("")} id="a" label="Plain" helpText="h" helpPlacement="labelEnd" />
+        <TextField field={ctx.newControl("")} id="b" label="Worded" helpText="h" helpPlacement="labelEnd" helpLabel="Why?" />
+      </>,
+      { shellFor: { textfield: { helpButton: { labelled: { backgroundColor: "rgb(1, 2, 3)" } } } } },
+    );
+    const bg = (name: string) => style(button(name)).backgroundColor;
+    expect([bg("Help: Plain"), bg("Why?")]).toEqual(["", "rgba(1, 2, 3, 1.00)"]);
+  });
+
   it("lands a look's shell on an inline group's one element, as html's wrapper", () => {
     mount(
       <InlineGroup look="pill">

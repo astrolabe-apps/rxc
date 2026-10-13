@@ -324,7 +324,7 @@ function NativeFieldShell(p: FieldShellProps) {
       aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
       aria-expanded={helpOpen}
       onPress={() => setHelpOpen((o) => !o)}
-      {...sp(t.helpButton.style)}
+      {...sp(t.helpButton.style, p.helpLabel != null && t.helpButton.labelled)}
     >
       <Text aria-hidden>{t.helpButton.icon}</Text>
       {p.helpLabel != null && (
@@ -1644,9 +1644,10 @@ function NativeDisclosure(p: DisclosureRenderProps) {
   const st: LookState = { ...NO_LOOK_STATE, invalid: !!p.invalid };
   const shell = part("shell", st, p.style);
   const toggle = part("control", st);
+  const flips = p.open && t.iconOpen != null;
   const icon = (
-    <View aria-hidden {...sp(p.open && { transform: [{ rotate: "90deg" }] })}>
-      <Text {...sp(t.title, t.iconStyle)}>{t.icon}</Text>
+    <View aria-hidden {...sp(p.open && !flips && { transform: [{ rotate: "90deg" }] })}>
+      <Text {...sp(t.title, t.iconStyle)}>{flips ? t.iconOpen : t.icon}</Text>
     </View>
   );
   return (

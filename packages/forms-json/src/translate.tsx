@@ -455,11 +455,8 @@ const builtins: Builtin[] = [
       const newElement = schema?.type === "Compound" ? {} : undefined;
       return (
         <>
-          <Elements
-            {...collectionProps}
-            {...bounds}
-            empty={<TextDisplay text="Nothing yet." />}
-          >
+          {/* An empty collection draws nothing, as legacy's did. */}
+          <Elements {...collectionProps} {...bounds}>
             {(item, index, actions) => (
               <Contents layout={rowLayout}>
                 {element!(item, index)}

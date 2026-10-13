@@ -30,8 +30,6 @@ function SwitchImpl(p: FieldRenderProps<boolean | undefined | null>): Rendered {
       error={p.error}
       look={p.look}
       style={p.shellStyle}
-      orientation="horizontal"
-      labelPosition="before"
     >
       <Switch
         accessibilityLabel={typeof p.label === "string" ? p.label : undefined}

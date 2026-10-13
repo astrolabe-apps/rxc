@@ -95,8 +95,9 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
         padding: 4,
         borderRadius: 9999,
         alignSelf: "flex-start",
-        backgroundColor: serviceTasColors["surface-100"],
       },
+      // `label && "bg-surface-100"`: the grey pill is only for a trigger with words.
+      labelled: { backgroundColor: serviceTasColors["surface-100"] },
       icon: "ⓘ",
       text: "Help",
       label: { ...withInk(type.caption1), fontSize: 14, fontFamily: F.bold },
@@ -171,7 +172,9 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       borderRadius: 12,
     },
     // labelClass "body shrink".
-    label: { ...withInk(type.body), flexShrink: 1 },
+    // labelClass "body shrink" reaches the option's container in schemas-rn, not its text, which
+    // draws at React Native's default size in the system font.
+    label: { fontSize: 16, lineHeight: 20, color: serviceTasColors.text, flexShrink: 1 },
     // The option row has no padding of its own (the entry's `p-[16px]` is all); the ring is
     // schemas-rn's RNRadioItem: 20 round, `border border-primary`, a 10 dot `bg-primary`.
     option: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -200,15 +203,17 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   },
   // The accordion (adornment.accordion: titleTextClass "subhead"): a chevron at the title's end, `togglerClass` "text-accent !text-[20px]"; the
   // card around it and the toggle row's layout come from the group's own look. Its icon is a
-  // chevron turned a quarter when open (the app's is down, then up).
+  // chevron down, then up when open, as the app's.
   disclosure: {
     toggle: { flexDirection: "row", alignItems: "center", gap: 8 },
     title: withInk(type.subhead),
-    icon: "›",
+    icon: "∨",
+    iconOpen: "∧",
     iconStyle: { color: serviceTasColors.accent, fontSize: 20 },
     iconPlacement: "after",
   },
-  displayOnly: { text: withInk(type.body) },
+  // data.displayOnlyClass (schemas-rn): "flex flex-row items-center gap-2", no padding.
+  displayOnly: { style: { flexDirection: "row", alignItems: "center", gap: 8 }, text: withInk(type.body) },
   contents: {
     // group titles are label text: the label's class plus the group's.
     title: { ...withInk(type.title3), marginBottom: 8 },

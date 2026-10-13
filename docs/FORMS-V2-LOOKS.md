@@ -439,13 +439,18 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
   sets it for a Date schema field, and `forms-native` draws a read-only `dd/mm/yyyy` box and a button that
   open the host's picker (`theme.date.picker`, a native module the host supplies; the playground's is
   `@react-native-community/datetimepicker`), typing the ISO date as text where there is none. DateTime
-  and Time are still text. **Still different, and not ours to fix by restating a style:**
+  and Time are still text. The smaller differences are closed too: the loader drew "Nothing yet." for
+  an empty collection, which legacy never did, and no longer does; a blank display-only value and a
+  radio entry were taller because the default theme pads them (the app's options do not, and its option
+  label draws at React Native's default size, which the fixture now restates); the accordion's chevron
+  is down then up (`disclosure.iconOpen`); a help button is a grey pill only when it has words
+  (`helpButton.labelled`); and the native Switch host sits at the row's end under the look's row.
+  **Still different, and not ours to fix by restating a style:**
   - **Icons.** The app draws Font Awesome; v2's default icon draws nothing, so the playground has
-    none until a host gives it an icon set.
-  - **An empty collection** draws "Nothing yet." in v2 and nothing in the app; a **blank
-    display-only value** is a line taller; a **Switch** sits beside its label where the app puts it
-    at the row's end; a radio entry is a few units taller. Data-dependent behaviour is unchecked:
-    the forms were drawn with empty data.
+    none until a host gives it an icon set. The native Switch is React Native's own, a little smaller
+    than the app's.
+  - **Data and actions.** Every form was drawn with empty data and fake actions; what a form does with
+    data (hidden fields, options, validation messages) is unchecked on a device.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably
   folds into them.
 - **Structural names** for layout-only looks (`col-gap-16`) instead of a hash.
