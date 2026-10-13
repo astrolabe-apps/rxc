@@ -17,6 +17,12 @@
  *   console while it rendered. The classified divergences' counts are
  *   reported beside it, since a change there is worth a look even though it
  *   does not fail the gate.
+ * - **Converted** is absolute, with a ratchet. `rushx convert-looks` rewrites every
+ *   form to name its looks and writes a table per renderer; each converted form,
+ *   drawn under html with the generated table, must be markup-identical to
+ *   the original (look names aside), and the generated native table must
+ *   load and evaluate. The count of class tokens it cannot express for
+ *   native may only fall.
  * - **Looks** is absolute. Every form is drawn under html through the loader,
  *   which turns each control's class slots into a look and brings it with the
  *   form: anything printed to the console fails, as does a run in which no
@@ -29,6 +35,7 @@ interface Baseline {
   burndown: { warnings: number };
   parity: { runs: number };
   looks: { runs: number };
+  converted: { runs: number; unconverted: number };
 }
 interface BurndownJson {
   forms: number;
@@ -60,6 +67,20 @@ interface LooksJson {
   named: number;
 }
 
+interface ConvertJson {
+  forms: number;
+  looks: number;
+  unconverted: number;
+  problems: number;
+}
+interface ConvertedJson {
+  runs: number;
+  different: number;
+  printed: number;
+  nativeParts: number;
+  nativeProblems: number;
+}
+
 const run = <T>(script: string): T =>
   JSON.parse(
     execFileSync("node", [`lib/${script}.js`, "--json", "corpus"], {
@@ -72,6 +93,8 @@ const baseline = JSON.parse(readFileSync("gates.json", "utf8")) as Baseline;
 const burndown = run<BurndownJson>("burndown");
 const parity = run<ParityJson>("parity");
 const looks = run<LooksJson>("looks-check");
+const convert = run<ConvertJson>("convert-looks");
+const converted = run<ConvertedJson>("converted-check");
 
 const failures: string[] = [];
 const notes: string[] = [];
@@ -126,6 +149,31 @@ if (looks.runs !== baseline.looks.runs) {
   if (update) baseline.looks.runs = looks.runs;
 }
 
+// ── converted: absolute, and a ratchet on what native cannot express ───
+if (convert.problems) failures.push(`converted: ${convert.problems} naming problem(s). \`rushx convert-looks\` lists them.`);
+if (converted.different)
+  failures.push(
+    `converted: ${converted.different} run(s) drew differently once their looks were named. \`rushx converted-check\` shows where.`,
+  );
+if (converted.printed) failures.push(`converted: ${converted.printed} console message(s) drawing converted forms.`);
+if (converted.nativeProblems)
+  failures.push(`converted: ${converted.nativeProblems} native look part(s) failed to evaluate.`);
+if (convert.unconverted > baseline.converted.unconverted)
+  failures.push(
+    `converted: ${convert.unconverted} class tokens not expressible on native, up from ${baseline.converted.unconverted}. See corpus/converted/report.md.`,
+  );
+else if (convert.unconverted < baseline.converted.unconverted) {
+  notes.push(
+    `converted: ${convert.unconverted} unconvertible class tokens, down from ${baseline.converted.unconverted}` +
+      (update ? " — ratchet lowered." : " — `rushx gates --update` to lower it."),
+  );
+  if (update) baseline.converted.unconverted = convert.unconverted;
+}
+if (converted.runs !== baseline.converted.runs) {
+  notes.push(`converted: ${converted.runs} runs, where the baseline has ${baseline.converted.runs}` + (update ? "; baseline updated." : "; `--update` to record it."));
+  if (update) baseline.converted.runs = converted.runs;
+}
+
 if (update) writeFileSync("gates.json", JSON.stringify(baseline, null, 2) + "\n");
 
 const expected = Object.entries(parity.expected)
@@ -135,7 +183,8 @@ console.log(
   `burndown  ${burndown.forms} forms, ${burndown.warnings} warnings (ratchet ${baseline.burndown.warnings})\n` +
     `parity    ${parity.identical} of ${parity.runs} runs identical, ${parity.differences} differences` +
     (expected ? ` (classified: ${expected})` : "") +
-    `\nlooks     ${looks.runs - looks.failing} of ${looks.runs} runs clean, ${looks.named} elements name a look`,
+    `\nlooks     ${looks.runs - looks.failing} of ${looks.runs} runs clean, ${looks.named} elements name a look` +
+    `\nconverted ${converted.runs - converted.different} of ${converted.runs} runs identical once named (${convert.looks} looks; ${converted.nativeParts} native parts evaluate; ${convert.unconverted} tokens not expressible on native, ratchet ${baseline.converted.unconverted})`,
 );
 for (const n of notes) console.log(`  · ${n}`);
 if (failures.length) {

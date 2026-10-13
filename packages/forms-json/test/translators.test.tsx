@@ -107,6 +107,27 @@ describe("TextField", () => {
     expect($$(".extra").length).toBe(0);
   });
 
+  it("takes a name a control already carries, from a converted form, and derives nothing", () => {
+    // pre-converted JSON: the class slots are gone and `look` names the look, which the host's theme defines
+    h.load(
+      [{ type: "Data", field: "name", look: "field-highlight" }],
+      [str("name")],
+      { name: "" },
+      { theme: { looks: { "field-highlight": { control: "from-sidecar" } } } },
+    );
+    expect($$(".from-sidecar").length).toBe(1);
+    expect($$('[data-look="field-highlight"]').length).toBe(1);
+    // a `look` wins over class slots left beside it
+    h.load(
+      [{ type: "Data", field: "name", look: "field-highlight", styleClass: "stale" }],
+      [str("name")],
+      { name: "" },
+      { theme: { looks: { "field-highlight": { control: "from-sidecar" } } } },
+    );
+    expect($$(".stale").length).toBe(0);
+    expect($$(".from-sidecar").length).toBe(1);
+  });
+
   it("names a lone typography slot by its classes, and anything else by a hash of them", () => {
     expect(legacyLook("Display", { textClass: "body" }, false)!.name).toBe("body");
     expect(legacyLook("Data", { textClass: "body-bold" }, true)!.name).toBe("body-bold");

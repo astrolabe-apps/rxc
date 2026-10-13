@@ -12,6 +12,8 @@ rushx burndown --no-actions              # also report every button no host hand
 rushx parity [--show <form>] [--fixture empty|filled] [--trace <field>]   # legacy vs v2, per path
 rushx extract-looks [<dir>...]            # combine the looks of many forms (corpus/looks/): per form and the union
 rushx looks-check                         # every form drawn with the loader's looks, nothing printed
+rushx convert-looks                       # forms that name their looks + a looks table per renderer (corpus/converted/)
+rushx converted-check                     # converted forms draw the same as the originals
 rushx gates [--update]                  # all three, as gates: fail on a regression
 ```
 
@@ -54,6 +56,15 @@ rushx extract-corpus testtemplate ~/astrolabe/astrolabe-common/Astrolabe.TestTem
   combines many forms' looks into one set, for translating to JSX or a new JSON
   format; its output holds the corpus's class strings, so it stays under the
   gitignored `corpus/`.
+
+- **Converted: absolute, with a ratchet.** `rushx convert-looks` rewrites every form to name its
+  looks and writes a table per renderer (html: the classes verbatim; native: generated portable
+  styles — see `docs/FORMS-V2-LOOKS.md`, "Pre-conversion"). Each converted form drawn under html
+  with the generated table must be markup-identical to the original (look names aside), the native
+  module must load and evaluate, and the count of class tokens native cannot express may only fall.
+  Inputs, all under the gitignored `corpus/looks/`: `names.json` (derived name → the name you
+  want), `classNames.json` (the host's own classes → portable styles), `native-overrides.json`
+  (hand-written native parts). `test/` holds the converter's unit tests, which need no corpus.
 
 The runs happen in happy-dom with the DOM globals in place **before** React and the
 renderers load, as in a browser (`src/dom.ts`, imported first). Set up after them, the

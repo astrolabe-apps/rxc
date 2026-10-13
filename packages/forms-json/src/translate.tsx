@@ -861,8 +861,11 @@ function buildProps(
     },
     labelled,
   );
-  if (derived) derive?.(derived.name, derived.parts);
-  const look = derived?.name;
+  // A converted form names its look itself (`look`, with the class slots gone): that name
+  // is the theme's to define, and wins over anything derived from slots left beside it.
+  const named = typeof def.look === "string" && def.look ? def.look : undefined;
+  if (derived && !named) derive?.(derived.name, derived.parts);
+  const look = named ?? derived?.name;
   return {
     field: control,
     label:

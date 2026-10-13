@@ -14,22 +14,13 @@
  *   rushx looks-check [<dir-or-file>...]     summary; default ./corpus
  *   rushx looks-check --json                 the summary as JSON
  */
-import { win } from "./dom.js";
 import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
-import { createElement } from "react";
-import { createRoot } from "react-dom/client";
-import { createControlContext } from "@rx-controls/core";
-import { ControlContextProvider } from "@rx-controls/react";
-import { Form, FormProvider } from "@rx-controls/forms-react";
 import {
-  HtmlThemeProvider,
-  htmlRenderers,
   tailwindHtmlTheme,
   type PartialHtmlTheme,
 } from "@rx-controls/forms-html";
-import { JsonForm } from "@rx-controls/forms-json";
-import { standInHost } from "./host/standInHost.js";
+import { renderForm } from "./render.js";
 import { loadForm, walkFiles, type FormFile } from "./corpus.js";
 
 const args = process.argv.slice(2);
@@ -37,54 +28,7 @@ const json = args.includes("--json");
 let roots = args.filter((a) => !a.startsWith("--"));
 if (roots.length === 0 && existsSync("corpus")) roots = ["corpus"];
 
-async function render(
-  form: FormFile,
-  theme: PartialHtmlTheme,
-): Promise<{ named: number; logged: string[] }> {
-  const logged: string[] = [];
-  const saved = { error: console.error, warn: console.warn };
-  console.error = (...a: unknown[]) => void logged.push(a.map(String).join(" "));
-  console.warn = (...a: unknown[]) => void logged.push(a.map(String).join(" "));
-  const ctx = createControlContext();
-  const data = ctx.newControl<unknown>({});
-  const container = win.document.createElement("div");
-  win.document.body.appendChild(container);
-  const root = createRoot(container as unknown as Element);
-  try {
-    root.render(
-      createElement(ControlContextProvider, {
-        value: ctx,
-        children: createElement(FormProvider, {
-          renderers: htmlRenderers,
-          children: createElement(HtmlThemeProvider, {
-            theme,
-            children: createElement(Form, {
-              clearHidden: true,
-              children: createElement(JsonForm, {
-                ...standInHost,
-                controls: form.controls,
-                schema: form.fields,
-                data,
-                actionHandler: () => () => {},
-              }),
-            }),
-          }),
-        }),
-      }),
-    );
-    for (let i = 0; i < 4; i++) await new Promise((r) => setTimeout(r, 10));
-    // Elements naming a look of the form's own: the three emphases every theme draws are looks too.
-    const named = [...container.innerHTML.matchAll(/ data-look="([^"]*)"/g)].filter((m) =>
-      m[1].split(" ").some((n) => !["primary", "secondary", "link"].includes(n)),
-    ).length;
-    return { named, logged };
-  } finally {
-    root.unmount();
-    container.remove();
-    console.error = saved.error;
-    console.warn = saved.warn;
-  }
-}
+const render = (form: FormFile, theme: PartialHtmlTheme) => renderForm(form, [theme]);
 
 const themes: [string, PartialHtmlTheme][] = [
   ["default", {}],

@@ -33,6 +33,8 @@ export type AnyDef = Omit<ControlDefinition, Listed> &
   Partial<Omit<GroupedControlsDefinition, "type" | "groupOptions" | Listed>> &
   Partial<Omit<DisplayControlDefinition, "type" | "displayData" | Listed>> &
   Partial<Omit<ActionControlDefinition, "type" | Listed>> & {
+    /** A converted form's named look: not in the canonical types yet (see `docs/FORMS-V2-LOOKS.md`). */
+    look?: string | null;
     /** On the wire for every action; typed on `ActionOptions` only. */
     actionText?: string | null;
     renderOptions?: Open<{ type: string }> | null;

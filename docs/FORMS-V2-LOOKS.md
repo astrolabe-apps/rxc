@@ -207,9 +207,45 @@ loads it:
   mounts them under a `FormLooksProvider`.
 - **An action** gets `[emphasis, look]`: its `actionStyle` and its classes are both looks.
 
-Combining many forms' looks is an offline step, for translating to JSX or a new JSON format:
-`rushx extract-looks` (`tools/forms-corpus`) writes each form's looks and their union under the
-gitignored `corpus/looks/`, with `names.json` to rename.
+### Pre-conversion: forms that name their looks
+
+Deriving at load is the **bridge**: it lets a legacy form straight from the server draw. The
+destination is a form that already names its looks, with a table per renderer:
+
+```json
+{ "type": "Data", "field": "name", "title": "Name", "look": "field-highlight" }
+```
+```
+looks.html.json    { "field-highlight": { "control": "p-[16px] bg-white", "text": "text-accent underline" } }
+looks.native.js    export const looks = { "field-highlight": { control: {"padding":16,"backgroundColor":"#ffffff"}, … } }
+```
+
+`rushx convert-looks` (`tools/forms-corpus`) writes both from legacy JSON, under the gitignored
+`corpus/converted/`: each form with its class slots gone and `look` set, the **html** table with
+the classes verbatim, and the **native** table as a generated module — portable styles, and for
+a utility that depends on state or the window (`lg:flex-row`, `active:bg-…`) a function of
+`LookState`, which is why it is code and not JSON. The control JSON carries only the name; what a
+name draws is each renderer's table, so nothing is shared at runtime but the names.
+
+- **Names** are the loader's content-addressed ones unless `corpus/looks/names.json` maps one to a
+  name you prefer — which is where `look-3fa9…` becomes `card`.
+- **The host's own classes** (ServiceTas's `title1`, `body`) come from `corpus/looks/classNames.json`:
+  a class → portable style map the converter reads, since they are not utilities.
+- **What cannot be expressed** (child selectors `[&>*]:`, `grid`, `w-fit`…) is reported by token in
+  `corpus/converted/report.md`; hand-write those in `corpus/looks/native-overrides.json`. Colour
+  tokens the native theme must define are listed too.
+- **The loader** reads `look` off a control and uses it instead of deriving; a control that names
+  its look needs no `TranslateResult.looks`, since the host's theme defines the name. `look` is not
+  in the canonical `forms-schema` types or the C# server's yet — when it moves there, the sidecar
+  needs no change, only the names do.
+- **Gated:** `rushx converted-check`, part of `rushx gates`, draws every form raw and converted
+  under html and requires identical markup (look names aside; class order and React's generated
+  ids are normalised), requires the native module to load and every part to evaluate, and ratchets
+  the count of class tokens native cannot express.
+
+The converter is a table of the utilities the corpus uses (`tools/forms-corpus/src/convert/tailwind.ts`),
+not a Tailwind compiler: it lives in tooling so `forms-native` stays style-only and never sees a
+class. `rushx extract-looks` remains for combining looks across forms without rewriting them.
 
 **Measured on the local corpus** (80 forms, 2,976 controls with class slots): 508 distinct looks;
 the most-used 100 cover 76% of uses and 240 are used once. Before the class slots were retired,
@@ -250,8 +286,9 @@ containers and collections too; a **list** (an action has an emphasis *and* clas
 
 ## Not built, and open
 
-- **Native output of the converter**: turning the utilities into styles (a Tailwind compile over
-  the host's config, probably), so a legacy form's class looks draw on native (they are warned and skipped today).
+- **Running the converter in ServiceTas's publish step**, and a `Look` field in the C# schema; until
+  then a raw legacy form's class looks are warned and skipped on native, and the loader's runtime
+  derivation stays as the bridge.
 - **Looks on fields under MUI, Ant and Fluent, and on every native widget but the text field**;
   they accept `look` and ignore it.
 - **State on a field**: whether `invalid` / `disabled` reach a look automatically, or only when it

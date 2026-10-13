@@ -5,7 +5,7 @@
  * or a bare `ControlDefinition[]` with no schema.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { ControlDefinition, SchemaField } from "@rx-controls/forms-schema";
 
 export interface FormFile {
@@ -19,6 +19,8 @@ export function* walkFiles(p: string): Generator<string> {
   if (st.isDirectory()) {
     for (const e of readdirSync(p)) {
       if (e === "node_modules" || e.startsWith(".")) continue;
+      // what the looks tools write beside the extracted forms is not a form to run
+      if (basename(p) === "corpus" && (e === "looks" || e === "converted")) continue;
       yield* walkFiles(join(p, e));
     }
   } else if (p.endsWith(".json")) yield p;
