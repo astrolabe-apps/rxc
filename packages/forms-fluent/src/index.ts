@@ -8,6 +8,7 @@ export { fluentRenderers } from "./fluent.js";
 export {
   FluentLooksProvider,
   type FluentActionLook,
+  type FluentFieldLook,
   type FluentGroupLook,
   type FluentTextLook,
   type FluentLooks,

@@ -1,5 +1,8 @@
 import {
+  createContext,
+  useContext,
   useId,
+  useMemo,
   useState,
   type CSSProperties,
   type FocusEvent,
@@ -89,7 +92,7 @@ import {
   portableCss,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
-import { atToken, useAntdLooks } from "./looks.js";
+import { atToken, useAntdLooks, type AntFieldLook } from "./looks.js";
 
 // ── Shell: Ant's `Form.Item`, used standalone ────────────────────────
 //
@@ -97,9 +100,28 @@ import { atToken, useAntdLooks } from "./looks.js";
 // with a name it would clone `value`/`onChange` into its single child, which
 // is precisely the binding the framework has already made.
 
+/**
+ * The look a field was given, for its shell and its frame: they are drawn by
+ * components the field does not own (a host may replace either), so it
+ * travels privately — set by the field, read by the pair.
+ */
+const AntFieldLookContext = createContext<{ look?: AntFieldLook; attr?: string }>({});
+
+/** A field's named look, and the context value that hands it to its shell and frame. */
+function useAntFieldLook(look: LookRef | undefined) {
+  const { token } = theme.useToken();
+  const found = useLastLook("field", look, useAntdLooks().field);
+  const lookContext = useMemo(() => ({ look: found, attr: lookAttr(look) }), [found, look]);
+  const part = (name: keyof AntFieldLook) => atToken(found?.[name], token);
+  return { part, lookContext };
+}
+
 function AntFieldShell(p: FieldShellProps) {
   const css = useCss();
   const { token } = theme.useToken();
+  const { look: fieldLook, attr: fieldAttr } = useContext(AntFieldLookContext);
+  const shellStyle = atToken(fieldLook?.shell, token);
+  const labelStyle = atToken(fieldLook?.label, token);
   const marker = p.required && (
     <span
       aria-hidden="true"
@@ -145,7 +167,7 @@ function AntFieldShell(p: FieldShellProps) {
         p.labelPosition === "after" || p.label == null || p.hideLabel || ownLabel ? undefined : (
           <>
             {marker}
-            <span id={fieldLabelId(p.id)}>{p.label}</span>
+            <span id={fieldLabelId(p.id)} style={labelStyle}>{p.label}</span>
           </>
         )
       }
@@ -174,7 +196,8 @@ function AntFieldShell(p: FieldShellProps) {
       // Spacing is the container's (the group body's gap), as under html.
       // Explicitly none: Ant's own margin is one an error message takes
       // over, which left a display after a field in error flush against it.
-      style={{ ...({ marginBottom: 0 }), ...css(p.style) }}
+      style={{ ...({ marginBottom: 0 }), ...shellStyle, ...css(p.style) }}
+      data-look={fieldAttr}
     >
       <RequiredNote
         id={p.id}
@@ -190,12 +213,12 @@ function AntFieldShell(p: FieldShellProps) {
       {ownLabel && !beside && (
         <Flex align="center" gap={token.marginXXS} style={{ paddingBottom: token.paddingXS }}>
           {p.labelAs === "legend" ? (
-            <div id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
+            <div id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading, ...labelStyle }}>
               {marker}
               {p.label}
             </div>
           ) : (
-            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
+            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading, ...labelStyle }}>
               {marker}
               {p.label}
             </label>
@@ -236,6 +259,7 @@ function AntFieldShell(p: FieldShellProps) {
               // Ant greys its own label from a class on the wrapper, which a
               // sibling label never gets — so the shell maps it by hand.
               color: p.disabled ? token.colorTextDisabled : undefined,
+              ...labelStyle,
             }}
           >
             {p.label}
@@ -251,7 +275,7 @@ function AntFieldShell(p: FieldShellProps) {
       ) : beside ? (
         <Flex align="center" justify="space-between" gap={token.marginXS}>
           <Flex align="center" gap={token.marginXXS}>
-            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading }}>
+            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading, ...labelStyle }}>
               {marker}
               {p.label}
             </label>
@@ -279,6 +303,7 @@ function AntFieldShell(p: FieldShellProps) {
 function AntInputFrame(p: InputFrameProps) {
   const css = useCss();
   const { token } = theme.useToken();
+  const { look: fieldLook } = useContext(AntFieldLookContext);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const state: FrameState = {
@@ -314,7 +339,11 @@ function AntInputFrame(p: InputFrameProps) {
         boxSizing: "border-box",
         padding: `${token.paddingXXS}px ${token.paddingSM}px`,
         borderRadius: token.borderRadius,
-        border: `1px solid ${borderColor}`,
+        // Longhands, not `border`: a field look may set the width alone, and
+        // React warns about a shorthand mixed with its parts.
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderColor,
         boxShadow: focused
           ? `0 0 0 2px ${p.invalid ? token.colorErrorBorder : token.controlOutline}`
           : undefined,
@@ -323,7 +352,7 @@ function AntInputFrame(p: InputFrameProps) {
           : token.colorBgContainer,
         color: p.disabled ? token.colorTextDisabled : token.colorText,
         transition: "all .2s",
-      }), ...css(p.style) }}
+      }), ...atToken(fieldLook?.control, token), ...css(p.style) }}
     >
       {p.start !== undefined && (
         <span style={{ color: token.colorTextPlaceholder }}>
@@ -343,6 +372,7 @@ function AntInputFrame(p: InputFrameProps) {
             font: "inherit",
             padding: 0,
             resize: "vertical",
+            ...atToken(fieldLook?.text, token),
           },
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
@@ -363,6 +393,7 @@ function AntInputFrame(p: InputFrameProps) {
 }
 
 function AntTextField(p: TextFieldRenderProps): Rendered {
+  const { lookContext } = useAntFieldLook(p.look);
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -377,6 +408,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
   const count = countText(ctl.value, getProp(ctl.rc, p.showCount), maxLength);
   const countOver = maxLength !== undefined && ctl.value.length > maxLength;
   return ctl.rendered(
+    <AntFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="textfield"
       count={count}
@@ -427,12 +459,14 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
           );
         }}
       />
-    </Shell>,
+    </Shell>
+    </AntFieldLookContext.Provider>,
   );
 }
 
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
+  const { part, lookContext } = useAntFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const { token } = theme.useToken();
@@ -465,6 +499,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       </Typography.Text>,
     );
   return ctl.rendered(
+    <AntFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="displayOnly"
       id={p.id}
@@ -479,21 +514,29 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     >
       <Typography.Text
         id={p.id}
-        style={{ ...(p.noSelection ? { userSelect: "none" } : undefined), ...css(p.style) }}
+        style={{
+          ...(p.noSelection ? { userSelect: "none" } : undefined),
+          ...part("control"),
+          ...part("text"),
+          ...css(p.style),
+        }}
       >
         {start}
         {ctl.content}
         {end}
       </Typography.Text>
-    </Shell>,
+    </Shell>
+    </AntFieldLookContext.Provider>,
   );
 }
 
 /** Ant puts the label *inside* the control — it is the checkbox's child. */
 function AntCheckbox(p: CheckboxRenderProps): Rendered {
+  const { part, lookContext } = useAntFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
+    <AntFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="checkbox"
       id={p.id}
@@ -512,6 +555,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       <Checkbox
         ref={ctl.elementRef}
         id={p.id}
+        style={part("control")}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
         aria-required={p.required || undefined}
@@ -520,7 +564,8 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
         onChange={(e) => ctl.setChecked(e.target.checked)}
         onBlur={ctl.onBlur}
       />
-    </Shell>,
+    </Shell>
+    </AntFieldLookContext.Provider>,
   );
 }
 
@@ -537,11 +582,13 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
  */
 function AntCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
+  const { part, lookContext } = useAntFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
+    <AntFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="checkList"
       id={p.id}
@@ -562,7 +609,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        style={css(p.style)}
+        style={{ ...part("control"), ...part("text"), ...css(p.style) }}
       >
         <Flex vertical gap={8}>
           {ctl.options.map((o, i) => (
@@ -579,7 +626,8 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
           ))}
         </Flex>
       </div>
-    </Shell>,
+    </Shell>
+    </AntFieldLookContext.Provider>,
   );
 }
 
@@ -869,10 +917,12 @@ function AntHtml(p: HtmlDisplayRenderProps) {
 }
 
 function AntSelect(p: SelectRenderProps): Rendered {
+  const { part, lookContext } = useAntFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
+    <AntFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="select"
       id={p.id}
@@ -889,6 +939,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       <AntSelectWithEnd end={p.endIcon}>
         <Select
           ref={ctl.elementRef}
+          style={{ ...part("control"), ...part("text") }}
           id={p.id}
           prefix={p.startIcon ?? undefined}
           aria-describedby={describedBy(p)}
@@ -909,7 +960,8 @@ function AntSelect(p: SelectRenderProps): Rendered {
           }))}
         />
       </AntSelectWithEnd>
-    </Shell>,
+    </Shell>
+    </AntFieldLookContext.Provider>,
   );
 }
 
@@ -929,6 +981,7 @@ function AntSelectWithEnd({ end, children }: { end?: ReactNode; children: ReactN
 
 function AntRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
+  const { part, lookContext } = useAntFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -938,6 +991,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
     selected: ctl.stringValue === String(o.value),
   }));
   return ctl.rendered(
+    <AntFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="radio"
       id={p.id}
@@ -961,7 +1015,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={onFocusLeave(ctl.onBlur)}
-        style={css(p.style)}
+        style={{ ...part("control"), ...part("text"), ...css(p.style) }}
       >
         <Flex vertical gap={8}>
           {entries.map(({ o, selected }, i) => (
@@ -978,7 +1032,8 @@ function AntRadio(p: RadioRenderProps): Rendered {
           ))}
         </Flex>
       </Radio.Group>
-    </Shell>,
+    </Shell>
+    </AntFieldLookContext.Provider>,
   );
 }
 

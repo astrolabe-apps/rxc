@@ -9,6 +9,9 @@ import {
 } from "@rx-controls/react";
 import {
   Action,
+  CheckboxField,
+  CheckListField,
+  DisplayOnlyField,
   Dialog,
   Form,
   FormProvider,
@@ -21,7 +24,7 @@ import {
   fieldErrorId,
   fieldHelpId,
 } from "@rx-controls/forms-react";
-import { fluentRenderers } from "../src/index";
+import { FluentLooksProvider, fluentRenderers } from "../src/index";
 
 // React 19 warns unless this is set for `act()`.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -67,6 +70,60 @@ const set = <V,>(c: { value: V } | object, v: V) =>
   act(() => ctx.update((wc) => wc.setValue(c as never, v as never)));
 
 describe("Fluent", () => {
+  it("draws a named field look on a text field, a select, a radio group, a check list, a checkbox and a display-only field", () => {
+    const options = [
+      { name: "One", value: "1" },
+      { name: "Two", value: "2" },
+    ];
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={fluentRenderers}>
+            <FluentLooksProvider
+              looks={{
+                action: { styled: { style: { opacity: 0.4 } } },
+                field: {
+                  styled: {
+                    shell: { marginBottom: "13px" },
+                    label: { fontStyle: "italic" },
+                    control: { borderRadius: "11px" },
+                    text: { fontWeight: 700 },
+                  },
+                },
+              }}
+            >
+              <Form>
+                <TextField field={ctx.newControl("")} id="t" label="T" look="styled" />
+                <SelectField field={ctx.newControl("1")} id="s" label="S" options={options} look="styled" />
+                <RadioField field={ctx.newControl("1")} id="r" label="R" options={options} look="styled" />
+                <CheckListField field={ctx.newControl<string[]>([])} id="l" label="L" options={options} look="styled" />
+                <CheckboxField field={ctx.newControl(false)} id="c" label="C" look="styled" />
+                <DisplayOnlyField field={ctx.newControl("shown")} id="d" label="D" look="styled" />
+                <Action actionId="go" text="Go" look="styled" />
+              </Form>
+            </FluentLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const shells = [...document.querySelectorAll<HTMLElement>('[data-look="styled"]')];
+    expect(shells.length).toBeGreaterThanOrEqual(6);
+    expect(shells.filter((e) => e.style.marginBottom === "13px")).toHaveLength(6);
+    const italic = [...document.querySelectorAll<HTMLElement>("label, div")].filter((e) => e.style.fontStyle === "italic");
+    expect(italic.length).toBeGreaterThanOrEqual(6);
+    // the control on the input's frame, the text on the input itself
+    const input = document.getElementById("t")!;
+    expect(input.closest(".fui-Input")!.getAttribute("style")).toContain("border-radius: 11px");
+    expect(input.style.fontWeight).toBe("700");
+    expect(document.getElementById("s")!.style.fontWeight === "700" || document.getElementById("s")!.getAttribute("style")?.includes("11px")).toBe(true);
+    expect((document.querySelector('[role="radiogroup"]') as HTMLElement).style.borderRadius).toBe("11px");
+    expect((document.querySelector('[role="group"]') as HTMLElement).style.fontWeight).toBe("700");
+    expect((document.getElementById("d") as HTMLElement).style.fontWeight).toBe("700");
+    // an action look's `style` survives the button's own
+    expect(([...document.querySelectorAll("button")].find((b) => b.textContent === "Go") as HTMLElement).style.opacity).toBe("0.4");
+    expect((document.getElementById("c")!.closest(".fui-Checkbox") as HTMLElement).style.borderRadius).toBe("11px");
+  });
+
   it("draws the frame as Fluent's own Input, the control in its slot", () => {
     mount(
       <TextField

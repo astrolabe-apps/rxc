@@ -1,6 +1,9 @@
 import {
+  createContext,
+  useContext,
   useEffect,
   useId,
+  useMemo,
   useLayoutEffect,
   useRef,
   useState,
@@ -109,7 +112,7 @@ import {
   portableCss,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
-import { useFluentLooks } from "./looks.js";
+import { useFluentLooks, type FluentFieldLook } from "./looks.js";
 
 // ── Root: inherit the host's theme ────────────────────────────────────
 //
@@ -143,8 +146,23 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
   return (s) => portableCss(s, tokens.colors);
 }
 
+/**
+ * The look a field was given, for its shell and its frame: they are drawn by
+ * components the field does not own (a host may replace either), so it
+ * travels privately — set by the field, read by the pair.
+ */
+const FluentFieldLookContext = createContext<{ look?: FluentFieldLook; attr?: string }>({});
+
+/** A field's named look, and the context value that hands it to its shell and frame. */
+function useFluentFieldLook(look: LookRef | undefined) {
+  const found = useLastLook("field", look, useFluentLooks().field);
+  const lookContext = useMemo(() => ({ look: found, attr: lookAttr(look) }), [found, look]);
+  return { look: found, lookContext };
+}
+
 function FluentFieldShell(p: FieldShellProps) {
   const css = useCss();
+  const { look: fieldLook, attr: fieldAttr } = useContext(FluentFieldLookContext);
   const labelText = (
     <span>
       {p.label}
@@ -162,12 +180,14 @@ function FluentFieldShell(p: FieldShellProps) {
   return (
     <Field
       orientation={p.orientation}
-      style={css(p.style)}
+      style={{ ...fieldLook?.shell, ...css(p.style) }}
+      data-look={fieldAttr}
       label={
         p.labelPosition === "after" || p.label == null || p.hideLabel
           ? undefined
           : {
               id: fieldLabelId(p.id),
+              style: fieldLook?.label,
               // A group's label names it by id; with Field's default `for`
               // it would also point at a control that does not exist.
               htmlFor: p.labelAs === "legend" ? undefined : p.id,
@@ -181,6 +201,7 @@ function FluentFieldShell(p: FieldShellProps) {
                       htmlFor={p.labelAs === "legend" ? undefined : p.id}
                       required={p.required}
                       disabled={p.disabled}
+                      style={fieldLook?.label}
                       info={{ children: p.helpText }}
                       infoButton={{ "aria-label": helpButtonName("Help", p.label) }}
                     >
@@ -270,6 +291,7 @@ function FluentFieldShell(p: FieldShellProps) {
             id={fieldLabelId(p.id)}
             required={p.required}
             disabled={p.disabled}
+            style={fieldLook?.label}
           >
             {labelText}
           </Label>
@@ -296,6 +318,7 @@ function FluentFieldShell(p: FieldShellProps) {
 
 function FluentInputFrame(p: InputFrameProps) {
   const css = useCss();
+  const { look: fieldLook } = useContext(FluentFieldLookContext);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -314,6 +337,7 @@ function FluentInputFrame(p: InputFrameProps) {
         id: p.id,
         // Fluent's own styling of the control: no border, inherits the frame.
         className: fluent.className,
+        style: fieldLook?.text,
         onFocus: () => setFocused(true),
         onBlur: () => setFocused(false),
         disabled: p.disabled,
@@ -330,7 +354,7 @@ function FluentInputFrame(p: InputFrameProps) {
     // Textarea has no content slots: adornments sit beside it.
     const area = (
       <Textarea
-        style={css(p.style)}
+        style={{ ...fieldLook?.control, ...css(p.style) }}
         disabled={p.disabled}
         resize="vertical"
         textarea={control as never}
@@ -348,7 +372,7 @@ function FluentInputFrame(p: InputFrameProps) {
   }
   return (
     <Input
-      style={css(p.style)}
+      style={{ ...fieldLook?.control, ...css(p.style) }}
       disabled={p.disabled}
       contentBefore={p.start !== undefined ? <>{slot(p.start)}</> : undefined}
       contentAfter={p.end !== undefined ? <>{slot(p.end)}</> : undefined}
@@ -358,6 +382,7 @@ function FluentInputFrame(p: InputFrameProps) {
 }
 
 function FluentTextField(p: TextFieldRenderProps): Rendered {
+  const { lookContext } = useFluentFieldLook(p.look);
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -372,6 +397,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
   const count = countText(ctl.value, getProp(ctl.rc, p.showCount), maxLength);
   const countOver = maxLength !== undefined && ctl.value.length > maxLength;
   return ctl.rendered(
+    <FluentFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="textfield"
       count={count}
@@ -422,12 +448,14 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
           );
         }}
       />
-    </Shell>,
+    </Shell>
+    </FluentFieldLookContext.Provider>,
   );
 }
 
 function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, spaced as Fluent spaces an
@@ -449,7 +477,12 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const text = (
     <Text
       id={p.id}
-      style={{ ...(p.noSelection ? { userSelect: "none" } : undefined), ...css(p.style) }}
+      style={{
+        ...(p.noSelection ? { userSelect: "none" } : undefined),
+        ...fieldLook?.control,
+        ...fieldLook?.text,
+        ...css(p.style),
+      }}
     >
       {icon(p.startIcon, "start")}
       {ctl.content}
@@ -459,6 +492,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   // Fluent's Text is already a span; inline only drops the shell.
   if (p.inline) return ctl.rendered(text);
   return ctl.rendered(
+    <FluentFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="displayOnly"
       id={p.id}
@@ -472,7 +506,8 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       style={p.shellStyle}
     >
       {text}
-    </Shell>,
+    </Shell>
+    </FluentFieldLookContext.Provider>,
   );
 }
 
@@ -492,9 +527,11 @@ function BesideSelect(p: { start?: ReactNode; end?: ReactNode; children: ReactNo
 }
 
 function FluentCheckbox(p: CheckboxRenderProps): Rendered {
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
+    <FluentFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="checkbox"
       id={p.id}
@@ -513,6 +550,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       <Checkbox
         ref={ctl.elementRef}
         id={p.id}
+        style={fieldLook?.control}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
         aria-required={p.required || undefined}
@@ -521,18 +559,21 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
         onChange={(_, d) => ctl.setChecked(!!d.checked)}
         onBlur={ctl.onBlur}
       />
-    </Shell>,
+    </Shell>
+    </FluentFieldLookContext.Provider>,
   );
 }
 
 /** Fluent has no checkbox group: its checkboxes in a labelled `role="group"`. */
 function FluentCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
+    <FluentFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="checkList"
       id={p.id}
@@ -553,7 +594,12 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        style={{ ...({ display: "flex", flexDirection: "column" }), ...css(p.style) }}
+        style={{
+          ...({ display: "flex", flexDirection: "column" }),
+          ...fieldLook?.control,
+          ...fieldLook?.text,
+          ...css(p.style),
+        }}
       >
         {ctl.options.map((o, i) => (
           <Checkbox
@@ -567,17 +613,20 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
           />
         ))}
       </div>
-    </Shell>,
+    </Shell>
+    </FluentFieldLookContext.Provider>,
   );
 }
 
 /** Fluent's `Select` is a native `<select>`: the string round-trip for free. */
 function FluentSelect(p: SelectRenderProps): Rendered {
   const css = useCss();
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
+    <FluentFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="select"
       id={p.id}
@@ -595,7 +644,8 @@ function FluentSelect(p: SelectRenderProps): Rendered {
         <Select
           ref={ctl.elementRef}
           id={p.id}
-          style={css(p.style)}
+          style={{ ...fieldLook?.control, ...css(p.style) }}
+          select={fieldLook?.text ? { style: fieldLook.text } : undefined}
           aria-describedby={describedBy(p)}
           aria-invalid={p.error ? true : undefined}
           aria-required={p.required || undefined}
@@ -613,17 +663,20 @@ function FluentSelect(p: SelectRenderProps): Rendered {
           ))}
         </Select>
       </BesideSelect>
-    </Shell>,
+    </Shell>
+    </FluentFieldLookContext.Provider>,
   );
 }
 
 function FluentRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
+  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
+    <FluentFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="radio"
       id={p.id}
@@ -647,7 +700,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue}
         onChange={(_, d) => ctl.setFromString(d.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
-        style={css(p.style)}
+        style={{ ...fieldLook?.control, ...fieldLook?.text, ...css(p.style) }}
       >
         {ctl.options.map((o, i) => {
           const selected = ctl.stringValue === String(o.value);
@@ -667,7 +720,8 @@ function FluentRadio(p: RadioRenderProps): Rendered {
           );
         })}
       </RadioGroup>
-    </Shell>,
+    </Shell>
+    </FluentFieldLookContext.Provider>,
   );
 }
 
@@ -740,7 +794,8 @@ function FluentAction(p: ActionRenderProps) {
   const css = useCss();
   const replace = p.iconPlacement === "replace";
   const icon = p.busy ? <Spinner size="extra-tiny" /> : p.icon;
-  const lookup = useLastLook("action", p.look, useFluentLooks().action, (n) => n in emphasis);
+  const { style: lookStyle, ...lookup } =
+    useLastLook("action", p.look, useFluentLooks().action, (n) => n in emphasis) ?? {};
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
     .filter(Boolean)
@@ -752,7 +807,11 @@ function FluentAction(p: ActionRenderProps) {
         size="small"
         {...lookup}
         data-look={lookAttr(p.look)}
-        style={{ ...(lookNames(p.look).includes("group") ? groupStyle : {}), ...css(p.style) }}
+        style={{
+          ...(lookNames(p.look).includes("group") ? groupStyle : {}),
+          ...lookStyle,
+          ...css(p.style),
+        }}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         icon={icon == null ? undefined : <>{icon}</>}

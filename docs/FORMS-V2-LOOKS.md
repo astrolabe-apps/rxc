@@ -313,27 +313,43 @@ findings:
   stylesheet, also lets the browser's input and button chrome show; the Tailwind theme is the one to
   compare.
 
-### A field look under MUI
+### Field looks under MUI, Ant, Fluent and native
 
-MUI names a text field's look in its own terms: `MuiLooks.field[name]` is `{ shell, label, control,
-text }`, each MUI's `sx` — so a look reaches the theme (`(t) => …`) and the component's own states
-(`"&.Mui-focused fieldset"`, `"&.Mui-error fieldset"`) instead of taking a flat style. The field
-hands its look to the shell (`FormControl`, `InputLabel`) and the frame (`OutlinedInput`) over a small
-context, as it already hands over the label for the outline's notch. The story above gives MUI the
-same names mapped by hand — group looks as styles, text and action looks as Typography and Button
-props, the field look as `sx` — and the demo draws recognisably the same under MUI: the same card, tag,
-field border, focus and error colours, pill button and row. What differs is MUI itself: the floating
-outlined label, the contained button's elevation. A responsive group is MUI's breakpoints in `sx`,
-which a group look's plain style cannot express, so that look stays stacked. The select, radio,
-checkbox and display-only fields, and Ant and Fluent, do not take field looks yet.
+Every implementation takes a named look on all six field widgets — text field, select, radio group,
+check list, checkbox, display-only — in its own terms, with the same four parts:
+
+| part | the element |
+|---|---|
+| `shell` | what wraps label, control and message (MUI `FormControl`, Ant `Form.Item`, Fluent `Field`) |
+| `label` | the label |
+| `control` | the widget's own element: the text frame, the select, the option group, the box, the value |
+| `text` | its words: the input's text, an option's label, the value |
+
+- **MUI** `MuiLooks.field[name]` — each part MUI's `sx`, so a look reaches the theme (`(t) => …`) and
+  the component's states (`"&.Mui-focused fieldset"`, `"&.Mui-error fieldset"`).
+- **Ant** `AntdLooks.field[name]` — each part a style or a function of the tokens.
+- **Fluent** `FluentLooks.field[name]` — each part a plain style; Fluent's tokens are CSS values.
+- **Native** — the theme's `looks` (`NativeLook`), the same parts as html; the widgets now pass the
+  look to their shell and read `control` and `text`, which only the text field and radio did before.
+
+A field hands its look to the shell and the frame over a small context in MUI, Ant and Fluent, as it
+already hands over MUI's label for the outline's notch: the pair are components the field does not own.
+
+The shared portable-looks story draws one form (every widget above) under all five implementations —
+html and native from one table of portable styles, MUI, Ant and Fluent from the same names mapped by
+hand. They are recognisably the same design; what differs is each library (MUI's floating outlined
+label and button elevation, Ant's and Fluent's own control chrome). A responsive group is each
+library's breakpoints, which a group look's plain style cannot express, so those stay stacked.
+
+Found on the way: Ant's frame drew its border with the `border` shorthand, so a look setting only
+`borderWidth` made React warn about shorthand mixed with its parts (the frame now uses longhands); and
+Fluent's action dropped a look's `style` behind the button's own `style` prop.
 
 ## Not built, and open
 
 - **Running the converter in ServiceTas's publish step**, and a `Look` field in the C# schema; until
   then a raw legacy form's class looks are warned and skipped on native, and the loader's runtime
   derivation stays as the bridge.
-- **Looks on a text field under Ant and Fluent, and on every other widget under MUI, Ant, Fluent and
-  native but the text field**; they accept `look` and ignore it.
 - **State on a field**: whether `invalid` / `disabled` reach a look automatically, or only when it
   asks (a function of state). Today native passes them; html relies on its `data-*` attributes.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably

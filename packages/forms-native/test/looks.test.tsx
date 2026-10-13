@@ -4,12 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ControlContextProvider, createControlContext } from "@rx-controls/react";
 import {
   Action,
+  CheckboxField,
+  CheckListField,
   Contents,
+  DisplayOnlyField,
   Form,
   FormLooksProvider,
   FormProvider,
   NO_LOOK_STATE,
   RadioField,
+  SelectField,
   TextDisplay,
   TextField,
 } from "@rx-controls/forms-react";
@@ -89,6 +93,47 @@ describe("looks (native)", () => {
     expect(style(input).color).toMatch(/rgba\(255, 0, 0, 1/);
     expect(style(frame).color).toBe("");
     expect(style(input).fontSize).toBe("18px");
+    expect(logged).toEqual([]);
+  });
+
+  it("styles a select, a radio group, a check list, a checkbox and a display-only field: shell, control and text", () => {
+    const options = [
+      { name: "One", value: "1" },
+      { name: "Two", value: "2" },
+    ];
+    mount(
+      <>
+        <SelectField field={ctx.newControl("1")} id="s" label="S" options={options} look="fl" />
+        <RadioField field={ctx.newControl("1")} id="r" label="R" options={options} look="fl" />
+        <CheckListField field={ctx.newControl<string[]>([])} id="l" label="L" options={options} look="fl" />
+        <CheckboxField field={ctx.newControl(false)} id="c" label="C" look="fl" />
+        <DisplayOnlyField field={ctx.newControl("shown")} id="d" label="D" look="fl" shellStyle={{ opacity: 0.5 }} />
+      </>,
+      {
+        ...theme,
+        looks: {
+          ...theme.looks,
+          fl: {
+            shell: { marginBottom: 13 },
+            control: { borderRadius: 11 },
+            text: { fontStyle: "italic" },
+          },
+        },
+      },
+    );
+    // shell: every widget's wrapper takes the look's shell (and the author's `shellStyle`)
+    const withShell = [...el.querySelectorAll<HTMLElement>("div")].filter((d) => d.style.marginBottom === "13px");
+    expect(withShell).toHaveLength(5);
+    expect(withShell.some((d) => d.style.opacity === "0.5")).toBe(true);
+    // control on each widget's own element, text on its words
+    expect(style(el.querySelector('[role="radiogroup"]')).borderRadius).toBe("11px");
+    expect(style(el.querySelector('[role="radiogroup"] [role="radio"] + div, [role="radiogroup"] [role="radio"] div:last-child, [role="radiogroup"] [role="radio"]'))).toBeTruthy();
+    const italic = [...el.querySelectorAll<HTMLElement>("div")].filter((d) => d.style.fontStyle === "italic");
+    expect(italic.length).toBeGreaterThanOrEqual(5);
+    expect(style(el.querySelector('[role="group"]')).borderRadius).toBe("11px");
+    expect(style(el.querySelector('[role="checkbox"][id="c"]')).borderRadius).toBe("11px");
+    expect(style(words("shown")).fontStyle).toBe("italic");
+    expect(style(document.getElementById("d")).borderRadius).toBe("11px");
     expect(logged).toEqual([]);
   });
 

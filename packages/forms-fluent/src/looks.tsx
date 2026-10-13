@@ -30,6 +30,25 @@ export interface FluentGroupLook {
 }
 
 /**
+ * A field's named look: a style for each of its elements. `control` is the
+ * element the widget draws as its control (the input's frame, the select, the
+ * option group, the value); `text` its own words (the input's text, an
+ * option's label).
+ *
+ * @group Theming
+ */
+export interface FluentFieldLook {
+  /** The `Field` around label, control and message. */
+  shell?: CSSProperties;
+  /** The label. */
+  label?: CSSProperties;
+  /** The control. */
+  control?: CSSProperties;
+  /** The control's text. */
+  text?: CSSProperties;
+}
+
+/**
  * An action's named look: props for Fluent's `Button`, and a style.
  *
  * @group Theming
@@ -50,6 +69,8 @@ export interface FluentLooks {
   text?: Record<string, FluentTextLook>;
   /** A group's looks. */
   group?: Record<string, FluentGroupLook>;
+  /** A field's looks: a style per element. */
+  field?: Record<string, FluentFieldLook>;
   /**
    * An action's looks beyond `primary` / `secondary` / `link`, which
    * Fluent draws as its `primary` / `secondary` / `transparent` appearances.

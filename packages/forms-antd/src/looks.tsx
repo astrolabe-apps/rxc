@@ -37,6 +37,25 @@ export interface AntGroupLook {
 }
 
 /**
+ * A field's named look: a style for each of its elements. `control` is the
+ * element the widget draws as its control (the input's frame, the select,
+ * the option group, the value); `text` its own words (the input's text, an
+ * option's label).
+ *
+ * @group Theming
+ */
+export interface AntFieldLook {
+  /** The form item around label, control and message. */
+  shell?: AntStyle;
+  /** The label. */
+  label?: AntStyle;
+  /** The control. */
+  control?: AntStyle;
+  /** The control's text. */
+  text?: AntStyle;
+}
+
+/**
  * An action's named look: props for Ant's `Button`, and a style.
  *
  * @group Theming
@@ -58,6 +77,8 @@ export interface AntdLooks {
   text?: Record<string, AntTextLook>;
   /** A group's looks. */
   group?: Record<string, AntGroupLook>;
+  /** A field's looks: a style per element. */
+  field?: Record<string, AntFieldLook>;
   /**
    * An action's looks beyond `primary` / `secondary` / `link`, which Ant
    * draws as its `primary` / `default` / `link` types. A name given here for

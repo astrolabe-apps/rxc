@@ -1,6 +1,16 @@
 import { useEffect, type ReactNode } from "react";
 import { useControl, useControlContext } from "@rx-controls/react";
-import { Action, Contents, TextDisplay, TextField } from "@rx-controls/forms-react";
+import {
+  Action,
+  CheckboxField,
+  CheckListField,
+  Contents,
+  DisplayOnlyField,
+  RadioField,
+  SelectField,
+  TextDisplay,
+  TextField,
+} from "@rx-controls/forms-react";
 import type { LookState, PortableStyle } from "@rx-controls/forms-react";
 
 /**
@@ -67,6 +77,19 @@ export const portableLooks: Record<string, Record<string, Part>> = {
     }),
     labelText: { fontSize: 13, fontWeight: "600", color: "$ink/70" },
   },
+  // Choices: the options spaced, their words in ink.
+  choice: {
+    shell: { gap: 4 },
+    control: { gap: 6 },
+    text: { fontSize: 15, color: "$ink" },
+    labelText: { fontSize: 13, fontWeight: "600", color: "$ink/70" },
+  },
+  readout: {
+    shell: { gap: 4 },
+    control: { backgroundColor: "$accent/15", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    text: { fontSize: 15, fontWeight: "600", color: "$accent" },
+    labelText: { fontSize: 13, fontWeight: "600", color: "$ink/70" },
+  },
   button: {
     control: (s) => ({
       backgroundColor: s.pressed ? "$accent/70" : "$accent",
@@ -107,6 +130,35 @@ export function PortableLooksDemo(): ReactNode {
       <TextDisplay text="One look table, drawn by two implementations." look="lead" />
       <TextField field={name} label="Name" look="field" />
       <TextField field={email} label="Email (shown invalid)" look="field" />
+      <SelectField
+        field={useControl("b")}
+        label="Choose one"
+        look="field"
+        options={[
+          { name: "Alpha", value: "a" },
+          { name: "Beta", value: "b" },
+        ]}
+      />
+      <RadioField
+        field={useControl("a")}
+        label="Radio"
+        look="choice"
+        options={[
+          { name: "Alpha", value: "a" },
+          { name: "Beta", value: "b" },
+        ]}
+      />
+      <CheckListField
+        field={useControl<string[]>(["b"])}
+        label="Check list"
+        look="choice"
+        options={[
+          { name: "Alpha", value: "a" },
+          { name: "Beta", value: "b" },
+        ]}
+      />
+      <CheckboxField field={useControl(true)} label="Checkbox" look="choice" />
+      <DisplayOnlyField field={useControl("Read-only value")} label="Display only" look="readout" />
       <Contents look="row">
         <Action actionId="save" text="Save" look="button" />
         <TextDisplay text="Press and hold the button" look="note" />

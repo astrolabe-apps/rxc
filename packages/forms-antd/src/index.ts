@@ -10,6 +10,7 @@ export {
   type AntActionLook,
   type AntdLooks,
   type AntdLooksProviderProps,
+  type AntFieldLook,
   type AntGroupLook,
   type AntStyle,
   type AntTextLook,

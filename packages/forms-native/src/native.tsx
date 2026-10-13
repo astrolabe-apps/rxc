@@ -571,6 +571,8 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   const t = useNativeTheme().checkbox;
+  const part = useLook("field", p.look);
+  const control = part("control", NO_LOOK_STATE, p.style);
   // A boolean, as every `disabled` handed to React Native: Android disables
   // the view for `true`, and only an explicit `false` enables it again.
   const locked = !!(ctl.state.disabled || ctl.state.readOnly);
@@ -613,6 +615,8 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
+      look={p.look}
+      style={p.shellStyle}
     >
       {t.control === "switch" ? (
         <Switch
@@ -642,7 +646,7 @@ function NativeCheckbox(p: CheckboxRenderProps): Rendered {
           accessibilityState={{ checked: ctl.checked, disabled: locked }}
           onPress={() => toggle(!ctl.checked)}
           onBlur={ctl.onBlur}
-          {...sp(t.box, ctl.checked && t.checked)}
+          {...sp(unless(control.replace, [t.box, ctl.checked && t.checked]), control.box)}
           {...a11y}
           {...hidden}
           {...webOnly({ "aria-required": p.required || undefined })}
@@ -669,6 +673,8 @@ function NativeRadio(p: RadioRenderProps): Rendered {
   const ctl = useSelectController(p.field, p.options);
   const t = useNativeTheme().radio;
   const part = useLook("field", p.look);
+  const control = part("control", NO_LOOK_STATE, p.style);
+  const words = part("text", NO_LOOK_STATE, undefined, true);
   const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   const leave = useLeaveGroup(ctl.onBlur);
   const a11y = fieldA11y(p);
@@ -685,11 +691,13 @@ function NativeRadio(p: RadioRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
+      look={p.look}
+      style={p.shellStyle}
     >
       <View
         ref={leave.group as never}
         role="radiogroup"
-        {...sp(t.style)}
+        {...sp(unless(control.replace, t.style), control.box)}
         {...a11y}
         aria-labelledby={p.label != null && !p.hideLabel ? fieldLabelId(p.id) : undefined}
         {...webOnly({ "aria-required": p.required || undefined })}
@@ -726,7 +734,7 @@ function NativeRadio(p: RadioRenderProps): Rendered {
                 <View {...sp(t.ring, selected && t.ringSelected)}>
                   {selected && <View {...sp(t.dot)} />}
                 </View>
-                <Text {...sp(t.label)}>{o.name}</Text>
+                <Text {...sp(t.label, control.text, words.text)}>{o.name}</Text>
               </Pressable>
               {p.children?.(o, selected)}
             </View>
@@ -742,6 +750,9 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const { checkList: t, checkbox: box, shell } = useNativeTheme();
+  const part = useLook("field", p.look);
+  const control = part("control", NO_LOOK_STATE, p.style);
+  const words = part("text", NO_LOOK_STATE, undefined, true);
   const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   const leave = useLeaveGroup(ctl.onBlur);
   const a11y = fieldA11y(p, undefined, shell.requiredNote);
@@ -759,11 +770,13 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
+      look={p.look}
+      style={p.shellStyle}
     >
       <View
         ref={leave.group as never}
         role="group"
-        {...sp(t.style)}
+        {...sp(unless(control.replace, t.style), control.box)}
         {...a11y}
         aria-labelledby={p.label != null && !p.hideLabel ? fieldLabelId(p.id) : undefined}
       >
@@ -793,7 +806,7 @@ function NativeCheckList(p: CheckListRenderProps): Rendered {
                   </Text>
                 )}
               </View>
-              <Text {...sp(t.label)}>{o.name}</Text>
+              <Text {...sp(t.label, control.text, words.text)}>{o.name}</Text>
             </Pressable>
           );
         })}
@@ -812,6 +825,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
   const Frame = useInputFrame();
   const ctl = useSelectController(p.field, p.options);
   const t = useNativeTheme().select;
+  const words = useLook("field", p.look)("text", NO_LOOK_STATE, undefined, true);
   const [open, setOpen] = useState(false);
   const chosen = ctl.options.find((o) => String(o.value) === ctl.stringValue);
   const choices = [
@@ -843,9 +857,13 @@ function NativeSelect(p: SelectRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
+      look={p.look}
+      style={p.shellStyle}
     >
       <Frame
         id={p.id}
+        look={p.look}
+        style={p.style}
         describedBy={describedBy(p)}
         controlRef={ctl.elementRef}
         invalid={!!p.error}
@@ -867,7 +885,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
             {...a11y}
             {...webOnly({ "aria-required": slot["aria-required"] })}
           >
-            <Text {...sp(chosen ? t.value : t.placeholder)}>
+            <Text {...sp(chosen ? t.value : t.placeholder, words.text)}>
               {chosen ? chosen.name : t.emptyText}
             </Text>
           </Pressable>
@@ -909,6 +927,9 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const t = useNativeTheme().displayOnly;
+  const part = useLook("field", p.look);
+  const control = part("control", NO_LOOK_STATE, p.style);
+  const words = part("text", NO_LOOK_STATE, undefined, true);
   const start = p.startIcon != null && <View {...sp(t.icon)}>{wrapText(p.startIcon)}</View>;
   const end = p.endIcon != null && <View {...sp(t.icon)}>{wrapText(p.endIcon)}</View>;
   // Inline: the value in prose — no shell, no label.
@@ -929,14 +950,16 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       helpText={p.helpText}
       helpPlacement={p.helpPlacement}
       error={p.error}
+      look={p.look}
+      style={p.shellStyle}
     >
       <View
         id={p.id}
-        {...sp(t.style)}
+        {...sp(unless(control.replace, t.style), control.box)}
         {...webOnly({ "aria-describedby": describedBy(p) })}
       >
         {start}
-        <Text {...sp(t.text)} selectable={!p.noSelection}>
+        <Text {...sp(t.text, control.text, words.text)} selectable={!p.noSelection}>
           {ctl.content}
         </Text>
         {end}

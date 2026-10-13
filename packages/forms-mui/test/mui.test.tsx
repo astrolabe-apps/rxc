@@ -11,6 +11,10 @@ import {
   Dialog,
   Form,
   FormProvider,
+  CheckboxField,
+  CheckListField,
+  DisplayOnlyField,
+  RadioField,
   SelectField,
   TextDisplay,
   TextField,
@@ -137,6 +141,53 @@ describe("MUI", () => {
     const plain = document.getElementById("u")!.closest(".MuiFormControl-root")!;
     expect(plain.getAttribute("data-look")).toBeNull();
     expect(css(plain, "margin-bottom")).not.toBe("13px");
+  });
+
+  it("draws a named field look on a select, a radio group, a check list, a checkbox and a display-only field", () => {
+    const options = [
+      { name: "One", value: "1" },
+      { name: "Two", value: "2" },
+    ];
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={muiRenderers}>
+            <MuiLooksProvider
+              looks={{
+                field: {
+                  styled: {
+                    shell: { marginBottom: "13px" },
+                    control: { borderRadius: "11px" },
+                    text: { fontStyle: "italic" },
+                  },
+                },
+              }}
+            >
+              <Form>
+                <SelectField field={ctx.newControl("1")} id="s" label="S" options={options} look="styled" />
+                <RadioField field={ctx.newControl("1")} id="r" label="R" options={options} look="styled" />
+                <CheckListField field={ctx.newControl<string[]>([])} id="l" label="L" options={options} look="styled" />
+                <CheckboxField field={ctx.newControl(false)} id="c" label="C" look="styled" />
+                <DisplayOnlyField field={ctx.newControl("shown")} id="d" label="D" look="styled" />
+              </Form>
+            </MuiLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const css = (el: Element, p: string) => getComputedStyle(el).getPropertyValue(p);
+    const shells = [...document.querySelectorAll('.MuiFormControl-root[data-look="styled"]')];
+    expect(shells).toHaveLength(5);
+    for (const sh of shells) expect(css(sh, "margin-bottom")).toBe("13px");
+    // control and text land on each widget's own element
+    expect(css(document.getElementById("s")!.closest(".MuiOutlinedInput-root")!, "border-radius")).toBe("11px");
+    expect(css(document.querySelector(".MuiSelect-select")!, "font-style")).toBe("italic");
+    const group = document.querySelector('[role="radiogroup"]')!;
+    expect(css(group, "border-radius")).toBe("11px");
+    expect(css(group.querySelector(".MuiFormControlLabel-label")!, "font-style")).toBe("italic");
+    expect(css(document.querySelector('[role="group"]')!.querySelector(".MuiFormControlLabel-label")!, "font-style")).toBe("italic");
+    expect(css(document.getElementById("d")!, "font-style")).toBe("italic");
+    expect(css(document.getElementById("c")!.closest(".MuiCheckbox-root")!, "border-radius")).toBe("11px");
   });
 
   it("colours a toned display from the palette", () => {

@@ -232,6 +232,7 @@ function MuiFieldShell(p: FieldShellProps) {
             <FormControlLabel
               htmlFor={p.id}
               id={fieldLabelId(p.id)}
+              sx={fieldLook?.label}
               label={
                 <>
                   {p.label}
@@ -399,12 +400,15 @@ function MuiInputFrame(p: InputFrameProps) {
   );
 }
 
+/** A field's named look, and the context value that hands it to its shell and frame. */
+function useMuiFieldLook(look: LookRef | undefined) {
+  const fieldLook = useLastLook("field", look, useMuiLooks().field);
+  const lookContext = useMemo(() => ({ look: fieldLook, attr: lookAttr(look) }), [fieldLook, look]);
+  return { fieldLook, lookContext };
+}
+
 function MuiTextField(p: TextFieldRenderProps): Rendered {
-  const fieldLook = useLastLook("field", p.look, useMuiLooks().field);
-  const lookContext = useMemo(
-    () => ({ look: fieldLook, attr: lookAttr(p.look) }),
-    [fieldLook, p.look],
-  );
+  const { lookContext } = useMuiFieldLook(p.look);
   const Shell = useFieldShell();
   const Frame = useInputFrame();
   const ctl = useTextInput(p.field);
@@ -478,6 +482,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 /** MUI's own answer for a trailing label is a different component entirely. */
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, as an adornment sits in a frame.
@@ -505,6 +510,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       </Typography>,
     );
   return ctl.rendered(
+    <MuiFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="displayOnly"
       id={p.id}
@@ -521,24 +527,31 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         id={p.id}
         variant="body1"
         style={css(p.style)}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          ...(p.noSelection ? { userSelect: "none" } : {}),
-        }}
+        sx={mergeSx(
+          {
+            display: "flex",
+            alignItems: "center",
+            ...(p.noSelection ? { userSelect: "none" } : {}),
+          },
+          fieldLook?.control,
+          fieldLook?.text,
+        )}
       >
         {start}
         {ctl.content}
         {end}
       </Typography>
-    </Shell>,
+    </Shell>
+    </MuiFieldLookContext.Provider>,
   );
 }
 
 function MuiCheckbox(p: CheckboxRenderProps): Rendered {
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
+    <MuiFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="checkbox"
       id={p.id}
@@ -556,6 +569,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
     >
       <Checkbox
         id={p.id}
+        sx={fieldLook?.control}
         slotProps={{
           input: {
             ref: ctl.elementRef,
@@ -569,7 +583,8 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
         onChange={(e) => ctl.setChecked(e.target.checked)}
         onBlur={ctl.onBlur}
       />
-    </Shell>,
+    </Shell>
+    </MuiFieldLookContext.Provider>,
   );
 }
 
@@ -862,10 +877,12 @@ function MuiHtml(p: HtmlDisplayRenderProps) {
 }
 
 function MuiSelect(p: SelectRenderProps): Rendered {
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   return ctl.rendered(
+    <MuiFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="select"
       id={p.id}
@@ -883,6 +900,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
           text directly rather than going through the frame's context. */}
       <Select
         inputRef={ctl.elementRef}
+        sx={mergeSx(fieldLook?.control, nestSx("& .MuiSelect-select", fieldLook?.text))}
         id={p.id}
         label={p.hideLabel || labelEndHelp(p) ? undefined : p.label}
         labelId={p.label != null ? fieldLabelId(p.id) : undefined}
@@ -919,12 +937,14 @@ function MuiSelect(p: SelectRenderProps): Rendered {
           </MenuItem>
         ))}
       </Select>
-    </Shell>,
+    </Shell>
+    </MuiFieldLookContext.Provider>,
   );
 }
 
 function MuiRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -934,6 +954,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
     selected: ctl.stringValue === String(o.value),
   }));
   return ctl.rendered(
+    <MuiFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="radio"
       id={p.id}
@@ -958,6 +979,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
         onChange={(e) => ctl.setFromString(e.target.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
         style={css(p.style)}
+        sx={mergeSx(fieldLook?.control, nestSx("& .MuiFormControlLabel-label", fieldLook?.text))}
       >
         {entries.map(({ o, selected }, i) => (
           <Box key={keys[i]} className="rxf-radio-entry">
@@ -975,17 +997,20 @@ function MuiRadio(p: RadioRenderProps): Rendered {
           </Box>
         ))}
       </RadioGroup>
-    </Shell>,
+    </Shell>
+    </MuiFieldLookContext.Provider>,
   );
 }
 
 function MuiCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
+  const { fieldLook, lookContext } = useMuiFieldLook(p.look);
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
   const locked = ctl.state.disabled || ctl.state.readOnly;
   return ctl.rendered(
+    <MuiFieldLookContext.Provider value={lookContext}>
     <Shell
       widget="checkList"
       id={p.id}
@@ -1007,6 +1032,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
         style={css(p.style)}
+        sx={mergeSx(fieldLook?.control, nestSx("& .MuiFormControlLabel-label", fieldLook?.text))}
       >
         {ctl.options.map((o, i) => (
           <FormControlLabel
@@ -1028,7 +1054,8 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
           />
         ))}
       </FormGroup>
-    </Shell>,
+    </Shell>
+    </MuiFieldLookContext.Provider>,
   );
 }
 

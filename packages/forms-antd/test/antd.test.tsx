@@ -9,9 +9,12 @@ import {
 import {
   Action,
   CheckboxField,
+  CheckListField,
   Dialog,
   Form,
+  DisplayOnlyField,
   FormProvider,
+  RadioField,
   SelectField,
   Tabs,
   TextDisplay,
@@ -19,7 +22,7 @@ import {
   Wizard,
   Section,
 } from "@rx-controls/forms-react";
-import { antdRenderers } from "../src/index";
+import { AntdLooksProvider, antdRenderers } from "../src/index";
 
 // React 19 warns unless this is set for `act()`.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -71,7 +74,7 @@ describe("Ant", () => {
     // The control slot carries the reset; the frame around it the border.
     expect(input.style.border).toMatch(/none/);
     const frame = input.parentElement!;
-    expect(frame.style.border).toMatch(/1px solid/);
+    expect([frame.style.borderWidth, frame.style.borderStyle]).toEqual(["1px", "solid"]);
     // Full width with a border and padding: it fits its container only as
     // border-box, which it cannot leave to Ant's optional reset.css.
     expect(frame.style.boxSizing).toBe("border-box");
@@ -108,6 +111,59 @@ describe("Ant", () => {
     act(() => ctx.update((wc) => wc.setValue(open, false)));
     // destroyOnHidden={false}: still the same node after closing.
     expect(document.getElementById("inside")).toBe(inside);
+  });
+
+  it("draws a named field look on a text field, a select, a radio group, a check list, a checkbox and a display-only field", () => {
+    const options = [
+      { name: "One", value: "1" },
+      { name: "Two", value: "2" },
+    ];
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={antdRenderers}>
+            <AntdLooksProvider
+              looks={{
+                field: {
+                  styled: {
+                    shell: { marginBottom: 13 },
+                    label: (t) => ({ fontStyle: "italic", letterSpacing: t.fontSize / 10 }),
+                    control: { borderRadius: 11 },
+                    text: { fontWeight: 700 },
+                  },
+                },
+              }}
+            >
+              <Form>
+                <TextField field={ctx.newControl("")} id="t" label="T" look="styled" />
+                <SelectField field={ctx.newControl("1")} id="s" label="S" options={options} look="styled" />
+                <RadioField field={ctx.newControl("1")} id="r" label="R" options={options} look="styled" />
+                <CheckListField field={ctx.newControl<string[]>([])} id="l" label="L" options={options} look="styled" />
+                <CheckboxField field={ctx.newControl(false)} id="c" label="C" look="styled" />
+                <DisplayOnlyField field={ctx.newControl("shown")} id="d" label="D" look="styled" />
+              </Form>
+            </AntdLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    const shells = [...document.querySelectorAll<HTMLElement>('[data-look="styled"]')].map(
+      (e) => e.closest(".ant-form-item") as HTMLElement,
+    );
+    expect(shells).toHaveLength(6);
+    for (const sh of shells) expect(sh.style.marginBottom).toBe("13px");
+    // the label, the control and its text each land on their own element
+    const labelled = [...document.querySelectorAll<HTMLElement>("[id$='-label'], [id*='label']")].filter(
+      (e) => e.style.fontStyle === "italic",
+    );
+    expect(labelled.length).toBeGreaterThanOrEqual(6);
+    const frame = document.getElementById("t")!.parentElement as HTMLElement;
+    expect(frame.style.borderRadius).toBe("11px");
+    expect(document.getElementById("t")!.style.fontWeight).toBe("700");
+    expect((document.getElementById("d") as HTMLElement).style.fontWeight).toBe("700");
+    expect((document.querySelector('[role="radiogroup"], .ant-radio-group') as HTMLElement).style.borderRadius).toBe("11px");
+    expect((document.querySelector('[role="group"]') as HTMLElement).style.fontWeight).toBe("700");
+    expect((document.getElementById("c")!.closest(".ant-checkbox-wrapper") as HTMLElement).style.borderRadius).toBe("11px");
   });
 
   it("colours a toned display from theme tokens, through Typography's own colour", () => {
