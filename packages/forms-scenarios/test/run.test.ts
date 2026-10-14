@@ -145,6 +145,26 @@ describe("runScenario", () => {
     expect(seen).toEqual(["0:start", "0:ok", "1:start", "1:failed"]);
   });
 
+  it("scrolls a target whose screen shows only part of the form to find what a step needs", async () => {
+    const app = fakeApp();
+    // Only the first three elements fit; scrolling moves the window by two.
+    let top = 0;
+    const all = app.screen.bind(app);
+    const scrolled = {
+      ...app,
+      screen: async () => (await all()).slice(top, top + 3),
+      scroll: async (d: "down" | "up") => {
+        top = Math.max(0, Math.min(6, top + (d === "down" ? 2 : -2)));
+      },
+    };
+    const r = await runScenario(
+      { name: "x", form: "X", steps: [press("Continue"), expectVisible("Name *"), expectAction("next")] },
+      { ...scrolled, open: async () => { top = 0; } },
+    );
+    // Continue is found below, then the name field above it again.
+    expect(r.steps.map((s) => s.ok)).toEqual([true, true, false]);
+  });
+
   it("stops at the first step that fails, saying why", async () => {
     const r = await runScenario(
       { name: "x", form: "X", steps: [expectData("name", "Ada"), press("Continue")] },

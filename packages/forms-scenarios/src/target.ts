@@ -70,6 +70,12 @@ export interface Target {
   type(text: string, current: string): Promise<void>;
   /** What the app has reported since the form opened. */
   report(): Promise<Report>;
+  /**
+   * Scroll the form by about a screen, `down` toward its end or `up` toward its start —
+   * for a target whose screen does not show the whole form. Left out, the screen is
+   * taken to show all of it.
+   */
+  scroll?(direction: "down" | "up"): Promise<void>;
   /** Put the device back as it was. */
   close(): Promise<void>;
 }

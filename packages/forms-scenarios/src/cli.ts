@@ -4,7 +4,7 @@
 //
 // Each step is printed as it happens. To watch a run on the device: --watch (a pause of 1.5s
 // between steps), or --slow <ms> for another pause; --no-tall keeps the screen its own size
-// (a form longer than the screen then shows only what fits).
+// (a form longer than the screen is scrolled to find what each step needs).
 //
 // Runs every scenario in the files (`*.scenario.ts`, `*.scenario.js` under a directory) on
 // the first target; with a second target, on both, comparing step by step (the first the

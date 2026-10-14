@@ -143,6 +143,17 @@ export function androidTarget(o: AndroidTargetOptions): Target {
       }
       await sleep(settle);
     },
+    async scroll(direction) {
+      // Within the screen as it is now, about two thirds of it per swipe.
+      const [w, h] = adb("shell", "wm", "size")
+        .match(/(\d+)x(\d+)\s*$/m)!
+        .slice(1)
+        .map(Number);
+      const x = String(w! >> 1);
+      const [from, to] = direction === "down" ? [h! * 0.8, h! * 0.2] : [h! * 0.2, h! * 0.8];
+      adb("shell", "input", "swipe", x, String(Math.round(from)), x, String(Math.round(to)), "400");
+      await sleep(settle);
+    },
     async report(): Promise<Report> {
       const ls = lines();
       const data = [...ls].reverse().find((l) => l.kind === "data")?.data;

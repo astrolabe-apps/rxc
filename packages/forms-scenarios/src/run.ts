@@ -66,31 +66,59 @@ export function screenTexts(nodes: ScreenNode[]): string[] {
 
 const json = (v: unknown) => JSON.stringify(v ?? null);
 
+/**
+ * Find something on screen; on a target that scrolls, scroll the form to find it — toward
+ * its end, then back toward its start — stopping where the screen no longer changes.
+ * Returns the screen it was found on.
+ */
+async function locate<T>(
+  t: Target,
+  find: (nodes: ScreenNode[]) => T | undefined,
+): Promise<{ found: T | undefined; nodes: ScreenNode[] }> {
+  let nodes = await t.screen();
+  let found = find(nodes);
+  if (found !== undefined || !t.scroll) return { found, nodes };
+  const key = (ns: ScreenNode[]) => ns.map((n) => `${label(n)}@${n.y}`).join("|");
+  for (const direction of ["down", "up"] as const) {
+    for (let i = 0; i < 12; i++) {
+      const before = key(nodes);
+      await t.scroll(direction);
+      nodes = await t.screen();
+      found = find(nodes);
+      if (found !== undefined) return { found, nodes };
+      if (key(nodes) === before) break;
+    }
+  }
+  return { found, nodes };
+}
+
 /** Do one step; throw with a reason when it cannot be done or does not hold. */
 async function perform(t: Target, s: Step): Promise<void> {
   const nodes = await t.screen();
   switch (s.kind) {
     case "press": {
-      const n = findText(nodes, s.name);
+      const n = (await locate(t, (ns) => findText(ns, s.name))).found;
       if (!n) throw new Error(`nothing named "${s.name}" on screen`);
       if (!n.enabled) throw new Error(`"${s.name}" is disabled`);
       return t.tap(n);
     }
     case "fill": {
-      const n = findField(nodes, s.label);
+      const n = (await locate(t, (ns) => findField(ns, s.label))).found;
       if (!n) throw new Error(`no field labelled "${s.label}"`);
       await t.tap(n);
       return t.type(s.text, n.text);
     }
     case "toggle": {
-      const n = findToggle(nodes, s.label);
+      const n = (await locate(t, (ns) => findToggle(ns, s.label))).found;
       if (!n) throw new Error(`no checkbox or switch labelled "${s.label}"`);
       return t.tap(n);
     }
     case "choose": {
-      const o = findOption(nodes, s.label, s.option);
+      // The question in view first; then its option, or what opens its options.
+      const { nodes: at } = await locate(t, (ns) => findText(ns, s.label));
+      const o = (await locate(t, (ns) => findOption(ns, s.label, s.option))).found;
       if (o) return t.tap(o);
-      const trigger = findTrigger(nodes, s.label);
+      const trigger = findTrigger(at, s.label);
       if (!trigger) throw new Error(`no "${s.option}" for "${s.label}", and nothing to open`);
       await t.tap(trigger);
       const opened = findText(await t.screen(), s.option);
@@ -98,7 +126,8 @@ async function perform(t: Target, s: Step): Promise<void> {
       return t.tap(opened);
     }
     case "expectVisible":
-      if (!findText(nodes, s.text)) throw new Error(`"${s.text}" is not on screen`);
+      if (!(await locate(t, (ns) => findText(ns, s.text))).found)
+        throw new Error(`"${s.text}" is not on screen`);
       return;
     case "expectHidden":
       if (findText(nodes, s.text)) throw new Error(`"${s.text}" is on screen`);
