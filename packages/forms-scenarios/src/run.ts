@@ -121,16 +121,36 @@ async function perform(t: Target, s: Step): Promise<void> {
 }
 
 /**
+ * How a run reports and paces itself — for watching one happen.
+ *
+ * @group Running
+ */
+export interface RunOptions {
+  /**
+   * Told as each step starts (`ok` undefined) and as it ends (`ok` set, with
+   * its `message` when it failed).
+   */
+  onStep?: (step: StepResult, index: number) => void;
+  /** Wait this long after each step, in ms, so a person can follow. Default 0. */
+  pause?: number;
+}
+
+/**
  * Run a scenario on a target: open the form with its data, then each step in
  * order, stopping at the first that fails. Every step's snapshot is kept.
  *
  * @group Running
  */
-export async function runScenario(scenario: Scenario, target: Target): Promise<ScenarioResult> {
+export async function runScenario(
+  scenario: Scenario,
+  target: Target,
+  options: RunOptions = {},
+): Promise<ScenarioResult> {
   const steps: StepResult[] = scenario.steps.map((step) => ({ step }));
   await target.open(scenario.form, scenario.data ?? {});
   let ok = true;
-  for (const r of steps) {
+  for (const [i, r] of steps.entries()) {
+    options.onStep?.(r, i);
     try {
       await perform(target, r.step);
       r.ok = true;
@@ -141,6 +161,8 @@ export async function runScenario(scenario: Scenario, target: Target): Promise<S
     }
     r.texts = screenTexts(await target.screen());
     r.data = (await target.report()).data;
+    options.onStep?.(r, i);
+    if (options.pause) await sleep(options.pause);
     if (!ok) break;
   }
   return { scenario, target: target.name, ok, steps };

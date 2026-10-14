@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "The Forms v2 loader's corpus tooling: extract a legacy app's forms, the burndown, and parity against legacy itself \u2014 and `gates`, which fails on a regression in either. The corpus is another repository's data and is gitignored; the gates run locally.",
+  "description": "The Forms v2 loader's corpus tooling: extract a legacy app's forms, the burndown, and parity against legacy itself — and `gates`, which fails on a regression in either. The corpus is another repository's data and is gitignored; the gates run locally.",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "extract-corpus": "node lib/extract-corpus.js",
@@ -30,6 +30,7 @@
     "react-dom": "~19.2.0"
   },
   "devDependencies": {
+    "@rx-controls/forms-scenarios": "workspace:^",
     "@types/node": "~22.15.0",
     "@types/react": "~19.2.0",
     "@types/react-dom": "~19.2.0",

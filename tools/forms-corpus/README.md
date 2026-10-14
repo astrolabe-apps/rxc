@@ -94,7 +94,7 @@ and `defaultRNRenderOptions`, no auth, API or maps), the v2 side `apps/native-de
 screen.
 
 1. `rushx convert-looks` here, then `rushx sync-converted <Form…>` in `apps/native-dev`.
-2. Nothing to sync on the harness side: it draws the app's own forms (`FormDefinitions`) with the app's `AppForm`.
+2. Nothing to sync on the harness side: it draws the app's own forms (`FormDefinitions`) with the app's `AppForm`. Both apps are form-scenario targets: the script opens each form by link and reads only the form's container (`@rx-controls/forms-scenarios`).
 3. Metro for each, without `CI=1`: `native-dev` on 8082, the harness on 8083 with
    `EXPO_PUBLIC_FORMS_HARNESS=1 npx expo start --go --localhost --port 8083 < /dev/null`.
 4. `node scripts/device-compare.mjs <Form…>`: `corpus/compare/report.md` and the screenshots.

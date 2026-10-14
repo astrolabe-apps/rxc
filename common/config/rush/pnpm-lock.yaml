@@ -850,6 +850,9 @@ importers:
         specifier: ~19.2.0
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@rx-controls/forms-scenarios':
+        specifier: workspace:^
+        version: link:../../packages/forms-scenarios
       '@types/node':
         specifier: ~22.15.0
         version: 22.15.35

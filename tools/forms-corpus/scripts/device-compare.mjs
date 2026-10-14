@@ -4,12 +4,13 @@
 //
 //   node scripts/device-compare.mjs [--out dir] [Form ...]
 //
-// Both apps must be running (see each README) with the same forms synced. The window is made
+// Both apps must be running (see each README), the playground with the forms synced. The window is made
 // tall (`wm size`) so a form is one screen, and reset afterwards. Output: per form, a
 // screenshot and a json of the visible text elements from each side, and `report.md`.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { androidTarget } from "@rx-controls/forms-scenarios";
 
 const argv = process.argv.slice(2);
 const oi = argv.indexOf("--out");
@@ -19,71 +20,26 @@ const ADB = process.env.ADB ?? join(process.env.HOME, "Android/Sdk/platform-tool
 const adb = (...a) => execFileSync(ADB, a, { maxBuffer: 1 << 28 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const dump = () => {
-  adb("shell", "uiautomator", "dump", "/sdcard/ui.xml");
-  return adb("shell", "cat", "/sdcard/ui.xml").toString();
-};
-const nodes = (xml) =>
-  [...xml.matchAll(/<node ([^>]*?)\/?>/g)].map((m) => {
-    const g = (k) => (m[1].match(new RegExp(` ${k}="([^"]*)"`)) || [])[1] ?? "";
-    const b = g("bounds").match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/).slice(1).map(Number);
-    return {
-      text: g("text").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">"),
-      desc: g("content-desc"),
-      cls: g("class"),
-      clickable: g("clickable") === "true",
-      enabled: g("enabled") === "true",
-      x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1],
-    };
-  });
-const find = (t) => nodes(dump()).find((n) => n.text === t || n.desc === t);
-const tap = (n, dx = 0) => adb("shell", "input", "tap", String(n.x + (dx || n.w >> 1)), String(n.y + (n.h >> 1)));
-
-async function waitFor(text, ms = 120000, swipeY) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const n = find(text);
-    if (n) return n;
-    if (swipeY) adb("shell", "input", "swipe", "900", String(swipeY), "150", String(swipeY), "200");
-    await sleep(1500);
-  }
-  throw new Error(`never saw "${text}"`);
-}
-
+// Each app is a form-scenario target (@rx-controls/forms-scenarios): a link opens the form, and
+// the screen read is the form's own container, nothing of the app around it.
 const apps = [
-  { name: "legacy", port: 8083, start: async () => {}, chipsY: null },
-  {
-    name: "v2", port: 8082,
-    // the playground opens on its first screen; the Converted screen is a chip in the top row
-    start: async () => {
-      // the dev-menu gear sits over the end of the row, so tap the chip's left part
-      const c = await waitFor("Converted", 60000, 160);
-      tap(c, 25);
-      await sleep(2500);
-    },
-  },
+  { name: "legacy", url: "exp://127.0.0.1:8083" },
+  { name: "v2", url: "exp://127.0.0.1:8082" },
 ];
 
 const runApp = async (app, names) => {
-  adb("reverse", `tcp:${app.port}`, `tcp:${app.port}`);
-  adb("shell", "am", "force-stop", "host.exp.exponent");
-  adb("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", `exp://127.0.0.1:${app.port}`, "host.exp.exponent");
-  await sleep(8000);
-  await app.start();
+  adb("reverse", `tcp:${app.url.split(":").pop()}`, `tcp:${app.url.split(":").pop()}`);
+  // The window is made tall here, once for both apps, so tallHeight 0.
+  const target = androidTarget({ name: app.name, url: app.url, tallHeight: 0 });
   const result = {};
   for (const name of names) {
-    const chip = await waitFor(name, 60000);
-    // the dev-menu gear covers the right end of the screen: tap the chip's left part
-    tap(chip, Math.min(chip.w >> 1, 40));
-    await sleep(3000);
-    const all = nodes(dump());
-    const chipBottom = Math.max(...names.map((n) => all.find((x) => x.text === n)).filter(Boolean).map((n) => n.y + n.h));
-    // what the form drew: everything under the form chips, with text or an accessible name
+    await target.open(name, {});
     const seen = new Set();
-    const els = all.filter((n) => {
+    // what the form drew, with text or an accessible name; a text and its container often
+    // both carry the words, at the same place
+    const els = (await target.screen()).filter((n) => {
       const l = (n.text || n.desc).trim();
-      if (n.y < chipBottom || !l || names.includes(n.text)) return false;
-      // a text and its container often both carry the words, at the same place
+      if (!l) return false;
       const k = `${l}|${n.x}|${n.y}|${n.w}|${n.h}`;
       return !seen.has(k) && seen.add(k);
     });

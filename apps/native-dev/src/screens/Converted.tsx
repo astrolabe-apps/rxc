@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FORM_TEST_ID, report, type ScenarioLink } from "@rx-controls/forms-scenarios/app";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import { FormPicker } from "../FormPicker";
 import { Form, FormIconsProvider, RichText } from "@rx-controls/forms-react";
 import { useControl, useControlEffect } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
@@ -57,13 +58,14 @@ export function Converted({ scenario }: { scenario?: ScenarioLink }) {
   const theme: PartialNativeTheme = { tokens: { colors: data.tokens }, looks: data.looks, date: { picker: DatePickerHost } };
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 8 }}>
-        {names.map((n) => (
-          <Pressable key={n} onPress={() => { setAt(n); setOpened(undefined); }} style={{ padding: 6, borderRadius: 6, backgroundColor: n === at ? "#111827" : "#e5e7eb" }}>
-            <Text style={{ color: n === at ? "#fff" : "#111827" }}>{n}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <FormPicker
+        names={names}
+        value={at}
+        onChange={(n) => {
+          setAt(n);
+          setOpened(undefined);
+        }}
+      />
       {/* The app's icons: Font Awesome (Pro with a ServiceTas checkout beside the repo). */}
       <FormIconsProvider set={fontAwesomeIcons}>
         <NativeThemeProvider theme={serviceTasNativeTheme}>

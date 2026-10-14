@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 // forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md]
+//                 [--watch] [--slow ms] [--no-tall]
+//
+// Each step is printed as it happens. To watch a run on the device: --watch (a pause of 1.5s
+// between steps), or --slow <ms> for another pause; --no-tall keeps the screen its own size
+// (a form longer than the screen then shows only what fits).
 //
 // Runs every scenario in the files (`*.scenario.ts`, `*.scenario.js` under a directory) on
 // the first target; with a second target, on both, comparing step by step (the first the
@@ -9,8 +14,15 @@ import { readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { androidTarget } from "./android.js";
-import { compareRuns, formatResult, runScenario, type ScenarioResult, type StepDifference } from "./run.js";
-import type { Scenario } from "./scenario.js";
+import {
+  compareRuns,
+  formatResult,
+  runScenario,
+  type RunOptions,
+  type ScenarioResult,
+  type StepDifference,
+} from "./run.js";
+import { describeStep, type Scenario } from "./scenario.js";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => {
@@ -18,15 +30,26 @@ const opt = (name: string) => {
   for (let i = args.indexOf(name); i >= 0; i = args.indexOf(name)) out.push(args.splice(i, 2)[1]!);
   return out;
 };
+const flag = (name: string) => {
+  const i = args.indexOf(name);
+  if (i >= 0) args.splice(i, 1);
+  return i >= 0;
+};
+const watch = flag("--watch");
+const tall = !flag("--no-tall");
+const slow = opt("--slow")[0];
+const pause = slow !== undefined ? Number(slow) : watch ? 1500 : 0;
 const targets = opt("--target").map((t) => {
   const [name, url] = t.split(/=(.*)/s);
   if (!name || !url) throw new Error(`--target is name=url, not "${t}"`);
-  return androidTarget({ name, url });
+  return androidTarget({ name, url, tallHeight: tall ? undefined : 0 });
 });
 const only = opt("--only")[0];
 const reportFile = opt("--report")[0];
 if (!targets.length || !args.length) {
-  console.error("forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md]");
+  console.error(
+    "forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md] [--watch] [--slow ms] [--no-tall]",
+  );
   process.exit(2);
 }
 
@@ -49,19 +72,39 @@ const chosen = only ? scenarios.filter((s) => s.name.includes(only) || s.form ==
 console.log(`${chosen.length} scenario(s) from ${files.length} file(s), on ${targets.map((t) => t.name).join(" and ")}\n`);
 
 const [first, second] = targets;
+
+/** Each step as it happens: on a terminal, "▸ step" replaced by its ✓ or ✗ when it ends. */
+const live = process.stdout.isTTY;
+const run = async (s: Scenario, t: (typeof targets)[number]) => {
+  console.log(`\u25B6 ${s.name} \u2014 ${t.name}`);
+  const options: RunOptions = {
+    pause,
+    onStep: (r) => {
+      const what = describeStep(r.step);
+      if (r.ok === undefined) {
+        if (live) process.stdout.write(`  \u25B8 ${what}`);
+        return;
+      }
+      const line = `  ${r.ok ? "\u2713" : "\u2717"} ${what}${r.message ? ` \u2014 ${r.message}` : ""}`;
+      process.stdout.write(live ? `\r\x1b[K${line}\n` : `${line}\n`);
+    },
+  };
+  const r = await runScenario(s, t, options);
+  const skipped = r.steps.filter((x) => x.ok === undefined).length;
+  console.log(`${r.ok ? "\u2713 passed" : `\u2717 failed${skipped ? ` (${skipped} step(s) not reached)` : ""}`}\n`);
+  return r;
+};
 let failed = 0;
 let md = `# Form scenarios\n\n`;
 try {
   for (const s of chosen) {
-    const a = await runScenario(s, first!);
-    console.log(formatResult(a));
+    const a = await run(s, first!);
     if (!a.ok) failed++;
     md += "```\n" + formatResult(a) + "\n";
     let b: ScenarioResult | undefined;
     let diffs: StepDifference[] = [];
     if (second) {
-      b = await runScenario(s, second);
-      console.log(formatResult(b));
+      b = await run(s, second);
       md += formatResult(b) + "\n";
       diffs = compareRuns(a, b);
     }

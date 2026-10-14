@@ -135,6 +135,16 @@ describe("runScenario", () => {
     expect(r.steps.at(-1)!.texts).not.toContain("\uF05A");
   });
 
+  it("tells a watcher each step as it starts and as it ends", async () => {
+    const seen: string[] = [];
+    await runScenario(
+      { name: "x", form: "X", steps: [press("Continue"), expectVisible("Nope")] },
+      fakeApp(),
+      { onStep: (r, i) => seen.push(`${i}:${r.ok === undefined ? "start" : r.ok ? "ok" : "failed"}`) },
+    );
+    expect(seen).toEqual(["0:start", "0:ok", "1:start", "1:failed"]);
+  });
+
   it("stops at the first step that fails, saying why", async () => {
     const r = await runScenario(
       { name: "x", form: "X", steps: [expectData("name", "Ada"), press("Continue")] },
