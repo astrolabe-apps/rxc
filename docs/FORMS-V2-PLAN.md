@@ -1037,6 +1037,15 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   keyboard's composition with Escape after typing, then reads the field back and retypes once
   when it differs: Gboard with a hardware keyboard declared committed the last word with a stray
   character as the field was left (a space, an "r"), on one long field about one run in three.
+  The suite on legacy went from 21 minutes to under two (alpha.5): 86% of a run was
+  `uiautomator dump` (two seconds a read, three reads a step). A screen read is now reused until
+  something is done to the device, a step waits for what it needs instead of the device
+  sleeping 800ms after every action, the reports come from one logcat stream, and the screen
+  comes from Appium's UiAutomator2 server when the device has it (`forms-scenarios
+  install-server`), in about 400ms on the tall screen. Its default tree is the dump's; with
+  invisible elements allowed it held a wizard's other pages and a hidden button with
+  placeholder bounds that a press found. Typing goes a character at a time: legacy's numeric
+  fields kept the first digit or two of a burst of keys while showing them all, one run in ten.
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,

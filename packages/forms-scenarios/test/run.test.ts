@@ -10,6 +10,7 @@ import {
   findField,
   findText,
   findToggle,
+  label,
   press,
   runScenario,
   toggle,
@@ -140,7 +141,7 @@ describe("runScenario", () => {
     await runScenario(
       { name: "x", form: "X", steps: [press("Continue"), expectVisible("Nope")] },
       fakeApp(),
-      { onStep: (r, i) => seen.push(`${i}:${r.ok === undefined ? "start" : r.ok ? "ok" : "failed"}`) },
+      { wait: 0, onStep: (r, i) => seen.push(`${i}:${r.ok === undefined ? "start" : r.ok ? "ok" : "failed"}`) },
     );
     expect(seen).toEqual(["0:start", "0:ok", "1:start", "1:failed"]);
   });
@@ -160,6 +161,7 @@ describe("runScenario", () => {
     const r = await runScenario(
       { name: "x", form: "X", steps: [press("Continue"), expectVisible("Name *"), expectAction("next")] },
       { ...scrolled, open: async () => { top = 0; } },
+      { wait: 0 },
     );
     // Continue is found below, then the name field above it again.
     expect(r.steps.map((s) => s.ok)).toEqual([true, true, false]);
@@ -169,6 +171,7 @@ describe("runScenario", () => {
     const r = await runScenario(
       { name: "x", form: "X", steps: [expectData("name", "Ada"), press("Continue")] },
       fakeApp(),
+      { wait: 0 },
     );
     expect([r.ok, r.steps[0]!.ok, r.steps[0]!.message, r.steps[1]!.ok]).toEqual([
       false,
@@ -176,6 +179,58 @@ describe("runScenario", () => {
       'name is null, not "Ada"',
       undefined,
     ]);
+  });
+
+  it("reads the screen again only once something has been done to it", async () => {
+    const app = fakeApp();
+    let reads = 0;
+    const screen = app.screen;
+    app.screen = async () => (reads++, screen());
+    const r = await runScenario(
+      {
+        name: "x",
+        form: "X",
+        steps: [expectVisible("Name *"), expectHidden("Saved"), expectVisible("Continue"), press("Continue")],
+      },
+      app,
+    );
+    expect(r.ok).toBe(true);
+    // One read for the three checks and the press's search, one after the press.
+    expect(reads).toBe(2);
+  });
+
+  it("waits for what the app shows, and the data it reports, in its own time", async () => {
+    const app = fakeApp();
+    // The app answers a press a few reads later.
+    let late = 0;
+    const screen = app.screen;
+    const report = app.report;
+    app.screen = async () => [...(await screen()), ...(late && ++late > 3 ? [node({ text: "Saved" })] : [])];
+    // And reports its data a few looks later again.
+    let looks = 0;
+    app.report = async () => {
+      const r = await report();
+      return late && ++looks > 3 ? r : { ...r, data: {}, actions: [] };
+    };
+    const tap = app.tap;
+    app.tap = async (n) => {
+      await tap(n);
+      if (label(n) === "Continue") late = 1;
+    };
+    const r = await runScenario(
+      {
+        name: "x",
+        form: "X",
+        data: { name: "Ada" },
+        steps: [press("Continue"), expectVisible("Saved"), expectData("name", "Ada"), expectAction("next")],
+      },
+      app,
+    );
+    expect(r.steps.map((s) => s.message)).toEqual([undefined, undefined, undefined, undefined]);
+    // Not forever: what never comes fails once the wait is up.
+    const start = Date.now();
+    const f = await runScenario({ name: "x", form: "X", steps: [expectVisible("Never")] }, fakeApp(), { wait: 500 });
+    expect([f.ok, Date.now() - start >= 500]).toEqual([false, true]);
   });
 
   it("leaves a filled field by tapping its label, so the next tap is not taken as dismissing the keyboard", async () => {

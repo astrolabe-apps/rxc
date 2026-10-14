@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 // forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md]
-//                 [--watch] [--slow ms] [--no-tall]
+//                 [--watch] [--slow ms] [--no-tall] [--timings]
 //
 // Each step is printed as it happens. To watch a run on the device: --watch (a pause of 1.5s
 // between steps), or --slow <ms> for another pause; --no-tall keeps the screen its own size
-// (a form longer than the screen is scrolled to find what each step needs).
+// (a form longer than the screen is scrolled to find what each step needs). --timings prints
+// where a run's time went: each kind of call to the device, its count and total.
+//
+// forms-scenarios install-server — install the screen server on the device (Appium's
+// UiAutomator2 server: a screen read in a fraction of a second rather than two seconds).
 //
 // Runs every scenario in the files (`*.scenario.ts`, `*.scenario.js` under a directory) on
 // the first target; with a second target, on both, comparing step by step (the first the
@@ -13,7 +17,8 @@
 import { readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { androidTarget } from "./android.js";
+import { androidTarget, defaultAdb } from "./android.js";
+import { installScreenServer, SCREEN_SERVER_PACKAGE } from "./screenServer.js";
 import {
   compareRuns,
   formatResult,
@@ -23,8 +28,14 @@ import {
   type StepDifference,
 } from "./run.js";
 import { describeStep, type Scenario } from "./scenario.js";
+import type { Target } from "./target.js";
 
 const args = process.argv.slice(2);
+if (args[0] === "install-server") {
+  console.log(`installing ${SCREEN_SERVER_PACKAGE} on the device`);
+  installScreenServer(defaultAdb());
+  process.exit(0);
+}
 const opt = (name: string) => {
   const out: string[] = [];
   for (let i = args.indexOf(name); i >= 0; i = args.indexOf(name)) out.push(args.splice(i, 2)[1]!);
@@ -36,19 +47,47 @@ const flag = (name: string) => {
   return i >= 0;
 };
 const watch = flag("--watch");
+const timings = flag("--timings");
 const tall = !flag("--no-tall");
 const slow = opt("--slow")[0];
 const pause = slow !== undefined ? Number(slow) : watch ? 1500 : 0;
 const targets = opt("--target").map((t) => {
   const [name, url] = t.split(/=(.*)/s);
   if (!name || !url) throw new Error(`--target is name=url, not "${t}"`);
-  return androidTarget({ name, url, tallHeight: tall ? undefined : 0 });
+  return timed(androidTarget({ name, url, tallHeight: tall ? undefined : 0 }));
 });
+/** Time spent per kind of call, per target: `legacy screen` → calls and ms. */
+const spent = new Map<string, { calls: number; ms: number }>();
+function timed(t: Target): Target {
+  const wrap =
+    <A extends unknown[], R>(what: string, f: (...a: A) => Promise<R>) =>
+    async (...a: A) => {
+      const start = performance.now();
+      try {
+        return await f(...a);
+      } finally {
+        const k = `${t.name} ${what}`;
+        const e = spent.get(k) ?? { calls: 0, ms: 0 };
+        e.calls++;
+        e.ms += performance.now() - start;
+        spent.set(k, e);
+      }
+    };
+  return {
+    ...t,
+    open: wrap("open", t.open),
+    screen: wrap("screen", t.screen),
+    tap: wrap("tap", t.tap),
+    type: wrap("type", t.type),
+    report: wrap("report", t.report),
+    scroll: t.scroll && wrap("scroll", t.scroll),
+  };
+}
 const only = opt("--only")[0];
 const reportFile = opt("--report")[0];
 if (!targets.length || !args.length) {
   console.error(
-    "forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md] [--watch] [--slow ms] [--no-tall]",
+    "forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md] [--watch] [--slow ms] [--no-tall] [--timings]\nforms-scenarios install-server",
   );
   process.exit(2);
 }
@@ -89,12 +128,17 @@ const run = async (s: Scenario, t: (typeof targets)[number]) => {
       process.stdout.write(live ? `\r\x1b[K${line}\n` : `${line}\n`);
     },
   };
+  const start = performance.now();
   const r = await runScenario(s, t, options);
+  const secs = `${((performance.now() - start) / 1000).toFixed(1)}s`;
   const skipped = r.steps.filter((x) => x.ok === undefined).length;
-  console.log(`${r.ok ? "\u2713 passed" : `\u2717 failed${skipped ? ` (${skipped} step(s) not reached)` : ""}`}\n`);
+  console.log(
+    `${r.ok ? "\u2713 passed" : `\u2717 failed${skipped ? ` (${skipped} step(s) not reached)` : ""}`} in ${secs}\n`,
+  );
   return r;
 };
 let failed = 0;
+const began = performance.now();
 let md = `# Form scenarios\n\n`;
 try {
   for (const s of chosen) {
@@ -131,5 +175,14 @@ try {
   for (const t of targets) await t.close();
 }
 if (reportFile) writeFileSync(reportFile, md);
-console.log(`${chosen.length - failed} of ${chosen.length} passed on ${first!.name}`);
+console.log(
+  `${chosen.length - failed} of ${chosen.length} passed on ${first!.name} in ${((performance.now() - began) / 1000).toFixed(1)}s`,
+);
+if (timings) {
+  console.log("\nwhere the time went:");
+  for (const [k, e] of [...spent].sort((a, b) => b[1].ms - a[1].ms))
+    console.log(
+      `  ${k.padEnd(18)} ${String(e.calls).padStart(5)} calls  ${(e.ms / 1000).toFixed(1).padStart(7)}s  ${(e.ms / e.calls).toFixed(0).padStart(6)}ms each`,
+    );
+}
 process.exit(failed ? 1 : 0);

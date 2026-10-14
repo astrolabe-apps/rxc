@@ -67,44 +67,108 @@ export function screenTexts(nodes: ScreenNode[]): string[] {
 
 const json = (v: unknown) => JSON.stringify(v ?? null);
 
+/** A target whose screen is read once until something is done to it. */
+interface Device extends Target {
+  /** The screen read again, whatever was read before. */
+  fresh(): Promise<ScreenNode[]>;
+}
+
 /**
- * Find something on screen; on a target that scrolls, scroll the form to find it — toward
- * its end, then back toward its start — stopping where the screen no longer changes.
- * Returns the screen it was found on.
+ * Reading the screen is a device's slowest call (`uiautomator dump`: two seconds on an
+ * emulator), and a step's checks read it several times while nothing has changed — so a
+ * screen is kept until the next tap, typing, scroll or open.
  */
-async function locate<T>(
-  t: Target,
-  find: (nodes: ScreenNode[]) => T | undefined,
-): Promise<{ found: T | undefined; nodes: ScreenNode[] }> {
-  let nodes = await t.screen();
-  let found = find(nodes);
-  if (found !== undefined || !t.scroll) return { found, nodes };
-  const key = (ns: ScreenNode[]) => ns.map((n) => `${label(n)}@${n.y}`).join("|");
-  for (const direction of ["down", "up"] as const) {
-    for (let i = 0; i < 12; i++) {
-      const before = key(nodes);
-      await t.scroll(direction);
-      nodes = await t.screen();
-      found = find(nodes);
-      if (found !== undefined) return { found, nodes };
-      if (key(nodes) === before) break;
-    }
+function remembering(t: Target): Device {
+  let last: ScreenNode[] | undefined;
+  const acting =
+    <A extends unknown[]>(f: (...a: A) => Promise<void>) =>
+    async (...a: A) => {
+      last = undefined;
+      try {
+        await f(...a);
+      } finally {
+        last = undefined;
+      }
+    };
+  return {
+    ...t,
+    open: acting(t.open),
+    tap: acting(t.tap),
+    type: acting(t.type),
+    scroll: t.scroll && acting(t.scroll),
+    screen: async () => (last ??= await t.screen()),
+    fresh: async () => (last = await t.screen()),
+  };
+}
+
+/** How often a step waiting on the app looks again. */
+const POLL = 200;
+
+/**
+ * Ask `attempt` until it answers or `wait` ms pass: an app answers a tap in its own time,
+ * so a step waits for what it needs rather than the device sleeping a fixed time after
+ * every action.
+ */
+async function eventually<T>(wait: number, attempt: (first: boolean) => Promise<T | undefined>): Promise<T | undefined> {
+  const end = Date.now() + wait;
+  for (let first = true; ; first = false) {
+    const r = await attempt(first);
+    if (r !== undefined || Date.now() >= end) return r;
+    await sleep(POLL);
   }
+}
+
+/** Wait for something to be on the screen as it is, reading it again until it is. */
+async function waitFor<T>(
+  t: Device,
+  find: (nodes: ScreenNode[]) => T | undefined,
+  wait: number,
+): Promise<{ found: T | undefined; nodes: ScreenNode[] }> {
+  let nodes: ScreenNode[] = [];
+  const found = await eventually(wait, async (first) => find((nodes = await (first ? t.screen() : t.fresh()))));
   return { found, nodes };
 }
 
+/**
+ * Find something on screen; on a target that scrolls, scroll the form to find it — toward
+ * its end, then back toward its start — stopping where the screen no longer changes. Then
+ * wait for it where the form now is. Returns the screen it was found on.
+ */
+async function locate<T>(
+  t: Device,
+  find: (nodes: ScreenNode[]) => T | undefined,
+  wait: number,
+): Promise<{ found: T | undefined; nodes: ScreenNode[] }> {
+  let nodes = await t.screen();
+  let found = find(nodes);
+  if (found !== undefined) return { found, nodes };
+  if (t.scroll) {
+    const key = (ns: ScreenNode[]) => ns.map((n) => `${label(n)}@${n.y}`).join("|");
+    for (const direction of ["down", "up"] as const) {
+      for (let i = 0; i < 12; i++) {
+        const before = key(nodes);
+        await t.scroll(direction);
+        nodes = await t.screen();
+        found = find(nodes);
+        if (found !== undefined) return { found, nodes };
+        if (key(nodes) === before) break;
+      }
+    }
+  }
+  return waitFor(t, find, wait);
+}
+
 /** Do one step; throw with a reason when it cannot be done or does not hold. */
-async function perform(t: Target, s: Step): Promise<void> {
-  const nodes = await t.screen();
+async function perform(t: Device, s: Step, wait: number): Promise<void> {
   switch (s.kind) {
     case "press": {
-      const n = (await locate(t, (ns) => findText(ns, s.name))).found;
+      const n = (await locate(t, (ns) => findText(ns, s.name), wait)).found;
       if (!n) throw new Error(`nothing named "${s.name}" on screen`);
       if (!n.enabled) throw new Error(`"${s.name}" is disabled`);
       return t.tap(n);
     }
     case "fill": {
-      const { found: n, nodes: at } = await locate(t, (ns) => findField(ns, s.label));
+      const { found: n, nodes: at } = await locate(t, (ns) => findField(ns, s.label), wait);
       if (!n) throw new Error(`no field labelled "${s.label}"`);
       // Leave the field afterwards, as a person does, by tapping its label. With the keyboard
       // up, React Native takes the next tap outside the field as dismissing it and nothing else
@@ -128,41 +192,47 @@ async function perform(t: Target, s: Step): Promise<void> {
       return;
     }
     case "toggle": {
-      const n = (await locate(t, (ns) => findToggle(ns, s.label))).found;
+      const n = (await locate(t, (ns) => findToggle(ns, s.label), wait)).found;
       if (!n) throw new Error(`no checkbox or switch labelled "${s.label}"`);
       return t.tap(n);
     }
     case "choose": {
       // The question in view first; then its option, or what opens its options.
-      const { nodes: at } = await locate(t, (ns) => findText(ns, s.label));
-      const o = (await locate(t, (ns) => findOption(ns, s.label, s.option))).found;
+      const { nodes: at } = await locate(t, (ns) => findText(ns, s.label), wait);
+      const o = (await locate(t, (ns) => findOption(ns, s.label, s.option), 0)).found;
       if (o) return t.tap(o);
       const trigger = findTrigger(at, s.label);
       if (!trigger) throw new Error(`no "${s.option}" for "${s.label}", and nothing to open`);
       await t.tap(trigger);
-      const opened = findText(await t.screen(), s.option);
+      const opened = (await waitFor(t, (ns) => findText(ns, s.option), wait)).found;
       if (!opened) throw new Error(`"${s.label}" opened, but offers no "${s.option}"`);
       return t.tap(opened);
     }
     case "expectVisible":
-      if (!(await locate(t, (ns) => findText(ns, s.text))).found)
+      if (!(await locate(t, (ns) => findText(ns, s.text), wait)).found)
         throw new Error(`"${s.text}" is not on screen`);
       return;
     case "expectHidden":
-      if (findText(nodes, s.text)) throw new Error(`"${s.text}" is on screen`);
+      if (!(await waitFor(t, (ns) => (findText(ns, s.text) ? undefined : true), wait)).found)
+        throw new Error(`"${s.text}" is on screen`);
       return;
     case "expectData": {
-      const got = dataAt((await t.report()).data, s.path);
-      if (json(got) !== json(s.value))
-        throw new Error(`${s.path} is ${json(got)}, not ${json(s.value)}`);
+      let got: unknown;
+      const held = await eventually(wait, async () => {
+        got = dataAt((await t.report()).data, s.path);
+        return json(got) === json(s.value) || undefined;
+      });
+      if (!held) throw new Error(`${s.path} is ${json(got)}, not ${json(s.value)}`);
       return;
     }
     case "expectAction": {
-      const { actions } = await t.report();
-      if (!actions.some((a) => a.actionId === s.actionId))
-        throw new Error(
-          `"${s.actionId}" was not called (called: ${actions.map((a) => a.actionId).join(", ") || "nothing"})`,
-        );
+      let called: string[] = [];
+      const held = await eventually(wait, async () => {
+        called = (await t.report()).actions.map((a) => a.actionId);
+        return called.includes(s.actionId) || undefined;
+      });
+      if (!held)
+        throw new Error(`"${s.actionId}" was not called (called: ${called.join(", ") || "nothing"})`);
       return;
     }
   }
@@ -181,6 +251,11 @@ export interface RunOptions {
   onStep?: (step: StepResult, index: number) => void;
   /** Wait this long after each step, in ms, so a person can follow. Default 0. */
   pause?: number;
+  /**
+   * How long a step waits for the app — for what it looks for to appear (or go), the
+   * data to arrive, an action to be called — before it fails. Default 3000ms.
+   */
+  wait?: number;
 }
 
 /**
@@ -195,20 +270,22 @@ export async function runScenario(
   options: RunOptions = {},
 ): Promise<ScenarioResult> {
   const steps: StepResult[] = scenario.steps.map((step) => ({ step }));
-  await target.open(scenario.form, scenario.data ?? {});
+  const device = remembering(target);
+  const wait = options.wait ?? 3000;
+  await device.open(scenario.form, scenario.data ?? {});
   let ok = true;
   for (const [i, r] of steps.entries()) {
     options.onStep?.(r, i);
     try {
-      await perform(target, r.step);
+      await perform(device, r.step, wait);
       r.ok = true;
     } catch (e) {
       r.ok = false;
       r.message = e instanceof Error ? e.message : String(e);
       ok = false;
     }
-    r.texts = screenTexts(await target.screen());
-    r.data = (await target.report()).data;
+    r.texts = screenTexts(await device.screen());
+    r.data = (await device.report()).data;
     options.onStep?.(r, i);
     if (options.pause) await sleep(options.pause);
     if (!ok) break;
