@@ -1011,7 +1011,14 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   the forms ServiceTas ships today, owned there; `apps/native-dev` is the v2 target, and a differential
   run compares the two step by step. First scenarios (PersonalDetails, ContactUsEnquiry) pass on both;
   the differences they show are accessibility ones — legacy exposes an empty field's label to no one
-  and names no date button.
+  and names no date button. The ServiceTas suite is now 32 scenarios over 18 forms (the linking
+  wizards, deactivation, address, the preference and navigation forms, the inbox, a licence renewal,
+  the short-term permit), all passing on the harness, which draws every page of a wizard at once.
+  Two things the harness cannot reach, since it reports actions rather than running the app's
+  handlers: a section shown by a meta field the app's handler sets, and a dialog's Close (the
+  legacy renderer keeps a closed dialog's content in the accessibility tree). A `fill` step leaves
+  its field by tapping the label (alpha.3): with an IME showing after typing, React Native took
+  the next tap as dismissing the keyboard and the step after a fill was lost.
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,
