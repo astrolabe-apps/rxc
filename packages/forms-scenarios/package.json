@@ -1,0 +1,57 @@
+{
+  "name": "@rx-controls/forms-scenarios",
+  "version": "0.1.0-alpha.8",
+  "description": "Form scenarios written once and run against any app that draws the form — legacy renderers or Forms v2 — on an Android device, through the accessibility tree and the data the app reports.",
+  "author": "Astrolabe Enterprises",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/astrolabe-apps/rxc.git",
+    "directory": "packages/forms-scenarios"
+  },
+  "type": "module",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./vitest": {
+      "types": "./lib/vitest.d.ts",
+      "default": "./lib/vitest.js"
+    },
+    "./app": {
+      "types": "./lib/app.d.ts",
+      "default": "./lib/app.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "vitest": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "~22.15.0",
+    "typescript": "~5.8.0",
+    "vitest": "~3.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "forms-scenarios": "./lib/cli.js"
+  }
+}

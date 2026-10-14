@@ -27,6 +27,12 @@
       "shouldPublish": true
     },
     {
+      "packageName": "@rx-controls/forms-scenarios",
+      "projectFolder": "packages/forms-scenarios",
+      "versionPolicyName": "forms-v2-alpha",
+      "shouldPublish": true
+    },
+    {
       "packageName": "@rx-controls/forms-react",
       "projectFolder": "packages/forms-react",
       "versionPolicyName": "forms-v2-alpha",

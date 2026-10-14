@@ -1004,8 +1004,16 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   words); spacing — an alert's top padding, a Switch row's height, a heading's gap to the next paragraph;
   React Native's own Switch, smaller than the app's. The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
-- **Next:** compare with data, and with the actions and custom displays a form needs; DateTime and
-  Time pickers.
+- **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
+  against the accessibility tree and the reported data and run on a device against any app that draws
+  the form. The ServiceTas harness is a target (the app's own `AppForm` over `FormDefinitions`, nothing
+  synced from here) and keeps its scenarios (`servicetas-rn/form-scenarios`) — a regression suite for
+  the forms ServiceTas ships today, owned there; `apps/native-dev` is the v2 target, and a differential
+  run compares the two step by step. First scenarios (PersonalDetails, ContactUsEnquiry) pass on both;
+  the differences they show are accessibility ones — legacy exposes an empty field's label to no one
+  and names no date button.
+- **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
+  generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,
   and its release note is the "for the `alpha.9` notes" list above. Nothing in production depends on it.
 - **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the

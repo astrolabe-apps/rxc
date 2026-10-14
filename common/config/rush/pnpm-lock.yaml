@@ -334,6 +334,9 @@ importers:
       '@rx-controls/forms-react':
         specifier: workspace:^
         version: link:../../packages/forms-react
+      '@rx-controls/forms-scenarios':
+        specifier: workspace:^
+        version: link:../../packages/forms-scenarios
       '@rx-controls/react':
         specifier: workspace:^
         version: link:../../packages/react
@@ -715,6 +718,18 @@ importers:
       react-dom:
         specifier: ~19.2.0
         version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ~5.8.0
+        version: 5.8.3
+      vitest:
+        specifier: ~3.1.0
+        version: 3.1.4(@types/node@22.15.35)(happy-dom@15.11.7)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(yaml@2.9.1)
+
+  ../../packages/forms-scenarios:
+    devDependencies:
+      '@types/node':
+        specifier: ~22.15.0
+        version: 22.15.35
       typescript:
         specifier: ~5.8.0
         version: 5.8.3

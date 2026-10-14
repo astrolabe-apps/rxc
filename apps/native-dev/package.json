@@ -22,6 +22,7 @@
     "@rx-controls/forms-json": "workspace:^",
     "@rx-controls/forms-native": "workspace:^",
     "@rx-controls/forms-react": "workspace:^",
+    "@rx-controls/forms-scenarios": "workspace:^",
     "@rx-controls/react": "workspace:^",
     "expo": "~57.0.27",
     "expo-font": "~57.0.1",

@@ -1,5 +1,6 @@
-import { useState, type ComponentType } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState, type ComponentType } from "react";
+import { Linking, LogBox, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { scenarioFromLink, type ScenarioLink } from "@rx-controls/forms-scenarios/app";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
@@ -27,7 +28,7 @@ import { Portable } from "./screens/Portable";
  * A screen per story kind, as the Storybook has them — the same contract,
  * drawn by forms-native. No navigation library: a row of chips picks one.
  */
-const screens: [string, ComponentType][] = [
+const screens: [string, ComponentType<any>][] = [
   ["Kitchen sink", KitchenSink],
   ["Fields", Fields],
   ["Options", Options],
@@ -43,6 +44,21 @@ const screens: [string, ComponentType][] = [
 
 export function App() {
   const [at, setAt] = useState(0);
+  // A form-scenario link (@rx-controls/forms-scenarios) opens a converted form with its data.
+  const [scenario, setScenario] = useState<ScenarioLink | undefined>();
+  useEffect(() => {
+    const open = (url: string | null) => {
+      const s = url ? scenarioFromLink(url) : undefined;
+      if (!s) return;
+      // Development overlays would cover the form a scenario reads; the warnings still reach Metro.
+      LogBox.ignoreAllLogs(true);
+      setScenario(s);
+      setAt(screens.findIndex(([, C]) => C === Converted));
+    };
+    Linking.getInitialURL().then(open);
+    const sub = Linking.addEventListener("url", (e) => open(e.url));
+    return () => sub.remove();
+  }, []);
   // The Converted screen draws ServiceTas's typography, which is Nunito.
   const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold });
   if (!fontsLoaded) return null;
@@ -69,7 +85,7 @@ export function App() {
             ))}
           </ScrollView>
           {/* Keyed, so a screen starts fresh each time it is picked. */}
-          <Screen key={at} />
+          {Screen === Converted ? <Converted key={at} scenario={scenario} /> : <Screen key={at} />}
         </View>
         <StatusBar style="dark" />
       </FormProvider>

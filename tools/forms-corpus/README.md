@@ -94,7 +94,7 @@ and `defaultRNRenderOptions`, no auth, API or maps), the v2 side `apps/native-de
 screen.
 
 1. `rushx convert-looks` here, then `rushx sync-converted <Form…>` in `apps/native-dev`.
-2. In `servicetas-rn`: `node scripts/sync-harness-forms.mjs <Form…>` (same names).
+2. Nothing to sync on the harness side: it draws the app's own forms (`FormDefinitions`) with the app's `AppForm`.
 3. Metro for each, without `CI=1`: `native-dev` on 8082, the harness on 8083 with
    `EXPO_PUBLIC_FORMS_HARNESS=1 npx expo start --go --localhost --port 8083 < /dev/null`.
 4. `node scripts/device-compare.mjs <Form…>`: `corpus/compare/report.md` and the screenshots.
@@ -110,7 +110,7 @@ Where the comparison stands, and what is next: `docs/FORMS-V2-PLAN.md`, phase 11
 Regenerated from the ServiceTas code (gitignored, never committed): `corpus/` — the forms and
 schemas (`rushx extract-corpus`), `corpus/converted/` (`rushx convert-looks`), `corpus/compare/` (the
 device comparison), `apps/native-dev/src/converted/` (`rushx sync-converted <Form…>`) and the
-harness's `harness/forms.local.ts` (`node scripts/sync-harness-forms.mjs <Form…>`).
+the playground's converted forms only — the harness reads the app's forms itself.
 
 Committed, because nothing regenerates it: `sidecar/` here (the hand-written inputs above, and
 `rn-forms.json`, the 45 forms the React Native app draws — `node scripts/rn-forms.mjs [path]`

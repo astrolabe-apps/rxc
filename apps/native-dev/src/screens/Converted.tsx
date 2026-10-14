@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { FORM_TEST_ID, report, type ScenarioLink } from "@rx-controls/forms-scenarios/app";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Form, FormIconsProvider, RichText } from "@rx-controls/forms-react";
-import { useControl } from "@rx-controls/react";
+import { useControl, useControlEffect } from "@rx-controls/react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import { nativeStandInHost } from "../host";
@@ -36,9 +37,16 @@ function load(): Data | undefined {
 }
 const data = load();
 
-export function Converted() {
+export function Converted({ scenario }: { scenario?: ScenarioLink }) {
   const names = data ? Object.keys(data.forms) : [];
-  const [at, setAt] = useState(names[0]);
+  const [at, setAt] = useState(scenario?.form ?? names[0]);
+  // A scenario opens its form with its data, under its run.
+  const [opened, setOpened] = useState<ScenarioLink | undefined>(scenario);
+  useEffect(() => {
+    if (!scenario) return;
+    setAt(scenario.form);
+    setOpened(scenario);
+  }, [scenario]);
   if (!data || !at)
     return (
       <Text style={{ padding: 16 }}>
@@ -51,7 +59,7 @@ export function Converted() {
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, padding: 8 }}>
         {names.map((n) => (
-          <Pressable key={n} onPress={() => setAt(n)} style={{ padding: 6, borderRadius: 6, backgroundColor: n === at ? "#111827" : "#e5e7eb" }}>
+          <Pressable key={n} onPress={() => { setAt(n); setOpened(undefined); }} style={{ padding: 6, borderRadius: 6, backgroundColor: n === at ? "#111827" : "#e5e7eb" }}>
             <Text style={{ color: n === at ? "#fff" : "#111827" }}>{n}</Text>
           </Pressable>
         ))}
@@ -60,7 +68,13 @@ export function Converted() {
       <FormIconsProvider set={fontAwesomeIcons}>
         <NativeThemeProvider theme={serviceTasNativeTheme}>
           <NativeThemeProvider theme={theme}>
-            <ConvertedForm key={at} form={data.forms[at]!} />
+            <ConvertedForm
+              key={`${at}:${opened?.run ?? ""}`}
+              name={at}
+              form={data.forms[at]!}
+              initial={opened?.form === at ? opened.data : {}}
+              run={opened?.form === at ? opened.run : ""}
+            />
           </NativeThemeProvider>
         </NativeThemeProvider>
       </FormIconsProvider>
@@ -75,9 +89,25 @@ const displayText = (text: string) => <RichText html={text} />;
 const hasFeed = (controls: any[]): boolean =>
   controls.some((c) => c?.renderOptions?.type === "ScrollList" || hasFeed(c?.children ?? []));
 
-function ConvertedForm({ form }: { form: { controls: any[]; fields?: any[] } }) {
-  const value = useControl<unknown>({});
-  const action = useMemo(() => () => () => {}, []);
+function ConvertedForm({
+  name,
+  form,
+  initial,
+  run,
+}: {
+  name: string;
+  form: { controls: any[]; fields?: any[] };
+  initial: unknown;
+  run: string;
+}) {
+  const value = useControl<unknown>(initial ?? {});
+  // What a scenario reads back: drawn, the data as it changes, each action.
+  useControlEffect((rc) => rc.getValue(value), (v) => report(run, { kind: "data", data: v }), true);
+  useEffect(() => report(run, { kind: "ready", form: name }), [run, name]);
+  const action = useMemo(
+    () => (actionId: string, actionData: unknown) => () => report(run, { kind: "action", actionId, data: actionData }),
+    [run],
+  );
   const body = (
     <Form clearHidden>
       <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
@@ -86,8 +116,8 @@ function ConvertedForm({ form }: { form: { controls: any[]; fields?: any[] } }) 
   // A feed is its own scroll container (a FlatList), as legacy's ScrollList was: inside
   // another vertical ScrollView it would not virtualise and React Native warns.
   return hasFeed(form.controls) ? (
-    <View style={{ flex: 1, paddingHorizontal: 16 }}>{body}</View>
+    <View testID={FORM_TEST_ID} style={{ flex: 1, paddingHorizontal: 16 }}>{body}</View>
   ) : (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>{body}</ScrollView>
+    <ScrollView testID={FORM_TEST_ID} contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>{body}</ScrollView>
   );
 }
