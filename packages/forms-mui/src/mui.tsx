@@ -10,6 +10,7 @@ import {
   type Ref,
 } from "react";
 import Checkbox from "@mui/material/Checkbox";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useTheme, type SxProps, type Theme } from "@mui/material/styles";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -92,6 +93,7 @@ import {
   helpButtonName,
   type ImageDisplayRenderProps,
   type IconSpec,
+  type FeedRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -116,6 +118,7 @@ import {
   portableCss,
   useLookWidth,
   webIcon,
+  FeedList,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { useMuiLooks, type MuiFieldLook, type MuiFieldPart, type MuiStyle } from "./looks.js";
@@ -1271,6 +1274,7 @@ export const muiRenderers: FormRenderers = {
   disclosure: MuiDisclosure,
   tabs: MuiTabs,
   elements: ElementsList,
+  feed: MuiFeed,
   visibility: DefaultVisibility,
   form: FormElement,
   fieldShell: MuiFieldShell,
@@ -1282,3 +1286,8 @@ export const muiRenderers: FormRenderers = {
     </>
   ),
 };
+
+/** The web feed, with MUI's spinner; its "Load more" is MUI's own button through the action slot. */
+function MuiFeed(p: FeedRenderProps<unknown>) {
+  return <FeedList {...p} spinner={<CircularProgress size={28} />} />;
+}

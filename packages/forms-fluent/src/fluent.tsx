@@ -92,6 +92,7 @@ import {
   helpButtonName,
   type ImageDisplayRenderProps,
   type IconSpec,
+  type FeedRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -115,6 +116,7 @@ import {
   portableCss,
   useLookWidth,
   webIcon,
+  FeedList,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atState, useFluentLooks, type FluentFieldLook, type FluentStyle } from "./looks.js";
@@ -1325,9 +1327,15 @@ export const fluentRenderers: FormRenderers = {
   disclosure: FluentDisclosure,
   tabs: FluentTabs,
   elements: ElementsList,
+  feed: FluentFeed,
   visibility: DefaultVisibility,
   form: FormElement,
   fieldShell: FluentFieldShell,
   inputFrame: FluentInputFrame,
   root: FluentRoot,
 };
+
+/** The web feed, with Fluent's spinner; its "Load more" is Fluent's own button through the action slot. */
+function FluentFeed(p: FeedRenderProps<unknown>) {
+  return <FeedList {...p} spinner={<Spinner size="small" />} />;
+}

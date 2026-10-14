@@ -38,6 +38,7 @@ export {
 export * from "./field.js";
 export * from "./validation.js";
 export * from "./collection.js";
+export * from "./feed.js";
 export * from "./group.js";
 export * from "./display.js";
 export * from "./richText.js";

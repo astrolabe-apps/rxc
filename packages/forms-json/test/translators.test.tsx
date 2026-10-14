@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { act } from "react";
-import { untrackedRead as rc } from "@rx-controls/core";
+import { untrackedRead as rc, type Control } from "@rx-controls/core";
 import type { SchemaField } from "@rx-controls/forms-schema";
 import { Contents, RichText, TextField } from "@rx-controls/forms-react";
 import {
   defaultTranslators,
+  feedState,
   legacyLook,
   legacyLookKey,
   LoaderStrictError,
@@ -1081,6 +1082,66 @@ describe("meta fields", () => {
     );
     click($("input[type=checkbox]"));
     expect(rc.getValue(data)).toEqual({});
+  });
+});
+
+describe("a ScrollList", () => {
+  it("is a feed: its rows, the host's loadMore and refresh, its state on the array's meta", async () => {
+    let asked = 0;
+    let list: Control<{ name: string }[]> | undefined;
+    const { data, warnings } = h.load(
+      [
+        {
+          type: "Data",
+          field: "items",
+          hideTitle: true,
+          renderOptions: { type: "ScrollList", bottomActionId: "loadMore", refreshActionId: "refresh" },
+          children: [{ type: "Data", field: "name", renderOptions: { type: "DisplayOnly" } }],
+        },
+      ],
+      [{ field: "items", type: "Compound", collection: true, children: [str("name")] }],
+      { items: [{ name: "first" }] },
+      {
+        actionHandler: (id) =>
+          id === "loadMore"
+            ? async () => {
+                asked++;
+                const s = feedState(list!, h.ctx);
+                act(() =>
+                  h.ctx.update((wc) => {
+                    wc.setValue(list!, [...rc.getValue(list!), { name: "second" }]);
+                    wc.setValue(s.hasMore, false);
+                  }),
+                );
+              }
+            : id === "refresh"
+              ? () => {}
+              : undefined,
+      },
+    );
+    list = data.fields.items as never;
+    expect(warnings).toEqual([]);
+    // No Add, no Remove: a feed is read-only.
+    expect(text()).toContain("first");
+    expect(button("Add")).toBeUndefined();
+    // Nothing is asked for until the host says there is more, as legacy's meta.
+    expect(button("Load more")).toBeUndefined();
+    act(() => h.ctx.update((wc) => wc.setValue(feedState(list!, h.ctx).hasMore, true)));
+    click(button("Load more"));
+    await flush();
+    expect(asked).toBe(1);
+    expect(text()).toContain("second");
+    expect(button("Load more")).toBeUndefined();
+    expect(h.console).toEqual([]);
+  });
+
+  it("reports a bottomActionId no handler claims", () => {
+    const { warnings } = h.load(
+      [{ type: "Data", field: "items", renderOptions: { type: "ScrollList", bottomActionId: "nobody" } }],
+      [{ field: "items", type: "String", collection: true }],
+      { items: [] },
+    );
+    expect(warnings.map((w) => w.detail)).toEqual(['no handler claimed action "nobody"']);
   });
 });
 

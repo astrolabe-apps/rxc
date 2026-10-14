@@ -300,6 +300,29 @@ export interface HtmlTheme {
     /** The list. */
     className: string;
   };
+  /** The feed: infinite scroll. */
+  feed: {
+    /** Around the rows. */
+    className: string;
+    /**
+     * The words on the "Load more" action drawn under the rows — for anyone
+     * who cannot scroll the end into view. `null`: no action, the list loads
+     * on scrolling alone.
+     */
+    loadMore: ReactNode | null;
+    /** What shows while a batch loads. */
+    spinner: ReactNode;
+    /** Around `spinner`. */
+    spinnerClassName: string;
+    /** The empty state when the author gives none. Legacy's web feed showed nothing. */
+    empty?: ReactNode;
+    /** Around the empty state. */
+    emptyClassName: string;
+    /** The end of the list when the author gives none. */
+    end?: ReactNode;
+    /** Around the end of the list. */
+    endClassName: string;
+  };
   /** The wrapper a display or a button sits in. */
   displayShell: {
     /**
@@ -647,6 +670,14 @@ export const defaultHtmlTheme: HtmlTheme = {
   },
   visibility: { transitions: true, fade: "rxf-fade" },
   elements: { className: "rxf-elements" },
+  feed: {
+    className: "rxf-feed",
+    loadMore: "Load more",
+    spinner: <span className="rxf-spinner" />,
+    spinnerClassName: "rxf-feed-loading",
+    emptyClassName: "rxf-feed-empty",
+    endClassName: "rxf-feed-end",
+  },
   displayShell: {
     display: "rxf-display",
     color: "",
@@ -845,6 +876,16 @@ export const tailwindHtmlTheme: HtmlTheme = {
     fade: "rxf-fade transition-[opacity,transform] duration-200 data-[leaving]:-translate-y-1 data-[leaving]:opacity-0 [.rxf-inline_&]:inline",
   },
   elements: { className: "rxf-elements flex flex-col gap-2.5" },
+  feed: {
+    className: "rxf-feed flex flex-col gap-2.5",
+    loadMore: "Load more",
+    spinner: (
+      <span className="rxf-spinner inline-block h-6 w-6 animate-spin rounded-full border-2 border-current border-r-transparent" />
+    ),
+    spinnerClassName: "rxf-feed-loading flex justify-center my-6",
+    emptyClassName: "rxf-feed-empty py-6 text-center",
+    endClassName: "rxf-feed-end py-4 text-center text-sm text-gray-500",
+  },
   displayShell: {
     display: "rxf-display block [.rxf-inline_&]:inline",
     color: "",

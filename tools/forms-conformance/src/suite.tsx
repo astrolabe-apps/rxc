@@ -16,6 +16,7 @@ import {
   Dialog,
   Disclosure,
   Elements,
+  Feed,
   Form,
   FormProvider,
   FormRenderers as FormRenderersOverride,
@@ -78,6 +79,12 @@ export interface Implementation {
      * suite lets the fixture form's carry on without failing on that message.
      */
     classLooks?: boolean;
+    /**
+     * A feed asks for more only as its own list scrolls to the end (React
+     * Native's `FlatList`, `onEndReached`), which the suite cannot drive: it
+     * draws no "Load more" action to press.
+     */
+    feedScrollsItself?: boolean;
   };
 }
 
@@ -1499,6 +1506,61 @@ export function describeConformance(impl: Implementation): void {
       expect(byId<HTMLInputElement>("pet1")!.value).toBe("Tiddles");
       type(byId<HTMLInputElement>("pet0")!, "Max");
       expect(rc.getValue(pets)[0].name).toBe("Max");
+    });
+
+    it("draws a feed: its rows, more as asked for, its empty state and end, each batch announced", async () => {
+      const pets = ctx.newControl<{ name: string }[]>([]);
+      const hasMore = ctx.newControl(false);
+      let asked = 0;
+      let arrive: () => void = () => {};
+      mount(
+        <Feed
+          field={pets}
+          hasMore={(r) => r.getValue(hasMore)}
+          onLoadMore={() => {
+            asked++;
+            return new Promise<void>((done) => {
+              arrive = () => {
+                ctx.update((wc) => {
+                  wc.setValue(pets, [...rc.getValue(pets), { name: "Tiddles" }]);
+                  wc.setValue(hasMore, false);
+                });
+                done();
+              };
+            });
+          }}
+          empty="No pets yet"
+          end="That's every pet"
+        >
+          {(p) => <TextDisplay text={(r) => r.getValue(p.fields.name)} />}
+        </Feed>,
+      );
+      expect(text()).toContain("No pets yet");
+      set(pets, [{ name: "Rex" }]);
+      set(hasMore, true);
+      expect([text().includes("Rex"), text().includes("No pets yet"), text().includes("That's every pet")]).toEqual([
+        true,
+        false,
+        false,
+      ]);
+      if (impl.limits?.feedScrollsItself) {
+        set(hasMore, false);
+        expect(text()).toContain("That's every pet");
+        return;
+      }
+      // The action for anyone who cannot scroll the end into view.
+      click(buttonNamed("Load more")!);
+      expect(asked).toBe(1);
+      const live = () =>
+        [...document.querySelectorAll('[role="status"], [aria-live="polite"]')].map((e) => e.textContent).join(" ");
+      expect(live()).toContain("Loading more");
+      await act(async () => arrive());
+      await flush();
+      expect(text()).toContain("Tiddles");
+      expect(live()).toContain("1 more loaded");
+      // No more: no action, and the end of the list.
+      expect(buttonNamed("Load more")).toBeUndefined();
+      expect(text()).toContain("That's every pet");
     });
 
     it("announces a display as an alert or a status, and only when asked", () => {

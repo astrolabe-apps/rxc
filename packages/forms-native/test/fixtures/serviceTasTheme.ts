@@ -199,6 +199,16 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     placeholder: { ...type.body, color: "#9ca3af" },
     optionText: withInk(type.body),
   },
+  // ScrollList (scrollListOptions: itemGap 16, contentContainerClassName "py-6 grow",
+  // refreshControlTintColor #267151); schemas-rn's empty state is "headline" centred, its end
+  // "subhead" in a py-[16px] row.
+  feed: {
+    gap: 16,
+    content: { paddingVertical: 24, flexGrow: 1 },
+    spinnerColor: serviceTasColors.accent,
+    emptyText: withInk(type.headline),
+    endText: withInk(type.subhead),
+  },
   // The accordion (adornment.accordion: titleTextClass "subhead"): a chevron at the title's end, `togglerClass` "text-accent !text-[20px]"; the
   // card around it and the toggle row's layout come from the group's own look. Its icon is a
   // chevron down, then up when open, as the app's.

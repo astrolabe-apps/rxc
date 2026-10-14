@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { ActionRenderProps } from "./action.js";
 import type { CollectionRenderProps } from "./collection.js";
+import type { FeedRenderProps } from "./feed.js";
 import type {
   DialogRenderProps,
   DisclosureRenderProps,
@@ -90,6 +91,8 @@ export interface FormRenderers {
   disclosure: ComponentType<DisclosureRenderProps>;
   /** {@link Elements}: the chrome-less collection. */
   elements: ComponentType<CollectionRenderProps<any>>;
+  /** {@link Feed}: infinite scroll. */
+  feed: ComponentType<FeedRenderProps<any>>;
   /** The field shell, reused by every field. */
   fieldShell: ComponentType<FieldShellProps>;
   /** The input frame, reused by every text-like control. */

@@ -987,18 +987,25 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   radios, `Standard` and `Dropdown` a Yes / No select — so an unanswered Bool shows as unanswered rather
   than as No — and only `Checkbox` a checkbox (or every Bool, under `null`); a link in an inline group was a view
   embedded in the sentence's text — `\uFFFC` to Android's accessibility, the sentence read in pieces and
-  the link drawn above the line — and is now pressable text in the sentence. **Still different:** `ScrollList`
-  (InboxDocuments, InboxMessages, MrsAllRegistrations) falls back to an editable collection with Add, where
-  legacy draws a read-only feed with "No results found", pull-to-refresh and load-more (`bottomActionId` /
-  `refreshActionId`) — a contract decision, not a translation; ServiceTas's custom displays (`icon`,
+  the link drawn above the line — and is now pressable text in the sentence. `ScrollList` (InboxDocuments, InboxMessages,
+  MrsAllRegistrations) fell back to an editable collection with Add; it is now a **`Feed`** — infinite
+  scroll in the contract: read-only rows, `onLoadMore` / `onRefresh` (busy for a returned promise), `hasMore`
+  / `loading` / `refreshing`, with legacy's guards kept by the boundary. React Native draws a `FlatList`,
+  its own scroll container (a form holding one sits in a bounded view, not a ScrollView), with
+  pull-to-refresh and legacy's "No results found" / "You've reached the end of the list."; it also asks
+  for more when a batch is too short to fill the list, which `onEndReached` alone never does. The web
+  draws the rows, a sentinel that asks as it scrolls into view, and a "Load more" action (`loadMore` in
+  the theme, `null` for none); each batch is announced. The loader maps `bottomActionId` /
+  `refreshActionId` through the host's handler and reads legacy's meta through `feedState`. **Still
+  different:** ServiceTas's custom displays (`icon`,
   `goToMASTPortalButton`, `BPayLogo`, `PlatformPaymentButton`, `payTo`) and Quickstream payment render types
   have no stand-in on native ("Unsupported: Display"); a link in a toned display takes the tone's colour
   where legacy's stays the accent; a disclosure's title still nests views in text (`\uFFFC` before the
   words); spacing — an alert's top padding, a Switch row's height, a heading's gap to the next paragraph;
   React Native's own Switch, smaller than the app's. The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
-- **Next:** compare with data, and with the actions and custom displays a form needs; decide
-  `ScrollList`; DateTime and Time pickers.
+- **Next:** compare with data, and with the actions and custom displays a form needs; DateTime and
+  Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,
   and its release note is the "for the `alpha.9` notes" list above. Nothing in production depends on it.
 - **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the

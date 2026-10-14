@@ -18,6 +18,7 @@ import {
   Modal,
   Radio,
   Select,
+  Spin,
   Steps,
   Tabs as AntTabList,
   Tooltip as AntTooltip,
@@ -71,6 +72,7 @@ import {
   helpButtonName,
   type ImageDisplayRenderProps,
   type IconSpec,
+  type FeedRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -95,6 +97,7 @@ import {
   portableCss,
   useLookWidth,
   webIcon,
+  FeedList,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atToken, useAntdLooks, type AntFieldLook, type AntStyle } from "./looks.js";
@@ -1262,9 +1265,15 @@ export const antdRenderers: FormRenderers = {
   disclosure: AntDisclosure,
   tabs: AntTabs,
   elements: ElementsList,
+  feed: AntFeed,
   visibility: DefaultVisibility,
   form: FormElement,
   fieldShell: AntFieldShell,
   inputFrame: AntInputFrame,
   root: ({ children }) => <ConfigProvider>{children}</ConfigProvider>,
 };
+
+/** The web feed, with Ant's spinner; its "Load more" is Ant's own button through the action slot. */
+function AntFeed(p: FeedRenderProps<unknown>) {
+  return <FeedList {...p} spinner={<Spin />} />;
+}

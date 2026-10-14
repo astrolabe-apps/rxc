@@ -23,6 +23,7 @@ import {
   Disclosure,
   DisplayOnlyField,
   Elements,
+  Feed,
   getProp,
   HtmlDisplay,
   IconDisplay,
@@ -76,6 +77,7 @@ import type { LoaderOptions, LoaderWarning } from "./loader.js";
 import { legacyIconClassSlot, legacyLook } from "./looks.js";
 import { iconRefOf } from "./icons.js";
 import { defaultBoolOptions } from "./boolOptions.js";
+import { feedState } from "./feed.js";
 import type {
   CompoundCycleProps,
   DisplayTextTranslator,
@@ -202,6 +204,34 @@ function optionsFor(
 
 const hasOptions = (d: AnyDef, s?: AnyField) =>
   !!s?.options?.length || hasDynamic(d, "AllowedOptions");
+
+/** A `ScrollList`: a feed over the array, its state the meta legacy's host code writes. */
+function ScrollListFeed({
+  props,
+  element,
+  onLoadMore,
+  onRefresh,
+}: {
+  props: FieldProps<unknown[]>;
+  element: (item: Control<unknown>, index: number) => ReactNode;
+  onLoadMore?: () => unknown;
+  onRefresh?: () => unknown;
+}) {
+  const ctx = useControlContext();
+  const state = feedState(props.field, ctx);
+  return (
+    <Feed
+      {...props}
+      hasMore={(rc) => rc.getValue(state.hasMore)}
+      loading={(rc) => rc.getValue(state.loading)}
+      refreshing={(rc) => rc.getValue(state.refreshing)}
+      onLoadMore={onLoadMore}
+      onRefresh={onRefresh}
+    >
+      {(item, index) => element(item, index)}
+    </Feed>
+  );
+}
 
 /** The built-in translators, in match order. */
 const builtins: Builtin[] = [
@@ -416,6 +446,25 @@ const builtins: Builtin[] = [
         options={optionsFor(schema, dynamicValue)}
       />
     ),
+  },
+  {
+    // Legacy's infinite scroll: the host's `bottomActionId` / `refreshActionId`
+    // handlers, and the state legacy kept on the array control's meta (`feedState`).
+    match: (d, s) => d.type === "Data" && !!s?.collection && d.renderOptions?.type === "ScrollList",
+    renderTypes: ["ScrollList"],
+    render: ({ props, element, def, action }) => {
+      const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
+      const more = typeof ro.bottomActionId === "string" ? action(ro.bottomActionId) : undefined;
+      const refresh = typeof ro.refreshActionId === "string" ? action(ro.refreshActionId) : undefined;
+      return (
+        <ScrollListFeed
+          props={props as FieldProps<unknown[]>}
+          element={element!}
+          onLoadMore={more}
+          onRefresh={refresh}
+        />
+      );
+    },
   },
   {
     // Legacy's Array renderer: the rows, a Remove on each, an Add below —
@@ -1403,6 +1452,17 @@ export function translate(
         : resolved;
   }
 
+  const action = (id: string) => {
+    const resolved = opts.actionHandler?.(id, undefined);
+    if (!resolved)
+      at({
+        kind: "action",
+        subject: def.title ?? id,
+        detail: `no handler claimed action "${id}"`,
+      });
+    return resolved;
+  };
+
   // A container may rebuild its children under a handler of its own; the
   // enclosing handler is the fall-through, so a Dialog claims two ids and
   // the host keeps the rest.
@@ -1568,6 +1628,7 @@ export function translate(
       childProps,
       element,
       onClick,
+      action,
       retranslate,
       dynamicValue,
       resolveField: (r) => resolveRef(scope, r)?.control,

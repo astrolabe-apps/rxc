@@ -5,6 +5,7 @@ import {
   lookNames,
   type LookRef,
   type ActionRenderProps,
+  type FeedRenderProps,
   type CollectionRenderProps,
   type DialogRenderProps,
   type DisclosureRenderProps,
@@ -110,6 +111,35 @@ function Elements(p: CollectionRenderProps<unknown>) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function Feed(p: FeedRenderProps<unknown>) {
+  return (
+    <div
+      data-feed
+      data-loading={p.loading ? "" : undefined}
+      data-refreshing={p.refreshing ? "" : undefined}
+      data-has-more={p.hasMore ? "" : undefined}
+    >
+      <ul>
+        {p.elements.map((e) => (
+          <li key={e.key} data-row={e.index}>
+            {e.node}
+          </li>
+        ))}
+      </ul>
+      {p.elements.length === 0 && !p.loading && p.empty}
+      {!p.hasMore && p.elements.length > 0 && p.end}
+      <button type="button" data-load-more onClick={p.loadMore}>
+        more
+      </button>
+      {p.refresh && (
+        <button type="button" data-refresh onClick={p.refresh}>
+          refresh
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -251,6 +281,7 @@ export const testRenderers: FormRenderers = {
   dialog: Dialog,
   disclosure: Disclosure,
   elements: Elements,
+  feed: Feed,
   fieldShell: ({ children }) => <>{children}</>,
   inputFrame: Nothing,
   visibility: Visibility,

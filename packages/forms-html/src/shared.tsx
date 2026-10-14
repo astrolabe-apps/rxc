@@ -24,6 +24,8 @@ import {
   useFieldShell,
   type ClassValue,
   type CollectionRenderProps,
+  type FeedRenderProps,
+  Action,
   type FormElementProps,
   type GroupRenderProps,
   type FlexLayout,
@@ -1144,4 +1146,106 @@ function WebIcon({ icon, wrap }: { icon: IconSpec; wrap: boolean }) {
  */
 export function webIcon(icon: IconSpec, wrap = true): ReactNode {
   return isIconRef(icon) ? <WebIcon icon={icon} wrap={wrap} /> : icon;
+}
+
+/**
+ * The web's feed, for every web implementation: the rows; a spinner while a
+ * batch loads; the empty state and the end of the list (the author's, else the
+ * theme's); a sentinel that asks for more as it scrolls into view, and a
+ * "Load more" action for anyone who cannot scroll it there — a keyboard, a
+ * screen reader. The action is a contract `<Action actionId="loadMore">`, so
+ * each implementation draws it as its own button and an app restyles it by id;
+ * the theme's `loadMore: null` leaves the sentinel alone. Each batch is
+ * announced politely.
+ */
+export function FeedList(
+  p: FeedRenderProps<unknown> & {
+    classes?: HtmlTheme["feed"];
+    /** The theme's looks. */
+    looks?: HtmlTheme["looks"];
+    /** The implementation's spinner, over the theme's. */
+    spinner?: ReactNode;
+  },
+) {
+  const htmlTheme = useHtmlTheme();
+  const classes = p.classes ?? htmlTheme.feed;
+  const look = lookParts("collection", p.look, p.looks ?? htmlTheme.looks);
+  const ls = useLookStyles(look);
+  const Shell = useFieldShell();
+  const count = p.elements.length;
+  const busy = p.loading || p.refreshing;
+  const announcement = useBatchAnnouncement(count, p.loading);
+  const empty = count === 0 && !busy && (p.empty ?? classes.empty);
+  const end = count > 0 && !p.hasMore && !busy && (p.end ?? classes.end);
+  return (
+    <Shell
+      widget="feed"
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      helpText={p.helpText}
+      error={p.error}
+      look={p.look}
+      style={p.shellStyle}
+    >
+      <div
+        className={lookClass(classes.className, look?.control)}
+        style={ls.style("control", portableCss(p.style, htmlTheme.tokens.colors))}
+        aria-busy={busy || undefined}
+      >
+        {p.elements.map((e) => e.node)}
+      </div>
+      {empty ? <div className={classes.emptyClassName}>{empty}</div> : null}
+      {busy && (
+        <div className={classes.spinnerClassName} aria-hidden="true">
+          {p.spinner ?? classes.spinner}
+        </div>
+      )}
+      {end ? <div className={classes.endClassName}>{end}</div> : null}
+      {p.hasMore && <Sentinel onVisible={p.loadMore} rearm={`${p.loading}${count}`} />}
+      {p.hasMore && classes.loadMore != null && (
+        <Action actionId="loadMore" look="secondary" text={classes.loadMore} disabled={busy} onClick={p.loadMore} />
+      )}
+      <span role="status" style={visuallyHiddenStyle}>
+        {announcement}
+      </span>
+    </Shell>
+  );
+}
+
+/** "Loading more…" while a batch loads, then how many it brought. */
+function useBatchAnnouncement(count: number, loading: boolean): string {
+  const before = useRef<number | undefined>(undefined);
+  if (loading && before.current === undefined) before.current = count;
+  if (loading) return "Loading more\u2026";
+  const was = before.current;
+  if (was !== undefined && count !== was) {
+    const n = count - was;
+    return n > 0 ? `${n} more loaded` : "";
+  }
+  return "";
+}
+
+/**
+ * A point at the end of the list that asks for more as it scrolls into view —
+ * and again, while it stays in view, each time `rearm` changes (a batch that
+ * did not fill the screen). No `IntersectionObserver`, no sentinel: the action
+ * still loads.
+ */
+function Sentinel({ onVisible, rearm }: { onVisible: () => void; rearm: string }) {
+  const el = useRef<HTMLDivElement>(null);
+  const latest = useRef(onVisible);
+  latest.current = onVisible;
+  useEffect(() => {
+    const node = el.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) latest.current();
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [rearm]);
+  return <div ref={el} aria-hidden="true" style={{ height: 1 }} />;
 }

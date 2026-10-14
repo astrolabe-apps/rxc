@@ -71,14 +71,23 @@ export function Converted() {
 // ServiceTas took up legacy's html titles (`1m<sup>3</sup>`), so a host draws them as rich text.
 const displayText = (text: string) => <RichText html={text} />;
 
+/** Whether a form draws a feed (`ScrollList`): a list that scrolls itself. */
+const hasFeed = (controls: any[]): boolean =>
+  controls.some((c) => c?.renderOptions?.type === "ScrollList" || hasFeed(c?.children ?? []));
+
 function ConvertedForm({ form }: { form: { controls: any[]; fields?: any[] } }) {
   const value = useControl<unknown>({});
   const action = useMemo(() => () => () => {}, []);
-  return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>
-      <Form clearHidden>
-        <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
-      </Form>
-    </ScrollView>
+  const body = (
+    <Form clearHidden>
+      <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
+    </Form>
+  );
+  // A feed is its own scroll container (a FlatList), as legacy's ScrollList was: inside
+  // another vertical ScrollView it would not virtualise and React Native warns.
+  return hasFeed(form.controls) ? (
+    <View style={{ flex: 1, paddingHorizontal: 16 }}>{body}</View>
+  ) : (
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>{body}</ScrollView>
   );
 }

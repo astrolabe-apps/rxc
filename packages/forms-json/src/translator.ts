@@ -83,6 +83,12 @@ export interface TranslateArgs {
   /** For an action: the click the host's `actionHandler` resolved, if any. */
   onClick?: () => void | Promise<void>;
   /**
+   * The host's handler for an action id the definition names elsewhere than
+   * `actionId` — a feed's `bottomActionId`, say. An id no handler claims is
+   * reported, and `undefined`.
+   */
+  action: (actionId: string) => (() => void | Promise<void>) | undefined;
+  /**
    * Translate the children again. `options` are merged over the loader's — a
    * dialog claims its own open and close ids for its subtree, with the
    * enclosing handler as the fall-through. `rebuild` says where the children

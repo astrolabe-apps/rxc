@@ -422,6 +422,33 @@ export interface NativeTheme {
     /** Around the rows. */
     style: ViewStyle;
   };
+  /**
+   * The feed: infinite scroll, as a `FlatList` — its own scroll container, so
+   * a form holding one sits in a view that bounds its height, not in another
+   * vertical `ScrollView`.
+   */
+  feed: {
+    /** The list itself: growing and shrinking to fill what bounds it, by default. */
+    style: ViewStyle;
+    /** Around the rows, inside the scroll: padding, `flexGrow` to centre an empty state. */
+    content: ViewStyle;
+    /** Space between rows. */
+    gap: number;
+    /** The colour of the spinner and the pull-to-refresh indicator; the platform's when left out. */
+    spinnerColor?: string;
+    /** The empty state when the author gives none: legacy's "No results found". */
+    empty: ReactNode;
+    /** Around the empty state: centred in the list. */
+    emptyStyle: ViewStyle;
+    /** The empty state's words. */
+    emptyText: TextStyle;
+    /** The end of the list when the author gives none: legacy's words. */
+    end: ReactNode;
+    /** Around the end of the list. */
+    endStyle: ViewStyle;
+    /** The end's words. */
+    endText: TextStyle;
+  };
 }
 
 
@@ -685,6 +712,17 @@ export const defaultNativeTheme: NativeTheme = {
   },
   tokens: { colors: {} },
   elements: { style: { gap: 8 } },
+  feed: {
+    style: { flexGrow: 1, flexShrink: 1 },
+    content: { flexGrow: 1 },
+    gap: 8,
+    empty: "No results found",
+    emptyStyle: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 24 },
+    emptyText: { ...base, fontWeight: "600", color: gray[900] },
+    end: "You\u2019ve reached the end of the list.",
+    endStyle: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16 },
+    endText: { ...base, color: gray[700] },
+  },
 };
 
 /** A node, a string, or anything else the merge replaces whole. */

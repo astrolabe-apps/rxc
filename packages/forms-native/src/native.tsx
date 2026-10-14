@@ -10,6 +10,8 @@ import {
 } from "react";
 import {
   ActivityIndicator,
+  FlatList,
+  RefreshControl,
   Image,
   Linking,
   type ImageSourcePropType,
@@ -85,6 +87,7 @@ import {
   isIconRef,
   useDrawIcon,
   type IconSpec,
+  type FeedRenderProps,
 } from "@rx-controls/forms-react";
 import { sp, type StylePiece, type StylePieces } from "./styleProps.js";
 import { useNativeTheme, type NativeTheme } from "./theme.js";
@@ -1769,13 +1772,114 @@ function NativeElements(p: CollectionRenderProps<unknown>) {
 }
 
 /**
+ * The feed: a `FlatList`, as legacy's `ScrollList` was — virtualised, asking
+ * for more as the end comes within 0.4 of a screen, pull to refresh when the
+ * author gave a refresh. A spinner while loading, the empty state once nothing
+ * is, the end of the list once there is no more; each batch announced.
+ */
+/**
+ * Fill a bounded parent, shrinking to it; inside a ScrollView, as tall as the
+ * content. `flex: 1` would collapse to nothing there (its basis is 0).
+ */
+const FILL = { flexGrow: 1, flexShrink: 1 } as const;
+const NO_GROW = { flexGrow: 0 } as const;
+
+function NativeFeed(p: FeedRenderProps<unknown>) {
+  const Shell = useFieldShell();
+  const t = useNativeTheme().feed;
+  const count = p.elements.length;
+  const busy = p.loading || p.refreshing;
+  const spinner = <ActivityIndicator size="large" color={t.spinnerColor} />;
+  const words = (node: ReactNode, style: TextStyle) =>
+    typeof node === "string" ? <Text {...sp(style)}>{node}</Text> : node;
+  // React Native calls onEndReached only on scrolling: a batch too short to fill
+  // the list leaves nothing to scroll, so then the feed asks for more itself.
+  const [listHeight, setListHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const short = count > 0 && listHeight > 0 && contentHeight > 0 && contentHeight < listHeight;
+  const { loadMore } = p;
+  useEffect(() => {
+    if (short && p.hasMore && !p.loading) loadMore();
+  }, [short, p.hasMore, p.loading, count, loadMore]);
+  const [announced, setAnnounced] = useState("");
+  const before = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (p.loading) {
+      if (before.current === undefined) before.current = count;
+      setAnnounced("Loading more\u2026");
+    } else if (before.current !== undefined) {
+      const n = count - before.current;
+      before.current = undefined;
+      setAnnounced(n > 0 ? `${n} more loaded` : "");
+    }
+  }, [p.loading, count]);
+  return (
+    <Shell
+      widget="feed"
+      id={p.id}
+      label={p.label}
+      labelAs="legend"
+      surface="custom"
+      required={p.required}
+      helpText={p.helpText}
+      error={p.error}
+      look={p.look}
+      // The list fills what bounds it, so its shell must too.
+      style={{ ...FILL, ...p.shellStyle }}
+    >
+      <FlatList
+        {...sp(t.style)}
+        // Grown to the list only while empty, to centre the empty state: with rows it is
+        // their height, which is what tells a short batch from a full one.
+        contentContainerStyle={count > 0 ? [t.content, NO_GROW] : t.content}
+        data={p.elements}
+        keyExtractor={(e) => String(e.key)}
+        renderItem={({ item }) => <View>{item.node}</View>}
+        ItemSeparatorComponent={t.gap ? () => <View style={{ height: t.gap }} /> : undefined}
+        showsVerticalScrollIndicator={false}
+        onEndReachedThreshold={0.4}
+        onEndReached={() => p.loadMore()}
+        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, h) => setContentHeight(h)}
+        refreshControl={
+          p.refresh ? (
+            <RefreshControl
+              refreshing={p.refreshing}
+              onRefresh={p.refresh}
+              colors={t.spinnerColor ? [t.spinnerColor] : undefined}
+              tintColor={t.spinnerColor}
+            />
+          ) : undefined
+        }
+        ListEmptyComponent={
+          <View {...sp(t.emptyStyle)}>{busy ? spinner : words(p.empty ?? t.empty, t.emptyText)}</View>
+        }
+        ListFooterComponent={
+          count > 0 ? (
+            p.hasMore ? (
+              p.loading ? <View {...sp(t.endStyle)}>{spinner}</View> : null
+            ) : (
+              <View {...sp(t.endStyle)}>{words(p.end ?? t.end, t.endText)}</View>
+            )
+          ) : null
+        }
+      />
+      <View accessibilityLiveRegion="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", opacity: 0 }}>
+        <Text>{announced}</Text>
+      </View>
+    </Shell>
+  );
+}
+
+/**
  * React Native has no form element: submission is the submit action's, and
  * the keyboard's submit key in a single-line field.
  */
 function NativeForm(p: FormElementProps) {
   return (
     <SubmitContext.Provider value={p.onSubmit}>
-      <View>{p.children}</View>
+      {/* Fills what bounds it, so a feed inside can scroll itself; in a ScrollView, as tall as its content. */}
+      <View style={FILL}>{p.children}</View>
     </SubmitContext.Provider>
   );
 }
@@ -1813,6 +1917,7 @@ export const nativeRenderers: FormRenderers = {
   dialog: NativeDialog,
   disclosure: NativeDisclosure,
   elements: NativeElements,
+  feed: NativeFeed,
   fieldShell: NativeFieldShell,
   inputFrame: NativeInputFrame,
   visibility: ({ visible, children }) => (visible ? <>{children}</> : null),

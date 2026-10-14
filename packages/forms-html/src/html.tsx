@@ -50,6 +50,7 @@ import {
   type ImageDisplayRenderProps,
   helpButtonName,
   type IconSpec,
+  type FeedRenderProps,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -75,6 +76,7 @@ import {
   portableCssSplit,
   useLookStyles,
   useWebIcon,
+  FeedList,
 } from "./shared.js";
 import { useHtmlTheme, type HtmlTheme } from "./theme.js";
 
@@ -1147,6 +1149,10 @@ function HtmlInline(p: GroupRenderProps) {
   const t = useHtmlTheme();
   return <Inline {...p} classes={t.inline} looks={t.looks} />;
 }
+function HtmlFeed(p: FeedRenderProps<unknown>) {
+  return <FeedList {...p} />;
+}
+
 function HtmlElements(p: CollectionRenderProps<unknown>) {
   const t = useHtmlTheme();
   return <ElementsList {...p} classes={t.elements} looks={t.looks} />;
@@ -1196,6 +1202,7 @@ export const htmlRenderers: FormRenderers = {
   disclosure: HtmlDisclosure,
   tabs: HtmlTabs,
   elements: HtmlElements,
+  feed: HtmlFeed,
   visibility: HtmlVisibility,
   form: FormElement,
   checkList: HtmlCheckList,
