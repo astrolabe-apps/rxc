@@ -105,21 +105,32 @@ export function androidTarget(o: AndroidTargetOptions): Target {
         const [w] = adb("shell", "wm", "size").match(/(\d+)x\d+/)!.slice(1);
         adb("shell", "wm", "size", `${w}x${tall}`);
         resized = true;
+        // The new size restarts the activity; a link sent while that happens is lost.
+        await sleep(settle * 2);
       }
       run = Math.random().toString(36).slice(2, 10);
       adb("logcat", "-c");
       const payload = Buffer.from(JSON.stringify(data ?? {})).toString("base64url");
       const link = `${o.url}/--/forms-scenario?form=${encodeURIComponent(form)}&data=${payload}&run=${run}`;
       // One string: the device's shell must not split the link at `&`.
-      adb(
-        "shell",
-        `am start -a android.intent.action.VIEW -d '${link}' ${o.androidPackage ?? "host.exp.exponent"}`,
-      );
+      const start = () =>
+        adb(
+          "shell",
+          `am start -a android.intent.action.VIEW -d '${link}' ${o.androidPackage ?? "host.exp.exponent"}`,
+        );
+      start();
       const end = Date.now() + (o.openTimeout ?? 180000);
+      // Expo Go switching from another project (the other target's) can drop the link; a
+      // second one, once the app is up, reaches it as a `url` event.
+      let nudge = Date.now() + 30000;
       while (Date.now() < end) {
         if (lines().some((l) => l.kind === "ready")) {
           await sleep(settle * 2);
           return;
+        }
+        if (Date.now() > nudge) {
+          start();
+          nudge = Date.now() + 30000;
         }
         await sleep(500);
       }
