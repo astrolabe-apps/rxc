@@ -119,5 +119,12 @@
     "version": "0.1.0-alpha.8",
     "nextBump": "prerelease",
     "exemptFromRushChange": true
+  },
+  {
+    "policyName": "forms-scenarios",
+    "definitionName": "lockStepVersion",
+    "version": "0.1.0-alpha.0",
+    "nextBump": "prerelease",
+    "exemptFromRushChange": true
   }
 ]

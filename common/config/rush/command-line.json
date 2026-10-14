@@ -33,7 +33,7 @@
       "name": "publish-check",
       "summary": "Dry-run both publishes",
       "description": "Shows what `rush publish-latest` and `rush publish-alpha` would publish, without publishing: the stable packages (version policy `stable`) and the Forms v2 alphas (`forms-v2-alpha`). Only versions newer than the registry's are published.",
-      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy stable --tag latest && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --tag alpha",
+      "shellCommand": "XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy stable --tag latest && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --tag alpha && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-scenarios --tag alpha",
       "safeForSimultaneousRushProcesses": true
     },
     {
@@ -50,6 +50,14 @@
       "summary": "Publish the Forms v2 packages to npm `alpha`",
       "description": "Publishes the six Forms v2 packages (version policy `forms-v2-alpha`) to the `alpha` dist-tag, each only if its version is newer than the registry's. Never touches `latest`. Access is set public, which a scoped package's first publish needs. XDG_CONFIG_HOME is preserved so browser authentication works. Builds those packages and their dependencies first, so `lib/` is never stale, and publishes nothing if the build fails.",
       "shellCommand": "rush build --to version-policy:forms-v2-alpha && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-v2-alpha --publish --tag alpha --set-access-level public -b main",
+      "safeForSimultaneousRushProcesses": true
+    },
+    {
+      "commandKind": "global",
+      "name": "publish-scenarios",
+      "summary": "Publish the form-scenario engine to npm `alpha`",
+      "description": "Publishes @rx-controls/forms-scenarios (version policy `forms-scenarios`) to the `alpha` dist-tag, only if its version is newer than the registry's — on its own, so the engine can move without the Forms v2 packages. Access public; XDG_CONFIG_HOME preserved for browser authentication; built first, nothing published if the build fails. Bump with `rush version --bump --version-policy forms-scenarios`.",
+      "shellCommand": "rush build --to version-policy:forms-scenarios && XDG_CONFIG_HOME=\"${XDG_CONFIG_HOME:-$HOME/.config}\" rush publish --include-all --version-policy forms-scenarios --publish --tag alpha --set-access-level public -b main",
       "safeForSimultaneousRushProcesses": true
     }
   ],

@@ -29,7 +29,7 @@
     {
       "packageName": "@rx-controls/forms-scenarios",
       "projectFolder": "packages/forms-scenarios",
-      "versionPolicyName": "forms-v2-alpha",
+      "versionPolicyName": "forms-scenarios",
       "shouldPublish": true
     },
     {
