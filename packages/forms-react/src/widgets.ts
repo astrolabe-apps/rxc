@@ -201,6 +201,12 @@ export interface DisplayOnlyExtra {
   /** Shown in design mode when the value is empty — a designer's stand-in. */
   sampleText?: FormProp<ReactNode>;
   /**
+   * Shown in place of the value's own text (legacy's `overrideText`, what a
+   * `Display` dynamic property sets). Empty or absent, the value's text shows;
+   * the empty state is the value's either way.
+   */
+  text?: FormProp<ReactNode>;
+  /**
    * One value that is not an option, as text. Default `String(value)`; an
    * array is mapped and joined with `", "`.
    */

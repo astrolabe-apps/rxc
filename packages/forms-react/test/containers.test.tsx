@@ -793,5 +793,15 @@ describe("controllers", () => {
     }
     mount(<Designed />, { designMode: true });
     expect($('[data-dv="d"]')!.textContent).toBe("sample");
+    // `text` stands in for the value's own text; empty, the value's text shows.
+    function Overridden({ text }: { text?: string }) {
+      const c = useControl<unknown>("a");
+      const ctl = useDisplayValue(c, { options: [{ name: "Active", value: "a" }], text });
+      return ctl.rendered(<i data-dv="o">{ctl.content}</i>);
+    }
+    mount(<Overridden text="• Active" />);
+    expect($('[data-dv="o"]')!.textContent).toBe("• Active");
+    mount(<Overridden text="" />);
+    expect($('[data-dv="o"]')!.textContent).toBe("Active");
   });
 });

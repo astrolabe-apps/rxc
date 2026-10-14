@@ -371,13 +371,15 @@ const builtins: Builtin[] = [
     // `sampleText` is what a designer sees in place of an empty value.
     match: (d) => d.type === "Data" && d.renderOptions?.type === "DisplayOnly",
     renderTypes: ["DisplayOnly"],
-    dynamics: ["AllowedOptions"],
+    dynamics: ["AllowedOptions", "Display"],
     render: ({ props, schema, def, dynamicValue }) => {
       const ro: Record<string, unknown> = def.renderOptions ?? {};
       return (
         <DisplayOnlyField
           {...props}
           required={undefined}
+          // Legacy's `overrideText`: a `Display` expression in place of the value's text.
+          text={dynamicValue("Display") as FormProp<ReactNode> | undefined}
           options={optionsFor(schema, dynamicValue)}
           emptyText={str(ro.emptyText)}
           sampleText={str(ro.sampleText)}

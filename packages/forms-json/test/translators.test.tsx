@@ -518,6 +518,29 @@ describe("DisplayOnlyField", () => {
     expect(text()).toContain("Yes");
     expect(text()).toContain("(none)");
   });
+
+  it("shows a Display expression in place of the value's text, following the data", async () => {
+    const { data, warnings } = h.load(
+      [
+        {
+          type: "Data",
+          field: "amount",
+          renderOptions: { type: "DisplayOnly" },
+          dynamic: [
+            { type: "Display", expr: { type: "Jsonata", expression: "'$' & $formatNumber(amount, '0.00')" } },
+          ],
+        },
+      ],
+      [{ field: "amount", type: "Double" } as SchemaField],
+      { amount: 50.5 },
+    );
+    await flush();
+    expect(text()).toContain("$50.50");
+    expect(warnings.filter((w) => w.kind === "dynamic")).toEqual([]);
+    act(() => h.ctx.update((wc) => wc.setValue(data.fields.amount as Control<unknown>, 240)));
+    await flush();
+    expect(text()).toContain("$240.00");
+  });
 });
 
 describe("a compound as a group", () => {
@@ -625,6 +648,41 @@ describe("a collection", () => {
     expect(rc.getValue(data).pets).toHaveLength(3);
     click(button("Remove"));
     expect(rc.getValue(data).pets.map((p) => p?.name)).toEqual(["Tiddles", undefined]);
+  });
+
+  it("binds a '.' group inside a row to the row, not to the array again", () => {
+    const { data } = h.load(
+      [
+        {
+          type: "Data",
+          field: "pets",
+          renderOptions: { type: "Array", noAdd: true, noRemove: true },
+          children: [
+            {
+              type: "Data",
+              field: ".",
+              renderOptions: { type: "Group" },
+              children: [
+                {
+                  type: "Data",
+                  field: "name",
+                  dynamic: [{ type: "Label", expr: { type: "Data", field: "name" } }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      [pets],
+      { pets: [{ name: "Rex" }, { name: "Tiddles" }] },
+    );
+    // Resolved as the array again, `.` drew a nested collection: Add buttons and no rows.
+    expect($$("button")).toHaveLength(0);
+    const inputs = $$("input") as HTMLInputElement[];
+    expect(inputs.map((i) => i.value)).toEqual(["Rex", "Tiddles"]);
+    expect($$("label").map((l) => l.textContent)).toEqual(["Rex", "Tiddles"]);
+    typeInto(inputs[1]!, "Felix");
+    expect(rc.getValue(data).pets.map((p: { name: string }) => p.name)).toEqual(["Rex", "Felix"]);
   });
 
   it("drops the buttons for noAdd / noRemove", () => {

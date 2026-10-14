@@ -1019,14 +1019,14 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   legacy renderer keeps a closed dialog's content in the accessibility tree). A `fill` step leaves
   its field by tapping the label (alpha.3): with an IME showing after typing, React Native took
   the next tap as dismissing the keyboard and the step after a fill was lost. The differential run
-  of those 32 against `apps/native-dev` (Forms v2 over the converted forms): 25 hold on v2. The 7
-  that do not: the `Display` dynamic property on a display-only field (the burndown's
-  `dynamic:Display`; a bullet before an address, a formatted amount), ServiceTas's `HtmlRenderer`
-  and `CopyableData` render types and its `$meta` in a Disabled expression (no stand-in, so a
-  Continue stays disabled), a `Label` built by Jsonata inside a compound, and a `"."` field on an
-  array element's group (`resolveRef` hands back the array's own schema, so the loader draws a
-  nested collection with Add buttons and the element's `Label: Data(serviceProvider)` resolves
-  nothing — only `TuoPreferences` uses it). Smaller differences the comparison shows on every
+  of those 32 against `apps/native-dev` (Forms v2 over the converted forms): 28 hold on v2, after
+  two loader fixes the run found — the `Display` dynamic property on a display-only field
+  (legacy's `overrideText`, now `DisplayOnlyExtra.text`; the burndown fell 467 → 450) and a `"."`
+  field on an array element's group (`resolveRef` handed back the array's own schema, so the
+  loader drew a nested collection; only `TuoPreferences` uses it). The 4 that do not hold:
+  ServiceTas's `HtmlRenderer` and `CopyableData` render types and its `$meta` in a Disabled
+  expression (no stand-in, so a Continue stays disabled), and a `Label` built by Jsonata inside a
+  compound. Smaller differences the comparison shows on every
   form: v2 formats a date `10/1/2026` where legacy writes `01/10/2026`, names a pressable with its
   icon's glyph first (`￼, Marine and Safety Tasmania`), and does not expose a switch's `off` as
   words. The engine waits for a `wm size` change to settle and re-sends a link the app has not

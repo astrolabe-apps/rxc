@@ -37,6 +37,8 @@ export interface DataScope {
   field?: SchemaField;
   /** Where `..` goes. For a row, the scope that holds the array. */
   parent?: DataScope;
+  /** One element of a collection: `field` is the array's, but this is a row of it. */
+  element?: boolean;
   path: PathSegment[];
   /**
    * Jsonata bindings beyond the data — legacy's `variables`: a radio's
@@ -142,6 +144,7 @@ export function elementScope(
     control: item,
     fields: childrenOf(schema),
     field: schema,
+    element: true,
     parent: array,
     path: [...array.path, { key: index, collection: true }],
     variables: scope.variables,
@@ -181,9 +184,13 @@ export function resolveRef(
     const seg = segs[i];
     if (!cur) return undefined;
     if (seg === ".") {
+      // A row's `field` is the array's: `.` there is one element, a compound
+      // of the array's children, or the loader would draw a collection again.
+      const schema =
+        cur.element && cur.field ? { ...cur.field, collection: false } : cur.field;
       last = {
         control: cur.control,
-        schema: cur.field,
+        schema,
         scope: cur.parent ?? cur,
         name: cur.field?.field ?? ".",
         into: cur,

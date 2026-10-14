@@ -314,8 +314,8 @@ export function useMultiSelectController(
  */
 export interface DisplayValueController
   extends Omit<FieldController, "elementRef"> {
-  /** The value as text, or `undefined` when empty. */
-  text: string | undefined;
+  /** The value as text (or the `text` override), or `undefined` when empty. */
+  text: ReactNode | undefined;
   /** The value is empty. */
   empty: boolean;
   /** What to show: the text; else `sampleText` in design mode; else `emptyText`. */
@@ -344,11 +344,13 @@ export function useDisplayValue(
     value === undefined ||
     value === "" ||
     (Array.isArray(value) && value.length === 0);
-  const text = empty
+  const own = empty
     ? undefined
     : Array.isArray(value)
       ? value.map(one).join(", ")
       : one(value);
+  const override = getProp(rc, extra.text);
+  const text = override != null && override !== "" ? override : own;
   const sample = getProp(rc, extra.sampleText);
   const emptyText = getProp(rc, extra.emptyText);
   return {
