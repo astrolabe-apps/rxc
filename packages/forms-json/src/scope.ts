@@ -73,8 +73,9 @@ export function rootScope(
   ctx: ControlContext,
   control: Control<unknown>,
   fields: SchemaField[],
+  variables?: (rc: ReadContext) => Record<string, unknown>,
 ): DataScope {
-  return { ctx, control, fields, path: [] };
+  return { ctx, control, fields, path: [], variables };
 }
 
 /**
@@ -90,13 +91,28 @@ function fieldControl(
   schema: SchemaField | undefined,
 ): Control<unknown> {
   const owner = schema?.meta
-    ? ensureMetaValue<Control<Record<string, unknown>>>(
-        control,
-        "metaFields",
-        () => ctx.newControl<Record<string, unknown>>({}),
-      )
+    ? metaFields(ctx, control)
     : (control as Control<Record<string, unknown>>);
   return owner.fields[name] as Control<unknown>;
+}
+
+/**
+ * The side store of a data control's `meta` fields — legacy's `getMetaFields`:
+ * UI state the schema marks `meta`, never in the submitted value. The loader
+ * binds a meta field here; a host that binds `$meta` for its expressions, as
+ * ServiceTas's does, reads the same control.
+ *
+ * @group Loading
+ */
+export function metaFields(
+  ctx: ControlContext,
+  control: Control<unknown>,
+): Control<Record<string, unknown>> {
+  return ensureMetaValue<Control<Record<string, unknown>>>(
+    control,
+    "metaFields",
+    () => ctx.newControl<Record<string, unknown>>({}),
+  );
 }
 
 /** Into a compound field's value. */

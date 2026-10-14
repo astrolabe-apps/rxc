@@ -1,7 +1,7 @@
 import { Switch } from "react-native";
 import type { ReactNode } from "react";
 import type { Rendered } from "@rx-controls/react";
-import { RichText } from "@rx-controls/forms-react";
+import { RichText, type DisplayOnlyExtra } from "@rx-controls/forms-react";
 import {
   fieldRenderer,
   useCheckbox,
@@ -57,8 +57,34 @@ const switchTranslator: Translator = {
 
 const text = (o: object, k: string) => (o as Record<string, unknown>)[k] as string | undefined;
 
+/** Through the display-only slot, but an ordinary field: legacy's are data renderers, cleared when hidden. */
+const ReadOnlyData = fieldRenderer<unknown, DisplayOnlyExtra>({ key: "displayOnly" });
+
+/** ServiceTas's `HtmlRenderer`: a string field's value drawn as html (its words, on a device). */
+const htmlRendererTranslator: Translator = {
+  match: (d) => d.type === "Data" && ro(d)?.type === "HtmlRenderer",
+  renderTypes: ["HtmlRenderer"],
+  render: ({ props }) => (
+    <ReadOnlyData
+      {...(props as any)}
+      required={undefined}
+      text={(rc: { getValue: (c: any) => unknown }) => {
+        const v = rc.getValue(props.field);
+        return v == null || v === "" ? undefined : <RichText html={String(v)} />;
+      }}
+    />
+  ),
+};
+
+/** ServiceTas's `CopyableData`: the value beside its title; the copy button is the app's. */
+const copyableDataTranslator: Translator = {
+  match: (d) => d.type === "Data" && ro(d)?.type === "CopyableData",
+  renderTypes: ["CopyableData"],
+  render: ({ props }) => <ReadOnlyData {...(props as any)} required={undefined} />,
+};
+
 export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments"> = {
-  translators: [switchTranslator, ...defaultTranslators],
+  translators: [switchTranslator, htmlRendererTranslator, copyableDataTranslator, ...defaultTranslators],
   adornments: {
     // ServiceTas's help renderer: a trigger at the label's end, `helpLabel` the words on it.
     HelpText: {

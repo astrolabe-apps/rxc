@@ -6,8 +6,10 @@ import type {
 } from "@rx-controls/forms-schema";
 import {
   Contents,
+  fieldRenderer,
   RichText,
   Section,
+  type DisplayOnlyExtra,
 } from "@rx-controls/forms-react";
 import { SwitchField } from "./Switch.js";
 import { TextField } from "@rx-controls/forms-react";
@@ -175,6 +177,36 @@ const topLevelGroupTranslator: Translator = {
   ),
 };
 
+/**
+ * A value shown through the display-only slot but an ordinary field otherwise: ServiceTas's
+ * `HtmlRenderer` and `CopyableData` are data renderers in legacy, so `clearHidden` clears them,
+ * where the contract's `DisplayOnlyField` is write-free.
+ */
+const ReadOnlyData = fieldRenderer<unknown, DisplayOnlyExtra>({ key: "displayOnly" });
+
+/** ServiceTas's `HtmlRenderer`: a string field's value drawn as html. */
+const htmlRendererTranslator: Translator = {
+  match: (d) => d.type === "Data" && ro(d)?.type === "HtmlRenderer",
+  renderTypes: ["HtmlRenderer"],
+  render: ({ props }) => (
+    <ReadOnlyData
+      {...props}
+      required={undefined}
+      text={(rc) => {
+        const v = rc.getValue(props.field);
+        return v == null || v === "" ? undefined : <RichText html={String(v)} />;
+      }}
+    />
+  ),
+};
+
+/** ServiceTas's `CopyableData`: the value beside its title, with a copy button this stand-in leaves out. */
+const copyableDataTranslator: Translator = {
+  match: (d) => d.type === "Data" && ro(d)?.type === "CopyableData",
+  renderTypes: ["CopyableData"],
+  render: ({ props }) => <ReadOnlyData {...props} required={undefined} />,
+};
+
 export const standInHost: LoaderOptions = {
   // ServiceTas took up legacy's html titles (`1m<sup>3</sup>`).
   displayText: (text) => <RichText html={text} />,
@@ -183,6 +215,8 @@ export const standInHost: LoaderOptions = {
     textInputTranslator,
     messageBoxTranslator,
     topLevelGroupTranslator,
+    htmlRendererTranslator,
+    copyableDataTranslator,
     ...defaultTranslators,
   ],
   adornments: {

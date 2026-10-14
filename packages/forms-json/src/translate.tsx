@@ -237,10 +237,16 @@ function ScrollListFeed({
 const builtins: Builtin[] = [
   {
     match: (d) => d.type === "Action",
-    render: ({ def, props, children, onClick }) => (
+    dynamics: ["Label"],
+    // Legacy's Label dynamic lands on `title`, which the action's words fall back to.
+    render: ({ def, props, children, onClick, dynamicValue }) => (
       <Action
         actionId={def.actionId ?? "action"}
-        text={def.actionText ?? def.title}
+        text={
+          (dynamicValue("Label") as FormProp<ReactNode> | undefined) ??
+          def.actionText ??
+          def.title
+        }
         onClick={onClick}
         hidden={props.hidden}
         disabled={props.disabled}
@@ -1678,7 +1684,7 @@ export function translateForm(
       looks[name] ??= parts;
     },
   };
-  const root = rootScope(ctx, data, fields);
+  const root = rootScope(ctx, data, fields, opts.variables);
   const tree = controls.map((c, i) =>
     translate(ctx, root, c, String(i), own, (w) => warnings.push(w)),
   );

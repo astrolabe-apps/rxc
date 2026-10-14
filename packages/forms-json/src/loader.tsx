@@ -1,3 +1,4 @@
+import type { ReadContext } from "@rx-controls/core";
 import { useMemo, type ReactNode } from "react";
 import type { Control, ControlContext } from "@rx-controls/core";
 import { useControlContext, type Rendered } from "@rx-controls/react";
@@ -106,6 +107,14 @@ export interface LoaderOptions {
   boolOptions?: readonly FieldOption[] | null;
   /** What a label's and a help text's string becomes. Default: the string. */
   displayText?: DisplayTextTranslator;
+  /**
+   * Bindings every Jsonata expression sees as `$name`, beyond the data —
+   * legacy's host `variables` (ServiceTas binds `meta`, `platform`,
+   * `breakpoint` and `toMillis`). Read through the evaluator's own `rc`, so a
+   * binding that reads a control re-runs the expression when it changes; see
+   * {@link metaFields} for the store `$meta` is.
+   */
+  variables?: (rc: ReadContext) => Record<string, unknown>;
   /** What to render for a definition no translator matched. Default: a placeholder naming it. */
   onUnsupported?: (def: ControlDefinition) => ReactNode;
   /** Pairs each button's id and payload with host code. */

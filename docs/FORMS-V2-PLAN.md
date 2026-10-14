@@ -1023,10 +1023,13 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   two loader fixes the run found — the `Display` dynamic property on a display-only field
   (legacy's `overrideText`, now `DisplayOnlyExtra.text`; the burndown fell 467 → 450) and a `"."`
   field on an array element's group (`resolveRef` handed back the array's own schema, so the
-  loader drew a nested collection; only `TuoPreferences` uses it). The 4 that do not hold:
-  ServiceTas's `HtmlRenderer` and `CopyableData` render types and its `$meta` in a Disabled
-  expression (no stand-in, so a Continue stays disabled), and a `Label` built by Jsonata inside a
-  compound. Smaller differences the comparison shows on every
+  loader drew a nested collection; only `TuoPreferences` uses it). The last 4 then held after:
+  the loader's `variables` option (legacy's host bindings; ServiceTas's `$meta` is the loader's own
+  meta store, exported as `metaFields`, and `$platform`), an action's `Label` dynamic as its words
+  (never read for an action before), and stand-ins for ServiceTas's `HtmlRenderer` and
+  `CopyableData` render types in the corpus host and the playground's — ordinary fields through
+  the display-only slot, since legacy's are data renderers that `clearHidden` clears (parity
+  caught the write-free version). All 32 hold on native-dev. Smaller differences the comparison shows on every
   form: v2 formats a date `10/1/2026` where legacy writes `01/10/2026`, names a pressable with its
   icon's glyph first (`￼, Marine and Safety Tasmania`), and does not expose a switch's `off` as
   words. The engine waits for a `wm size` change to settle and re-sends a link the app has not

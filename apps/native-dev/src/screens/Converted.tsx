@@ -4,7 +4,9 @@ import { ScrollView, Text, View } from "react-native";
 import { FormPicker } from "../FormPicker";
 import { Form, FormIconsProvider, RichText } from "@rx-controls/forms-react";
 import { useControl, useControlEffect } from "@rx-controls/react";
-import { JsonForm } from "@rx-controls/forms-json";
+import { JsonForm, metaFields } from "@rx-controls/forms-json";
+import { useControlContext } from "@rx-controls/react";
+import type { ReadContext } from "@rx-controls/core";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import { nativeStandInHost } from "../host";
 import { DatePickerHost } from "../DatePickerHost";
@@ -103,6 +105,12 @@ function ConvertedForm({
   run: string;
 }) {
   const value = useControl<unknown>(initial ?? {});
+  const ctx = useControlContext();
+  // ServiceTas's bindings: `$meta` is the loader's meta store, `$platform` the device.
+  const variables = useMemo(
+    () => (rc: ReadContext) => ({ meta: rc.getValue(metaFields(ctx, value)), platform: "mobile" }),
+    [ctx, value],
+  );
   // What a scenario reads back: drawn, the data as it changes, each action.
   useControlEffect((rc) => rc.getValue(value), (v) => report(run, { kind: "data", data: v }), true);
   useEffect(() => report(run, { kind: "ready", form: name }), [run, name]);
@@ -112,7 +120,7 @@ function ConvertedForm({
   );
   const body = (
     <Form clearHidden>
-      <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} />
+      <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} variables={variables} />
     </Form>
   );
   // A feed is its own scroll container (a FlatList), as legacy's ScrollList was: inside

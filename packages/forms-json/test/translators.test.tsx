@@ -1041,6 +1041,61 @@ describe("expressions", () => {
     expect(rc.getValue(data).name).toBe("Ada");
   });
 
+  it("binds the host's variables as $name, re-running when one it reads changes", async () => {
+    const meta = h.ctx.newControl({ lock: true });
+    const { data } = h.load(
+      [
+        {
+          type: "Data",
+          field: "name",
+          dynamic: [
+            { type: "Disabled", expr: { type: "Jsonata", expression: "$meta.lock or $platform = 'web'" } },
+            { type: "Label", expr: { type: "Jsonata", expression: "'On ' & $platform" } },
+          ],
+        },
+      ],
+      [str("name")],
+      { name: "" },
+      { variables: (rc) => ({ meta: rc.getValue(meta), platform: "mobile" }) },
+    );
+    await flush();
+    expect(text()).toContain("On mobile");
+    expect($<HTMLInputElement>("input").disabled).toBe(true);
+    act(() => h.ctx.update((wc) => wc.setValue(meta.fields.lock, false)));
+    await flush();
+    expect($<HTMLInputElement>("input").disabled).toBe(false);
+    expect(rc.getValue(data).name).toBe("");
+  });
+
+  it("an action's Label dynamic is its words, evaluated where the action sits", async () => {
+    h.load(
+      [
+        {
+          type: "Data",
+          field: "document",
+          renderOptions: { type: "Group" },
+          children: [
+            {
+              type: "Action",
+              actionId: "download",
+              title: "Download",
+              dynamic: [
+                {
+                  type: "Label",
+                  expr: { type: "Jsonata", expression: "'Download (' & $uppercase(ext) & ')'" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      [{ field: "document", type: "Compound", children: [str("ext")] } as SchemaField],
+      { document: { ext: "pdf" } },
+    );
+    await flush();
+    expect(button("Download (PDF)")).toBeDefined();
+  });
+
   it("reports a jsonata expression that does not compile", () => {
     const { warnings } = h.load(
       [{ type: "Data", field: "a", dynamic: [{ type: "Visible", expr: { type: "Jsonata", expression: "(((" } }] }],
