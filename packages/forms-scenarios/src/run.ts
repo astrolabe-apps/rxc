@@ -6,6 +6,7 @@ import {
   findToggle,
   findTrigger,
   isGlyph,
+  isInput,
   label,
   type ScreenNode,
   type Target,
@@ -103,10 +104,17 @@ async function perform(t: Target, s: Step): Promise<void> {
       return t.tap(n);
     }
     case "fill": {
-      const n = (await locate(t, (ns) => findField(ns, s.label))).found;
+      const { found: n, nodes: at } = await locate(t, (ns) => findField(ns, s.label));
       if (!n) throw new Error(`no field labelled "${s.label}"`);
       await t.tap(n);
-      return t.type(s.text, n.text);
+      await t.type(s.text, n.text);
+      // Then leave the field, as a person does, by tapping its label. With the keyboard up,
+      // React Native takes the next tap outside the field as dismissing it and nothing else
+      // sees that tap — so the step after this one would be lost (a radio not chosen, a Save
+      // not pressed). A label is words that do nothing, on every target.
+      const l = findText(at, s.label);
+      if (l && l !== n && !isInput(l)) await t.tap(l);
+      return;
     }
     case "toggle": {
       const n = (await locate(t, (ns) => findToggle(ns, s.label))).found;

@@ -178,6 +178,16 @@ describe("runScenario", () => {
     ]);
   });
 
+  it("leaves a filled field by tapping its label, so the next tap is not taken as dismissing the keyboard", async () => {
+    const app = fakeApp();
+    const r = await runScenario(
+      { name: "x", form: "X", steps: [fill("Name", "Ada"), expectData("name", "Ada")] },
+      app,
+    );
+    expect(r.ok).toBe(true);
+    expect(app.taps).toEqual(["android.widget.EditText", "Name *"]);
+  });
+
   it("compares two runs: words and data that differ, step by step", async () => {
     const s = { name: "x", form: "X", steps: [fill("Name", "Ada")] };
     const a = await runScenario(s, fakeApp("legacy"));

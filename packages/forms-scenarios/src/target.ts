@@ -149,7 +149,12 @@ export function findText(nodes: ScreenNode[], words: string): ScreenNode | undef
   );
 }
 
-const isInput = (n: ScreenNode) => /EditText/.test(n.cls);
+/**
+ * A text field: an element a person types into.
+ *
+ * @group Targets
+ */
+export const isInput = (n: ScreenNode) => /EditText/.test(n.cls);
 const isToggle = (n: ScreenNode) => n.checkable || /Switch|CheckBox/.test(n.cls);
 
 /** The elements after `from` in reading order. */

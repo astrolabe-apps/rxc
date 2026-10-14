@@ -88,7 +88,8 @@ export type Step =
 export const press = (name: string): Step => ({ kind: "press", name });
 
 /**
- * Type `text` into the field labelled `label`, replacing what it held.
+ * Type `text` into the field labelled `label`, replacing what it held, then leave the
+ * field (a tap on its label), so the keyboard is away before the next step.
  *
  * @group Scenarios
  */
