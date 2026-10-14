@@ -1033,7 +1033,10 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   form: v2 formats a date `10/1/2026` where legacy writes `01/10/2026`, names a pressable with its
   icon's glyph first (`￼, Marine and Safety Tasmania`), and does not expose a switch's `off` as
   words. The engine waits for a `wm size` change to settle and re-sends a link the app has not
-  answered in 30s: Expo Go switching between the two projects dropped it otherwise.
+  answered in 30s: Expo Go switching between the two projects dropped it otherwise. A `fill` ends the
+  keyboard's composition with Escape after typing, then reads the field back and retypes once
+  when it differs: Gboard with a hardware keyboard declared committed the last word with a stray
+  character as the field was left (a space, an "r"), on one long field about one run in three.
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
 - **Held:** `alpha.9` is not published — it waits for the comparison to finish and for another trial,

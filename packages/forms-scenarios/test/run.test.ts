@@ -188,6 +188,22 @@ describe("runScenario", () => {
     expect(app.taps).toEqual(["android.widget.EditText", "Name *"]);
   });
 
+  it("reads a filled field back and retypes once when the keyboard added to it", async () => {
+    const app = fakeApp();
+    let typed = 0;
+    const type = app.type;
+    // The first attempt lands with a trailing space, as a suggestion commit leaves it.
+    app.type = async (text, current) => type(++typed === 1 ? `${text} ` : text, current);
+    const r = await runScenario(
+      { name: "x", form: "X", steps: [fill("Name", "Ada"), expectData("name", "Ada")] },
+      app,
+    );
+    expect(r.ok).toBe(true);
+    expect(typed).toBe(2);
+    // The second tap is on the field as it then reads, "Ada ".
+    expect(app.taps).toEqual(["android.widget.EditText", "Name *", "Ada ", "Name *"]);
+  });
+
   it("compares two runs: words and data that differ, step by step", async () => {
     const s = { name: "x", form: "X", steps: [fill("Name", "Ada")] };
     const a = await runScenario(s, fakeApp("legacy"));

@@ -151,6 +151,10 @@ export function androidTarget(o: AndroidTargetOptions): Target {
       if (text) {
         const escaped = text.replace(/'/g, "'\\''").replace(/ /g, "%s");
         adb("shell", `input text '${escaped}'`);
+        // End the keyboard's composition. Gboard with a hardware keyboard declared (the
+        // emulator's default) keeps the last word composing, and leaving the field then
+        // commits it with a stray character — a space, an "r". Escape settles it in place.
+        adb("shell", "input", "keyevent", "111");
       }
       await sleep(settle);
     },

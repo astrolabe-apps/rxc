@@ -106,14 +106,25 @@ async function perform(t: Target, s: Step): Promise<void> {
     case "fill": {
       const { found: n, nodes: at } = await locate(t, (ns) => findField(ns, s.label));
       if (!n) throw new Error(`no field labelled "${s.label}"`);
-      await t.tap(n);
-      await t.type(s.text, n.text);
-      // Then leave the field, as a person does, by tapping its label. With the keyboard up,
-      // React Native takes the next tap outside the field as dismissing it and nothing else
+      // Leave the field afterwards, as a person does, by tapping its label. With the keyboard
+      // up, React Native takes the next tap outside the field as dismissing it and nothing else
       // sees that tap — so the step after this one would be lost (a radio not chosen, a Save
       // not pressed). A label is words that do nothing, on every target.
       const l = findText(at, s.label);
-      if (l && l !== n && !isInput(l)) await t.tap(l);
+      const leave = async () => {
+        if (l && l !== n && !isInput(l)) await t.tap(l);
+      };
+      await t.tap(n);
+      await t.type(s.text, n.text);
+      await leave();
+      // The keyboard's own suggestions can add to what was typed as the field is left (a
+      // trailing space, a stray letter): once, read the field back and retype what differs.
+      const after = findField(await t.screen(), s.label);
+      if (after && after.text !== s.text) {
+        await t.tap(after);
+        await t.type(s.text, after.text);
+        await leave();
+      }
       return;
     }
     case "toggle": {
