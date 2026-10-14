@@ -1,6 +1,6 @@
 {
   "name": "@rx-controls/forms-scenarios",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Form scenarios written once and run against any app that draws the form — legacy renderers or Forms v2 — on an Android device, through the accessibility tree and the data the app reports.",
   "author": "Astrolabe Enterprises",
   "license": "ISC",
