@@ -16,4 +16,5 @@ export * from "./translator.js";
 export * from "./looks.js";
 export * from "./icons.js";
 export * from "./boolOptions.js";
+export * from "./schemaInterface.js";
 export * from "./feed.js";

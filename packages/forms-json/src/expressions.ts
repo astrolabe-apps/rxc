@@ -6,8 +6,13 @@ import {
   TrackingReadContext,
 } from "@rx-controls/core/internal";
 import { getProp, type FormProp, type Validator } from "@rx-controls/forms-react";
-import type { EntityExpression } from "@rx-controls/forms-schema";
+import {
+  ValidationMessageType,
+  type EntityExpression,
+  type SchemaField,
+} from "@rx-controls/forms-schema";
 import type { AnyExpr } from "./defs.js";
+import type { SchemaInterface } from "./schemaInterface.js";
 import {
   ensurePathNavigable,
   jsonataPrefix,
@@ -15,15 +20,6 @@ import {
   rootOf,
   type DataScope,
 } from "./scope.js";
-
-function isEmpty(v: unknown): boolean {
-  return (
-    v === null ||
-    v === undefined ||
-    v === "" ||
-    (Array.isArray(v) && v.length === 0)
-  );
-}
 
 /**
  * An expression becomes a `FormProp` and stops existing. This is where the
@@ -77,11 +73,19 @@ export function toFormProp(
       return (rc) => !!read(rc);
     }
     case "NotEmpty": {
-      const read = refReader(scope, e.field as string, warn);
       // Read now, not in the closure: the loader's audit runs at translate
       // time, and a property first read on evaluation counts as dropped.
       const empty = !!e.empty;
-      return (rc) => isEmpty(read(rc)) === empty;
+      const r = resolveRef(scope, e.field as string);
+      if (!r) {
+        warn?.(`field reference "${String(e.field)}" does not resolve from here`);
+        // Nothing to read reads as empty, as an unresolved reference always has.
+        return () => empty;
+      }
+      const c = r.control;
+      const si = scope.schemaInterface;
+      const field = r.schema ?? { field: r.name, type: "Any" };
+      return (rc) => si.isEmptyValue(field as SchemaField, rc.getValue(c)) === empty;
     }
     case "DataMatch":
     case "FieldValue": {
@@ -304,15 +308,19 @@ export function jsonataValidator(
  * legacy's, `toDateString()` and all. 11 uses in the corpus, every one an
  * offset from today.
  */
-export function dateValidator(v: {
-  comparison?: unknown;
-  fixedDate?: unknown;
-  daysFromCurrent?: unknown;
-}): Validator<unknown> {
+export function dateValidator(
+  v: {
+    comparison?: unknown;
+    fixedDate?: unknown;
+    daysFromCurrent?: unknown;
+  },
+  field: SchemaField,
+  si: SchemaInterface,
+): Validator<unknown> {
   const notAfter = v.comparison === "NotAfter";
   let comparison: number;
   if (typeof v.fixedDate === "string" && v.fixedDate)
-    comparison = parseToMillis(v.fixedDate);
+    comparison = si.parseToMillis(field, v.fixedDate);
   else {
     const now = new Date();
     comparison = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
@@ -321,16 +329,15 @@ export function dateValidator(v: {
   }
   return (value) => {
     if (!value) return null;
-    const sel = parseToMillis(String(value));
+    const sel = si.parseToMillis(field, String(value));
     if (notAfter ? sel > comparison : sel < comparison)
-      return `Date must not be ${notAfter ? "after" : "before"} ${new Date(comparison).toDateString()}`;
+      return si.validationMessageText(
+        field,
+        notAfter ? ValidationMessageType.NotAfterDate : ValidationMessageType.NotBeforeDate,
+        sel,
+        comparison,
+      );
     return null;
   };
 }
 
-/** `DefaultSchemaInterface.parseToMillis`: a naive date-time is UTC. */
-function parseToMillis(s: string): number {
-  const hasTime = s.includes("T");
-  const hasZone = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
-  return new Date(hasTime && !hasZone ? s + "Z" : s).getTime();
-}

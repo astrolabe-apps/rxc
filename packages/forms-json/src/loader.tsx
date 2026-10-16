@@ -12,6 +12,7 @@ import type {
   Translator,
 } from "./translator.js";
 import { translateForm as translateTree } from "./translate.js";
+import type { SchemaInterface } from "./schemaInterface.js";
 
 
 /**
@@ -105,6 +106,15 @@ export interface LoaderOptions {
    * (Yes → `true`, No → `false`); pass your own for other words.
    */
   boolOptions?: readonly FieldOption[] | null;
+  /**
+   * What a field's values mean — legacy's `SchemaInterface`: when one is
+   * empty, how it reads as text (a display-only field's dates, booleans and
+   * collections), how a date parses, the messages a rule shows when the
+   * definition gives none, and the options a field offers. Default
+   * {@link defaultSchemaInterface}; extend {@link DefaultSchemaInterface} to
+   * change a part.
+   */
+  schemaInterface?: SchemaInterface;
   /** What a label's and a help text's string becomes. Default: the string. */
   displayText?: DisplayTextTranslator;
   /**

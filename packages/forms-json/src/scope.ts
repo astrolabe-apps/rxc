@@ -6,6 +6,7 @@ import {
 } from "@rx-controls/core";
 import type { SchemaField } from "@rx-controls/forms-schema";
 import { childrenOf } from "./defs.js";
+import type { SchemaInterface } from "./schemaInterface.js";
 
 /** One step of the path from the root data to a scope, for the jsonata prefix. */
 export interface PathSegment {
@@ -31,6 +32,8 @@ export interface PathSegment {
 export interface DataScope {
   /** For the controls the loader has to allocate — a meta field's side store. */
   ctx: ControlContext;
+  /** The host's answers about a field's values: emptiness, text, dates, messages, options. */
+  schemaInterface: SchemaInterface;
   control: Control<unknown>;
   fields: SchemaField[];
   /** The schema field whose value this is — absent at the root. */
@@ -71,11 +74,12 @@ export function withVariables(
 
 export function rootScope(
   ctx: ControlContext,
+  schemaInterface: SchemaInterface,
   control: Control<unknown>,
   fields: SchemaField[],
   variables?: (rc: ReadContext) => Record<string, unknown>,
 ): DataScope {
-  return { ctx, control, fields, path: [], variables };
+  return { ctx, schemaInterface, control, fields, path: [], variables };
 }
 
 /**
@@ -123,6 +127,7 @@ export function fieldScope(
 ): DataScope {
   return {
     ctx: scope.ctx,
+    schemaInterface: scope.schemaInterface,
     control: fieldControl(scope.ctx, scope.control, name, schema),
     fields: childrenOf(schema),
     field: schema,
@@ -148,6 +153,7 @@ export function elementScope(
 ): DataScope {
   const array: DataScope = {
     ctx: scope.ctx,
+    schemaInterface: scope.schemaInterface,
     control: fieldControl(scope.ctx, scope.control, name, schema),
     fields: [],
     field: schema,
@@ -157,6 +163,7 @@ export function elementScope(
   };
   return {
     ctx: scope.ctx,
+    schemaInterface: scope.schemaInterface,
     control: item,
     fields: childrenOf(schema),
     field: schema,
@@ -224,6 +231,17 @@ export function resolveRef(
     if (i < segs.length - 1) cur = into;
   }
   return last;
+}
+
+/**
+ * A field's schema path from the root, `a/b` with no row indexes — legacy's
+ * `getSchemaNodePathString`, what {@link SchemaInterface.getOptions} is told.
+ */
+export function schemaPath(ref: ResolvedRef): string {
+  return ref.into.path
+    .filter((s) => typeof s.key === "string")
+    .map((s) => s.key)
+    .join("/");
 }
 
 /**

@@ -1,9 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { act } from "react";
-import { untrackedRead as rc, type Control } from "@rx-controls/core";
-import type { SchemaField } from "@rx-controls/forms-schema";
+import {
+  untrackedRead as rc,
+  type Control,
+  type ReadContext,
+} from "@rx-controls/core";
+import { ValidationMessageType, type SchemaField } from "@rx-controls/forms-schema";
 import { Contents, RichText, TextField } from "@rx-controls/forms-react";
 import {
+  DefaultSchemaInterface,
   defaultTranslators,
   feedState,
   legacyLook,
@@ -540,6 +545,71 @@ describe("DisplayOnlyField", () => {
     act(() => h.ctx.update((wc) => wc.setValue(data.fields.amount as Control<unknown>, 240)));
     await flush();
     expect(text()).toContain("$240.00");
+  });
+});
+
+describe("the schema interface", () => {
+  it("is the host's: a date's text, options by schema path following a control, messages and emptiness", async () => {
+    const reasons = h.ctx.newControl([{ name: "Moving house", value: "move" }]);
+    class HostInterface extends DefaultSchemaInterface {
+      textValue(field: SchemaField, value: unknown, element?: boolean, options?: Parameters<DefaultSchemaInterface["textValue"]>[3]) {
+        if (field.type === "Date" && typeof value === "string") {
+          const [y, m, d] = value.split("-");
+          return `${d}/${m}/${y}`;
+        }
+        return super.textValue(field, value, element, options);
+      }
+      getOptions(field: SchemaField, path: string, rc: ReadContext) {
+        return path === "change/reason" ? rc.getValue(reasons) : super.getOptions(field, path, rc);
+      }
+      validationMessageText(field: SchemaField, type: ValidationMessageType, actual: unknown, expected: unknown) {
+        return type === ValidationMessageType.NotEmpty
+          ? `${field.displayName} is needed`
+          : super.validationMessageText(field, type, actual, expected);
+      }
+      isEmptyValue(field: SchemaField, value: unknown) {
+        return value === "-" || super.isEmptyValue(field, value);
+      }
+    }
+    const { data } = h.load(
+      [
+        { type: "Data", field: "born", renderOptions: { type: "DisplayOnly" } },
+        {
+          type: "Data",
+          field: "change",
+          children: [
+            { type: "Data", field: "reason", renderOptions: { type: "DisplayOnly" } },
+            { type: "Data", field: "note", required: true },
+          ],
+        },
+        {
+          type: "Display",
+          displayData: { type: "Text", text: "Nothing noted" },
+          dynamic: [{ type: "Visible", expr: { type: "NotEmpty", field: "change/note", empty: true } }],
+        },
+      ],
+      [
+        { field: "born", type: "Date" },
+        {
+          field: "change",
+          type: "Compound",
+          children: [str("reason"), str("note", { displayName: "Note" })],
+        } as SchemaField,
+      ],
+      { born: "1990-03-05", change: { reason: "move", note: "-" } },
+      { schemaInterface: new HostInterface() },
+    );
+    await flush();
+    expect(text()).toContain("05/03/1990");
+    expect(text()).toContain("Moving house");
+    expect(text()).toContain("Nothing noted");
+    act(() => h.ctx.update((wc) => wc.setValue(reasons, [{ name: "Work", value: "move" }])));
+    expect(text()).toContain("Work");
+    const change = data.fields.change as Control<{ note: string }>;
+    act(() => h.ctx.update((wc) => wc.setValue(change.fields.note, "")));
+    await flush();
+    act(() => h.ctx.update((wc) => wc.setTouched(change.fields.note, true)));
+    expect(Object.values(rc.getErrors(change.fields.note))).toEqual(["Note is needed"]);
   });
 });
 
@@ -1128,7 +1198,7 @@ describe("validators", () => {
     await flush();
     const errors = (k: keyof typeof data.fields) =>
       Object.values(rc.getErrors(data.fields[k]));
-    expect(errors("code")).toEqual(["At most 2"]);
+    expect(errors("code")).toEqual(["Length must be less than 2"]);
     expect(errors("notes")).toEqual(["Has a TODO"]);
     expect(errors("when")[0]).toMatch(/^Date must not be after/);
   });

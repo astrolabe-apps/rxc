@@ -44,10 +44,11 @@ import {
   type IconSpec,
 } from "@rx-controls/forms-react";
 import { useDefaultValue } from "@rx-controls/forms-react/internal";
-import type {
-  ControlDefinition,
-  IconReference,
-  SchemaField,
+import {
+  ValidationMessageType,
+  type ControlDefinition,
+  type IconReference,
+  type SchemaField,
 } from "@rx-controls/forms-schema";
 import {
   dateValidator,
@@ -69,6 +70,7 @@ import {
   elementScope,
   resolveRef,
   rootScope,
+  schemaPath,
   withVariables,
   type DataScope,
   type ResolvedRef,
@@ -78,6 +80,7 @@ import { legacyIconClassSlot, legacyLook } from "./looks.js";
 import { iconRefOf } from "./icons.js";
 import { defaultBoolOptions } from "./boolOptions.js";
 import { feedState } from "./feed.js";
+import { defaultSchemaInterface, type SchemaInterface } from "./schemaInterface.js";
 import type {
   CompoundCycleProps,
   DisplayTextTranslator,
@@ -193,13 +196,17 @@ export function allowedOptions(
  * `FormProp`, so a data-driven list re-filters as the data moves.
  */
 function optionsFor(
+  si: SchemaInterface,
   schema: AnyField | undefined,
+  path: string,
   dynamicValue: TranslateArgs["dynamicValue"],
 ): FormProp<FieldOption[]> | undefined {
-  const all = schemaOptions(schema);
+  if (!schema) return undefined;
+  const field = schema as SchemaField;
+  const all = (rc: ReadContext) => [...(si.getOptions(field, path, rc) ?? [])];
   const allowed = dynamicValue("AllowedOptions");
-  if (!allowed) return all.length ? all : undefined;
-  return (rc) => allowedOptions(all, getProp(rc, allowed));
+  if (!allowed) return all;
+  return (rc) => allowedOptions(all(rc), getProp(rc, allowed));
 }
 
 const hasOptions = (d: AnyDef, s?: AnyField) =>
@@ -378,19 +385,33 @@ const builtins: Builtin[] = [
     match: (d) => d.type === "Data" && d.renderOptions?.type === "DisplayOnly",
     renderTypes: ["DisplayOnly"],
     dynamics: ["AllowedOptions", "Display"],
-    render: ({ props, schema, def, dynamicValue }) => {
+    render: ({ props, schema, def, dynamicValue, options, schemaInterface: si }) => {
       const ro: Record<string, unknown> = def.renderOptions ?? {};
+      // Legacy's `overrideText`: a `Display` expression in place of the value's text.
+      const override = dynamicValue("Display") as FormProp<ReactNode> | undefined;
+      const list = options();
+      const field = props.field as Control<unknown>;
+      // The value's text is the schema interface's, as legacy's was: options by
+      // name, dates and booleans by type, a collection joined.
+      const text: FormProp<ReactNode> | undefined = schema
+        ? (rc) => {
+            const o = getProp(rc, override);
+            if (o != null && o !== "") return o;
+            const v = rc.getValue(field);
+            return si.isEmptyValue(schema, v)
+              ? undefined
+              : si.textValue(schema, v, false, getProp(rc, list));
+          }
+        : override;
       return (
         <DisplayOnlyField
           {...props}
           required={undefined}
-          // Legacy's `overrideText`: a `Display` expression in place of the value's text.
-          text={dynamicValue("Display") as FormProp<ReactNode> | undefined}
-          options={optionsFor(schema, dynamicValue)}
+          text={text}
+          options={list}
           emptyText={str(ro.emptyText)}
           sampleText={str(ro.sampleText)}
           noSelection={def.noSelection === true || ro.noSelection === true}
-          format={formatFor(schema)}
         />
       );
     },
@@ -448,10 +469,10 @@ const builtins: Builtin[] = [
     match: (d) => d.type === "Data" && d.renderOptions?.type === "CheckList",
     renderTypes: ["CheckList"],
     dynamics: ["AllowedOptions"],
-    render: ({ props, schema, dynamicValue }) => (
+    render: ({ props, schema, dynamicValue, options }) => (
       <CheckListField
         {...(props as FieldProps<CheckListValue[] | undefined>)}
-        options={optionsFor(schema, dynamicValue)}
+        options={options()}
       />
     ),
   },
@@ -481,7 +502,7 @@ const builtins: Builtin[] = [
     // legacy's Array renderer did: it had no reorder UI, the flag rode along.
     match: (d, s) => d.type === "Data" && !!s?.collection,
     renderTypes: ["Standard", "Array"],
-    render: ({ props, element, def, schema }) => {
+    render: ({ props, element, def, schema, schemaInterface: si }) => {
       const len = def.validators?.find((v) => v.type === "Length");
       const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
       void ro.noReorder;
@@ -502,7 +523,23 @@ const builtins: Builtin[] = [
       return (
         <>
           {/* An empty collection draws nothing, as legacy's did. */}
-          <Elements {...collectionProps} {...bounds}>
+          <Elements
+            {...collectionProps}
+            {...bounds}
+            lengthMessage={
+              schema
+                ? (bound, limit, n) =>
+                    si.validationMessageText(
+                      schema,
+                      bound === "min"
+                        ? ValidationMessageType.MinLength
+                        : ValidationMessageType.MaxLength,
+                      n,
+                      limit,
+                    )
+                : undefined
+            }
+          >
             {(item, index, actions) => (
               <Contents layout={rowLayout}>
                 {element!(item, index)}
@@ -561,7 +598,7 @@ const builtins: Builtin[] = [
     renderTypes: ["Radio"],
     dynamics: ["AllowedOptions"],
     ownsChildren: true,
-    render: ({ def, props, schema, retranslate, dynamicValue }) => {
+    render: ({ def, props, schema, retranslate, dynamicValue, options }) => {
       const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
       const hasChildren = !!def.children?.length;
       const field = props.field as Control<unknown>;
@@ -605,7 +642,7 @@ const builtins: Builtin[] = [
         <RadioField
           {...props}
           restrictToOptions={false}
-          options={optionsFor(schema, dynamicValue)}
+          options={options()}
         >
           {hasChildren ? childrenFor : undefined}
         </RadioField>
@@ -620,11 +657,11 @@ const builtins: Builtin[] = [
       (hasOptions(d, s) || d.renderOptions?.type === "Dropdown"),
     renderTypes: ["Standard", "Dropdown"],
     dynamics: ["AllowedOptions"],
-    render: ({ props, schema, dynamicValue }) => (
+    render: ({ props, schema, dynamicValue, options }) => (
       <SelectField
         {...props}
         restrictToOptions={false}
-        options={optionsFor(schema, dynamicValue)}
+        options={options()}
       />
     ),
   },
@@ -735,6 +772,7 @@ function buildProps(
   const asText = (v: unknown, where: "title" | "help"): ReactNode =>
     displayText && typeof v === "string" ? displayText(v, where) : (v as ReactNode);
   const schema = ref?.schema;
+  const si = scope.schemaInterface;
   // A reference that walks off the data binds a detached control, so the
   // widget renders and edits nothing rather than editing the scope's object.
   const control = def.field
@@ -758,6 +796,8 @@ function buildProps(
       // Legacy's Date validator, keyed `date`, numbered past the first.
       validate[dateN ? `date${dateN}` : "date"] = dateValidator(
         v as Parameters<typeof dateValidator>[0],
+        schema ?? { field: def.field ?? "", type: "Date" },
+        si,
       );
       dateN++;
       continue;
@@ -790,10 +830,13 @@ function buildProps(
     if (kind === "Length" && !schema?.collection) {
       // Read now — the audit runs at translate time.
       const { min, max } = v as { min?: number; max?: number };
+      const field = schema ?? { field: def.field ?? "", type: "String" };
       validate.length = (value) => {
-        const n = typeof value === "string" ? value.length : 0;
-        if (min !== undefined && n < min) return `At least ${min}`;
-        if (max !== undefined && n > max) return `At most ${max}`;
+        const n = si.valueLength(field, value);
+        if (min != null && n < min)
+          return si.validationMessageText(field, ValidationMessageType.MinLength, n, min);
+        if (max != null && n > max)
+          return si.validationMessageText(field, ValidationMessageType.MaxLength, n, max);
         return null;
       };
     }
@@ -931,7 +974,11 @@ function buildProps(
           : asText(def.title ?? schema?.displayName ?? undefined, "title"),
     hideLabel: hideLabel || undefined,
     required: def.required ?? undefined,
-    requiredMessage: def.requiredErrorText ?? undefined,
+    requiredMessage:
+      def.requiredErrorText ??
+      (schema
+        ? si.validationMessageText(schema, ValidationMessageType.NotEmpty, undefined, undefined)
+        : undefined),
     helpText,
     helpPlacement,
     helpLabel,
@@ -1162,35 +1209,6 @@ function warnDropped(
           subject,
           detail: `"${k}" was built into the "${propKey}" prop, which the translator never read — dropped`,
         });
-  }
-}
-
-/**
- * How one value of a schema type reads as text — legacy `textValue` minus the
- * option lookup, which the widget does itself. Built here because the schema
- * is loader-only; a JSX author passes their own `format` or none.
- */
-function formatFor(
-  schema: SchemaField | undefined,
-): ((v: unknown) => string) | undefined {
-  if (!schema) return undefined;
-  switch (schema.type) {
-    case "Date":
-      return (v) => new Date(v as string).toLocaleDateString();
-    case "DateTime":
-      // A naive date-time is UTC, as legacy reads it.
-      return (v) => {
-        const s = String(v);
-        return new Date(
-          /[zZ]$|[+-]\d\d:\d\d$/.test(s) ? s : s + "Z",
-        ).toLocaleString();
-      };
-    case "Time":
-      return (v) => new Date("1970-01-01T" + v).toLocaleTimeString();
-    case "Bool":
-      return (v) => (v ? "Yes" : "No");
-    default:
-      return undefined;
   }
 }
 
@@ -1639,6 +1657,9 @@ export function translate(
       action,
       retranslate,
       dynamicValue,
+      options: () =>
+        optionsFor(scope.schemaInterface, schema, ref ? schemaPath(ref) : "", dynamicValue),
+      schemaInterface: scope.schemaInterface,
       resolveField: (r) => resolveRef(scope, r)?.control,
     })),
   );
@@ -1684,7 +1705,13 @@ export function translateForm(
       looks[name] ??= parts;
     },
   };
-  const root = rootScope(ctx, data, fields, opts.variables);
+  const root = rootScope(
+    ctx,
+    opts.schemaInterface ?? defaultSchemaInterface,
+    data,
+    fields,
+    opts.variables,
+  );
   const tree = controls.map((c, i) =>
     translate(ctx, root, c, String(i), own, (w) => warnings.push(w)),
   );

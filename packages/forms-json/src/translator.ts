@@ -5,8 +5,9 @@ import type {
   ControlDefinition,
   SchemaField,
 } from "@rx-controls/forms-schema";
-import type { FieldProps, FormProp } from "@rx-controls/forms-react";
+import type { FieldOption, FieldProps, FormProp } from "@rx-controls/forms-react";
 import type { LoaderOptions } from "./loader.js";
+import type { SchemaInterface } from "./schemaInterface.js";
 import {
   CompoundCycle as CompoundCycleImpl,
   defaultTranslators as builtinTranslators,
@@ -105,6 +106,15 @@ export interface TranslateArgs {
    * reports it dropped.
    */
   dynamicValue: (type: string) => FormProp<unknown> | undefined;
+  /**
+   * The field's options, as an options widget takes them: the
+   * {@link SchemaInterface}'s for this field, narrowed or replaced by an
+   * `AllowedOptions` dynamic — which calling this reads, so a translator that
+   * does lists `AllowedOptions` in {@link Translator.dynamics}.
+   */
+  options: () => FormProp<FieldOption[]> | undefined;
+  /** The loader's {@link LoaderOptions.schemaInterface}. */
+  schemaInterface: SchemaInterface;
   /**
    * The control a field reference names, resolved as the definition's own
    * `field` is — against the data the definition sits in — for a property

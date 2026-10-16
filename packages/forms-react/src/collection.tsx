@@ -98,6 +98,11 @@ export interface CollectionProps<T> extends FieldProps<T[]> {
   minLength?: number;
   /** The most elements allowed. Registered as a validator on the array itself. */
   maxLength?: number;
+  /**
+   * The message when the length is out of bounds: which bound, its limit and
+   * the length. Default "At least ‹n› required" / "At most ‹n› allowed".
+   */
+  lengthMessage?: (bound: "min" | "max", limit: number, length: number) => string;
 }
 
 /**
@@ -162,7 +167,7 @@ export function collectionRenderer<T, P extends object = {}>(
     const ctx = useControlContext();
     const autoId = useId();
     const { field: control, dontClearHidden, validate, children } = props;
-    const { empty, minLength, maxLength } = props;
+    const { empty, minLength, maxLength, lengthMessage } = props;
     const id = props.id ?? autoId;
 
     const scope = useBoundScope(props);
@@ -175,9 +180,9 @@ export function collectionRenderer<T, P extends object = {}>(
     const validators = useMemo(() => {
       const base = { ...validatorEntries(validate, id) };
       if (minLength !== undefined || maxLength !== undefined)
-        base.length = lengthValidator<T>({ minLength, maxLength });
+        base.length = lengthValidator<T>({ minLength, maxLength }, lengthMessage);
       return base;
-    }, [validate, minLength, maxLength, id]);
+    }, [validate, minLength, maxLength, lengthMessage, id]);
 
     const cfg = useMirror({
       active: presence !== "hidden" && !hiddenPending(rc, props.hidden),
@@ -286,6 +291,7 @@ const collectionContractKeys: ReadonlySet<string> = new Set([
   "empty",
   "minLength",
   "maxLength",
+  "lengthMessage",
 ]);
 
 /**
@@ -356,18 +362,22 @@ function actionsFor<T>(
 }
 
 /** The `Length` bounds as a validator on the array. */
-function lengthValidator<T>(bounds: {
-  minLength?: number;
-  maxLength?: number;
-}): Validator<T[]> {
+function lengthValidator<T>(
+  bounds: { minLength?: number; maxLength?: number },
+  message: CollectionProps<T>["lengthMessage"] = defaultLengthMessage,
+): Validator<T[]> {
   return (v) => {
     const n = v?.length ?? 0;
     if (bounds.minLength !== undefined && n < bounds.minLength)
-      return `At least ${bounds.minLength} required`;
+      return message("min", bounds.minLength, n);
     if (bounds.maxLength !== undefined && n > bounds.maxLength)
-      return `At most ${bounds.maxLength} allowed`;
+      return message("max", bounds.maxLength, n);
     return null;
   };
+}
+
+function defaultLengthMessage(bound: "min" | "max", limit: number): string {
+  return bound === "min" ? `At least ${limit} required` : `At most ${limit} allowed`;
 }
 
 /**

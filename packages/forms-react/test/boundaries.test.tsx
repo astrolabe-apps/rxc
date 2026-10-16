@@ -1000,11 +1000,13 @@ describe("the collection boundary", () => {
     pets,
     minLength,
     maxLength,
+    lengthMessage,
     disabled,
   }: {
     pets: Control<Pet[]>;
     minLength?: number;
     maxLength?: number;
+    lengthMessage?: (bound: "min" | "max", limit: number, length: number) => string;
     disabled?: boolean;
   }) {
     return (
@@ -1012,6 +1014,7 @@ describe("the collection boundary", () => {
         field={pets as Control<unknown[]>}
         minLength={minLength}
         maxLength={maxLength}
+        lengthMessage={lengthMessage}
         disabled={disabled}
         empty={<i data-empty />}
       >
@@ -1051,6 +1054,18 @@ describe("the collection boundary", () => {
     expect($("[data-can]")!.getAttribute("data-can")).toBe("true|false");
     act(() => dom.ctx.update((wc) => wc.removeElement(pets, 0)));
     expect(untrackedRead.getErrors(pets).length).toBe("At least 1 required");
+  });
+
+  it("words its length message as the author's lengthMessage says", () => {
+    const pets = dom.ctx.newControl<Pet[]>([{ name: "Rex" }, { name: "Tom" }]);
+    mount(
+      <Pets
+        pets={pets}
+        maxLength={1}
+        lengthMessage={(bound, limit, n) => `${bound} ${limit}, have ${n}`}
+      />,
+    );
+    expect(untrackedRead.getErrors(pets).length).toBe("max 1, have 2");
   });
 
   it("reports every can* false when locked", () => {

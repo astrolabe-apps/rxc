@@ -971,6 +971,18 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   An icon's `iconClass` goes in the look's `icon` part (`legacyIconClassSlot`), which html draws on an
   icon display and a field's edges; the native converter drops an icon font's classes (`fa`, `fa-*`).
 - A native disclosure's title shrinks, so a long one no longer pushes the icon out of the row.
+- **`LoaderOptions.schemaInterface`** (legacy's `SchemaInterface`; `DefaultSchemaInterface` to extend,
+  `defaultSchemaInterface` the default): what a field's values mean on the JSON path — emptiness (a
+  `NotEmpty` expression, a display-only field's empty text), a value as text (a display-only field's
+  dates, booleans, options and collections — the loader now hands the widget the whole `text`, and its
+  `format` is gone), `parseToMillis` (the `Date` validator), the messages a rule shows when the
+  definition gives none (required, `Length`, `Date`) and a field's options, by schema path and through
+  `rc` so options held in a control follow it. `TranslateArgs` gains `options()` and
+  `schemaInterface`. **Messages are legacy's now**: a string `Length` says "Length must be at least
+  ‹n›" / "Length must be less than ‹n›" (was "At least ‹n›" / "At most ‹n›"), and a required
+  collection "Please enter a value" (was "Please add at least one"). Not carried over, as nothing
+  sorts or searches yet: `compareValue`, `searchText`, `getFilterOptions`. The contract gains
+  `lengthMessage` on a collection (default unchanged).
 
 **Where it stands, and what is next** (kept current; the order of work, not a schedule).
 
@@ -1030,7 +1042,8 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   `CopyableData` render types in the corpus host and the playground's — ordinary fields through
   the display-only slot, since legacy's are data renderers that `clearHidden` clears (parity
   caught the write-free version). All 32 hold on native-dev. Smaller differences the comparison shows on every
-  form: v2 formats a date `10/1/2026` where legacy writes `01/10/2026`, names a pressable with its
+  form: v2 formatted a date `10/1/2026` where legacy writes `01/10/2026` (closed: the playground's host
+  passes a `schemaInterface` formatting dates as ServiceTas's `formattedDateString` does, en-AU in Hobart), names a pressable with its
   icon's glyph first (`￼, Marine and Safety Tasmania`), and does not expose a switch's `off` as
   words. The engine waits for a `wm size` change to settle and re-sends a link the app has not
   answered in 30s: Expo Go switching between the two projects dropped it otherwise. A `fill` ends the

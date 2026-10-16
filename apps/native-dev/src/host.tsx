@@ -1,14 +1,20 @@
 import { Switch } from "react-native";
 import type { ReactNode } from "react";
 import type { Rendered } from "@rx-controls/react";
-import { RichText, type DisplayOnlyExtra } from "@rx-controls/forms-react";
+import { RichText, type DisplayOnlyExtra, type FieldOption } from "@rx-controls/forms-react";
 import {
   fieldRenderer,
   useCheckbox,
   useFieldShell,
   type FieldRenderProps,
 } from "@rx-controls/forms-react";
-import { defaultTranslators, type LoaderOptions, type Translator } from "@rx-controls/forms-json";
+import {
+  DefaultSchemaInterface,
+  defaultTranslators,
+  type LoaderOptions,
+  type Translator,
+} from "@rx-controls/forms-json";
+
 
 /**
  * The playground standing in for ServiceTas's host on a device: the corpus's own stand-in host
@@ -83,7 +89,36 @@ const copyableDataTranslator: Translator = {
   render: ({ props }) => <ReadOnlyData {...(props as any)} required={undefined} />,
 };
 
-export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments"> = {
+type SchemaField = Parameters<DefaultSchemaInterface["textValue"]>[0];
+
+/** ServiceTas's `formattedDateString`: `dd/mm/yyyy`, in Hobart. */
+const dateFormat = new Intl.DateTimeFormat("en-AU", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "Australia/Hobart",
+});
+
+/** ServiceTas's `DynamicOptionsSchemaInterface.textValue`: a date or date-time as the app writes it. */
+class ServiceTasSchemaInterface extends DefaultSchemaInterface {
+  textValue(
+    field: SchemaField,
+    value: unknown,
+    element?: boolean,
+    options?: readonly FieldOption[] | null,
+  ): string | undefined {
+    const one = !field.collection || element;
+    const named = (options ?? field.options ?? []).some((o: { value: unknown }) => o.value === value);
+    if (one && !named && value && typeof value === "string") {
+      if (field.type === "Date") return dateFormat.format(new Date(value));
+      if (field.type === "DateTime") return dateFormat.format(new Date(this.parseToMillis(field, value)));
+    }
+    return super.textValue(field, value, element, options);
+  }
+}
+
+export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments" | "schemaInterface"> = {
+  schemaInterface: new ServiceTasSchemaInterface(),
   translators: [switchTranslator, htmlRendererTranslator, copyableDataTranslator, ...defaultTranslators],
   adornments: {
     // ServiceTas's help renderer: a trigger at the label's end, `helpLabel` the words on it.
