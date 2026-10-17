@@ -1066,9 +1066,10 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   fixture's spacing and italics are the app's tagsStyles, Nunito's italic face loaded; an inline
   display-only value is the system font at 14, as legacy's bare Text; a look's `label` part styles
   the row of a label and its help, legacy's labelContainer (`@ ` puts the help under the label); and
-  the playground's CopyableData stand-in has the app's copy icon. Left open, a decision: legacy's
+  the playground's CopyableData stand-in has the app's copy icon. Decided, a divergence: legacy's
   `Textfield` renderer never touches on blur, so its errors show only once a page or submit touches
-  it, where v2's show as the field is left (LinkMrsWizard's licence number).) The legacy harness shows a "VirtualizedLists should
+  it — an oversight (its `Standard` text input does touch) — and v2 keeps touching as the field is
+  left (LinkMrsWizard's licence number).) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws
