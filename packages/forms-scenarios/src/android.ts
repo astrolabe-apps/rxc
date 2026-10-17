@@ -233,6 +233,9 @@ export function androidTarget(o: AndroidTargetOptions): Target {
       adb("shell", "input", "swipe", x, String(Math.round(from)), x, String(Math.round(to)), "1500");
       await sleep(settle);
     },
+    async screenshot() {
+      return execFileSync(ADB, ["exec-out", "screencap", "-p"], { maxBuffer: 1 << 28 });
+    },
     async hideKeyboard() {
       // Back closes the keyboard; without one showing it would leave the app, so only then.
       if (/mInputShown=true/.test(adb("shell", "dumpsys input_method | grep mInputShown"))) {

@@ -269,6 +269,11 @@ export interface RunOptions {
    * data to arrive, an action to be called — before it fails. Default 3000ms.
    */
   wait?: number;
+  /**
+   * Handed a picture of the screen — of the form as it opened (`index` -1), then after
+   * each step — on a target that takes them ({@link Target.screenshot}).
+   */
+  onShot?: (index: number, png: Uint8Array) => void | Promise<void>;
 }
 
 /**
@@ -286,6 +291,10 @@ export async function runScenario(
   const device = remembering(target);
   const wait = options.wait ?? 3000;
   await device.open(scenario.form, scenario.data ?? {});
+  const shoot = async (i: number) => {
+    if (options.onShot && device.screenshot) await options.onShot(i, await device.screenshot());
+  };
+  await shoot(-1);
   let ok = true;
   for (const [i, r] of steps.entries()) {
     options.onStep?.(r, i);
@@ -299,6 +308,7 @@ export async function runScenario(
     }
     r.texts = screenTexts(await device.screen());
     r.data = (await device.report()).data;
+    await shoot(i);
     options.onStep?.(r, i);
     if (options.pause) await sleep(options.pause);
     if (!ok) break;

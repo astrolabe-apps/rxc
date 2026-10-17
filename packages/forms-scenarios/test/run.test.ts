@@ -223,6 +223,24 @@ describe("runScenario", () => {
     ]);
   });
 
+  it("hands over a picture of the form as it opened and after each step, where the target takes them", async () => {
+    const app = fakeApp();
+    let n = 0;
+    const seen: [number, number][] = [];
+    await runScenario(
+      { name: "x", form: "X", steps: [expectVisible("Name *"), press("Continue")] },
+      { ...app, screenshot: async () => new Uint8Array([++n]) },
+      { wait: 0, onShot: (i, png) => void seen.push([i, png[0]!]) },
+    );
+    expect(seen).toEqual([[-1, 1], [0, 2], [1, 3]]);
+    // A target without pictures is run the same, with none handed over.
+    const none: number[] = [];
+    await runScenario({ name: "x", form: "X", steps: [expectVisible("Name *")] }, fakeApp(), {
+      onShot: (i) => void none.push(i),
+    });
+    expect(none).toEqual([]);
+  });
+
   it("stops at the first step that fails, saying why", async () => {
     const r = await runScenario(
       { name: "x", form: "X", steps: [expectData("name", "Ada"), press("Continue")] },

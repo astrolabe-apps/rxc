@@ -81,6 +81,8 @@ export interface Target {
    * a target is taken to have none.
    */
   hideKeyboard?(): Promise<void>;
+  /** The screen as a PNG, for looking at. Left out, a target takes no pictures. */
+  screenshot?(): Promise<Uint8Array>;
   /** Put the device back as it was. */
   close(): Promise<void>;
 }

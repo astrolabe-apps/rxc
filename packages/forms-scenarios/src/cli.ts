@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md]
-//                 [--watch] [--slow ms] [--no-tall] [--timings]
+//                 [--watch] [--slow ms] [--no-tall] [--timings] [--shots dir]
 //
 // Each step is printed as it happens. To watch a run on the device: --watch (a pause of 1.5s
 // between steps), or --slow <ms> for another pause; --no-tall keeps the screen its own size
 // (a form longer than the screen is scrolled to find what each step needs). --timings prints
-// where a run's time went: each kind of call to the device, its count and total.
+// where a run's time went: each kind of call to the device, its count and total. --shots
+// <dir> keeps a picture of the screen as each form opens and after each step, per target,
+// and writes <dir>/index.html with the targets' pictures side by side, step by step.
 //
 // forms-scenarios install-server — install the screen server on the device (Appium's
 // UiAutomator2 server: a screen read in a fraction of a second rather than two seconds).
@@ -14,7 +16,7 @@
 // the first target; with a second target, on both, comparing step by step (the first the
 // oracle). Exits non-zero when a scenario fails on the first target. Node 24 runs `.ts`
 // scenario files as they are.
-import { readdirSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { androidTarget, defaultAdb } from "./android.js";
@@ -85,9 +87,10 @@ function timed(t: Target): Target {
 }
 const only = opt("--only")[0];
 const reportFile = opt("--report")[0];
+const shotsDir = opt("--shots")[0];
 if (!targets.length || !args.length) {
   console.error(
-    "forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md] [--watch] [--slow ms] [--no-tall] [--timings]\nforms-scenarios install-server",
+    "forms-scenarios <file-or-dir…> --target name=url [--target name=url] [--only text] [--report file.md] [--watch] [--slow ms] [--no-tall] [--timings] [--shots dir]\nforms-scenarios install-server",
   );
   process.exit(2);
 }
@@ -112,12 +115,28 @@ console.log(`${chosen.length} scenario(s) from ${files.length} file(s), on ${tar
 
 const [first, second] = targets;
 
+/** The pictures of each scenario, per step (0 the form as it opened), per target: file names under `shotsDir`. */
+const shots: { scenario: Scenario; steps: Map<number, Map<string, string>> }[] = [];
+
 /** Each step as it happens: on a terminal, "▸ step" replaced by its ✓ or ✗ when it ends. */
 const live = process.stdout.isTTY;
 const run = async (s: Scenario, t: (typeof targets)[number]) => {
+  let pictures = shots.find((x) => x.scenario === s);
+  if (shotsDir && !pictures) shots.push((pictures = { scenario: s, steps: new Map() }));
+  const folder = String(shots.length).padStart(2, "0");
   console.log(`\u25B6 ${s.name} \u2014 ${t.name}`);
   const options: RunOptions = {
     pause,
+    onShot: shotsDir
+      ? (i, png) => {
+          const file = `${folder}/${i + 1}-${t.name}.png`;
+          mkdirSync(join(shotsDir, folder), { recursive: true });
+          writeFileSync(join(shotsDir, file), png);
+          const at = pictures!.steps.get(i + 1) ?? new Map<string, string>();
+          at.set(t.name, file);
+          pictures!.steps.set(i + 1, at);
+        }
+      : undefined,
     onStep: (r) => {
       const what = describeStep(r.step);
       if (r.ok === undefined) {
@@ -175,6 +194,31 @@ try {
   for (const t of targets) await t.close();
 }
 if (reportFile) writeFileSync(reportFile, md);
+if (shotsDir) writeFileSync(join(shotsDir, "index.html"), shotsPage());
+
+/** The targets' pictures side by side, a row per step, a section per scenario. */
+function shotsPage(): string {
+  const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const names = targets.map((t) => t.name);
+  const sections = shots.map(({ scenario, steps }) => {
+    const rows = [...steps.entries()].map(([i, files]) => {
+      const what = i === 0 ? "opened" : `${i}. ${describeStep(scenario.steps[i - 1]!)}`;
+      const cells = names
+        .map((n) => {
+          const f = files.get(n);
+          return `<figure><figcaption>${esc(n)}</figcaption>${f ? `<a href="${esc(f)}"><img loading="lazy" src="${esc(f)}"></a>` : "<p>—</p>"}</figure>`;
+        })
+        .join("");
+      return `<h3>${esc(what)}</h3><div class="pair">${cells}</div>`;
+    });
+    return `<section><h2>${esc(scenario.name)}</h2>${rows.join("")}</section>`;
+  });
+  return `<!doctype html><meta charset="utf-8"><title>Form scenarios, side by side</title>
+<style>body{font:14px system-ui;margin:16px;background:#fff;color:#111}.pair{display:flex;gap:16px;align-items:flex-start}
+figure{margin:0;flex:1;max-width:420px}figcaption{font-weight:600;margin-bottom:4px}img{width:100%;border:1px solid #ccc}
+h2{margin-top:40px;border-top:2px solid #333;padding-top:8px}h3{font-weight:500;margin:20px 0 6px}</style>
+<h1>Form scenarios, side by side</h1>${sections.join("")}`;
+}
 console.log(
   `${chosen.length - failed} of ${chosen.length} passed on ${first!.name} in ${((performance.now() - began) / 1000).toFixed(1)}s`,
 );
