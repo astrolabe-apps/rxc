@@ -122,7 +122,9 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     focused: { borderColor: serviceTasColors.accent },
     invalid: { borderColor: serviceTasColors.danger },
     disabled: { backgroundColor: "#fafafa" },
-    input: { ...withInk(type.body), fontSize: 18, lineHeight: 22.5, flex: 1, padding: 0 },
+    // schemas-rn's RNTextInput: "native:text-lg native:leading-[1.25]" and no font of its own —
+    // the system font, 15.75 at NativeWind's rem of 14 (measured on a device against the app).
+    input: { fontSize: 15.75, lineHeight: 19.6875, fontFamily: undefined, color: ink, flex: 1, padding: 0 },
   },
   // schemas-rn's RNDateTimePicker: the read-only input, then a square `bg-[#F5F5F5] size-[54px]
   // border border-[#E7E7E8]` button with a calendar. (The picker is the host's.)
@@ -169,10 +171,10 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       borderColor: serviceTasColors.border,
       borderRadius: 12,
     },
-    // labelClass "body shrink".
-    // labelClass "body shrink" reaches the option's container in schemas-rn, not its text, which
-    // draws at React Native's default size in the system font.
-    label: { fontSize: 16, lineHeight: 20, color: serviceTasColors.text, flexShrink: 1 },
+    // labelClass "body shrink" reaches the option's container in schemas-rn (RNLabel's View), not
+    // its text, a bare Text: React Native's default — the system font at 14, natural line
+    // height, black (measured on a device against the app).
+    label: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000", flexShrink: 1 },
     // The option row has no padding of its own (the entry's `p-[16px]` is all); the ring is
     // schemas-rn's RNRadioItem: 20 round, `border border-primary`, a 10 dot `bg-primary`.
     option: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -190,14 +192,17 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     dot: { height: 10, width: 10, borderRadius: 9999, backgroundColor: serviceTasColors.primary },
   },
   checkList: {
-    // data.checkOptions (schemas-rn): entryClass "flex flex-row items-center gap-[8px]", labelClass "body shrink".
+    // data.checkOptions (schemas-rn): entryClass "flex flex-row items-center gap-[8px]", labelClass
+    // "body shrink" — on the option's container, as the radio's: its text is React Native's default.
     option: { flexDirection: "row", alignItems: "center", gap: 8 },
-    label: { ...withInk(type.body), flexShrink: 1 },
+    label: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000", flexShrink: 1 },
   },
+  // schemas-rn's RNSelect: the trigger's "text-sm" is on a Pressable, so the value is a bare Text
+  // (the system font at 14, black); an option is "native:text-base" (14 at a rem of 14).
   select: {
-    value: withInk(type.body),
-    placeholder: { ...type.body, color: "#9ca3af" },
-    optionText: withInk(type.body),
+    value: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000" },
+    placeholder: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#9ca3af" },
+    optionText: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: ink },
   },
   // ScrollList (scrollListOptions: itemGap 16, contentContainerClassName "py-6 grow",
   // refreshControlTintColor #267151); schemas-rn's empty state is "headline" centred, its end

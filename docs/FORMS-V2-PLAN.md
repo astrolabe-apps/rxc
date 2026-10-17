@@ -1018,7 +1018,11 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   title's style dropped, and legacy kept it on the wrapper (`layout.className`), as the ServiceTas
   theme fixture now does; and the Switch, now drawn as the app's own — 48 × 28, the accent and a white
   thumb — not React Native's, whose 48dp touch target made each row 52px taller and whose thumb was
-  Android's blue.) The legacy harness shows a "VirtualizedLists should
+  Android's blue; and the text of an input, a select and a radio or check-list option, which schemas-rn
+  never styled: an input is `native:text-lg` with no font (the system font at 15.75, at NativeWind's rem
+  of 14), and an option's and a select value's class lands on a View, leaving a bare Text — the
+  system font at 14, black. The fixture had Nunito at 17-18; measured on a device, ink and colour
+  now match.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws
