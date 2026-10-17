@@ -221,6 +221,9 @@ function fieldA11y(
  */
 const SubmitContext = createContext<(() => void) | undefined>(undefined);
 
+/** Set by a select around its frame, so the frame lays the theme's `select.frame` over its own. */
+const SelectFrameContext = createContext(false);
+
 /**
  * Touched when focus leaves a group of options — the web's moment, through
  * react-native-web's focus events — but not when it moves between them.
@@ -442,7 +445,9 @@ function NativeFieldShell(p: FieldShellProps) {
 
 function NativeInputFrame(p: InputFrameProps) {
   const icon = useIcon();
-  const t = useNativeTheme().frame;
+  const theme = useNativeTheme();
+  const t = theme.frame;
+  const forSelect = useContext(SelectFrameContext);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -467,6 +472,7 @@ function NativeInputFrame(p: InputFrameProps) {
       {...sp(
         unless(control.replace, [
           t.style,
+          forSelect && theme.select.frame,
           focused && t.focused,
           p.invalid && t.invalid,
           p.disabled && t.disabled,
@@ -886,6 +892,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
   const Frame = useInputFrame();
   const ctl = useSelectController(p.field, p.options);
   const t = useNativeTheme().select;
+  const icon = useIcon();
   const words = useLook("field", p.look)("text", NO_LOOK_STATE, undefined, true);
   const [open, setOpen] = useState(false);
   const chosen = ctl.options.find((o) => String(o.value) === ctl.stringValue);
@@ -922,6 +929,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
       look={p.look}
       style={p.shellStyle}
     >
+      <SelectFrameContext.Provider value={true}>
       <Frame
         id={p.id}
         look={p.look}
@@ -943,16 +951,18 @@ function NativeSelect(p: SelectRenderProps): Rendered {
             aria-expanded={open}
             disabled={!!(slot.disabled || slot.readOnly)}
             onPress={() => setOpen(true)}
-            {...sp({ flex: 1 })}
+            {...sp({ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 })}
             {...a11y}
             {...webOnly({ "aria-required": slot["aria-required"] })}
           >
-            <Text {...sp(chosen ? t.value : t.placeholder, words.text)}>
+            <Text {...sp({ flex: 1 }, chosen ? t.value : t.placeholder, words.text)}>
               {chosen ? chosen.name : t.emptyText}
             </Text>
+            {t.icon != null && icon(t.icon, t.iconStyle, true)}
           </Pressable>
         )}
       />
+      </SelectFrameContext.Provider>
       {open && (
         <Modal transparent visible animationType="slide" onRequestClose={close}>
           <Pressable {...sp(t.backdrop)} onPress={close} aria-label="Close">

@@ -220,6 +220,12 @@ export interface NativeTheme {
     optionSelected: ViewStyle;
     /** An option's text. */
     optionText: TextStyle;
+    /** Laid over the input frame's style for the trigger: its own height and padding. */
+    frame: ViewStyle;
+    /** After the value, at the trigger's end: an icon by name (a chevron), `null` for none. */
+    icon: IconSpec | null;
+    /** The icon's size and colour. */
+    iconStyle: TextStyle;
   };
   /** The display-only field. */
   displayOnly: {
@@ -591,6 +597,9 @@ export const defaultNativeTheme: NativeTheme = {
     },
     optionSelected: { backgroundColor: "#eff6ff" },
     optionText: { ...base, color: gray[900] },
+    frame: {},
+    icon: null,
+    iconStyle: {},
   },
   displayOnly: {
     style: { ...row, gap: 6, paddingVertical: 6 },

@@ -203,6 +203,12 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     value: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000" },
     placeholder: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#9ca3af" },
     optionText: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: ink },
+    // SelectTrigger "min-h-10 native:min-h-12 … border border-[#E7E7E8] bg-background px-3 py-2"
+    // + "bg-white", no radius: 42 high, 10.5 / 7 padding at NativeWind's rem of 14 — not the
+    // form-control's 54. Its chevron: Icon "chevron-down", "!text-[12px] text-accent".
+    frame: { minHeight: 42, paddingHorizontal: 10.5, paddingVertical: 7 },
+    icon: { name: "chevron-down" },
+    iconStyle: { fontSize: 12, color: serviceTasColors.accent },
   },
   // ScrollList (scrollListOptions: itemGap 16, contentContainerClassName "py-6 grow",
   // refreshControlTintColor #267151); schemas-rn's empty state is "headline" centred, its end

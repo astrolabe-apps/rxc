@@ -1022,7 +1022,11 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   never styled: an input is `native:text-lg` with no font (the system font at 15.75, at NativeWind's rem
   of 14), and an option's and a select value's class lands on a View, leaving a bare Text — the
   system font at 14, black. The fixture had Nunito at 17-18; measured on a device, ink and colour
-  now match.) The legacy harness shows a "VirtualizedLists should
+  now match; and a select's trigger, which was the text input's 54dp frame with no chevron: the
+  native theme's `select` gains `frame` (laid over the frame for the trigger), `icon` (after the value)
+  and `iconStyle`, and the ServiceTas fixture gives them schemas-rn's SelectTrigger — 42 high, 10.5 / 7
+  padding, a 12 accent chevron-down. Still different there: the chevron's stroke, Font Awesome 4's in
+  the app, 6's in the playground.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

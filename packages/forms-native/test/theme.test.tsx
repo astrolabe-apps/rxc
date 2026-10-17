@@ -13,6 +13,7 @@ import {
   IconDisplay,
   InlineGroup,
   RadioField,
+  SelectField,
   TextDisplay,
   TextField,
   fieldLabelId,
@@ -188,6 +189,23 @@ describe("the native theme", () => {
     act(() => ctx.update((wc) => wc.setTouched(c, true)));
     const toggle = el.querySelector('[aria-expanded]')!;
     expect([...toggle.children].map((e) => e.textContent)).toEqual(["How to find this", "›", "●"]);
+  });
+
+  it("lays select.frame over a select's frame only, and draws select.icon after its value", () => {
+    const state = ctx.newControl<string | null>("tas");
+    const name = ctx.newControl("");
+    mount(
+      <>
+        <SelectField field={state} id="state" options={[{ name: "Tasmania", value: "tas" }]} />
+        <TextField field={name} id="name" />
+      </>,
+      { select: { frame: { minHeight: 42 }, icon: "⌄", iconStyle: { fontSize: 12 } } },
+    );
+    const trigger = el.querySelector('[role="combobox"]')!;
+    expect([...trigger.children].map((e) => e.textContent)).toEqual(["Tasmania", "⌄"]);
+    expect(trigger.children[1]!.getAttribute("aria-hidden")).toBe("true");
+    expect(style(trigger.parentElement).minHeight).toBe("42px");
+    expect(style(byId("name").parentElement).minHeight).not.toBe("42px");
   });
 
   it("draws a date as dd/mm/yyyy beside a button that opens the host's picker, and writes the ISO date", () => {
