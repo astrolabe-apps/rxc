@@ -119,7 +119,8 @@ function ConvertedForm({
     [run],
   );
   const body = (
-    <Form clearHidden>
+    // No clearHidden: ServiceTas's AppForm never turns it on, so a hidden field keeps its value.
+    <Form>
       <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} variables={variables} />
     </Form>
   );
