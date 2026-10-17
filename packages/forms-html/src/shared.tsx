@@ -8,6 +8,7 @@
  */
 import {
   createContext,
+  type ComponentType,
   useContext,
   useEffect,
   useMemo,
@@ -50,6 +51,10 @@ import {
   useDrawIcon,
   type IconSet,
   type IconSpec,
+  type ControlSlotProps,
+  type DateInputProps,
+  type DateMode,
+  type FocusTarget,
 } from "@rx-controls/forms-react";
 import { useReactive } from "@rx-controls/react";
 import {
@@ -654,6 +659,44 @@ const alignCss = {
 } as const;
 
 /** A flex body's inline style: display, gap, and a direction only when given. */
+/**
+ * A host's date control (`DateInputProvider`) drawn in a frame's control slot, in place of
+ * the browser's input: the slot's id, state, description and focus handed on, the value in
+ * its mode's form. Every web implementation's text field calls it for a date field when one is in
+ * scope.
+ */
+export function drawDateInput(
+  Control: ComponentType<DateInputProps>,
+  mode: DateMode,
+  slot: ControlSlotProps,
+  field: { value: string; setValue(v: string): void; onBlur(): void },
+  extra: { placeholder?: string; className?: string; style?: CSSProperties },
+): ReactNode {
+  const ref = slot.ref as ((t: unknown) => void) | { current: unknown } | null | undefined;
+  return (
+    <Control
+      mode={mode}
+      id={slot.id}
+      value={field.value}
+      onChange={field.setValue}
+      onFocus={() => slot.onFocus?.({} as FocusEvent<HTMLElement>)}
+      onBlur={() => {
+        slot.onBlur?.({} as FocusEvent<HTMLElement>);
+        field.onBlur();
+      }}
+      disabled={slot.disabled}
+      readOnly={slot.readOnly}
+      required={slot["aria-required"]}
+      invalid={slot["aria-invalid"]}
+      placeholder={extra.placeholder}
+      aria-describedby={slot["aria-describedby"]}
+      focusRef={(t: FocusTarget | null) => (typeof ref === "function" ? ref(t) : ref ? (ref.current = t) : undefined)}
+      className={extra.className ?? slot.className}
+      style={{ ...slot.style, ...extra.style } as Record<string, unknown>}
+    />
+  );
+}
+
 export function flexStyle(
   l: FlexLayout,
   defaultGap: string | number,

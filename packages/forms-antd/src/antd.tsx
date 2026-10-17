@@ -73,6 +73,10 @@ import {
   type ImageDisplayRenderProps,
   type IconSpec,
   type FeedRenderProps,
+  useDateInput,
+  dateModeOf,
+  toBrowserDateValue,
+  fromBrowserDateValue,
 } from "@rx-controls/forms-react";
 import {
   ContentsRegion,
@@ -98,6 +102,7 @@ import {
   useLookWidth,
   webIcon,
   FeedList,
+  drawDateInput,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atToken, useAntdLooks, type AntFieldLook, type AntStyle } from "./looks.js";
@@ -453,6 +458,9 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
   // window — and before the frame's render prop, which runs in the frame's.
   const placeholder = getProp(ctl.rc, p.placeholder);
   const inputType = getProp(ctl.rc, p.inputType) ?? "text";
+  // A host's date control, in place of the browser's date input (`DateInputProvider`).
+  const DateControl = useDateInput();
+  const dateMode = dateModeOf(inputType);
   const multiline = !!getProp(ctl.rc, p.multiline);
   const inputMode = getProp(ctl.rc, p.inputMode);
   const autoComplete = getProp(ctl.rc, p.autoComplete);
@@ -505,10 +513,22 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
               ctl.onBlur();
             },
           };
+          if (DateControl && dateMode && !s.multiline)
+            return drawDateInput(DateControl, dateMode, slot, ctl, { placeholder, className: common.className, style: common.style });
           return s.multiline ? (
             <textarea {...common} rows={3} />
           ) : (
-            <input {...common} type={inputType} />
+            dateMode ? (
+              // The browser's own picker, its value converted: `datetime-local` has no zone.
+              <input
+                {...common}
+                type={dateMode === "datetime" ? "datetime-local" : dateMode}
+                value={toBrowserDateValue(dateMode, ctl.value)}
+                onChange={(e: { target: { value: string } }) => ctl.setValue(fromBrowserDateValue(dateMode, e.target.value))}
+              />
+            ) : (
+              <input {...common} type={inputType} />
+            )
           );
         }}
       />

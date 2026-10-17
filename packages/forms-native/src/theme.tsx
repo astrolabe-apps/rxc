@@ -7,7 +7,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { IconSpec, Tone } from "@rx-controls/forms-react";
+import { formatDateValue, type DateMode, type IconSpec, type Tone } from "@rx-controls/forms-react";
 import type { ImageStyle, TextStyle, ViewStyle } from "react-native";
 import type { NativeLook } from "./looks.js";
 
@@ -19,10 +19,12 @@ import type { NativeLook } from "./looks.js";
 export interface DatePickerProps {
   /** Show it. */
   visible: boolean;
-  /** The date it opens on, an ISO date, `""` for none. */
+  /** What is picked: a date, a date and time, or a time of day (legacy's three modes). */
+  mode: DateMode;
+  /** The value it opens on, in the mode's form (`DateMode`), `""` for none. */
   value: string;
-  /** The date chosen, as an ISO date. */
-  onConfirm(iso: string): void;
+  /** The value chosen, in the mode's form. */
+  onConfirm(value: string): void;
   /** Dismissed with no choice. */
   onCancel(): void;
 }
@@ -134,8 +136,8 @@ export interface NativeTheme {
     picker?: DatePicker;
     /** What the box shows when there is no date. */
     placeholder: string;
-    /** The date as the box shows it, from the ISO date. Default `dd/mm/yyyy`. */
-    format: (iso: string) => string;
+    /** The value as the box shows it. Default legacy's: `dd/mm/yyyy`, `dd/mm/yyyy, HH:mm`, `HH:mm`. */
+    format: (value: string, mode: DateMode) => string;
     /** The box and the button, in a row. */
     row: ViewStyle;
     /** The button that opens the picker. */
@@ -539,10 +541,7 @@ export const defaultNativeTheme: NativeTheme = {
   },
   date: {
     placeholder: "dd/mm/yyyy",
-    format: (iso) => {
-      const [y, m, d] = iso.split("-");
-      return y && m && d ? `${d}/${m}/${y}` : iso;
-    },
+    format: (value, mode) => formatDateValue(mode, value),
     row: { ...row, alignItems: "stretch" },
     button: {
       alignItems: "center",

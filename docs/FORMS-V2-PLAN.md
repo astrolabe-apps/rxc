@@ -971,6 +971,10 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   An icon's `iconClass` goes in the look's `icon` part (`legacyIconClassSlot`), which html draws on an
   icon display and a field's edges; the native converter drops an icon font's classes (`fa`, `fa-*`).
 - A native disclosure's title shrinks, so a long one no longer pushes the icon out of the row.
+- **Picked fields:** `TextField`'s `inputType` takes `datetime` and `time` beside `date`, each holding
+  legacy's string; the loader draws DateTime and Time schema fields as them. A web host replaces the
+  browser's picker with `DateInputProvider` (html, MUI, Ant, Fluent). forms-native's `date.picker` is
+  told `mode`, and `date.format` takes `(value, mode)` — a theme that set `format` updates it.
 - **`LoaderOptions.schemaInterface`** (legacy's `SchemaInterface`; `DefaultSchemaInterface` to extend,
   `defaultSchemaInterface` the default): what a field's values mean on the JSON path — emptiness (a
   `NotEmpty` expression, a display-only field's empty text), a value as text (a display-only field's
@@ -1076,7 +1080,16 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   a look's uses beside different host classes convert per kind of control (a button's text beside
   its emphasis's `headline !text-white` — `headline@action-button`), and a base class in a higher CSS
   layer wins over a merged part; a group's title is the label's `headline`, not `title3`; an inline
-  display-only value takes its look's text; and the playground draws ServiceTas's `Chart` doughnut.) The legacy harness shows a "VirtualizedLists should
+  display-only value takes its look's text; and the playground draws ServiceTas's `Chart` doughnut.
+  The comparison then checks itself (`--shots` with two targets): each step's layouts compared and
+  ranked in `layout.md`. Its first findings: forms-native ignored a group's `layout` (every legacy
+  Flex group, and the Grid rows, drew as a column); a Grid's cells now take equal shares; a radio
+  option's own content sits below its card, as legacy's RNCheckButtons draws it; and a radio's or a
+  check list's `textClass`, which schemas-rn never draws, is `undrawn`. Picked fields: `inputType`
+  gains `datetime` and `time` beside `date`, holding legacy's strings (an instant, `10:30:00`) — the
+  loader maps DateTime and Time schema fields; the web draws the browser's own inputs (values
+  converted) or a host's control, `DateInputProvider`, in the frame; React Native's theme picker is
+  told the mode and its default display is legacy's per mode.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

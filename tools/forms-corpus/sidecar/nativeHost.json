@@ -1,6 +1,14 @@
 {
   "rem": 14,
   "undrawn": {
-    "Group:Inline": ["control"]
+    "Group:Inline": [
+      "control"
+    ],
+    "Data:Radio": [
+      "text"
+    ],
+    "Data:CheckList": [
+      "text"
+    ]
   }
 }

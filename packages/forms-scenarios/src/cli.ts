@@ -7,7 +7,9 @@
 // (a form longer than the screen is scrolled to find what each step needs). --timings prints
 // where a run's time went: each kind of call to the device, its count and total. --shots
 // <dir> keeps a picture of the screen as each form opens and after each step, per target,
-// and writes <dir>/index.html with the targets' pictures side by side, step by step.
+// and writes <dir>/index.html with the targets' pictures side by side, step by step; with two
+// targets it also compares each step's layouts (gaps, text sizes and edges, colours) and writes
+// <dir>/layout.md, the steps that differ most first, and marks them in index.html.
 //
 // forms-scenarios install-server — install the screen server on the device (Appium's
 // UiAutomator2 server: a screen read in a fraction of a second rather than two seconds).
@@ -16,7 +18,7 @@
 // the first target; with a second target, on both, comparing step by step (the first the
 // oracle). Exits non-zero when a scenario fails on the first target. Node 24 runs `.ts`
 // scenario files as they are.
-import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { androidTarget, defaultAdb } from "./android.js";
@@ -30,9 +32,23 @@ import {
   type StepDifference,
 } from "./run.js";
 import { describeStep, type Scenario } from "./scenario.js";
+import { scoreShots, writeLayoutReport, type LayoutStep, type ShotsManifest } from "./layoutReport.js";
 import type { Target } from "./target.js";
 
 const args = process.argv.slice(2);
+if (args[0] === "layout") {
+  // forms-scenarios layout <shots-dir>: compare a --shots run's layouts again, no device.
+  const dir = args[1];
+  if (!dir) {
+    console.error("forms-scenarios layout <shots-dir>");
+    process.exit(2);
+  }
+  const steps = scoreShots(dir);
+  const file = writeLayoutReport(dir, steps);
+  console.log(`layout: ${steps.length} step(s) differ — ${file}`);
+  for (const l of steps.slice(0, 10)) console.log(`  ${String(l.score).padStart(5)}  ${l.scenario} — ${l.what}`);
+  process.exit(0);
+}
 if (args[0] === "install-server") {
   console.log(`installing ${SCREEN_SERVER_PACKAGE} on the device`);
   installScreenServer(defaultAdb());
@@ -115,6 +131,10 @@ console.log(`${chosen.length} scenario(s) from ${files.length} file(s), on ${tar
 
 const [first, second] = targets;
 
+
+/** Steps whose layouts differ, keyed `folder|step`, once the run is scored. */
+let layouts = new Map<string, LayoutStep>();
+
 /** The pictures of each scenario, per step (0 the form as it opened), per target: file names under `shotsDir`. */
 const shots: { scenario: Scenario; steps: Map<number, Map<string, string>> }[] = [];
 
@@ -171,6 +191,7 @@ try {
       md += formatResult(b) + "\n";
       diffs = compareRuns(a, b);
     }
+    if (shotsDir) saveScreens(s, [a, b].filter((r): r is ScenarioResult => !!r));
     md += "```\n\n";
     // A difference is shown at the step it first appears, not again while it lasts.
     let shown = new Set<string>();
@@ -194,29 +215,63 @@ try {
   for (const t of targets) await t.close();
 }
 if (reportFile) writeFileSync(reportFile, md);
-if (shotsDir) writeFileSync(join(shotsDir, "index.html"), shotsPage());
+if (shotsDir) {
+  const manifest: ShotsManifest = {
+    targets: targets.map((t) => t.name),
+    scenarios: shots.map(({ scenario }, i) => ({
+      name: scenario.name,
+      folder: String(i + 1).padStart(2, "0"),
+      steps: scenario.steps.map(describeStep),
+    })),
+  };
+  writeFileSync(join(shotsDir, "shots.json"), JSON.stringify(manifest, null, 1));
+  if (second) {
+    const steps = scoreShots(shotsDir);
+    layouts = new Map(steps.map((l) => [`${l.folder}|${l.step}`, l]));
+    const file = writeLayoutReport(shotsDir, steps);
+    console.log(`\nlayout: ${steps.length} step(s) differ — ${file}`);
+    for (const l of steps.slice(0, 5)) console.log(`  ${String(l.score).padStart(5)}  ${l.scenario} — ${l.what}`);
+  }
+  writeFileSync(join(shotsDir, "index.html"), shotsPage());
+}
+
+
+/** Each run's screen reads beside its pictures, for the layout comparison (`<step>-<target>.screen.json`). */
+function saveScreens(s: Scenario, runs: ScenarioResult[]) {
+  const folder = String(shots.findIndex((x) => x.scenario === s) + 1).padStart(2, "0");
+  for (const r of runs)
+    [r.opened, ...r.steps.map((x) => x.screen)].forEach((screen, i) => {
+      if (screen) writeFileSync(join(shotsDir!, folder, `${i}-${r.target}.screen.json`), JSON.stringify(screen));
+    });
+}
+
 
 /** The targets' pictures side by side, a row per step, a section per scenario. */
 function shotsPage(): string {
   const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
   const names = targets.map((t) => t.name);
-  const sections = shots.map(({ scenario, steps }) => {
+  const sections = shots.map(({ scenario, steps }, si) => {
     const rows = [...steps.entries()].map(([i, files]) => {
-      const what = i === 0 ? "opened" : `${i}. ${describeStep(scenario.steps[i - 1]!)}`;
+      const layout = layouts.get(`${String(si + 1).padStart(2, "0")}|${i}`);
+      const flag = layout
+        ? ` <span class="flag" title="${esc(layout.differences.map((d) => `${d.kind} ${d.words.slice(0, 40)}: ${d.first} vs ${d.second}`).join("\n"))}">layout ${layout.score}</span>`
+        : "";
+      const what = (i === 0 ? "opened" : `${i}. ${describeStep(scenario.steps[i - 1]!)}`) + flag;
       const cells = names
         .map((n) => {
           const f = files.get(n);
           return `<figure><figcaption>${esc(n)}</figcaption>${f ? `<a href="${esc(f)}"><img loading="lazy" src="${esc(f)}"></a>` : "<p>—</p>"}</figure>`;
         })
         .join("");
-      return `<h3>${esc(what)}</h3><div class="pair">${cells}</div>`;
+      return `<h3>${what.includes('class="flag"') ? what.replace(/^([^<]*)/, (m) => esc(m)) : esc(what)}</h3><div class="pair">${cells}</div>`;
     });
     return `<section><h2>${esc(scenario.name)}</h2>${rows.join("")}</section>`;
   });
   return `<!doctype html><meta charset="utf-8"><title>Form scenarios, side by side</title>
 <style>body{font:14px system-ui;margin:16px;background:#fff;color:#111}.pair{display:flex;gap:16px;align-items:flex-start}
 figure{margin:0;flex:1;max-width:420px}figcaption{font-weight:600;margin-bottom:4px}img{width:100%;border:1px solid #ccc}
-h2{margin-top:40px;border-top:2px solid #333;padding-top:8px}h3{font-weight:500;margin:20px 0 6px}</style>
+h2{margin-top:40px;border-top:2px solid #333;padding-top:8px}h3{font-weight:500;margin:20px 0 6px}
+.flag{background:#b45309;color:#fff;border-radius:4px;padding:1px 6px;font-size:12px;cursor:help}</style>
 <h1>Form scenarios, side by side</h1>${sections.join("")}`;
 }
 console.log(

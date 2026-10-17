@@ -6,6 +6,7 @@ import { ControlContextProvider, createControlContext } from "@rx-controls/react
 import {
   Action,
   CheckboxField,
+  Contents,
   Dialog,
   Disclosure,
   DisplayOnlyField,
@@ -290,6 +291,39 @@ describe("the native theme", () => {
     // legacy's labelClass "@ ": the container's class replaced by none — the help under the label.
     mount(field("bare"), { shell: { labelRow: { flexDirection: "row" } }, looks: { bare: { label: { replace: {} } } } });
     expect(style(rowOf()).flexDirection).not.toBe("row");
+  });
+
+  it("lays a group's body out by its layout — a row unless told column — in place of the theme's", () => {
+    mount(
+      <>
+        <Contents layout={{ gap: 4, justify: "space-between" }}>
+          <TextDisplay text="a" />
+          <TextDisplay text="b" />
+        </Contents>
+        <Contents>
+          <TextDisplay text="c" />
+        </Contents>
+      </>,
+      { contents: { body: { gap: 14 } } },
+    );
+    // The body is the element carrying the layout (the wrapper around it holds the same words).
+    const row = [...el.querySelectorAll("div")].filter((d) => style(d).justifyContent === "space-between");
+    expect(row.map((d) => [d.textContent, style(d).flexDirection, style(d).gap])).toEqual([["ab", "row", "4px"]]);
+    expect([...el.querySelectorAll("div")].some((d) => d.textContent === "c" && style(d).gap === "14px")).toBe(true);
+  });
+
+  it("tells the picker its mode and shows a date and time or a time as legacy did", () => {
+    const told: string[] = [];
+    const Picker = (p: { visible: boolean; mode: string; value: string }) => (told.push(p.mode), null);
+    mount(
+      <>
+        <TextField field={ctx.newControl("10:30:00")} id="t" label="At" inputType="time" />
+        <TextField field={ctx.newControl("")} id="dt" label="When" inputType="datetime" />
+      </>,
+      { date: { picker: Picker } },
+    );
+    expect([...new Set(told)].sort()).toEqual(["datetime", "time"]);
+    expect([(byId("t") as HTMLInputElement).value, (byId("dt") as HTMLInputElement).value]).toEqual(["10:30", ""]);
   });
 
   it("leaves a date typed as text, as an ISO date, where the theme has no picker", () => {

@@ -306,6 +306,23 @@ describe("SelectField", () => {
     expect($$("select").map((sel) => (sel as HTMLSelectElement).options[0]!.textContent)).toEqual(["Month", "Any"]);
   });
 
+  it("draws Date, DateTime and Time fields as picked inputs, holding legacy's strings", () => {
+    h.load(
+      [
+        { type: "Data", field: "d" },
+        { type: "Data", field: "dt" },
+        { type: "Data", field: "t" },
+      ],
+      [
+        { field: "d", type: "Date" } as SchemaField,
+        { field: "dt", type: "DateTime" } as SchemaField,
+        { field: "t", type: "Time" } as SchemaField,
+      ],
+      { d: "2024-03-05", dt: null, t: "10:30:00" },
+    );
+    expect($$("input").map((i) => (i as HTMLInputElement).type)).toEqual(["date", "datetime-local", "time"]);
+  });
+
   it("narrows the schema's options by an AllowedOptions expression", async () => {
     const { data } = h.load(
       [

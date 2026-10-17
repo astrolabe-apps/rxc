@@ -86,6 +86,8 @@ function controlKind(d: Def): string {
   const go = (d.groupOptions ?? ro.groupOptions ?? {}) as Record<string, unknown>;
   if (d.type === "Group") return !go.type || go.type === "Standard" ? "Group" : `Group:${String(go.type)}`;
   if (d.type === "Data" && ro.type === "DisplayOnly") return "DisplayOnly";
+  // A radio's and a check list's option labels are schemas-rn's RNCheckButtons, which never read the field's textClass.
+  if (d.type === "Data" && (ro.type === "Radio" || ro.type === "CheckList")) return `Data:${String(ro.type)}`;
   // A button's text sits beside its emphasis's own text classes (primaryTextClass…).
   if (d.type === "Action") return `Action:${String(d.actionStyle ?? "Button")}`;
   return String(d.type ?? "");

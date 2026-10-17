@@ -150,7 +150,7 @@ function flexLayout(go: Record<string, unknown>): FlexLayout {
   };
 }
 
-const gridRow: FlexLayout = { direction: "row", justify: "space-between" };
+const gridRow: FlexLayout = { direction: "row" };
 
 /**
  * Legacy's Grid group (schemas-rn's GridRenderer): the children that are shown, in rows of
@@ -178,7 +178,8 @@ function GridRows(p: {
       {rows.map((row, r) => (
         <Contents key={r} layout={gridRow}>
           {row.map((cell, c) => (
-            <Contents key={c} style={{ flex: 1 }}>
+            // The cell's own element takes the share — its shell, not its body.
+            <Contents key={c} shellStyle={{ flex: 1 }}>
               {cell}
             </Contents>
           ))}
@@ -739,8 +740,8 @@ const builtins: Builtin[] = [
         {...props}
         multiline={def.renderOptions?.type === "Multiline"}
         placeholder={def.renderOptions?.placeholder as string | undefined}
-        // A Date field holds the ISO date legacy's did, which a date input reads and writes.
-        inputType={schema?.type === "Date" ? "date" : undefined}
+        // Date, DateTime and Time fields hold the strings legacy's picker wrote (DateMode), picked on each platform.
+        inputType={schema?.type === "Date" ? "date" : schema?.type === "DateTime" ? "datetime" : schema?.type === "Time" ? "time" : undefined}
       />
     ),
   },

@@ -172,9 +172,18 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   radio: {
     // data.radioOptions: className "flex items-start gap-[24px]".
     style: { alignItems: "flex-start", gap: 24 },
-    // entryWrapperClass "w-full"; entryClass "flex flex-row items-center gap-[8px] p-[16px]
-    // border border-[#E7E7E8] w-full rounded-xl".
-    entry: {
+    // schemas-rn's RNCheckButtons: a wrapper (entryWrapperClass "w-full", the selected class's
+    // too) holding the card and, below it, the option's own content (a journey type's
+    // description) — the card is entryClass "flex flex-row items-center gap-[8px] p-[16px]
+    // border border-[#E7E7E8] w-full rounded-xl", the row around the ring and words.
+    entry: { width: "100%" },
+    // labelClass "body shrink" reaches the option's container in schemas-rn (RNLabel's View), not
+    // its text, a bare Text: React Native's default — the system font at 14, natural line
+    // height, black (measured on a device against the app).
+    label: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000", flexShrink: 1 },
+    // The card; the ring is schemas-rn's RNRadioItem: 20 round, `border border-primary`, a 10
+    // dot `bg-primary`.
+    option: {
       width: "100%",
       flexDirection: "row",
       alignItems: "center",
@@ -184,13 +193,6 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       borderColor: serviceTasColors.border,
       borderRadius: 10.5,
     },
-    // labelClass "body shrink" reaches the option's container in schemas-rn (RNLabel's View), not
-    // its text, a bare Text: React Native's default — the system font at 14, natural line
-    // height, black (measured on a device against the app).
-    label: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000", flexShrink: 1 },
-    // The option row has no padding of its own (the entry's `p-[16px]` is all); the ring is
-    // schemas-rn's RNRadioItem: 20 round, `border border-primary`, a 10 dot `bg-primary`.
-    option: { flexDirection: "row", alignItems: "center", gap: 8 },
     ring: {
       height: 20,
       width: 20,

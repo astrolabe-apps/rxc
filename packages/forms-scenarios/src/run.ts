@@ -29,6 +29,8 @@ export interface StepResult {
   texts?: string[];
   /** The form's data afterwards. */
   data?: unknown;
+  /** The screen afterwards, as read: what {@link compareLayouts} compares. */
+  screen?: ScreenNode[];
 }
 
 /**
@@ -45,6 +47,8 @@ export interface ScenarioResult {
   ok: boolean;
   /** Each step's result, in order. */
   steps: StepResult[];
+  /** The screen as the form opened, when pictures were taken ({@link RunOptions.onShot}). */
+  opened?: ScreenNode[];
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -291,10 +295,27 @@ export async function runScenario(
   const device = remembering(target);
   const wait = options.wait ?? 3000;
   await device.open(scenario.form, scenario.data ?? {});
-  const shoot = async (i: number) => {
-    if (options.onShot && device.screenshot) await options.onShot(i, await device.screenshot());
+  /**
+   * A picture of a still screen, and the screen read with it: the app may still be moving after
+   * a step (a layout settling, a scroll), and a picture and a read a moment apart would not
+   * describe the same screen. Read, picture, read again, until the two reads agree (a few tries).
+   */
+  const shoot = async (i: number): Promise<ScreenNode[] | undefined> => {
+    if (!options.onShot || !device.screenshot) return undefined;
+    const key = (ns: ScreenNode[]) => ns.map((n) => `${label(n)}@${n.x},${n.y},${n.w},${n.h}`).join("|");
+    let before = await device.fresh();
+    let png = await device.screenshot();
+    let after = await device.fresh();
+    for (let tries = 0; tries < 4 && key(before) !== key(after); tries++) {
+      await sleep(POLL);
+      before = after;
+      png = await device.screenshot();
+      after = await device.fresh();
+    }
+    await options.onShot(i, png);
+    return after;
   };
-  await shoot(-1);
+  const opened = await shoot(-1);
   let ok = true;
   for (const [i, r] of steps.entries()) {
     options.onStep?.(r, i);
@@ -306,14 +327,15 @@ export async function runScenario(
       r.message = e instanceof Error ? e.message : String(e);
       ok = false;
     }
-    r.texts = screenTexts(await device.screen());
+    r.screen = await device.screen();
+    r.texts = screenTexts(r.screen);
     r.data = (await device.report()).data;
-    await shoot(i);
+    r.screen = (await shoot(i)) ?? r.screen;
     options.onStep?.(r, i);
     if (options.pause) await sleep(options.pause);
     if (!ok) break;
   }
-  return { scenario, target: target.name, ok, steps };
+  return { scenario, target: target.name, ok, steps, opened };
 }
 
 /**

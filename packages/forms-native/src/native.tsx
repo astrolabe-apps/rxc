@@ -15,6 +15,7 @@ import {
   Image,
   Linking,
   type ImageSourcePropType,
+  type ViewStyle,
   type TextStyle,
   Modal,
   Platform,
@@ -78,6 +79,7 @@ import {
   type PortableStyle,
   drawRichText,
   parseRichText,
+  dateModeOf,
   helpButtonName,
   plainText,
   richTextWords,
@@ -540,7 +542,9 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
   // A date field, where the theme has a picker: a read-only box and a button, either opens it.
   const dateTheme = useNativeTheme().date;
   const Picker = dateTheme.picker;
-  const dateMode = getProp(ctl.rc, p.inputType) === "date" && !!Picker;
+  // A picked field — date, date and time, time — where the theme has a picker; else typed as text.
+  const pickMode = dateModeOf(getProp(ctl.rc, p.inputType));
+  const dateMode = !!pickMode && !!Picker;
   const [picking, setPicking] = useState(false);
   const locked = !!(ctl.state.disabled || ctl.state.readOnly);
   const openPicker = () => !locked && setPicking(true);
@@ -560,6 +564,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
         </View>
         <Picker
           visible={picking}
+          mode={pickMode!}
           value={ctl.value}
           onConfirm={(iso) => {
             ctl.setValue(iso);
@@ -610,7 +615,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             id={slot.id}
             ref={slot.ref as never}
             {...sp(slot.style as object, textLook.text, ownText)}
-            value={dateMode ? (ctl.value ? dateTheme.format(ctl.value) : "") : ctl.value}
+            value={dateMode ? (ctl.value ? dateTheme.format(ctl.value, pickMode!) : "") : ctl.value}
             onChangeText={ctl.setValue}
             onFocus={() => (slot.onFocus as (() => void) | undefined)?.()}
             onBlur={() => {
@@ -1126,6 +1131,24 @@ function wrapText(children: ReactNode, ...style: (StylePiece | StylePieces)[]): 
   );
 }
 
+const FLEX_JUSTIFY = { start: "flex-start", center: "center", end: "flex-end", "space-between": "space-between", "space-around": "space-around" } as const;
+const FLEX_ALIGN = { start: "flex-start", center: "center", end: "flex-end", stretch: "stretch", baseline: "baseline" } as const;
+
+/**
+ * A group's `layout` as the body's style, in place of the theme's body layout: a row unless it
+ * says column (the contract's default), its gap — the theme body's when it gives none — its
+ * distribution and alignment, wrapping.
+ */
+function flexBody(l: NonNullable<GroupRenderProps["layout"]>, themeGap: unknown): ViewStyle {
+  return {
+    flexDirection: l.direction ?? "row",
+    gap: (typeof l.gap === "number" ? l.gap : l.gap !== undefined ? Number.parseFloat(l.gap) : (themeGap as number | undefined)) || undefined,
+    justifyContent: l.justify && FLEX_JUSTIFY[l.justify],
+    alignItems: l.align && FLEX_ALIGN[l.align],
+    flexWrap: l.wrap ? "wrap" : undefined,
+  };
+}
+
 function NativeContents(p: GroupRenderProps) {
   const { contents: t, text } = useNativeTheme();
   const part = useLook("group", p.look);
@@ -1150,7 +1173,13 @@ function NativeContents(p: GroupRenderProps) {
           {p.title}
         </Text>
       )}
-      <View {...sp(unless(body.replace, t.body), body.box, ownBody.box)}>
+      <View
+        {...sp(
+          unless(body.replace, p.layout ? flexBody(p.layout, (StyleSheet.flatten(t.body) as ViewStyle | undefined)?.gap) : t.body),
+          body.box,
+          ownBody.box,
+        )}
+      >
         {wrapText(p.children, text.style, body.text, words.text, ownBody.text)}
       </View>
     </View>

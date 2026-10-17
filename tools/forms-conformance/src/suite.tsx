@@ -37,6 +37,8 @@ import {
   Wizard,
   type FormRenderers,
   type ValidationScope,
+  DateInputProvider,
+  type DateInputProps,
 } from "@rx-controls/forms-react";
 import { JsonForm } from "@rx-controls/forms-json";
 import { Stars } from "./widgets/Stars.js";
@@ -85,6 +87,11 @@ export interface Implementation {
      * draws no "Load more" action to press.
      */
     feedScrollsItself?: boolean;
+    /**
+     * Picked fields (`date`, `datetime`, `time`) come from the platform's theme — React Native's
+     * `date.picker` — not from `DateInputProvider` and the browser's own inputs.
+     */
+    pickersFromTheme?: boolean;
   };
 }
 
@@ -1632,6 +1639,45 @@ export function describeConformance(impl: Implementation): void {
       set(error, undefined);
       expect(document.querySelector('[role="alert"]')).toBe(alert);
       expect(alert.textContent).toBe("");
+    });
+
+    it("draws a picked field with the browser's input, its value in the mode's form, or a host's control in its place", () => {
+      if (impl.limits?.pickersFromTheme) return;
+      const when = ctx.newControl("2024-03-05T00:30:00.000Z");
+      const at = ctx.newControl("10:30:00");
+      mount(
+        <>
+          <TextField field={when} id="when" label="When" inputType="datetime" />
+          <TextField field={at} id="at" label="At" inputType="time" />
+        </>,
+      );
+      // The browser's own inputs: a date-time with no zone (local), a time without seconds.
+      const w = byId<HTMLInputElement>("when")!;
+      const t = byId<HTMLInputElement>("at")!;
+      expect([w.type, t.type, t.value]).toEqual(["datetime-local", "time", "10:30"]);
+      const local = new Date("2024-03-05T00:30:00.000Z");
+      expect(w.value).toBe(
+        `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}T${String(local.getHours()).padStart(2, "0")}:30`,
+      );
+      type(t, "11:45");
+      expect(rc.getValue(at)).toBe("11:45:00");
+      act(() => root.render(null));
+      // A host's control in the frame's place: told the mode and value, writing one back, named by the label.
+      const told: string[] = [];
+      const Picker = (p: DateInputProps) => {
+        told.push(`${p.mode} ${p.value}`);
+        return <input id={p.id} aria-describedby={p["aria-describedby"]} readOnly value={p.value} onClick={() => p.onChange("2025-01-02")} />;
+      };
+      const day = ctx.newControl("2024-03-05");
+      mount(
+        <DateInputProvider control={Picker}>
+          <TextField field={day} id="day" label="Day" helpText="Your birthday" inputType="date" />
+        </DateInputProvider>,
+      );
+      expect(told.at(-1)).toBe("date 2024-03-05");
+      expect(read().map((r) => [r.name, r.description])).toEqual([["Day", "Your birthday"]]);
+      click(byId("day")!);
+      expect(rc.getValue(day)).toBe("2025-01-02");
     });
 
     it("draws text and html displays", () => {

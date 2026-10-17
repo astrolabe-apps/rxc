@@ -7,6 +7,7 @@
  * - **Scenarios** — the steps a user takes and what they should see.
  * - **Targets** — the apps they run against, and the protocol an app implements.
  * - **Running** — one target, or two compared step by step.
+ * - **Comparing** — two targets' screens of a step, laid out: gaps, text sizes, edges, colours.
  *
  * @packageDocumentation
  */
@@ -14,3 +15,4 @@ export * from "./scenario.js";
 export * from "./target.js";
 export * from "./android.js";
 export * from "./run.js";
+export * from "./visual.js";

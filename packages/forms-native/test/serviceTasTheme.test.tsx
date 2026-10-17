@@ -1,3 +1,4 @@
+import { Text } from "react-native";
 import { act, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -97,8 +98,15 @@ describe("the ServiceTas native theme", () => {
   });
 
   it("draws a radio option as a bordered rounded card, ServiceTas's entryClass", () => {
-    mount(<RadioField field={ctx.newControl("phone")} id="r" label="How" options={options} />);
-    const option = el.querySelector('[role="radio"]')!.parentElement!;
+    mount(
+      <RadioField field={ctx.newControl("phone")} id="r" label="How" options={options}>
+        {(o) => <Text>{`About ${o.name}`}</Text>}
+      </RadioField>,
+    );
+    const option = el.querySelector('[role="radio"]')!;
+    // An option's own content sits below the card, in its wrapper, not inside it.
+    expect(option.textContent).not.toContain("About");
+    expect(option.parentElement!.textContent).toContain("About");
     expect([style(option).borderWidth, style(option).borderRadius, style(option).padding]).toEqual([
       "1px",
       "10.5px",

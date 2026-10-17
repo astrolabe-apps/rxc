@@ -1,3 +1,4 @@
+import type { DateMode } from "./dateInput.js";
 import type { ReactNode } from "react";
 import type { FormProp } from "./props.js";
 import type { FieldRenderProps } from "./field.js";
@@ -13,11 +14,13 @@ export interface TextFieldExtra {
   /** A multi-line control. */
   multiline?: FormProp<boolean>;
   /**
-   * The input's type. Default `text`. `date` is a calendar date, its value the
-   * ISO string `2024-03-05` on every platform: the web's own date input, a
-   * picker on a device (the theme's, where it has one, else typed as text).
+   * The input's type. Default `text`. `date`, `datetime` and `time` are picked, not typed, and
+   * their values are the same strings on every platform: a calendar date `2024-03-05`, an
+   * instant `2024-03-05T00:30:00.000Z`, a time of day `10:30:00`. The web draws the browser's
+   * own input (or a host's, `DateInputProvider`); a device, the theme's picker where it has one,
+   * else the value typed as text.
    */
-  inputType?: FormProp<"text" | "email" | "password" | "tel" | "date">;
+  inputType?: FormProp<"text" | "email" | "password" | "tel" | DateMode>;
   /**
    * The on-screen keyboard to offer. HTML's `inputmode` and React Native's
    * `TextInput.inputMode` take the same values, so this is one vocabulary on
