@@ -1013,8 +1013,12 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   `goToMASTPortalButton`, `BPayLogo`, `PlatformPaymentButton`, `payTo`) and Quickstream payment render types
   have no stand-in on native ("Unsupported: Display"); a link in a toned display takes the tone's colour
   where legacy's stays the accent; a disclosure's title still nests views in text (`\uFFFC` before the
-  words); spacing — an alert's top padding, a Switch row's height, a heading's gap to the next paragraph;
-  React Native's own Switch, smaller than the app's. The legacy harness shows a "VirtualizedLists should
+  words); spacing — an alert's top padding. (Closed by the visual comparison, `--shots`: a group title's
+  gap to its body, 0 against legacy's 16dp — the theme kept it on the title, which a look replacing the
+  title's style dropped, and legacy kept it on the wrapper (`layout.className`), as the ServiceTas
+  theme fixture now does; and the Switch, now drawn as the app's own — 48 × 28, the accent and a white
+  thumb — not React Native's, whose 48dp touch target made each row 52px taller and whose thumb was
+  Android's blue.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

@@ -224,8 +224,12 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   // data.displayOnlyClass (schemas-rn): "flex flex-row items-center gap-2", no padding.
   displayOnly: { style: { flexDirection: "row", alignItems: "center", gap: 8 }, text: withInk(type.body) },
   contents: {
+    // layout.className "flex flex-col gap-[16px]" wraps a group's title and body, so the space
+    // under a title is the wrapper's: a look that replaces the title's style (`@ title1`, the
+    // wizards' page titles) keeps it, as it did in the app.
+    wrapper: { gap: 16 },
     // group titles are label text: the label's class plus the group's.
-    title: { ...withInk(type.title3), marginBottom: 8 },
+    title: { ...withInk(type.title3), marginBottom: 0 },
   },
   text: {
     // display.baseStyle defaultBodyStyle (constants/Styles.ts).

@@ -1,4 +1,4 @@
-import { Switch } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import type { ReactNode } from "react";
 import type { Rendered } from "@rx-controls/react";
 import { RichText, type DisplayOnlyExtra, type FieldOption } from "@rx-controls/forms-react";
@@ -19,12 +19,17 @@ import {
 /**
  * The playground standing in for ServiceTas's host on a device: the corpus's own stand-in host
  * (`rxc-forms-corpus/host`) draws DOM, so what a device needs of it is here — ServiceTas's
- * `Switch` render type, a boolean drawn as React Native's `Switch`.
+ * `Switch` render type, drawn as the app's own switch (`RNSwitchRenderer`, over
+ * `@rn-primitives/switch`) rather than React Native's: a 48 × 28 track, the accent when on and
+ * `#e4e4e7` when off, a 24 white thumb, half opacity while locked, and "On" / "Off" beside it
+ * under `displayLabel`.
  */
-function SwitchImpl(p: FieldRenderProps<boolean | undefined | null>): Rendered {
+const ACCENT = "#267151";
+function SwitchImpl(p: FieldRenderProps<boolean | undefined | null> & { displayLabel?: boolean }): Rendered {
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   const locked = ctl.state.disabled || ctl.state.readOnly;
+  const on = !!ctl.checked;
   return ctl.rendered(
     <Shell
       id={p.id}
@@ -39,18 +44,45 @@ function SwitchImpl(p: FieldRenderProps<boolean | undefined | null>): Rendered {
       look={p.look}
       style={p.shellStyle}
     >
-      <Switch
-        accessibilityLabel={typeof p.label === "string" ? p.label : undefined}
-        value={ctl.checked}
-        disabled={locked}
-        onValueChange={ctl.setChecked}
-        onBlur={ctl.onBlur}
-        trackColor={{ true: "#267151", false: "#d1d5db" }}
-      />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, opacity: locked ? 0.5 : 1 }}>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel={typeof p.label === "string" ? p.label : undefined}
+          accessibilityState={{ checked: on, disabled: locked }}
+          aria-checked={on}
+          disabled={locked}
+          onPress={() => ctl.setChecked(!on)}
+          onBlur={ctl.onBlur}
+          style={{
+            width: 48,
+            height: 28,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: "transparent",
+            backgroundColor: on ? ACCENT : "#e4e4e7",
+            justifyContent: "center",
+          }}
+        >
+          <View
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: "#ffffff",
+              transform: [{ translateX: on ? 20.5 : 1.5 }],
+            }}
+          />
+        </Pressable>
+        {p.displayLabel && (
+          <Text style={{ fontFamily: "Nunito_400Regular", fontSize: 17, lineHeight: 22, color: "#343534" }}>
+            {on ? "On" : "Off"}
+          </Text>
+        )}
+      </View>
     </Shell>,
   );
 }
-const SwitchField = fieldRenderer<boolean | undefined | null>(SwitchImpl);
+const SwitchField = fieldRenderer<boolean | undefined | null, { displayLabel?: boolean }>(SwitchImpl);
 
 type Options = { type?: string; [k: string]: unknown };
 const ro = (d: object) => (d as { renderOptions?: unknown }).renderOptions as Options | null | undefined;
@@ -58,7 +90,7 @@ const ro = (d: object) => (d as { renderOptions?: unknown }).renderOptions as Op
 const switchTranslator: Translator = {
   match: (d, s) => d.type === "Data" && s?.type === "Bool" && ro(d)?.type === "Switch",
   renderTypes: ["Switch"],
-  render: ({ props }) => <SwitchField {...(props as any)} />,
+  render: ({ props, def }) => <SwitchField {...(props as any)} displayLabel={ro(def)?.displayLabel === true} />,
 };
 
 const text = (o: object, k: string) => (o as Record<string, unknown>)[k] as string | undefined;
