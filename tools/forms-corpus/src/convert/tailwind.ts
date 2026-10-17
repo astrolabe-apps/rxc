@@ -490,16 +490,23 @@ export function tailwindPieces(classes: string, options: TailwindOptions = {}): 
   return options.base ? givingWay(pieces, tailwindPieces(options.base, { ...options, base: undefined, onUnknown: undefined })) : pieces;
 }
 
-/** The pieces, less each property a base utility outranks in the stylesheet. */
+/** CSS's layers: the host's own classes (components), then utilities, then `!important` ones. */
+const layerOf = (p: Piece) => (p.important ? 2 : p.named ? 0 : 1);
+
+/**
+ * The pieces, less each property the base outranks: a base class in a higher layer (a utility
+ * over a host class, an important one over either), or in the same layer later in Tailwind's
+ * stylesheet.
+ */
 function givingWay(pieces: Piece[], base: Piece[]): Piece[] {
   return pieces.map((p) => {
-    if (p.important || p.when || !p.utility) return p;
+    if (p.when || !p.utility) return p;
     const style = { ...p.style } as Record<string, unknown>;
     for (const b of base) {
       if (b.when || !b.utility) continue;
-      const order = stylesheetOrder(b.utility, p.utility!);
-      if (order === undefined || order <= 0) continue;
-      for (const k of Object.keys(b.style)) delete style[k];
+      const above = layerOf(b) > layerOf(p);
+      const later = layerOf(b) === layerOf(p) && (stylesheetOrder(b.utility, p.utility!) ?? 0) > 0;
+      if (above || later) for (const k of Object.keys(b.style)) delete style[k];
     }
     return { ...p, style: style as PortableStyle };
   });

@@ -1016,6 +1016,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
           aria-invalid={p.error ? true : undefined}
           aria-required={p.required || undefined}
           value={ctl.stringValue === "" ? undefined : ctl.stringValue}
+          placeholder={getProp(ctl.rc, p.placeholder)}
           status={p.error ? "error" : undefined}
           disabled={ctl.state.disabled || ctl.state.readOnly}
           // A required select with a value has no way back to empty.

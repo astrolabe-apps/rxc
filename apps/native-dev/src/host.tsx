@@ -1,7 +1,10 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
+import type { Control } from "@rx-controls/core";
+import { useReactive } from "@rx-controls/react";
 import type { ReactNode } from "react";
 import type { Rendered } from "@rx-controls/react";
-import { RichText, type DisplayOnlyExtra, type FieldOption } from "@rx-controls/forms-react";
+import { Contents, RichText, type DisplayOnlyExtra, type FieldOption, type FormProp, type LookRef } from "@rx-controls/forms-react";
 import {
   fieldRenderer,
   useCheckbox,
@@ -132,6 +135,47 @@ const copyableDataTranslator: Translator = {
   },
 };
 
+/**
+ * ServiceTas's `Chart` render type, its one chart (RNChartRenderer's DoughnutChart): a ring
+ * over the compound's `activePoints` of `totalPoints`, the points in its middle, drawn through
+ * the field's look (its size, and the number's type) — without the app's animation.
+ */
+function Doughnut(p: { field: Control<unknown>; look?: FormProp<LookRef | undefined>; ringColor?: string; ringBackgroundColor?: string; displayText: boolean }) {
+  const { rc, rendered } = useReactive();
+  const fields = (p.field as Control<Record<string, unknown>>).fields;
+  const progress = Number(rc.getValue(fields.activePoints) ?? 0) || 0;
+  const total = Number(rc.getValue(fields.totalPoints) ?? 0) || 0;
+  const offset = total ? (1 - progress / total) * 100 : 100;
+  return rendered(
+    <Contents look={p.look}>
+      <Svg style={StyleSheet.absoluteFill} viewBox="0 0 40 40" transform={[{ rotate: "90deg" }, { scaleX: -1 }]}>
+        <Circle cx="50%" cy="50%" r="16" fill="transparent" stroke={p.ringBackgroundColor ?? "#d2d3d4"} strokeWidth={5} />
+        {progress > 0 && (
+          <Circle cx="50%" cy="50%" r="16" fill="transparent" stroke={p.ringColor} strokeWidth={5} strokeDasharray="100" strokeDashoffset={offset} strokeLinecap="round" />
+        )}
+      </Svg>
+      {p.displayText ? String(Math.round(progress)) : null}
+    </Contents>,
+  );
+}
+
+const chartTranslator: Translator = {
+  match: (d) => d.type === "Data" && ro(d)?.type === "Chart",
+  renderTypes: ["Chart"],
+  render: ({ props, def }) => {
+    const o = ro(def) ?? {};
+    return o.chartType === "Doughnut" ? (
+      <Doughnut
+        field={props.field}
+        look={props.look}
+        ringColor={text(o, "ringColor")}
+        ringBackgroundColor={text(o, "ringBackgroundColor")}
+        displayText={o.displayText === true}
+      />
+    ) : null;
+  },
+};
+
 type SchemaField = Parameters<DefaultSchemaInterface["textValue"]>[0];
 
 /** ServiceTas's `formattedDateString`: `dd/mm/yyyy`, in Hobart. */
@@ -188,7 +232,7 @@ const SCREEN_DISPLAYS = [
 export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments" | "schemaInterface" | "displays"> = {
   schemaInterface: new ServiceTasSchemaInterface(),
   displays: Object.fromEntries(SCREEN_DISPLAYS.map((id) => [id, () => null])),
-  translators: [switchTranslator, htmlRendererTranslator, copyableDataTranslator, ...defaultTranslators],
+  translators: [switchTranslator, htmlRendererTranslator, copyableDataTranslator, chartTranslator, ...defaultTranslators],
   adornments: {
     // ServiceTas's help renderer: a trigger at the label's end, `helpLabel` the words on it.
     HelpText: {

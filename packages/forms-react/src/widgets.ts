@@ -155,6 +155,12 @@ export interface SelectExtra {
    * a reset on every change of the driving value still writes it itself.
    */
   restrictToOptions?: boolean;
+  /**
+   * The words for the empty choice and an unchosen value — "Month", "Choose a state". Absent,
+   * the implementation's own (often nothing, or a dash). A radio group has no empty choice to
+   * name and ignores it.
+   */
+  placeholder?: FormProp<ReactNode>;
 }
 
 /**

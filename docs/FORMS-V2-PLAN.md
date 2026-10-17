@@ -1069,7 +1069,14 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   the playground's CopyableData stand-in has the app's copy icon. Decided, a divergence: legacy's
   `Textfield` renderer never touches on blur, so its errors show only once a page or submit touches
   it — an oversight (its `Standard` text input does touch) — and v2 keeps touching as the field is
-  left (LinkMrsWizard's licence number).) The legacy harness shows a "VirtualizedLists should
+  left (LinkMrsWizard's licence number). Then the other 27 forms the app draws, opened on both
+  (generated open-only scenarios): the loader translates a `Grid` group — the shown children in rows
+  of `columns` or a `GridColumns` expression's, equal cells (the burndown 441 → 419); a select's empty
+  choice is legacy's `requiredText` / `emptyText` (`SelectExtra.placeholder`, every implementation);
+  a look's uses beside different host classes convert per kind of control (a button's text beside
+  its emphasis's `headline !text-white` — `headline@action-button`), and a base class in a higher CSS
+  layer wins over a merged part; a group's title is the label's `headline`, not `title3`; an inline
+  display-only value takes its look's text; and the playground draws ServiceTas's `Chart` doughnut.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

@@ -278,6 +278,18 @@ describe("SelectField", () => {
     expect(rc.getValue(data).priority).toBe(3);
   });
 
+  it("names its empty choice with requiredText while required, else emptyText, as legacy's", () => {
+    h.load(
+      [
+        { type: "Data", field: "month", required: true, renderOptions: { type: "Dropdown", requiredText: "Month", emptyText: "Any" } },
+        { type: "Data", field: "status", renderOptions: { type: "Dropdown", requiredText: "Pick", emptyText: "Any" } },
+      ],
+      [str("month", { options: [{ name: "Jan", value: "1" }] }), statusField],
+      { month: null, status: null },
+    );
+    expect($$("select").map((sel) => (sel as HTMLSelectElement).options[0]!.textContent)).toEqual(["Month", "Any"]);
+  });
+
   it("narrows the schema's options by an AllowedOptions expression", async () => {
     const { data } = h.load(
       [
@@ -827,6 +839,34 @@ describe("groups", () => {
     expect(text()).toContain("in flex");
     expect(button("First tab")).toBeDefined();
     expect(button("Second tab")).toBeDefined();
+  });
+
+  it("draws a Grid as rows of its columns, a hidden child taking no cell", async () => {
+    const t = (text: string, extra = {}) => ({ type: "Display", displayData: { type: "Text", text }, ...extra });
+    const { data } = h.load(
+      [
+        {
+          type: "Group",
+          groupOptions: { type: "Grid", columns: 2 },
+          children: [
+            t("one"),
+            t("two", { dynamic: [{ type: "Visible", expr: { type: "Data", field: "showTwo" } }] }),
+            t("three"),
+          ],
+        },
+      ],
+      [{ field: "showTwo", type: "Bool" } as SchemaField],
+      { showTwo: true },
+    );
+    await flush();
+    const rows = () =>
+      $$("*")
+        .filter((e) => (e as HTMLElement).style.flexDirection === "row")
+        .map((e) => e.textContent);
+    expect(rows()).toEqual(["onetwo", "three"]);
+    act(() => h.ctx.update((wc) => wc.setValue(data.fields.showTwo as Control<unknown>, false)));
+    await flush();
+    expect(rows()).toEqual(["onethree"]);
   });
 
   it("takes a tab whose child is not Visible off the strip, as legacy did", () => {

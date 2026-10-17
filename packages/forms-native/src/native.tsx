@@ -906,10 +906,11 @@ function NativeSelect(p: SelectRenderProps): Rendered {
   const words = useLook("field", p.look)("text", NO_LOOK_STATE, undefined, true);
   const [open, setOpen] = useState(false);
   const chosen = ctl.options.find((o) => String(o.value) === ctl.stringValue);
+  const placeholder = getProp(ctl.rc, p.placeholder);
   const choices = [
     // A required select with a value has no way back to empty.
     ...(!p.required || ctl.stringValue === ""
-      ? [{ key: "empty", value: "", name: t.emptyText as ReactNode, disabled: false }]
+      ? [{ key: "empty", value: "", name: (placeholder ?? t.emptyText) as ReactNode, disabled: false }]
       : []),
     ...ctl.options.map((o, i) => ({
       key: `${i}:${String(o.value)}`,
@@ -966,7 +967,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
             {...webOnly({ "aria-required": slot["aria-required"] })}
           >
             <Text {...sp({ flex: 1 }, chosen ? t.value : t.placeholder, words.text)}>
-              {chosen ? chosen.name : t.emptyText}
+              {chosen ? chosen.name : (placeholder ?? t.emptyText)}
             </Text>
             {t.icon != null && icon(t.icon, t.iconStyle, true)}
           </Pressable>
@@ -1020,7 +1021,8 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   // Inline: the value in prose — no shell, no label.
   if (p.inline)
     return ctl.rendered(
-      <Text id={p.id} {...sp(t.inline)}>
+      // In prose: the theme's inline words, the look's text over them (legacy's textClass).
+      <Text id={p.id} {...sp(t.inline, control.text, words.text)}>
         {ctl.content}
       </Text>,
     );

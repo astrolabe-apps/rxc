@@ -100,6 +100,14 @@ describe("tailwindToPart", () => {
     expect(tailwindToPart("text-danger body-bold", { named })).toMatchObject({ color: "$danger" });
   });
 
+  it("gives way to a base class in a higher layer: a host class to a utility, anything to an important one", () => {
+    const named = { headline: { fontSize: 17, fontFamily: "Nunito_700Bold", color: "$text" } };
+    // A primary button's text: the form's `headline` beside its own "headline !text-white text-center".
+    const base = "headline !text-white text-center";
+    expect(tailwindToPart("headline", { named, base })).toEqual({ fontSize: 17, fontFamily: "Nunito_700Bold" });
+    expect(tailwindToPart("!text-danger", { named, base })).toEqual({ color: "$danger" });
+  });
+
   it("reads flex as NativeWind does, display alone: a column unless a direction is written", () => {
     expect(tailwindToPart("flex gap-[16px]")).toEqual({ display: "flex", gap: 16 });
     // Beside a standard group's own "flex flex-col gap-4", a merged flex-row is the column CSS keeps.

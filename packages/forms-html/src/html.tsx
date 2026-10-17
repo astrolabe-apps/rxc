@@ -923,7 +923,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
           >
             {/* A required select with a value has no way back to empty. */}
             {(!p.required || ctl.stringValue === "") && (
-              <option value="">{t.emptyText}</option>
+              <option value="">{getProp(ctl.rc, p.placeholder) ?? t.emptyText}</option>
             )}
             {ctl.options.map((o, i) => (
               <option

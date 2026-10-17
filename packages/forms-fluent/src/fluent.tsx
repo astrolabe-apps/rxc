@@ -727,7 +727,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
           onBlur={ctl.onBlur}
         >
           {/* A required select with a value has no way back to empty. */}
-          {(!p.required || ctl.stringValue === "") && <option value="" />}
+          {(!p.required || ctl.stringValue === "") && <option value="">{getProp(ctl.rc, p.placeholder)}</option>}
           {ctl.options.map((o, i) => (
             <option key={keys[i]} value={String(o.value)} disabled={o.disabled}>
               {o.name}

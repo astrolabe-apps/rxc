@@ -214,7 +214,9 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   // (the system font at 14, black); an option is "native:text-base" (14 at a rem of 14).
   select: {
     value: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000" },
-    placeholder: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#9ca3af" },
+    // Its words with nothing chosen are the default value's label (requiredText / emptyText), not
+    // a placeholder: the same black.
+    placeholder: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: "#000000" },
     optionText: { fontSize: 14, lineHeight: undefined, fontFamily: undefined, color: ink },
     // SelectTrigger "min-h-10 native:min-h-12 … border border-[#E7E7E8] bg-background px-3 py-2"
     // + "bg-white", no radius: 42 high, 10.5 / 7 padding at NativeWind's rem of 14 — not the
@@ -258,8 +260,9 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     // under a title is the wrapper's: a look that replaces the title's style (`@ title1`, the
     // wizards' page titles) keeps it, as it did in the app.
     wrapper: { gap: 16 },
-    // group titles are label text: the label's class plus the group's.
-    title: { ...withInk(type.title3), marginBottom: 0 },
+    // A group's title is schemas-rn's label: its words get label.textClass ("headline"; ServiceTas
+    // sets no groupLabelTextClass), and groupLabelClass "font-bold" lands on the container View.
+    title: { ...withInk(type.headline), marginBottom: 0 },
     // A standard group's body: schemas-rn's standardClassName "flex flex-col gap-4", 14 at a rem of 14.
     body: { gap: 14 },
   },

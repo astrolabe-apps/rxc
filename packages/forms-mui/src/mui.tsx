@@ -988,7 +988,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
         {/* A required select with a value has no way back to empty. */}
         {(!p.required || ctl.stringValue === "") && (
           <MenuItem value="">
-            <em>—</em>
+            <em>{getProp(ctl.rc, p.placeholder) ?? "—"}</em>
           </MenuItem>
         )}
         {ctl.options.map((o, i) => (

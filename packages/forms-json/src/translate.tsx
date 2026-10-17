@@ -149,6 +149,49 @@ function flexLayout(go: Record<string, unknown>): FlexLayout {
   };
 }
 
+const gridRow: FlexLayout = { direction: "row", justify: "space-between" };
+
+/**
+ * Legacy's Grid group (schemas-rn's GridRenderer): the children that are shown, in rows of
+ * `columns` (a `GridColumns` expression, else the definition's, else 2), each cell an equal
+ * share of its row. A hidden child takes no cell, so the rows close up over it; it stays
+ * mounted (a boundary is what clears it), moving as it hides and shows.
+ */
+function GridRows(p: {
+  children: ReactNode[];
+  hidden: (FormProp<boolean | undefined> | undefined)[];
+  columns: FormProp<unknown> | undefined;
+}): Rendered {
+  const { rc, rendered } = useReactive();
+  const n = Math.max(1, Math.floor(Number(getProp(rc, p.columns))) || 2);
+  const isHidden = (i: number) => getProp(rc, p.hidden[i]) === true;
+  const shown = p.children.filter((_, i) => !isHidden(i));
+  const rows: ReactNode[][] = [];
+  for (let i = 0; i < shown.length; i += n) rows.push(shown.slice(i, i + n));
+  return rendered(
+    <>
+      {/* A hidden child stays mounted — its boundary clears it and stops validating it, a
+          group keeps its children silent — out of the rows, as legacy left it out of them; it
+          hides itself, so where it sits draws nothing. */}
+      {p.children.filter((_, i) => isHidden(i))}
+      {rows.map((row, r) => (
+        <Contents key={r} layout={gridRow}>
+          {row.map((cell, c) => (
+            <Contents key={c} style={{ flex: 1 }}>
+              {cell}
+            </Contents>
+          ))}
+        </Contents>
+      ))}
+    </>,
+  );
+}
+
+/** A Grid's column count: its `GridColumns` expression, else the group options' `columns`. */
+function gridColumns(go: Record<string, unknown>, dynamicValue: TranslateArgs["dynamicValue"]): FormProp<unknown> | undefined {
+  return dynamicValue("GridColumns") ?? (go.columns as number | undefined) ?? undefined;
+}
+
 const hasDynamic = (d: AnyDef, t: string) =>
   !!d.dynamic?.some((x) => x.type === t);
 
@@ -423,8 +466,9 @@ const builtins: Builtin[] = [
     // the corpus, 33 of them Standard.
     match: (d, s) =>
       d.type === "Data" && s?.type === "Compound" && !s.collection,
-    renderTypes: ["Standard", "Group", "Contents", "Inline", "Flex"],
-    render: ({ props, children, def }) => {
+    renderTypes: ["Standard", "Group", "Contents", "Inline", "Flex", "Grid"],
+    dynamics: ["GridColumns"],
+    render: ({ props, children, childProps, def, dynamicValue }) => {
       const nested = (def.renderOptions?.groupOptions ?? {}) as Record<
         string,
         unknown
@@ -452,6 +496,20 @@ const builtins: Builtin[] = [
       );
       if (kind === "Inline")
         return <InlineGroup {...groupProps}>{withDefault}</InlineGroup>;
+      if (kind === "Grid")
+        return (
+          <Contents {...groupProps}>
+            <CompoundCycle
+              control={props.field}
+              value={props.defaultValue}
+              hidden={props.hidden}
+              dontClearHidden={props.dontClearHidden}
+            />
+            <GridRows hidden={childProps.map((c) => c?.hidden)} columns={gridColumns(nested, dynamicValue)}>
+              {children}
+            </GridRows>
+          </Contents>
+        );
       return (
         <Contents
           {...groupProps}
@@ -657,13 +715,20 @@ const builtins: Builtin[] = [
       (hasOptions(d, s) || d.renderOptions?.type === "Dropdown"),
     renderTypes: ["Standard", "Dropdown"],
     dynamics: ["AllowedOptions"],
-    render: ({ props, schema, dynamicValue, options }) => (
-      <SelectField
-        {...props}
-        restrictToOptions={false}
-        options={options()}
-      />
-    ),
+    render: ({ props, def, options }) => {
+      // Legacy's select drew `requiredText` while required, else `emptyText`, as its placeholder.
+      const ro = (def.renderOptions ?? {}) as Record<string, unknown>;
+      const whenRequired = str(ro.requiredText);
+      const otherwise = str(ro.emptyText);
+      const required = props.required;
+      const words: FormProp<ReactNode> | undefined =
+        whenRequired !== undefined || otherwise !== undefined
+          ? (rc) => (getProp(rc, required) ? (whenRequired ?? otherwise) : otherwise)
+          : undefined;
+      return (
+        <SelectField {...props} restrictToOptions={false} options={options()} placeholder={words} />
+      );
+    },
   },
   {
     match: (d) => d.type === "Data",
@@ -731,6 +796,25 @@ const builtins: Builtin[] = [
         {children}
       </Contents>
     ),
+  },
+  {
+    // Legacy's Grid group: the shown children in rows of `columns` (or a `GridColumns`
+    // expression's: ServiceTas switches 2 to 4 at `lg`), each cell an equal share.
+    match: (d) => d.type === "Group" && d.groupOptions?.type === "Grid",
+    renderTypes: ["Grid"],
+    dynamics: ["GridColumns"],
+    render: ({ def, props, children, childProps, dynamicValue }) => {
+      const go = (def.groupOptions ?? {}) as Record<string, unknown>;
+      void go.rowClass;
+      void go.cellClass;
+      return (
+        <Contents hidden={props.hidden} disabled={props.disabled} title={props.label} look={props.look}>
+          <GridRows hidden={childProps.map((c) => c?.hidden)} columns={gridColumns(go, dynamicValue)}>
+            {children}
+          </GridRows>
+        </Contents>
+      );
+    },
   },
   {
     match: (d) => d.type === "Group",

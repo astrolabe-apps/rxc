@@ -1,5 +1,7 @@
 {
   "shell": "flex flex-col gap-[16px]",
   "DisplayOnly.shell": "flex flex-row items-center gap-2",
-  "Group.control": "flex flex-col gap-4"
+  "Group.control": "flex flex-col gap-4",
+  "Action:Button.text": "headline !text-white text-center",
+  "Action:Secondary.text": "headline !text-accent group-active:!text-white text-center"
 }

@@ -72,8 +72,8 @@ const RESERVED = new Set(["primary", "secondary", "link"]);
 const SLOTS = ["styleClass", "textClass", "layoutClass", "labelClass", "labelTextClass"] as const;
 const OPTION_SLOTS = ["entryWrapperClass", "selectedClass", "notSelectedClass"] as const;
 
-/** name → what it draws, how many controls use it, and as what (see {@link controlKind}). */
-const looks = new Map<string, { parts: ClassLook; uses: number; derived: string; kinds: Map<string, number> }>();
+/** name → what it draws, and the controls that use it with what each is (see {@link controlKind}). */
+const looks = new Map<string, { parts: ClassLook; uses: number; derived: string; defs: { d: Def; kind: string }[] }>();
 
 /**
  * What a control is, as far as the host's own classes go: they differ for a
@@ -84,6 +84,8 @@ function controlKind(d: Def): string {
   const go = (d.groupOptions ?? ro.groupOptions ?? {}) as Record<string, unknown>;
   if (d.type === "Group") return !go.type || go.type === "Standard" ? "Group" : `Group:${String(go.type)}`;
   if (d.type === "Data" && ro.type === "DisplayOnly") return "DisplayOnly";
+  // A button's text sits beside its emphasis's own text classes (primaryTextClass…).
+  if (d.type === "Action") return `Action:${String(d.actionStyle ?? "Button")}`;
   return String(d.type ?? "");
 }
 const problems: string[] = [];
@@ -119,10 +121,9 @@ function convert(defs: Def[], form: string): void {
       const known = looks.get(name);
       if (known && known.derived !== derived.name)
         problems.push(`"${name}" names two different looks (${known.derived}, ${derived.name}) — names.json maps both to it`);
-      const entry = known ?? { parts: derived.parts, uses: 0, derived: derived.name, kinds: new Map() };
+      const entry = known ?? { parts: derived.parts, uses: 0, derived: derived.name, defs: [] };
       entry.uses++;
-      const kind = controlKind(d);
-      entry.kinds.set(kind, (entry.kinds.get(kind) ?? 0) + 1);
+      entry.defs.push({ d, kind: controlKind(d) });
       looks.set(name, entry);
       d.look = name;
     }
@@ -136,6 +137,7 @@ function convert(defs: Def[], form: string): void {
 }
 
 let formCount = 0;
+const outputs: { file: string; raw: unknown }[] = [];
 for (const root of roots)
   for (const path of walkFiles(root)) {
     if (path.includes(join("corpus", "looks")) || path.includes(join("corpus", "converted"))) continue;
@@ -149,9 +151,8 @@ for (const root of roots)
     formCount++;
     const rel = relative(base, path);
     convert(list, rel);
-    const file = join(outDir, "forms", rel);
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
+    // Written once the tables are made: a use may be renamed there (see the native table).
+    outputs.push({ file: join(outDir, "forms", rel), raw });
   }
 
 // ── the two tables ────────────────────────────────────────────────────
@@ -163,50 +164,68 @@ for (const [name, l] of sorted) html[name] = l.parts;
 const unconverted = new Map<string, { why: string; uses: number }>();
 const colours = new Map<string, number>();
 const nativeLines: string[] = [];
-for (const [name, l] of sorted) {
+
+/**
+ * A look's native code for one kind of control: each part beside the host's own classes for
+ * that kind (`baseClasses.json`), nothing for a part the host never draws for it (`undrawn`).
+ */
+function nativeLookCode(name: string, l: { parts: ClassLook; uses: number }, kind: string, report: boolean): string {
   const parts: string[] = [];
   for (const [part, value] of Object.entries(l.parts)) {
     const replace = typeof value === "object" && value !== null && "replace" in value;
     const classes = replace ? String((value as { replace: unknown }).replace) : String(value);
-    // The host's own classes beside this part, by how the look is used; the most common use's
-    // where uses differ, and a problem if they would convert differently.
-    const baseFor = (kind: string) => (replace ? undefined : (baseClasses[`${kind}.${part}`] ?? baseClasses[part]));
-    const byUse = [...l.kinds.entries()].sort((a, b) => b[1] - a[1]);
-    const bases = [...new Set(byUse.map(([k]) => baseFor(k)))];
-    if (bases.length > 1) {
-      const codes = new Set(bases.map((b) => tailwindPartCode(classes, { named: classNames, base: b, rem: nativeHost.rem })));
-      if (codes.size > 1)
-        problems.push(`"${name}" ${part}: its uses (${byUse.map(([k]) => k || "?").join(", ")}) sit beside different host classes and convert differently — drawn as the most common's`);
-    }
     const options = {
       named: classNames,
-      base: baseFor(byUse[0]?.[0] ?? ""),
+      base: replace ? undefined : (baseClasses[`${kind}.${part}`] ?? baseClasses[part]),
       rem: nativeHost.rem,
-      onUnknown: (token: string, why: string) => {
-        const u = unconverted.get(token) ?? { why, uses: 0 };
-        u.uses += l.uses;
-        unconverted.set(token, u);
-      },
+      onUnknown: report
+        ? (token: string, why: string) => {
+            const u = unconverted.get(token) ?? { why, uses: 0 };
+            u.uses += l.uses;
+            unconverted.set(token, u);
+          }
+        : undefined,
     };
-    for (const piece of tailwindPieces(classes, { ...options, onUnknown: undefined }))
-      for (const v of Object.values(piece.style))
-        if (typeof v === "string" && v.startsWith("$")) {
-          const c = v.slice(1).split("/")[0];
-          colours.set(c, (colours.get(c) ?? 0) + l.uses);
-        }
-    // A part the host never draws for any of the look's uses is nothing on a device.
-    const undrawn = byUse.length > 0 && byUse.every(([k]) => nativeHost.undrawn?.[k]?.includes(part));
-    if (!undrawn && byUse.some(([k]) => nativeHost.undrawn?.[k]?.includes(part)) && tailwindPartCode(classes, options) !== "{}")
-      problems.push(`"${name}" ${part}: drawn for some of its uses (${byUse.map(([k]) => k || "?").join(", ")}) and not others — drawn`);
+    if (report)
+      for (const piece of tailwindPieces(classes, { ...options, onUnknown: undefined }))
+        for (const v of Object.values(piece.style))
+          if (typeof v === "string" && v.startsWith("$")) {
+            const c = v.slice(1).split("/")[0];
+            colours.set(c, (colours.get(c) ?? 0) + l.uses);
+          }
     const code =
       overrides[name]?.[part] !== undefined
         ? JSON.stringify(overrides[name][part])
-        : undrawn
+        : nativeHost.undrawn?.[kind]?.includes(part)
           ? "{}"
           : tailwindPartCode(classes, options);
     parts.push(`${JSON.stringify(part)}: ${replace ? `{ replace: ${code} }` : code}`);
   }
-  nativeLines.push(`  ${JSON.stringify(name)}: { ${parts.join(", ")} },`);
+  return `{ ${parts.join(", ")} }`;
+}
+
+// A look whose uses sit beside different host classes can draw differently for each: the most
+// common use keeps the name, and a use that converts differently gets the name qualified by its
+// kind (`headline@action-button`), its forms renamed and html given the same classes under it.
+const slug = (kind: string) => kind.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+for (const [name, l] of sorted) {
+  const byKind = new Map<string, Def[]>();
+  for (const { d, kind } of l.defs) byKind.set(kind, [...(byKind.get(kind) ?? []), d]);
+  const kinds = [...byKind.entries()].sort((a, b) => b[1].length - a[1].length);
+  const main = nativeLookCode(name, l, kinds[0]?.[0] ?? "", true);
+  nativeLines.push(`  ${JSON.stringify(name)}: ${main},`);
+  for (const [kind, defs] of kinds.slice(1)) {
+    const code = nativeLookCode(name, l, kind, false);
+    if (code === main) continue;
+    const qualified = `${name}@${slug(kind)}`;
+    for (const d of defs) d.look = qualified;
+    html[qualified] = l.parts;
+    nativeLines.push(`  ${JSON.stringify(qualified)}: ${code},`);
+  }
+}
+for (const { file, raw } of outputs) {
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(raw, null, 2) + "\n");
 }
 mkdirSync(outDir, { recursive: true });
 writeFileSync(join(outDir, "looks.html.json"), JSON.stringify(html, null, 2) + "\n");
