@@ -226,8 +226,19 @@ export function androidTarget(o: AndroidTargetOptions): Target {
         .map(Number);
       const x = String(w! >> 1);
       const [from, to] = direction === "down" ? [h! * 0.8, h! * 0.2] : [h! * 0.2, h! * 0.8];
-      adb("shell", "input", "swipe", x, String(Math.round(from)), x, String(Math.round(to)), "400");
+      // Slowly enough that the list stops where the finger lifts. A quick swipe lifts while
+      // moving and the list glides on (a fling) — two screens and more for a 400ms one, past
+      // the part of the form the scan was looking for — and a tap on a list still moving only
+      // stops it. Measured on an emulator: 800ms still glides, 1500ms does not.
+      adb("shell", "input", "swipe", x, String(Math.round(from)), x, String(Math.round(to)), "1500");
       await sleep(settle);
+    },
+    async hideKeyboard() {
+      // Back closes the keyboard; without one showing it would leave the app, so only then.
+      if (/mInputShown=true/.test(adb("shell", "dumpsys input_method | grep mInputShown"))) {
+        adb("shell", "input", "keyevent", "KEYCODE_BACK");
+        await sleep(settle);
+      }
     },
     async report(): Promise<Report> {
       const ls = lines();

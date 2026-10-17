@@ -76,6 +76,11 @@ export interface Target {
    * taken to show all of it.
    */
   scroll?(direction: "down" | "up"): Promise<void>;
+  /**
+   * Close the on-screen keyboard if it is showing, and do nothing if it is not. Left out,
+   * a target is taken to have none.
+   */
+  hideKeyboard?(): Promise<void>;
   /** Put the device back as it was. */
   close(): Promise<void>;
 }

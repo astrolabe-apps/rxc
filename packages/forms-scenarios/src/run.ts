@@ -96,6 +96,7 @@ function remembering(t: Target): Device {
     tap: acting(t.tap),
     type: acting(t.type),
     scroll: t.scroll && acting(t.scroll),
+    hideKeyboard: t.hideKeyboard && acting(t.hideKeyboard),
     screen: async () => (last ??= await t.screen()),
     fresh: async () => (last = await t.screen()),
   };
@@ -131,8 +132,11 @@ async function waitFor<T>(
 
 /**
  * Find something on screen; on a target that scrolls, scroll the form to find it — toward
- * its end, then back toward its start — stopping where the screen no longer changes. Then
- * wait for it where the form now is. Returns the screen it was found on.
+ * its end, then back toward its start, each way stopping where the screen no longer
+ * changes. What the last step revealed may not be drawn yet: first a moment where the form
+ * is, then the scan twice at least, and again while `wait` lasts — a field drawn while the
+ * first scan passed it sits below the end that scan turned back at. Returns the screen it
+ * was found on.
  */
 async function locate<T>(
   t: Device,
@@ -142,8 +146,13 @@ async function locate<T>(
   let nodes = await t.screen();
   let found = find(nodes);
   if (found !== undefined) return { found, nodes };
-  if (t.scroll) {
-    const key = (ns: ScreenNode[]) => ns.map((n) => `${label(n)}@${n.y}`).join("|");
+  if (!t.scroll) return waitFor(t, find, wait);
+  const here = await waitFor(t, find, Math.min(wait, 2 * POLL));
+  if (here.found !== undefined) return here;
+  nodes = here.nodes;
+  const end = Date.now() + wait;
+  const key = (ns: ScreenNode[]) => ns.map((n) => `${label(n)}@${n.y}`).join("|");
+  for (let pass = 0; pass < 2 || Date.now() < end; pass++) {
     for (const direction of ["down", "up"] as const) {
       for (let i = 0; i < 12; i++) {
         const before = key(nodes);
@@ -155,7 +164,7 @@ async function locate<T>(
       }
     }
   }
-  return waitFor(t, find, wait);
+  return { found: undefined, nodes };
 }
 
 /** Do one step; throw with a reason when it cannot be done or does not hold. */
@@ -168,15 +177,19 @@ async function perform(t: Device, s: Step, wait: number): Promise<void> {
       return t.tap(n);
     }
     case "fill": {
-      const { found: n, nodes: at } = await locate(t, (ns) => findField(ns, s.label), wait);
+      const n = (await locate(t, (ns) => findField(ns, s.label), wait)).found;
       if (!n) throw new Error(`no field labelled "${s.label}"`);
       // Leave the field afterwards, as a person does, by tapping its label. With the keyboard
       // up, React Native takes the next tap outside the field as dismissing it and nothing else
       // sees that tap — so the step after this one would be lost (a radio not chosen, a Save
-      // not pressed). A label is words that do nothing, on every target.
-      const l = findText(at, s.label);
+      // not pressed). A label is words that do nothing, on every target. Found where it is
+      // now, with the keyboard up: where it was before may be under the keyboard, and the tap
+      // a key. Then the keyboard closed if it is still showing — the label off screen, or a
+      // tap on it not dismissing it.
       const leave = async () => {
-        if (l && l !== n && !isInput(l)) await t.tap(l);
+        const l = findText(await t.screen(), s.label);
+        if (l && !isInput(l)) await t.tap(l);
+        await t.hideKeyboard?.();
       };
       await t.tap(n);
       await t.type(s.text, n.text);

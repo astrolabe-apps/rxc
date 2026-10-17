@@ -167,6 +167,62 @@ describe("runScenario", () => {
     expect(r.steps.map((s) => s.ok)).toEqual([true, true, false]);
   });
 
+  it("finds a field the last step revealed late, below where its first scan of the form ended", async () => {
+    // The form shows three elements at a time. Switching on "Text me" adds a field at the
+    // form's end, but the app draws it only a few screen reads later — after a scan that
+    // looked for it has already reached the end and turned back up.
+    let sms = false;
+    let readsSinceTap = 0;
+    let top = 0;
+    let typed = "";
+    const draw = (): ScreenNode[] => [
+      node({ text: "Name *" }),
+      node({ cls: "android.widget.EditText", clickable: true }),
+      node({ desc: "Text me", checkable: true, checked: sms, clickable: true }),
+      node({ text: "How should we reply?" }),
+      node({ text: "Phone", clickable: true }),
+      node({ text: "Continue", clickable: true }),
+      ...(sms && readsSinceTap > 4
+        ? [node({ text: "Mobile number" }), node({ cls: "android.widget.EditText", text: typed, clickable: true })]
+        : []),
+    ];
+    const app: Target = {
+      name: "late",
+      async open() {
+        top = 0;
+      },
+      async screen() {
+        readsSinceTap++;
+        const all = draw();
+        top = Math.min(top, Math.max(0, all.length - 3));
+        return all.slice(top, top + 3);
+      },
+      async scroll(d) {
+        top = Math.max(0, top + (d === "down" ? 2 : -2));
+      },
+      async tap(n) {
+        if (n.desc === "Text me") sms = !sms;
+        readsSinceTap = 0;
+      },
+      async type(text) {
+        typed = text;
+      },
+      async report() {
+        return { data: { sms }, actions: [] };
+      },
+      async close() {},
+    };
+    const r = await runScenario(
+      { name: "x", form: "X", steps: [toggle("Text me"), fill("Mobile number", "0400")] },
+      app,
+      { wait: 0 },
+    );
+    expect(r.steps.map((s) => [s.ok, s.message])).toEqual([
+      [true, undefined],
+      [true, undefined],
+    ]);
+  });
+
   it("stops at the first step that fails, saying why", async () => {
     const r = await runScenario(
       { name: "x", form: "X", steps: [expectData("name", "Ada"), press("Continue")] },
