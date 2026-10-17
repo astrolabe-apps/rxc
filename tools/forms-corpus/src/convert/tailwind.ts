@@ -88,6 +88,8 @@ export interface Piece {
   important?: boolean;
   /** A host's own class ({@link TailwindOptions.named}): CSS's components layer, under every utility. */
   named?: boolean;
+  /** Written with a variant (`native:`, `lg:`): later in Tailwind's stylesheet than the bare utility. */
+  variant?: boolean;
 }
 
 /** Tailwind 3's own order for the flex-direction utilities (one `flexDirection` each). */
@@ -465,7 +467,14 @@ function convertToken(
     bad(style);
     return undefined;
   }
-  return { style, when, utility: utilityName.replace(/^!/, ""), important, named: utilityName.replace(/^!/, "") in o.named };
+  return {
+    style,
+    when,
+    utility: utilityName.replace(/^!/, ""),
+    important,
+    named: utilityName.replace(/^!/, "") in o.named,
+    variant: parts.length > 0,
+  };
 }
 
 /** The classes as pieces, in the order written: each token's style and when it holds. */
@@ -485,8 +494,10 @@ export function tailwindPieces(classes: string, options: TailwindOptions = {}): 
   // CSS's precedence, not the order written (a look's classes come canonically sorted): the
   // host's own classes are its components layer, under every utility, and an `!important`
   // utility over the rest — `body-bold !text-accent` is the accent whichever comes first.
+  // Within a layer, a variant's utility after the bare one, as Tailwind writes the stylesheet:
+  // `pl-[16px] native:pl-[8px]` is 8 on a device whichever is written first.
   const layer = (p: Piece) => (p.important ? 2 : p.named ? 0 : 1);
-  pieces.sort((a, b) => layer(a) - layer(b));
+  pieces.sort((a, b) => layer(a) - layer(b) || Number(!!a.variant) - Number(!!b.variant));
   return options.base ? givingWay(pieces, tailwindPieces(options.base, { ...options, base: undefined, onUnknown: undefined })) : pieces;
 }
 

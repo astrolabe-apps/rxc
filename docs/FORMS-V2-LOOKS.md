@@ -458,3 +458,21 @@ Fluent's action dropped a look's `style` behind the button's own `style` prop.
 - **Group `layout`**: the typed flex body overlaps with the portable flex properties and probably
   folds into them.
 - **Structural names** for layout-only looks (`col-gap-16`) instead of a hash.
+
+## Converted looks as shared pieces
+
+`rushx convert-looks` names each control's look as a **list of shared pieces** rather than one look
+per combination of classes: a part's host classes (`body-bold`), its box utilities (`flex flex-col
+gap-[16px]`) and its text utilities (`!text-accent underline`) are separate looks, layered in CSS's
+order (host classes under utilities, a part's `replace` on its first piece). `--whole` keeps the
+old behaviour, one hashed look per control.
+
+Measured on the corpus (80 forms, 2,976 controls with a look): 511 looks whole, 434 in pieces —
+and 431 split finer (layout, spacing, surface apart), 413 split into single utilities with lists
+up to 14 long. The table barely shrinks however it is cut, because the variety is in the **values**:
+nine gaps (`gap-[16px]` ×304, `gap-[8px]` ×289, `gap-2` ×64, `gap-4` ×47…), several greys for one
+colour (`bg-[#E7E7E8]`, `bg-border`, `border-[#E7E7E8]`, `bg-[#F5F5F5]`), `text-accent` beside
+`!text-accent`. Cutting the table down is a design decision — snapping values onto a scale and
+merging near-duplicate colours — not a conversion one; the pieces make that decision easy to see.
+Each control resolves to exactly the native style its whole look did (checked control by control
+over the corpus), and html draws the same markup (`rushx converted-check`).

@@ -46,6 +46,8 @@ import { tailwindPartCode, tailwindPieces } from "./convert/tailwind.js";
 
 const args = process.argv.slice(2);
 const asJson = args.includes("--json");
+// One look per control (its classes whole, named by their hash) rather than a list of shared pieces.
+const whole = args.includes("--whole");
 let roots = args.filter((a) => !a.startsWith("--"));
 if (roots.length === 0 && existsSync("corpus")) roots = ["corpus"];
 if (roots.length === 0) {
@@ -94,6 +96,75 @@ let converted = 0;
 
 type Def = Record<string, unknown> & { type?: string; children?: Def[] };
 
+type PartValue = ClassLook[keyof ClassLook];
+
+/** What a class does, for splitting a part into pieces: a host's own class, a text utility, or the box. */
+const CATEGORIES = ["host", "box", "text"] as const;
+type Category = (typeof CATEGORIES)[number];
+
+/**
+ * What a class does, for splitting a part into pieces: a host's own class, a text utility, or
+ * the box. Finer (layout, spacing, surface apart) measured no better on ServiceTas's corpus —
+ * 431 looks against 434, its variety being in the values (nine gaps, several greys) — and made
+ * the lists longer.
+ */
+function category(token: string): Category {
+  const u = token.split(/:(?![^[]*\])/).pop()!.replace(/^!/, "");
+  if (u in classNames) return "host";
+  if (/^(text-|font-|leading-|tracking-|underline$|line-through$|no-underline$|italic$|not-italic$|uppercase$|lowercase$|capitalize$|truncate$)/.test(u))
+    return "text";
+  return "box";
+}
+
+/**
+ * A control's look as a list of shared pieces, each one part's classes of one kind (see
+ * {@link category}): `body-bold`, `flex-flex-col-gap-16`, `text-accent-underline`.
+ * In CSS's order — a host class under utilities — and a replace on the part's first piece, which
+ * drops the theme's own before the rest layer on.
+ */
+function pieces(parts: ClassLook): { part: string; value: PartValue }[] {
+  const out: { part: string; value: PartValue }[] = [];
+  for (const [part, value] of Object.entries(parts)) {
+    if (value === undefined) continue;
+    const replace = typeof value === "object" && value !== null && "replace" in value;
+    const classes = (replace ? String((value as { replace: unknown }).replace) : String(value)).split(/\s+/).filter(Boolean);
+    const groups = CATEGORIES
+      .map((c) => classes.filter((t) => category(t) === c).sort().join(" "))
+      .filter(Boolean);
+    if (!groups.length) {
+      if (replace) out.push({ part, value: { replace: "" } as PartValue });
+      continue;
+    }
+    groups.forEach((g, i) => out.push({ part, value: (replace && i === 0 ? { replace: g } : g) as PartValue }));
+  }
+  return out;
+}
+
+/** A piece's default name: its classes as words (`flex-col-gap-16`), a part's other than the text's and control's after it, a replace `only-` before it. */
+function pieceName(part: string, value: PartValue): string {
+  const replace = typeof value === "object" && value !== null && "replace" in value;
+  const classes = replace ? String((value as { replace: unknown }).replace) : String(value);
+  const slug =
+    classes
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) =>
+        t
+          .replace(/^!/, "important-")
+          .replace(/\[(-?[\d.]+)(px)?\]/g, "$1")
+          .replace(/\[#([0-9a-fA-F]+)\]/g, "$1")
+          .replace(/[^a-zA-Z0-9-]+/g, "-")
+          .replace(/^-+|-+$/g, ""),
+      )
+      .join("-") || "none";
+  const where = part === "text" || part === "control" ? "" : `-${part.toLowerCase()}`;
+  return `${replace ? "only-" : ""}${slug}${where}`;
+}
+
+/** A piece's identity: its part and its value. */
+const pieceKey = (part: string, value: PartValue) => JSON.stringify([part, value]);
+const pieceNames = new Map<string, string>();
+
 function convert(defs: Def[], form: string): void {
   for (const d of defs) {
     controls++;
@@ -114,7 +185,30 @@ function convert(defs: Def[], form: string): void {
       },
       labelled,
     );
-    if (derived) {
+    if (derived && !whole) {
+      converted++;
+      const list: string[] = [];
+      for (const { part, value } of pieces(derived.parts)) {
+        const key = pieceKey(part, value);
+        let name = pieceNames.get(key);
+        if (!name) {
+          // Two pieces with one default name (two parts' same classes, `text-x` and `!text-x`): the
+          // later named by its part, then numbered.
+          const taken = new Set(pieceNames.values());
+          const stem = pieceName(part, value);
+          name = stem;
+          if (taken.has(name)) name = `${stem}-${part.toLowerCase()}`;
+          for (let n = 2; taken.has(name); n++) name = `${stem}-${n}`;
+          pieceNames.set(key, name);
+        }
+        const entry = looks.get(name) ?? { parts: { [part]: value } as ClassLook, uses: 0, derived: key, defs: [] };
+        entry.uses++;
+        entry.defs.push({ d, kind: controlKind(d) });
+        looks.set(name, entry);
+        if (!list.includes(name)) list.push(name);
+      }
+      d.look = list.length === 1 ? list[0] : list;
+    } else if (derived) {
       converted++;
       const name = names[derived.name] ?? derived.name;
       if (RESERVED.has(name)) problems.push(`${form}: "${name}" is a reserved look name (an action emphasis)`);
@@ -218,7 +312,8 @@ for (const [name, l] of sorted) {
     const code = nativeLookCode(name, l, kind, false);
     if (code === main) continue;
     const qualified = `${name}@${slug(kind)}`;
-    for (const d of defs) d.look = qualified;
+    for (const d of defs)
+      d.look = Array.isArray(d.look) ? (d.look as string[]).map((n) => (n === name ? qualified : n)) : qualified;
     html[qualified] = l.parts;
     nativeLines.push(`  ${JSON.stringify(qualified)}: ${code},`);
   }

@@ -135,6 +135,22 @@ describe("TextField", () => {
     expect($$(".from-sidecar").length).toBe(1);
   });
 
+  it("takes a list of names a converted form carries, layered in order, on a field and an action", () => {
+    h.load(
+      [
+        { type: "Data", field: "name", look: ["body", "link"] },
+        { type: "Action", title: "Go", actionId: "go", actionStyle: "Secondary", look: ["body", "link"] },
+      ],
+      [str("name")],
+      { name: "" },
+      { theme: { looks: { body: { control: "is-body" }, link: { control: "is-link" } } } },
+    );
+    expect($$(".is-body.is-link").length).toBe(2);
+    expect($$('[data-look="body link"]').length).toBe(1);
+    // An action's emphasis still comes first.
+    expect($$('[data-look="secondary body link"]').length).toBe(1);
+  });
+
   it("names a lone typography slot by its classes, and anything else by a hash of them", () => {
     expect(legacyLook("Display", { textClass: "body" }, false)!.name).toBe("body");
     expect(legacyLook("Data", { textClass: "body-bold" }, true)!.name).toBe("body-bold");

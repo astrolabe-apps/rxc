@@ -42,6 +42,7 @@ import {
   type FormProp,
   type Validator,
   type IconSpec,
+  type LookRef,
 } from "@rx-controls/forms-react";
 import { useDefaultValue } from "@rx-controls/forms-react/internal";
 import {
@@ -1045,7 +1046,13 @@ function buildProps(
   );
   // A converted form names its look itself (`look`, with the class slots gone): that name
   // is the theme's to define, and wins over anything derived from slots left beside it.
-  const named = typeof def.look === "string" && def.look ? def.look : undefined;
+  // A name, or a list of names layered in order (a converted form's shared pieces).
+  const named: LookRef | undefined =
+    typeof def.look === "string" && def.look
+      ? def.look
+      : Array.isArray(def.look) && def.look.length && def.look.every((n: unknown) => typeof n === "string" && n)
+        ? (def.look as string[])
+        : undefined;
   if (derived && !named) derive?.(derived.name, derived.parts);
   const look = named ?? derived?.name;
   return {
@@ -1309,7 +1316,7 @@ function actionLookOf(s: AnyDef["actionStyle"]) {
  */
 function actionLooks(s: AnyDef["actionStyle"], look: FieldProps<any>["look"]) {
   const emphasis = actionLookOf(s);
-  return typeof look === "string" ? [emphasis, look] : emphasis;
+  return typeof look === "string" ? [emphasis, look] : Array.isArray(look) ? [emphasis, ...look] : emphasis;
 }
 
 /**

@@ -89,6 +89,11 @@ describe("tailwindToPart", () => {
     expect(tailwindToPart("flex-row")).toEqual({ flexDirection: "row" });
   });
 
+  it("puts a variant's utility after the bare one, as the stylesheet does, whatever the order written", () => {
+    expect(tailwindToPart("native:pl-[8px] pl-[16px]")).toEqual({ paddingLeft: 8 });
+    expect(tailwindToPart("pl-[16px] native:pl-[8px]")).toEqual({ paddingLeft: 8 });
+  });
+
   it("layers by CSS's precedence: the host's classes under utilities, an important one over all", () => {
     const named = { "body-bold": { fontSize: 17, color: "$text" } };
     // A look's classes arrive canonically sorted, so the order written decides nothing here.
