@@ -569,6 +569,18 @@ describe("DisplayOnlyField", () => {
     expect(text()).toContain("(none)");
   });
 
+  it("is not drawn, label and all, with nothing to show and no empty text — legacy's hideDisplayOnly", () => {
+    const { data } = h.load(
+      [{ type: "Data", field: "axles", title: "Axles", renderOptions: { type: "DisplayOnly" } }],
+      [str("axles")],
+      { axles: "" },
+    );
+    expect(text()).not.toContain("Axles");
+    act(() => h.ctx.update((wc) => wc.setValue(data.fields.axles as Control<unknown>, "3")));
+    expect(text()).toContain("Axles");
+    expect(text()).toContain("3");
+  });
+
   it("shows a Display expression in place of the value's text, following the data", async () => {
     const { data, warnings } = h.load(
       [

@@ -600,10 +600,14 @@ const builtins: Builtin[] = [
                 : undefined
             }
           >
-            {(item, index, actions) => (
-              <Contents layout={rowLayout}>
-                {element!(item, index)}
-                {!noRemove && (
+            {/* Legacy's rows: the element alone, or beside its Remove taking the width
+                (`grid-cols-[1fr_auto]`) — not shrunk to its content. */}
+            {(item, index, actions) =>
+              noRemove ? (
+                element!(item, index)
+              ) : (
+                <Contents layout={rowLayout}>
+                  <Contents shellStyle={{ flex: 1 }}>{element!(item, index)}</Contents>
                   <Action
                     actionId={removeActionId}
                     text={removeText}
@@ -611,9 +615,9 @@ const builtins: Builtin[] = [
                     disabled={!actions.canRemove}
                     onClick={() => actions.remove(index)}
                   />
-                )}
-              </Contents>
-            )}
+                </Contents>
+              )
+            }
           </Elements>
           {!noAdd && (
             <ArrayAdd
@@ -953,6 +957,14 @@ function buildProps(
   // them first, so the audit counts them as consumed (a `hidden: true` with
   // a Visible expression is "hidden unless…", and legacy reads it the same).
   const staticHidden = def.hidden;
+  const baseHidden = hiddenFromExpr ?? staticHidden ?? undefined;
+  // Legacy's `hideDisplayOnly`: a display-only field with nothing to show and no
+  // `emptyText` is not drawn at all — label and all — whatever its own visibility says.
+  const displayOnly = def.type === "Data" && def.renderOptions?.type === "DisplayOnly";
+  const emptyDisplay =
+    displayOnly && schema && control && !def.renderOptions?.emptyText
+      ? (rc: ReadContext) => si.isEmptyValue(schema, rc.getValue(control))
+      : undefined;
   const staticDisabled = def.disabled;
   // Legacy: `defaultValue != null` is a default; the editor writes `null`
   // on every control, and that is "none". The dynamic form is scriptable.
@@ -1076,7 +1088,9 @@ function buildProps(
     helpLabel,
     startIcon,
     endIcon,
-    hidden: hiddenFromExpr ?? staticHidden ?? undefined,
+    hidden: emptyDisplay
+      ? (rc) => (emptyDisplay(rc) ? true : getProp(rc, baseHidden))
+      : baseHidden,
     // A pending async `disabled` is not disabled; there is no third state here.
     disabled: disabledProp
       ? (rc) => getProp(rc, disabledProp) ?? false
