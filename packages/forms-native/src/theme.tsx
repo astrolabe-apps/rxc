@@ -302,8 +302,14 @@ export interface NativeTheme {
   };
   /** The html display: its markup's text. */
   html: {
-    /** Its element. */
+    /** Its words: every paragraph's and list item's text. */
     style: TextStyle;
+    /** A paragraph — `p`, `div`, a heading, or words outside any — as a block: its spacing. */
+    paragraph: ViewStyle;
+    /** A list, `ul` or `ol`: its indent and spacing. */
+    list: ViewStyle;
+    /** One item of a list, drawn after its bullet or number. */
+    listItem: ViewStyle;
   };
   /** Buttons. */
   action: {
@@ -374,6 +380,15 @@ export interface NativeTheme {
     title: TextStyle;
     /** The button row. */
     actions: ViewStyle;
+    /** The row holding the heading and, with {@link closeIcon}, the close. */
+    header: ViewStyle;
+    /**
+     * The close as an icon beside the heading, a button named "Close", in place of the
+     * button row's Close action; `null` for the action.
+     */
+    closeIcon: IconSpec | null;
+    /** The close icon's size and colour. */
+    closeIconStyle: TextStyle;
   };
   /** The disclosure. */
   disclosure: {
@@ -646,7 +661,7 @@ export const defaultNativeTheme: NativeTheme = {
     link: { color: blue600, textDecorationLine: "underline" },
     image: {},
   },
-  html: { style: { ...base, color: gray[800] } },
+  html: { style: { ...base, color: gray[800] }, paragraph: {}, list: { paddingLeft: 16 }, listItem: {} },
   action: {
     style: {
       ...row,
@@ -698,6 +713,9 @@ export const defaultNativeTheme: NativeTheme = {
     inline: { gap: 12, borderRadius: 6, borderWidth: 1, borderColor: gray[200], padding: 16 },
     title: { fontSize: 18, lineHeight: 28, fontWeight: "600", color: gray[900] },
     actions: { flexDirection: "row", justifyContent: "flex-end", gap: 8 },
+    header: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+    closeIcon: null,
+    closeIconStyle: {},
   },
   disclosure: {
     style: {},

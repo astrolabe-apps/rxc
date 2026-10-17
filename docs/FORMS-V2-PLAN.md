@@ -1055,7 +1055,20 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   nothing on a device (`nativeHost.json`'s `undrawn`: schemas-rn draws an inline group as a bare Text
   given only its text class), so its bullets are not indented. Measured after: ContactUsEnquiry's and
   LinkMrsWizard's gaps equal to the pixel; what is left is ~3px per radio question, and the calendar
-  glyph, Font Awesome 6's filled where the app's 5 is an outline.) The legacy harness shows a "VirtualizedLists should
+  glyph, Font Awesome 6's filled where the app's 5 is an outline. The step pictures then: the converter
+  layers a part's classes by CSS's precedence — the host's own classes, its components layer, under
+  every utility, `!important` over all — since a look's classes come canonically sorted (`body-bold
+  !text-accent` drew in `body-bold`'s ink: a link in an alert took the alert's red); a native dialog
+  had no surface (a slot's style replaces the default's whole, and the fixture's dropped its white),
+  and now draws the app's — `dialog.closeIcon` in the heading's row, `header`, `closeIconStyle`, the
+  content scrolling within `maxHeight`; an html display draws blocks (paragraphs, lists) of rich text
+  with the theme's `html.paragraph` / `list` / `listItem`, where it drew its markup's text — the
+  fixture's spacing and italics are the app's tagsStyles, Nunito's italic face loaded; an inline
+  display-only value is the system font at 14, as legacy's bare Text; a look's `label` part styles
+  the row of a label and its help, legacy's labelContainer (`@ ` puts the help under the label); and
+  the playground's CopyableData stand-in has the app's copy icon. Left open, a decision: legacy's
+  `Textfield` renderer never touches on blur, so its errors show only once a page or submit touches
+  it, where v2's show as the field is left (LinkMrsWizard's licence number).) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

@@ -89,6 +89,17 @@ describe("tailwindToPart", () => {
     expect(tailwindToPart("flex-row")).toEqual({ flexDirection: "row" });
   });
 
+  it("layers by CSS's precedence: the host's classes under utilities, an important one over all", () => {
+    const named = { "body-bold": { fontSize: 17, color: "$text" } };
+    // A look's classes arrive canonically sorted, so the order written decides nothing here.
+    expect(tailwindToPart("!text-accent underline body-bold", { named })).toEqual({
+      fontSize: 17,
+      color: "$accent",
+      textDecorationLine: "underline",
+    });
+    expect(tailwindToPart("text-danger body-bold", { named })).toMatchObject({ color: "$danger" });
+  });
+
   it("reads flex as NativeWind does, display alone: a column unless a direction is written", () => {
     expect(tailwindToPart("flex gap-[16px]")).toEqual({ display: "flex", gap: 16 });
     // Beside a standard group's own "flex flex-col gap-4", a merged flex-row is the column CSS keeps.

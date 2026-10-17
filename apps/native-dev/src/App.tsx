@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import {
   Nunito_400Regular,
+  Nunito_400Regular_Italic,
   Nunito_600SemiBold,
   Nunito_700Bold,
   Nunito_800ExtraBold,
@@ -60,7 +61,7 @@ export function App() {
     return () => sub.remove();
   }, []);
   // The Converted screen draws ServiceTas's typography, which is Nunito.
-  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold });
+  const [fontsLoaded] = useFonts({ Nunito_400Regular, Nunito_400Regular_Italic, Nunito_600SemiBold, Nunito_700Bold, Nunito_800ExtraBold });
   if (!fontsLoaded) return null;
   const Screen = screens[at]![1];
   return (

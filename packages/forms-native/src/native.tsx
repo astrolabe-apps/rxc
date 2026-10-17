@@ -77,6 +77,7 @@ import {
   type LookState,
   type PortableStyle,
   drawRichText,
+  parseRichText,
   helpButtonName,
   plainText,
   richTextWords,
@@ -308,10 +309,19 @@ function NativeFieldShell(p: FieldShellProps) {
   // tree, as a stop before the options, read by `aria-label` to leave out the
   // required marker. Any other label is hidden: the control carries the name.
   const named = p.labelAs === "legend" && Platform.OS !== "web";
+  // A label and its help button share a row, the label's container — legacy's `labelClass` is
+  // that container (labelContainer), its `labelTextClass` the words: the look's `label` part
+  // styles the row, and replacing it drops the theme's row (a help then sits under the label).
+  const inRow = hasLabel && !p.hideLabel && labelEnd;
   const label = hasLabel && !p.hideLabel && (
     <Text
       id={fieldLabelId(p.id)}
-      {...sp(unless(lookLabel.replace || lookLabelText.replace, t.label), lookLabel.box, lookLabel.text, lookLabelText.text)}
+      {...sp(
+        unless(lookLabelText.replace || (!inRow && lookLabel.replace), t.label),
+        !inRow && lookLabel.box,
+        lookLabel.text,
+        lookLabelText.text,
+      )}
       {...(named
         ? {
             "aria-label": plainText(p.label) || undefined,
@@ -384,7 +394,7 @@ function NativeFieldShell(p: FieldShellProps) {
           t.horizontal,
           <>
             {label && helpButton ? (
-              <View {...sp(t.labelRow)}>
+              <View {...sp(unless(lookLabel.replace, t.labelRow), lookLabel.box)}>
                 {label}
                 {helpButton}
               </View>
@@ -397,7 +407,7 @@ function NativeFieldShell(p: FieldShellProps) {
       ) : (
         <>
           {label && helpButton ? (
-            <View {...sp(t.labelRow)}>
+            <View {...sp(unless(lookLabel.replace, t.labelRow), lookLabel.box)}>
               {label}
               {helpButton}
             </View>
@@ -1262,44 +1272,92 @@ function NativeIcon(p: IconDisplayRenderProps): Rendered {
   );
 }
 
-const entities: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-};
+/** Html as blocks: paragraphs, and lists of items, each its inline markup. */
+type HtmlBlock = { kind: "p"; markup: string } | { kind: "list"; ordered: boolean; items: string[] };
 
-/** Markup's text: tags dropped, block ends as line breaks, entities decoded. */
-function htmlText(html: string): string {
-  return html
-    .replace(/<\s*br\s*\/?>/gi, "\n")
-    .replace(/<\/\s*(p|div|li|h[1-6])\s*>/gi, "\n")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&(#\d+|[a-z]+);/gi, (m, e: string) =>
-      e.startsWith("#") ? String.fromCharCode(Number(e.slice(1))) : (entities[e.toLowerCase()] ?? m),
-    )
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+const BLOCK = /^(p|div|h[1-6]|blockquote|pre)$/;
+
+/**
+ * The block structure of markup, in the order written: what `RichText` cannot carry (it is
+ * inline). Spans and fonts are dropped for their contents — they carry no meaning here, only
+ * the colours an editor pasted.
+ */
+function htmlBlocks(html: string): HtmlBlock[] {
+  const blocks: HtmlBlock[] = [];
+  let buf = "";
+  let list: Extract<HtmlBlock, { kind: "list" }> | undefined;
+  let item: string | undefined;
+  const flush = () => {
+    if (item !== undefined) {
+      if (item.trim()) list?.items.push(item);
+      item = undefined;
+    } else if (buf.trim()) blocks.push({ kind: "p", markup: buf });
+    buf = "";
+  };
+  const re = /<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi;
+  let at = 0;
+  for (const m of html.matchAll(re)) {
+    const text = html.slice(at, m.index);
+    at = m.index! + m[0].length;
+    if (item !== undefined) item += text;
+    else buf += text;
+    const [, close, raw] = m;
+    const tag = raw!.toLowerCase();
+    if (tag === "span" || tag === "font") continue;
+    if (BLOCK.test(tag)) flush();
+    else if (tag === "ul" || tag === "ol") {
+      flush();
+      if (close) {
+        if (list && list.items.length) blocks.push(list);
+        list = undefined;
+      } else list = { kind: "list", ordered: tag === "ol", items: [] };
+    } else if (tag === "li") {
+      flush();
+      if (!close && list) item = "";
+    } else if (item !== undefined) item += m[0];
+    else buf += m[0];
+  }
+  const rest = html.slice(at);
+  if (item !== undefined) item += rest;
+  else buf += rest;
+  flush();
+  if (list && list.items.length) blocks.push(list);
+  return blocks;
 }
 
 /**
- * The html display: its markup's text. React Native has no HTML; an app that
- * needs it rendered (links, lists, emphasis) replaces this slot with one over
- * a renderer of its choosing, such as react-native-render-html.
+ * The html display, as blocks: each paragraph and list item its own text, its emphasis and
+ * links drawn as rich text's are (`richText`), spaced by the theme's `html` parts. React
+ * Native has no HTML; an app that needs more (tables, nested lists) replaces this slot with
+ * one over a renderer of its choosing, such as react-native-render-html.
  */
 function NativeHtml(p: HtmlDisplayRenderProps): Rendered {
   const { rc, rendered } = useReactive();
-  const { html: t, text } = useNativeTheme();
+  const { html: t, text, richText } = useNativeTheme();
+  const parts = richTextParts(richText);
   const html = getProp(rc, p.html) ?? "";
   const live = liveRegion(p.announce, p.tone);
   if (p.regionOnly || (p.announce && html === "")) return rendered(<View {...live} />);
+  const words = [t.style, p.tone && text.tones[p.tone]];
+  const inline = (markup: string) => drawRichText(parseRichText(markup), parts);
   return rendered(
     <View {...live}>
-      <Text {...sp(t.style, p.tone && text.tones[p.tone])}>
-        {htmlText(html)}
-      </Text>
+      {htmlBlocks(html).map((b, i) =>
+        b.kind === "p" ? (
+          <View key={i} {...sp(t.paragraph)}>
+            <Text {...sp(words)}>{inline(b.markup)}</Text>
+          </View>
+        ) : (
+          <View key={i} {...sp(t.list)}>
+            {b.items.map((it, j) => (
+              <View key={j} {...sp({ flexDirection: "row" }, t.listItem)}>
+                <Text {...sp(words)}>{b.ordered ? `${j + 1}. ` : "\u2022 "}</Text>
+                <Text {...sp(SHRINK, words)}>{inline(it)}</Text>
+              </View>
+            ))}
+          </View>
+        ),
+      )}
     </View>,
   );
 }
@@ -1442,54 +1500,55 @@ function shifted(words: string, map: Record<string, string>): string | undefined
  */
 function NativeRichText({ nodes }: RichTextRenderProps) {
   const t = useNativeTheme().richText;
-  return (
-    <Text>
-      {drawRichText(nodes, {
-        strong: (ch, k) => (
-          <Text key={k} {...sp(t.strong)}>
-            {ch}
-          </Text>
-        ),
-        em: (ch, k) => (
-          <Text key={k} {...sp(t.em)}>
-            {ch}
-          </Text>
-        ),
-        sup: (ch, k, n) => (
-          <Text key={k} {...sp(t.sup)}>
-            {shifted(richTextWords(n.children), SUPER) ?? ch}
-          </Text>
-        ),
-        sub: (ch, k, n) => (
-          <Text key={k} {...sp(t.sub)}>
-            {shifted(richTextWords(n.children), SUB) ?? ch}
-          </Text>
-        ),
-        link: (n, ch, k) => (
-          <Text
-            key={k}
-            role="link"
-            {...sp(t.link)}
-            onPress={() => void Linking.openURL(n.href)}
-            {...webOnly({ href: n.href, hrefAttrs: n.target ? { target: n.target, rel: "noopener noreferrer" } : undefined })}
-          >
-            {ch}
-          </Text>
-        ),
-        break: (k) => <Text key={k}>{"\n"}</Text>,
-        image: (n, k) => (
-          <SizedImage
-            key={k}
-            source={{ uri: n.src }}
-            alt={n.alt}
-            width={n.width}
-            height={n.height}
-            style={[t.image]}
-          />
-        ),
-      })}
-    </Text>
-  );
+  return <Text>{drawRichText(nodes, richTextParts(t))}</Text>;
+}
+
+/** How rich text's runs are drawn, from the theme's `richText`: nested `Text`, inheriting. */
+function richTextParts(t: NativeTheme["richText"]): Parameters<typeof drawRichText>[1] {
+  return {
+    strong: (ch, k) => (
+      <Text key={k} {...sp(t.strong)}>
+        {ch}
+      </Text>
+    ),
+    em: (ch, k) => (
+      <Text key={k} {...sp(t.em)}>
+        {ch}
+      </Text>
+    ),
+    sup: (ch, k, n) => (
+      <Text key={k} {...sp(t.sup)}>
+        {shifted(richTextWords(n.children), SUPER) ?? ch}
+      </Text>
+    ),
+    sub: (ch, k, n) => (
+      <Text key={k} {...sp(t.sub)}>
+        {shifted(richTextWords(n.children), SUB) ?? ch}
+      </Text>
+    ),
+    link: (n, ch, k) => (
+      <Text
+        key={k}
+        role="link"
+        {...sp(t.link)}
+        onPress={() => void Linking.openURL(n.href)}
+        {...webOnly({ href: n.href, hrefAttrs: n.target ? { target: n.target, rel: "noopener noreferrer" } : undefined })}
+      >
+        {ch}
+      </Text>
+    ),
+    break: (k) => <Text key={k}>{"\n"}</Text>,
+    image: (n, k) => (
+      <SizedImage
+        key={k}
+        source={{ uri: n.src }}
+        alt={n.alt}
+        width={n.width}
+        height={n.height}
+        style={[t.image]}
+      />
+    ),
+  };
 }
 
 function NativeAction(p: ActionRenderProps) {
@@ -1685,6 +1744,7 @@ function NativeWizard(p: WizardRenderProps) {
  */
 function NativeDialog(p: DialogRenderProps) {
   const t = useNativeTheme().dialog;
+  const icon = useIcon();
   if (p.inline)
     return (
       <View {...sp(t.inline)}>
@@ -1706,20 +1766,32 @@ function NativeDialog(p: DialogRenderProps) {
     <Modal transparent visible animationType="fade" onRequestClose={p.onClose}>
       <View {...sp(t.backdrop, p.hidden && { display: "none" })}>
         <View role="dialog" aria-modal {...sp(t.surface)}>
-          {p.title != null && (
-            <Text role="heading" {...sp(t.title)}>
-              {p.title}
-            </Text>
+          {(p.title != null || t.closeIcon != null) && (
+            <View {...sp(t.header)}>
+              {p.title != null && (
+                <Text role="heading" {...sp(SHRINK, t.title)}>
+                  {p.title}
+                </Text>
+              )}
+              {t.closeIcon != null && (
+                <Pressable role="button" aria-label="Close" onPress={p.onClose}>
+                  {icon(t.closeIcon, t.closeIconStyle, true)}
+                </Pressable>
+              )}
+            </View>
           )}
-          {p.content}
-          <View {...sp(t.actions)}>
-            <Action
-              actionId={StandardActionIds.close}
-              text="Close"
-              look="secondary"
-              onClick={p.onClose}
-            />
-          </View>
+          {/* The content scrolls within the surface, which a theme may bound (maxHeight). */}
+          <ScrollView {...sp(SHRINK)}>{p.content}</ScrollView>
+          {t.closeIcon == null && (
+            <View {...sp(t.actions)}>
+              <Action
+                actionId={StandardActionIds.close}
+                text="Close"
+                look="secondary"
+                onClick={p.onClose}
+              />
+            </View>
+          )}
         </View>
       </View>
     </Modal>

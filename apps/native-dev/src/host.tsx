@@ -114,11 +114,22 @@ const htmlRendererTranslator: Translator = {
   ),
 };
 
-/** ServiceTas's `CopyableData`: the value beside its title; the copy button is the app's. */
+/**
+ * ServiceTas's `CopyableData` (RNCopyableDataRenderer): the value and a copy icon, Font Awesome's
+ * solid `copy`, which copies the value when pressed — the copying and its toast are the app's.
+ * The icon is the field's end icon, beside the value's text rather than in it: a view inside a
+ * Text is an object-replacement character in what Android reads. Through the display-only slot,
+ * an ordinary field: legacy's is a data renderer.
+ */
 const copyableDataTranslator: Translator = {
   match: (d) => d.type === "Data" && ro(d)?.type === "CopyableData",
   renderTypes: ["CopyableData"],
-  render: ({ props }) => <ReadOnlyData {...(props as any)} required={undefined} />,
+  render: ({ props, def }) => {
+    // Its colour is the value's (`text-[#002D6A]` on both in the corpus); its size the value's too.
+    void text(ro(def) ?? {}, "iconClassName");
+    void text(ro(def) ?? {}, "popupText");
+    return <ReadOnlyData {...(props as any)} required={undefined} endIcon={{ family: "fa-solid", name: "copy" }} />;
+  },
 };
 
 type SchemaField = Parameters<DefaultSchemaInterface["textValue"]>[0];

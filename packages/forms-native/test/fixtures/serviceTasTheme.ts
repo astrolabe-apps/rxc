@@ -246,7 +246,13 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     iconPlacement: "after",
   },
   // data.displayOnlyClass (schemas-rn): "flex flex-row items-center gap-2", no padding.
-  displayOnly: { style: { flexDirection: "row", alignItems: "center", gap: 7 }, text: withInk(type.body) },
+  displayOnly: {
+    style: { flexDirection: "row", alignItems: "center", gap: 7 },
+    text: withInk(type.body),
+    // In prose, schemas-rn's RNDiv inline: a bare Text given only the field's text class, so
+    // without one it is React Native's default — the system font at 14, black — inside the sentence.
+    inline: { fontFamily: undefined, fontSize: 14, lineHeight: undefined, fontWeight: "400", color: "#000000" },
+  },
   contents: {
     // layout.className "flex flex-col gap-[16px]" wraps a group's title and body, so the space
     // under a title is the wrapper's: a look that replaces the title's style (`@ title1`, the
@@ -272,7 +278,21 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       },
     },
   },
-  html: { style: withInk(type.body) },
+  // The app's html renderer (react-native-render-html, tagsStyles standardTagStyles, constants/htmlStyles.ts):
+  // body Nunito 16 / 24 #1F2937, p 12 below, ul / ol 20 in and 12 below, li 4 below.
+  html: {
+    style: { fontFamily: F.regular, fontSize: 16, lineHeight: 24, color: "#1F2937" },
+    paragraph: { marginBottom: 12 },
+    list: { paddingLeft: 20, marginBottom: 12 },
+    listItem: { marginBottom: 4 },
+  },
+  // standardTagStyles' emphasis and links, as written there — rich text in a label or help as in an
+  // html display. An italic is its own face: React Native will not slant a custom font.
+  richText: {
+    strong: { fontFamily: F.bold, fontWeight: "bold" },
+    em: { fontFamily: "Nunito_400Regular_Italic", fontStyle: "italic" },
+    link: { color: serviceTasColors.accent, textDecorationLine: "underline" },
+  },
   action: {
     // action.buttonClass / textClass: "" (ServiceTas blanks both; the emphases carry the look).
     // A theme merges over the default's, which cannot delete a key, so "blank" is stated: the
@@ -289,10 +309,37 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     textStyle: { flexShrink: 1, ...withInk(type.body) },
     disabled: { opacity: 0.8 },
   },
+  // schemas-rn's RNDialog. The overlay "bg-black/80 justify-center items-center p-2", the card at
+  // most the window less 32 wide; the content "max-w-lg gap-4 border border-[#E7E7E8] bg-white p-6
+  // shadow-lg rounded-lg" under containerClass "w-full px-[16px] max-h-[600px] min-h-[200px]" (rem 14).
+  // A slot's style replaces the default's whole, so every property is stated.
   dialog: {
-    // group.dialog.classes.containerClass "w-full px-[16px] max-h-[600px] min-h-[200px]".
-    surface: { width: "100%", paddingHorizontal: 16, maxHeight: 600, minHeight: 200 },
-    title: withInk(type.title3),
+    backdrop: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(0,0,0,0.8)",
+      paddingVertical: 7,
+      paddingHorizontal: 16,
+    },
+    surface: {
+      width: "100%",
+      minHeight: 200,
+      maxHeight: 600,
+      gap: 14,
+      borderWidth: 1,
+      borderColor: serviceTasColors.border,
+      borderRadius: 7,
+      backgroundColor: "#ffffff",
+      paddingHorizontal: 16,
+      paddingVertical: 21,
+    },
+    // The title row "flex flex-row gap-[10px] justify-between items-start w-full", the title "title2",
+    // and the close FontAwesome6 "xmark-circle", 24, #267151.
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 },
+    title: withInk(type.title2),
+    closeIcon: { family: "fa-solid", name: "circle-xmark" },
+    closeIconStyle: { fontSize: 24, color: serviceTasColors.accent },
   },
   looks: {
     // action.primaryClass "flex flex-row items-center justify-center bg-accent min-h-[54px]

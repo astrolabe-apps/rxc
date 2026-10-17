@@ -71,7 +71,7 @@ export interface Implementation {
     dialogMovesContent?: boolean;
     /** No form element: a `<Form onSubmit>` submits through its submit action. */
     noFormElement?: boolean;
-    /** An html display draws its markup's text, not its markup. */
+    /** An html display draws its markup as native text — paragraphs, emphasis, links — not as html elements. */
     htmlAsText?: boolean;
     /**
      * It cannot draw a look given as classes, which is what the JSON loader makes

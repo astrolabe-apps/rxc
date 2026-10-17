@@ -6,6 +6,7 @@ import { ControlContextProvider, createControlContext } from "@rx-controls/react
 import {
   Action,
   CheckboxField,
+  Dialog,
   Disclosure,
   DisplayOnlyField,
   Form,
@@ -260,6 +261,35 @@ describe("the native theme", () => {
     act(() => ctx.update((wc) => wc.setValue(name, null)));
     mount(<DisplayOnlyField field={name} id="n" label="Full name" />);
     expect(el.textContent).toContain("Full name");
+  });
+
+  it("puts a dialog's close beside its heading as an icon under dialog.closeIcon, and scrolls its content", () => {
+    const open = ctx.newControl(true);
+    const closed = vi.fn();
+    mount(
+      <Dialog open={open} onClose={closed} title="Terms">
+        <TextDisplay text="Long words" />
+      </Dialog>,
+      { dialog: { closeIcon: "x", closeIconStyle: { fontSize: 24 } } },
+    );
+    const close = document.querySelector('[aria-label="Close"]')!;
+    // In the heading's row, after the heading: no Close button of words at the foot.
+    expect(close.parentElement!.textContent).toBe("Termsx");
+    expect([...document.querySelectorAll("button, [role=button]")].map((b) => b.textContent)).toEqual(["x"]);
+    act(() => (close as HTMLElement).click());
+    expect(closed).toHaveBeenCalled();
+  });
+
+  it("styles the row of a label and its help with the look's label part, a replace dropping the row", () => {
+    const field = (look?: string) => (
+      <TextField field={ctx.newControl("")} id="f" label="Linked" helpText="Why" helpPlacement="labelEnd" look={look} />
+    );
+    const rowOf = () => byId("f-label").parentElement!;
+    mount(field(), { shell: { labelRow: { flexDirection: "row" } } });
+    expect(style(rowOf()).flexDirection).toBe("row");
+    // legacy's labelClass "@ ": the container's class replaced by none — the help under the label.
+    mount(field("bare"), { shell: { labelRow: { flexDirection: "row" } }, looks: { bare: { label: { replace: {} } } } });
+    expect(style(rowOf()).flexDirection).not.toBe("row");
   });
 
   it("leaves a date typed as text, as an ISO date, where the theme has no picker", () => {
