@@ -142,6 +142,8 @@ export interface NativeTheme {
     button: ViewStyle;
     /** What the button shows: by default the `calendar` icon. */
     icon: IconSpec;
+    /** The icon's size and colour. */
+    iconStyle: TextStyle;
     /** The button's accessible name — words. */
     buttonText: string;
   };
@@ -536,6 +538,7 @@ export const defaultNativeTheme: NativeTheme = {
       backgroundColor: gray[100],
     },
     icon: { name: "calendar" },
+    iconStyle: {},
     buttonText: "Choose a date",
   },
   checkbox: {

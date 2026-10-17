@@ -1,3 +1,5 @@
 {
-  "shell": "flex flex-col gap-[16px]"
+  "shell": "flex flex-col gap-[16px]",
+  "DisplayOnly.shell": "flex flex-row items-center gap-2",
+  "Group.control": "flex flex-col gap-4"
 }

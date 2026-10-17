@@ -1036,7 +1036,26 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   the theme. The converter now takes the host's own classes per part (`sidecar/baseClasses.json`) and a
   merged part gives way where the stylesheet would (`TailwindOptions.base`; flex directions and a utility's
   scale, checked against ServiceTas's Tailwind 3.4), `!important` excepted. The corpus's one other such
-  conflict, `gap-2` beside `gap-[16px]`, is the base's 16 now too.) The legacy harness shows a "VirtualizedLists should
+  conflict, `gap-2` beside `gap-[16px]`, is the base's 16 now too. Then, in one pass: the converter
+  reads `flex` as NativeWind does, `display: flex` alone (it wrote the web's row, so a merged `flex-row`
+  could never give way and LinkMastWizard's `@ flex gap-[16px]` was a row on paper); everything Tailwind
+  writes in rem scales by the host's rem (`sidecar/nativeHost.json`: 14, NativeWind's on a device — the
+  converter had the web's 16, so `py-4`, `gap-2`, `rounded-xl`, `text-lg` were 8/7 too big), and the
+  hand-written fixture's rem-based values with it; the host's base classes depend on what uses a look
+  (`Group.control` is schemas-rn's `standardClassName` "flex flex-col gap-4", `DisplayOnly.shell` its
+  `displayOnlyClass`, which replaces a display-only field's layout class), and a look whose uses would
+  convert differently is a problem in the report (none now); a standard group's body is 14 apart, and so
+  is a form's top level (legacy's root is a standard group — the playground's screen gives it that); a
+  display-only field draws its label beside its value (MyAccount's "App version 1.2.3"); the date
+  button's icon has a size and colour (`date.iconStyle`; the app's is 20, the ink); and the playground
+  draws nothing for ServiceTas's custom displays, which are each screen's own (the renewal screen's BPAY
+  logo and payment button…), as the harness does — the loader still reports them; an empty display-only
+  field with no visible label draws nothing at all, so the layout's gap closes over it (legacy's empty
+  Text has no height on a device — LinkMrsWizard's profile box); and an inline group's `styleClass` is
+  nothing on a device (`nativeHost.json`'s `undrawn`: schemas-rn draws an inline group as a bare Text
+  given only its text class), so its bullets are not indented. Measured after: ContactUsEnquiry's and
+  LinkMrsWizard's gaps equal to the pixel; what is left is ~3px per radio question, and the calendar
+  glyph, Font Awesome 6's filled where the app's 5 is an outline.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

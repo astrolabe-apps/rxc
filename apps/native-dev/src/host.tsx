@@ -149,8 +149,34 @@ class ServiceTasSchemaInterface extends DefaultSchemaInterface {
   }
 }
 
-export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments" | "schemaInterface"> = {
+/**
+ * ServiceTas's custom displays are each screen's own — the renewal screen's BPAY logo and
+ * platform payment button, the MAST summaries' portal button, the wizards' "where can I find
+ * this" pictures — passed to `AppForm` as `customDisplay`, which draws nothing for an id the
+ * screen does not handle. The playground has no screens, so it draws nothing for any of them,
+ * as the comparison harness does; the loader still reports each one it meets.
+ */
+const SCREEN_DISPLAYS = [
+  "goToMASTPortalButton",
+  "whereCanIFindThis",
+  "PlatformPaymentButton",
+  "payTo",
+  "howToFindLicenceNumber",
+  "image",
+  "BPayLogo",
+  "howToFindVIN",
+  "PlatesPlusIcon",
+  "TFSLogo",
+  "FindServiceImage",
+  "loadingSpinner",
+  "icon",
+  "howToFindRWVPNumber",
+  "FaceVerifier",
+];
+
+export const nativeStandInHost: Pick<LoaderOptions, "translators" | "adornments" | "schemaInterface" | "displays"> = {
   schemaInterface: new ServiceTasSchemaInterface(),
+  displays: Object.fromEntries(SCREEN_DISPLAYS.map((id) => [id, () => null])),
   translators: [switchTranslator, htmlRendererTranslator, copyableDataTranslator, ...defaultTranslators],
   adornments: {
     // ServiceTas's help renderer: a trigger at the label's end, `helpLabel` the words on it.

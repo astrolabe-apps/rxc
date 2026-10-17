@@ -121,7 +121,10 @@ function ConvertedForm({
   const body = (
     // No clearHidden: ServiceTas's AppForm never turns it on, so a hidden field keeps its value.
     <Form>
-      <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} variables={variables} />
+      {/* Legacy draws a form's top level as a standard group: schemas-rn's "flex flex-col gap-4", 14 apart. */}
+      <View style={hasFeed(form.controls) ? { flex: 1, gap: 14 } : { gap: 14 }}>
+        <JsonForm {...nativeStandInHost} controls={form.controls} schema={form.fields ?? []} data={value} actionHandler={action} displayText={displayText} variables={variables} />
+      </View>
     </Form>
   );
   // A feed is its own scroll container (a FlatList), as legacy's ScrollList was: inside

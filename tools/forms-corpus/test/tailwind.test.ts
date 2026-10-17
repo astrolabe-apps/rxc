@@ -89,6 +89,35 @@ describe("tailwindToPart", () => {
     expect(tailwindToPart("flex-row")).toEqual({ flexDirection: "row" });
   });
 
+  it("reads flex as NativeWind does, display alone: a column unless a direction is written", () => {
+    expect(tailwindToPart("flex gap-[16px]")).toEqual({ display: "flex", gap: 16 });
+    // Beside a standard group's own "flex flex-col gap-4", a merged flex-row is the column CSS keeps.
+    expect(tailwindToPart("flex flex-row gap-[16px] items-center", { base: "flex flex-col gap-4" })).toEqual({
+      display: "flex",
+      gap: 16,
+      alignItems: "center",
+    });
+  });
+
+  it("scales whatever Tailwind writes in rem by the host's rem, and nothing in px", () => {
+    // NativeWind's rem is 14 on a device: the scale, named text sizes and radii, leading-N, [..rem].
+    expect(tailwindToPart("gap-2 py-4 rounded-xl text-lg leading-8 w-[1rem]", { rem: 14 })).toEqual({
+      gap: 7,
+      paddingVertical: 14,
+      borderRadius: 10.5,
+      fontSize: 15.75,
+      lineHeight: 28,
+      width: 14,
+    });
+    // An arbitrary px value, `px`, `full` and a percentage are not rem.
+    expect(tailwindToPart("gap-[16px] p-px rounded-full w-1/2", { rem: 14 })).toEqual({
+      gap: 16,
+      padding: 1,
+      borderRadius: 9999,
+      width: "50%",
+    });
+  });
+
   it("reports what it cannot convert, once per token, and leaves it out", () => {
     const onUnknown = vi.fn();
     const p = tailwindToPart("grid gap-[8px] [&>*]:w-full group-hover:text-white select-none group", { onUnknown });

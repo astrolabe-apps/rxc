@@ -20,7 +20,15 @@
  * written by hand in `sidecar/native-overrides.json` (name → part →
  * style), which wins over the generated part. `sidecar/baseClasses.json` (part →
  * classes) is what the host's renderer gives each element itself (ServiceTas's
- * `layout.className` on the shell): a merged part gives way to it where CSS would.
+ * `layout.className` on the shell): a merged part gives way to it where CSS would. A key
+ * may name the kind of control first — `Group.control` (schemas-rn's `standardClassName`,
+ * a standard group's body), `DisplayOnly.shell` (`displayOnlyClass`, which replaces the
+ * layout's class on a display-only field) — and wins over the bare part for that kind.
+ * `sidecar/nativeHost.json` is the host's NativeWind setup: `rem`, 14 unless its
+ * `inlineRem` says otherwise, which every rem-based utility scales by; and `undrawn`,
+ * the parts the host's renderer never draws for a kind of control — schemas-rn draws an
+ * inline group as a bare Text given only its text class, so its `styleClass` (the look's
+ * `control`) shows nowhere on a device.
  *
  *   rushx convert-looks [<dir-or-file>...]     default ./corpus
  *   rushx convert-looks --json                 the summary as JSON (what `gates` reads)
@@ -54,6 +62,7 @@ const readJson = <T>(path: string, fallback: T): T =>
 const names = readJson<Record<string, string>>(join(sidecar, "names.json"), {});
 const classNames = readJson<Record<string, PortableStyle>>(join(sidecar, "classNames.json"), {});
 const baseClasses = readJson<Record<string, string>>(join(sidecar, "baseClasses.json"), {});
+const nativeHost = readJson<{ rem?: number; undrawn?: Record<string, string[]> }>(join(sidecar, "nativeHost.json"), {});
 const overrides = readJson<Record<string, Record<string, PortableStyle>>>(
   join(sidecar, "native-overrides.json"),
   {},
@@ -63,8 +72,20 @@ const RESERVED = new Set(["primary", "secondary", "link"]);
 const SLOTS = ["styleClass", "textClass", "layoutClass", "labelClass", "labelTextClass"] as const;
 const OPTION_SLOTS = ["entryWrapperClass", "selectedClass", "notSelectedClass"] as const;
 
-/** name → what it draws, and how many controls use it. */
-const looks = new Map<string, { parts: ClassLook; uses: number; derived: string }>();
+/** name → what it draws, how many controls use it, and as what (see {@link controlKind}). */
+const looks = new Map<string, { parts: ClassLook; uses: number; derived: string; kinds: Map<string, number> }>();
+
+/**
+ * What a control is, as far as the host's own classes go: they differ for a
+ * standard group's body and a display-only field's layout (`baseClasses.json`).
+ */
+function controlKind(d: Def): string {
+  const ro = (d.renderOptions ?? {}) as Record<string, unknown>;
+  const go = (d.groupOptions ?? ro.groupOptions ?? {}) as Record<string, unknown>;
+  if (d.type === "Group") return !go.type || go.type === "Standard" ? "Group" : `Group:${String(go.type)}`;
+  if (d.type === "Data" && ro.type === "DisplayOnly") return "DisplayOnly";
+  return String(d.type ?? "");
+}
 const problems: string[] = [];
 let controls = 0;
 let converted = 0;
@@ -98,8 +119,10 @@ function convert(defs: Def[], form: string): void {
       const known = looks.get(name);
       if (known && known.derived !== derived.name)
         problems.push(`"${name}" names two different looks (${known.derived}, ${derived.name}) — names.json maps both to it`);
-      const entry = known ?? { parts: derived.parts, uses: 0, derived: derived.name };
+      const entry = known ?? { parts: derived.parts, uses: 0, derived: derived.name, kinds: new Map() };
       entry.uses++;
+      const kind = controlKind(d);
+      entry.kinds.set(kind, (entry.kinds.get(kind) ?? 0) + 1);
       looks.set(name, entry);
       d.look = name;
     }
@@ -145,9 +168,20 @@ for (const [name, l] of sorted) {
   for (const [part, value] of Object.entries(l.parts)) {
     const replace = typeof value === "object" && value !== null && "replace" in value;
     const classes = replace ? String((value as { replace: unknown }).replace) : String(value);
+    // The host's own classes beside this part, by how the look is used; the most common use's
+    // where uses differ, and a problem if they would convert differently.
+    const baseFor = (kind: string) => (replace ? undefined : (baseClasses[`${kind}.${part}`] ?? baseClasses[part]));
+    const byUse = [...l.kinds.entries()].sort((a, b) => b[1] - a[1]);
+    const bases = [...new Set(byUse.map(([k]) => baseFor(k)))];
+    if (bases.length > 1) {
+      const codes = new Set(bases.map((b) => tailwindPartCode(classes, { named: classNames, base: b, rem: nativeHost.rem })));
+      if (codes.size > 1)
+        problems.push(`"${name}" ${part}: its uses (${byUse.map(([k]) => k || "?").join(", ")}) sit beside different host classes and convert differently — drawn as the most common's`);
+    }
     const options = {
       named: classNames,
-      base: replace ? undefined : baseClasses[part],
+      base: baseFor(byUse[0]?.[0] ?? ""),
+      rem: nativeHost.rem,
       onUnknown: (token: string, why: string) => {
         const u = unconverted.get(token) ?? { why, uses: 0 };
         u.uses += l.uses;
@@ -160,7 +194,16 @@ for (const [name, l] of sorted) {
           const c = v.slice(1).split("/")[0];
           colours.set(c, (colours.get(c) ?? 0) + l.uses);
         }
-    const code = overrides[name]?.[part] !== undefined ? JSON.stringify(overrides[name][part]) : tailwindPartCode(classes, options);
+    // A part the host never draws for any of the look's uses is nothing on a device.
+    const undrawn = byUse.length > 0 && byUse.every(([k]) => nativeHost.undrawn?.[k]?.includes(part));
+    if (!undrawn && byUse.some(([k]) => nativeHost.undrawn?.[k]?.includes(part)) && tailwindPartCode(classes, options) !== "{}")
+      problems.push(`"${name}" ${part}: drawn for some of its uses (${byUse.map(([k]) => k || "?").join(", ")}) and not others — drawn`);
+    const code =
+      overrides[name]?.[part] !== undefined
+        ? JSON.stringify(overrides[name][part])
+        : undrawn
+          ? "{}"
+          : tailwindPartCode(classes, options);
     parts.push(`${JSON.stringify(part)}: ${replace ? `{ replace: ${code} }` : code}`);
   }
   nativeLines.push(`  ${JSON.stringify(name)}: { ${parts.join(", ")} },`);

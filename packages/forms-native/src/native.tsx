@@ -545,7 +545,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
             onPress={openPicker}
             {...sp(dateTheme.button)}
           >
-            {icon(dateTheme.icon, undefined, true)}
+            {icon(dateTheme.icon, dateTheme.iconStyle, true)}
           </Pressable>
         </View>
         <Picker
@@ -1014,6 +1014,13 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         {ctl.content}
       </Text>,
     );
+  const nothing = ctl.content == null || ctl.content === "";
+  // Nothing to show, and nothing around it (a hidden label included): no element at all, so the
+  // layout's gap closes over it — legacy draws an empty display-only field as an empty Text, no
+  // height on a device, and a hidden title not at all.
+  const noLabel = p.label == null || p.label === "" || !!p.hideLabel;
+  if (nothing && noLabel && start === false && end === false && !p.helpText && !p.error)
+    return ctl.rendered(null);
   return ctl.rendered(
     <Shell
       widget="displayOnly"
@@ -1035,9 +1042,13 @@ function NativeDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
         {...webOnly({ "aria-describedby": describedBy(p) })}
       >
         {start}
-        <Text {...sp(t.text, control.text, words.text)} selectable={!p.noSelection}>
-          {ctl.content}
-        </Text>
+        {/* Nothing to show is no line at all, as legacy's empty Text on a device: the row
+            collapses and only the layout's gap remains. */}
+        {!nothing && (
+          <Text {...sp(t.text, control.text, words.text)} selectable={!p.noSelection}>
+            {ctl.content}
+          </Text>
+        )}
         {end}
       </View>
     </Shell>,

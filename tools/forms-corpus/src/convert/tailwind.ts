@@ -17,7 +17,10 @@ export type NativeLookOut = Partial<Record<keyof ClassLook, NativePart>>;
  * left out, which is the signal to add it here or to name it in the theme.
  *
  * - Spacing is Tailwind's scale (`gap-2` = 8) or an arbitrary value
- *   (`gap-[16px]` = 16, `p-[1rem]` = 16, `w-[50%]`).
+ *   (`gap-[16px]` = 16, `p-[1rem]` = 16, `w-[50%]`). Whatever Tailwind writes in
+ *   rem — the scale, the named text sizes and radii, `leading-N`, `[…rem]` — is
+ *   at {@link TailwindOptions.rem}: NativeWind's is 14 on a device, so there
+ *   `gap-2` is 7.
  * - Colours are theme tokens: `bg-accent` → `$accent`, `text-danger/10` →
  *   `$danger/10`; `[#E7E7E8]`, `white`, `black` and `transparent` are literal.
  * - Names that are not utilities (a host's typography classes — `body`,
@@ -42,6 +45,12 @@ export interface TailwindOptions {
   named?: Readonly<Record<string, PortableStyle>>;
   /** Called once per token that cannot be converted, with the reason. */
   onUnknown?: (token: string, why: string) => void;
+  /**
+   * The size of a rem in the host's renderer, which everything Tailwind
+   * writes in rem scales by. Default 16, Tailwind's on the web; NativeWind
+   * uses 14 on a device unless its `inlineRem` says otherwise.
+   */
+  rem?: number;
   /**
    * The classes the host's renderer itself gives the element this part
    * styles — ServiceTas's `layout.className` for the shell — which a merged
@@ -145,6 +154,10 @@ const WEIGHTS: Record<string, NonNullable<PortableStyle["fontWeight"]>> = {
   black: "900",
 };
 
+/** The size of a rem, as a factor of Tailwind's 16, while a class string converts. */
+let remFactor = 1;
+const rem = (n: number) => n * remFactor;
+
 const RADII: Record<string, number> = {
   none: 0,
   sm: 2,
@@ -191,13 +204,13 @@ function length(v: string): number | `${number}%` | "auto" | undefined {
   if (v === "auto") return "auto";
   if (v === "full") return "100%";
   if (v === "px") return 1;
-  if (/^\d+(\.\d+)?$/.test(v)) return Number(v) * 4;
+  if (/^\d+(\.\d+)?$/.test(v)) return rem(Number(v) * 4);
   const frac = /^(\d+)\/(\d+)$/.exec(v);
   if (frac) return `${(Number(frac[1]) / Number(frac[2])) * 100}%` as `${number}%`;
   const arb = /^\[(-?\d+(?:\.\d+)?)(px|rem|%)?\]$/.exec(v);
   if (arb) {
     const n = Number(arb[1]);
-    return arb[2] === "%" ? (`${n}%` as `${number}%`) : arb[2] === "rem" ? n * 16 : n;
+    return arb[2] === "%" ? (`${n}%` as `${number}%`) : arb[2] === "rem" ? rem(n * 16) : n;
   }
   return undefined;
 }
@@ -230,7 +243,9 @@ function utility(
   if (IGNORED.test(u)) return null;
   let m: RegExpExecArray | null;
   const exact: Record<string, PortableStyle> = {
-    flex: { display: "flex", flexDirection: "row" },
+    // NativeWind's `.flex` is `display: flex` alone: on a device the direction stays React
+    // Native's column (LinkMastWizard's "@ flex gap-[16px]" stacks its buttons in the app).
+    flex: { display: "flex" },
     hidden: { display: "none" },
     "flex-row": { flexDirection: "row" },
     "flex-col": { flexDirection: "column" },
@@ -352,7 +367,7 @@ function utility(
   // radius
   if ((m = /^rounded(?:-(t|r|b|l|tl|tr|bl|br))?(?:-(.+))?$/.exec(u))) {
     const key = m[2] ?? "";
-    const r = key in RADII ? RADII[key] : num(key);
+    const r = key in RADII ? (key === "none" || key === "full" ? RADII[key] : rem(RADII[key]!)) : num(key);
     if (r === undefined) return "an unknown radius";
     const corners: Record<string, string[]> = {
       "": ["borderRadius"],
@@ -375,15 +390,15 @@ function utility(
   // text: size, then colour
   if ((m = /^text-(.+)$/.exec(u))) {
     const v = m[1];
-    if (v in FONT_SIZES) return { fontSize: FONT_SIZES[v][0], lineHeight: FONT_SIZES[v][1] };
+    if (v in FONT_SIZES) return { fontSize: rem(FONT_SIZES[v][0]), lineHeight: rem(FONT_SIZES[v][1]) };
     const arb = /^\[(\d+(?:\.\d+)?)(px|rem)?\]$/.exec(v);
-    if (arb) return { fontSize: Number(arb[1]) * (arb[2] === "rem" ? 16 : 1) };
+    if (arb) return { fontSize: arb[2] === "rem" ? rem(Number(arb[1]) * 16) : Number(arb[1]) };
     const c = color(v);
     if (c) return { color: c };
   }
   if ((m = /^font-(.+)$/.exec(u)) && m[1] in WEIGHTS) return { fontWeight: WEIGHTS[m[1]] };
   if ((m = /^leading-(.+)$/.exec(u))) {
-    const n = /^\d+$/.test(m[1]) ? Number(m[1]) * 4 : num(m[1]);
+    const n = /^\d+$/.test(m[1]) ? rem(Number(m[1]) * 4) : num(m[1]);
     if (n !== undefined) return { lineHeight: n };
   }
   if ((m = /^tracking-(.+)$/.exec(u))) {
@@ -455,9 +470,15 @@ function convertToken(
 export function tailwindPieces(classes: string, options: TailwindOptions = {}): Piece[] {
   const o = { platform: options.platform ?? "native", named: options.named ?? {} };
   const pieces: Piece[] = [];
-  for (const token of classes.split(/\s+/).filter(Boolean)) {
-    const piece = convertToken(token, o, (why) => options.onUnknown?.(token, why));
-    if (piece) pieces.push(piece);
+  const outer = remFactor;
+  remFactor = (options.rem ?? 16) / 16;
+  try {
+    for (const token of classes.split(/\s+/).filter(Boolean)) {
+      const piece = convertToken(token, o, (why) => options.onUnknown?.(token, why));
+      if (piece) pieces.push(piece);
+    }
+  } finally {
+    remFactor = outer;
   }
   return options.base ? givingWay(pieces, tailwindPieces(options.base, { ...options, base: undefined, onUnknown: undefined })) : pieces;
 }

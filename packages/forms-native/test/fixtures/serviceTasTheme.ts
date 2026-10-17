@@ -17,7 +17,8 @@ import type { PartialNativeTheme } from "../../src/index";
  * compile to, with the colours tokens where a look can say them. One choice is
  * ours, not the source's, and is marked: the focus colour. An input's size is
  * schemas-rn's `RNTextInput` (`native:min-h-[54px] px-3 native:py-[6px] text-lg
- * native:leading-[1.25]`) under `.form-control`'s border.
+ * native:leading-[1.25]`) under `.form-control`'s border. Tailwind's rem-based sizes (`px-3`,
+ * `gap-2`, `rounded-xl`, `text-lg`) are at NativeWind's rem of 14 on a device: `gap-2` is 7.
  *
  * Fonts are Nunito, by the names `@expo-google-fonts/nunito` registers
  * (`Nunito_400Regular` …); a host that has not loaded them draws the system
@@ -73,6 +74,12 @@ const withInk = <T extends object>(t: T) => ({ ...t, color: ink });
 
 export const serviceTasNativeTheme: PartialNativeTheme = {
   tokens: { colors: serviceTasColors },
+  // A display-only field's layout is not layout.className: schemas-rn replaces it with
+  // "@ " + the form's layoutClass + displayOnlyClass "flex flex-row items-center gap-2", so the
+  // label sits beside the value, 7 apart at NativeWind's rem of 14 (MyAccount's "App version 1.2.3").
+  shellFor: {
+    displayOnly: { style: { flexDirection: "row", alignItems: "center", gap: 7 } },
+  },
   shell: {
     // layout.className (ServiceTas): "flex flex-col gap-[16px]".
     style: { gap: 16 },
@@ -91,7 +98,7 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       style: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: 7,
         padding: 4,
         borderRadius: 9999,
         alignSelf: "flex-start",
@@ -118,7 +125,8 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       borderRadius: 0,
       backgroundColor: "#ffffff",
       minHeight: 54,
-      paddingHorizontal: 12,
+      // px-3: 0.75rem at 14.
+      paddingHorizontal: 10.5,
       paddingVertical: 6,
     },
     // The focus colour is ours too: the class names none.
@@ -133,6 +141,8 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   // border border-[#E7E7E8]` button with a calendar. (The picker is the host's.)
   date: {
     row: { flexDirection: "row", alignItems: "stretch" },
+    // Its icon: FontAwesome5 "calendar-alt" (the regular style), size 20, #343534.
+    iconStyle: { fontSize: 20, color: ink },
     button: {
       width: 54,
       alignItems: "center",
@@ -172,7 +182,7 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       padding: 16,
       borderWidth: 1,
       borderColor: serviceTasColors.border,
-      borderRadius: 12,
+      borderRadius: 10.5,
     },
     // labelClass "body shrink" reaches the option's container in schemas-rn (RNLabel's View), not
     // its text, a bare Text: React Native's default — the system font at 14, natural line
@@ -218,7 +228,7 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
   // "subhead" in a py-[16px] row.
   feed: {
     gap: 16,
-    content: { paddingVertical: 24, flexGrow: 1 },
+    content: { paddingVertical: 21, flexGrow: 1 },
     spinnerColor: serviceTasColors.accent,
     emptyText: withInk(type.headline),
     endText: withInk(type.subhead),
@@ -236,7 +246,7 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     iconPlacement: "after",
   },
   // data.displayOnlyClass (schemas-rn): "flex flex-row items-center gap-2", no padding.
-  displayOnly: { style: { flexDirection: "row", alignItems: "center", gap: 8 }, text: withInk(type.body) },
+  displayOnly: { style: { flexDirection: "row", alignItems: "center", gap: 7 }, text: withInk(type.body) },
   contents: {
     // layout.className "flex flex-col gap-[16px]" wraps a group's title and body, so the space
     // under a title is the wrapper's: a look that replaces the title's style (`@ title1`, the
@@ -244,6 +254,8 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     wrapper: { gap: 16 },
     // group titles are label text: the label's class plus the group's.
     title: { ...withInk(type.title3), marginBottom: 0 },
+    // A standard group's body: schemas-rn's standardClassName "flex flex-col gap-4", 14 at a rem of 14.
+    body: { gap: 14 },
   },
   text: {
     // display.baseStyle defaultBodyStyle (constants/Styles.ts).

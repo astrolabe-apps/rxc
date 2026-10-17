@@ -101,7 +101,7 @@ describe("the ServiceTas native theme", () => {
     const option = el.querySelector('[role="radio"]')!.parentElement!;
     expect([style(option).borderWidth, style(option).borderRadius, style(option).padding]).toEqual([
       "1px",
-      "12px",
+      "10.5px",
       "16px",
     ]);
   });

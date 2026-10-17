@@ -7,6 +7,7 @@ import {
   Action,
   CheckboxField,
   Disclosure,
+  DisplayOnlyField,
   Form,
   FormIconsProvider,
   FormProvider,
@@ -233,6 +234,32 @@ describe("the native theme", () => {
       null,
     ]);
     expect((byId("d") as HTMLInputElement).value).toBe("02/01/2025");
+  });
+
+  it("tells the icon sets the date button's icon size and colour, from date.iconStyle", () => {
+    const asked: IconDrawArgs[] = [];
+    const set: IconSet = (i) => (asked.push(i), <Text>{`[${i.name}]`}</Text>);
+    const Picker = () => null;
+    mount(
+      <FormIconsProvider set={set}>
+        <TextField field={ctx.newControl("2024-03-05")} id="d" label="Date of birth" inputType="date" />
+      </FormIconsProvider>,
+      { date: { picker: Picker, iconStyle: { fontSize: 20, color: "#343534" } } },
+    );
+    expect(asked).toEqual([expect.objectContaining({ name: "calendar", size: 20, color: "#343534" })]);
+  });
+
+  it("draws nothing for a display-only field with no value and no visible label, so a gap closes over it", () => {
+    const name = ctx.newControl<string | null>(null);
+    mount(<DisplayOnlyField field={name} id="n" label="Full name" hideLabel />);
+    expect(el.textContent).toBe("");
+    expect(byId("n")).toBeNull();
+    // A value, or a label drawn, and it is there again.
+    act(() => ctx.update((wc) => wc.setValue(name, "Ada Lovelace")));
+    expect(el.textContent).toContain("Ada Lovelace");
+    act(() => ctx.update((wc) => wc.setValue(name, null)));
+    mount(<DisplayOnlyField field={name} id="n" label="Full name" />);
+    expect(el.textContent).toContain("Full name");
   });
 
   it("leaves a date typed as text, as an ISO date, where the theme has no picker", () => {
