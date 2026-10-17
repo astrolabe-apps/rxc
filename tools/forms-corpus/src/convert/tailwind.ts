@@ -27,7 +27,13 @@ export type NativeLookOut = Partial<Record<keyof ClassLook, NativePart>>;
  *   `hover:`, `focus:`, `disabled:` by the element's state. A variant with no
  *   meaning on a device (`group-hover:`, an arbitrary selector) drops its
  *   utility. The `!` important marker is ignored: a look part already wins
- *   over the implementation's own.
+ *   over the implementation's own — except against {@link TailwindOptions.base}.
+ * - A merged part sits beside the host's own classes for that element
+ *   ({@link TailwindOptions.base}), which on a device are the theme's. Where both
+ *   set a property, CSS keeps the utility defined later in Tailwind's
+ *   stylesheet, not the one written later — `flex-row` beside `flex-col` is a
+ *   column — so the part gives way to a base utility that outranks it, unless
+ *   it is `!important`.
  */
 export interface TailwindOptions {
   /** `native` / `ios` / `android` apply; `web` does not. Default `native`. */
@@ -36,6 +42,14 @@ export interface TailwindOptions {
   named?: Readonly<Record<string, PortableStyle>>;
   /** Called once per token that cannot be converted, with the reason. */
   onUnknown?: (token: string, why: string) => void;
+  /**
+   * The classes the host's renderer itself gives the element this part
+   * styles — ServiceTas's `layout.className` for the shell — which a merged
+   * part sits beside. Not converted: the theme carries them. A property both
+   * set is dropped from the part where the base utility comes later in
+   * Tailwind's stylesheet. Leave it out for a `{ replace }` part.
+   */
+  base?: string;
 }
 
 const BREAKPOINTS: Record<string, number> = { sm: 640, md: 768, lg: 1024, xl: 1280, "2xl": 1536 };
@@ -59,6 +73,34 @@ export interface Cond {
 export interface Piece {
   style: PortableStyle;
   when: Cond | undefined;
+  /** The utility, with its variants and `!` gone. */
+  utility?: string;
+  /** Written with `!`. */
+  important?: boolean;
+}
+
+/** Tailwind 3's own order for the flex-direction utilities (one `flexDirection` each). */
+const DIRECTION_ORDER = ["flex-row", "flex-row-reverse", "flex-col", "flex-col-reverse"];
+
+/**
+ * Where a utility comes in Tailwind's stylesheet against another setting the
+ * same property, when that is known: the flex directions by Tailwind's table;
+ * two values of one utility (`gap-2`, `gap-[16px]`) by the scale, an arbitrary
+ * value after every named one. `undefined` when the two cannot be ranked.
+ */
+function stylesheetOrder(a: string, b: string): number | undefined {
+  const da = DIRECTION_ORDER.indexOf(a);
+  const db = DIRECTION_ORDER.indexOf(b);
+  if (da >= 0 && db >= 0) return da - db;
+  const split = (u: string) => /^(-?[a-z-]+?)-(\[.+\]|[\d.]+|px)$/.exec(u);
+  const ma = split(a);
+  const mb = split(b);
+  if (!ma || !mb || ma[1] !== mb[1]) return undefined;
+  // Two arbitrary values: an order not checked against Tailwind, so not ranked.
+  if (ma[2]!.startsWith("[") && mb[2]!.startsWith("[")) return undefined;
+  const rank = (v: string) => (v.startsWith("[") ? Infinity : v === "px" ? 0.25 : Number(v));
+  const d = rank(ma[2]!) - rank(mb[2]!);
+  return Number.isNaN(d) ? undefined : d;
 }
 
 /** Does the condition hold in this state? */
@@ -398,6 +440,7 @@ function convertToken(
         when.minWidth = Math.max(when.minWidth, r.minWidth);
     }
   }
+  const important = token.split(/:(?![^[]*\])/).pop()!.startsWith("!");
   if (utilityName.startsWith("-") && !/^-[pm]/.test(utilityName)) utilityName = utilityName.slice(1);
   const style = utility(utilityName.replace(/^!/, ""), o.named);
   if (style === null) return undefined;
@@ -405,7 +448,7 @@ function convertToken(
     bad(style);
     return undefined;
   }
-  return { style, when };
+  return { style, when, utility: utilityName.replace(/^!/, ""), important };
 }
 
 /** The classes as pieces, in the order written: each token's style and when it holds. */
@@ -416,7 +459,22 @@ export function tailwindPieces(classes: string, options: TailwindOptions = {}): 
     const piece = convertToken(token, o, (why) => options.onUnknown?.(token, why));
     if (piece) pieces.push(piece);
   }
-  return pieces;
+  return options.base ? givingWay(pieces, tailwindPieces(options.base, { ...options, base: undefined, onUnknown: undefined })) : pieces;
+}
+
+/** The pieces, less each property a base utility outranks in the stylesheet. */
+function givingWay(pieces: Piece[], base: Piece[]): Piece[] {
+  return pieces.map((p) => {
+    if (p.important || p.when || !p.utility) return p;
+    const style = { ...p.style } as Record<string, unknown>;
+    for (const b of base) {
+      if (b.when || !b.utility) continue;
+      const order = stylesheetOrder(b.utility, p.utility!);
+      if (order === undefined || order <= 0) continue;
+      for (const k of Object.keys(b.style)) delete style[k];
+    }
+    return { ...p, style: style as PortableStyle };
+  });
 }
 
 /**

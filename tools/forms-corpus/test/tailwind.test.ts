@@ -76,6 +76,19 @@ describe("tailwindToPart", () => {
     expect(tailwindToPart("!title1", { named: { title1: { fontSize: 28 } } })).toEqual({ fontSize: 28 });
   });
 
+  it("gives way to the host's own classes where Tailwind's stylesheet would, unless important", () => {
+    const base = "flex flex-col gap-[16px]";
+    // flex-col comes after flex-row in the stylesheet, and an arbitrary gap after the scale's.
+    expect(tailwindToPart("flex-row items-center", { base })).toEqual({ alignItems: "center" });
+    expect(tailwindToPart("flex flex-col gap-2", { base })).toEqual({ display: "flex", flexDirection: "column" });
+    // What outranks the base, or is written important, stays; two arbitrary values are not ranked.
+    expect(tailwindToPart("flex-col-reverse", { base })).toEqual({ flexDirection: "column-reverse" });
+    expect(tailwindToPart("!flex-row", { base })).toEqual({ flexDirection: "row" });
+    expect(tailwindToPart("gap-[24px]", { base })).toEqual({ gap: 24 });
+    // Without a base, the order written, as before.
+    expect(tailwindToPart("flex-row")).toEqual({ flexDirection: "row" });
+  });
+
   it("reports what it cannot convert, once per token, and leaves it out", () => {
     const onUnknown = vi.fn();
     const p = tailwindToPart("grid gap-[8px] [&>*]:w-full group-hover:text-white select-none group", { onUnknown });

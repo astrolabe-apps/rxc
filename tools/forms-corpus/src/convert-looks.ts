@@ -18,7 +18,9 @@
  * `title1`, `body`…) from `sidecar/classNames.json` — a map from the
  * class to a portable style — and anything the converter cannot express can be
  * written by hand in `sidecar/native-overrides.json` (name → part →
- * style), which wins over the generated part.
+ * style), which wins over the generated part. `sidecar/baseClasses.json` (part →
+ * classes) is what the host's renderer gives each element itself (ServiceTas's
+ * `layout.className` on the shell): a merged part gives way to it where CSS would.
  *
  *   rushx convert-looks [<dir-or-file>...]     default ./corpus
  *   rushx convert-looks --json                 the summary as JSON (what `gates` reads)
@@ -51,6 +53,7 @@ const readJson = <T>(path: string, fallback: T): T =>
 
 const names = readJson<Record<string, string>>(join(sidecar, "names.json"), {});
 const classNames = readJson<Record<string, PortableStyle>>(join(sidecar, "classNames.json"), {});
+const baseClasses = readJson<Record<string, string>>(join(sidecar, "baseClasses.json"), {});
 const overrides = readJson<Record<string, Record<string, PortableStyle>>>(
   join(sidecar, "native-overrides.json"),
   {},
@@ -144,6 +147,7 @@ for (const [name, l] of sorted) {
     const classes = replace ? String((value as { replace: unknown }).replace) : String(value);
     const options = {
       named: classNames,
+      base: replace ? undefined : baseClasses[part],
       onUnknown: (token: string, why: string) => {
         const u = unconverted.get(token) ?? { why, uses: 0 };
         u.uses += l.uses;

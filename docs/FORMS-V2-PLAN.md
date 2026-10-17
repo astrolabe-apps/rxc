@@ -1030,7 +1030,13 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   because the collection boundary passed on `helpText` and dropped `helpPlacement` and `helpLabel` (a
   feed too, built on it), and the implementations' elements and feed shells never asked for them —
   now a button at the label's end on every implementation, held by the conformance suite. Its words
-  are caption1 bolded by the platform, as the app's.) The legacy harness shows a "VirtualizedLists should
+  are caption1 bolded by the platform, as the app's; and ContactUsEnquiry's radio, drawn beside its
+  question: its `layoutClass: "flex-row"` sits beside the host's `flex flex-col gap-[16px]`, where CSS keeps
+  the utility later in Tailwind's stylesheet — a column — while the converter layered the form's class over
+  the theme. The converter now takes the host's own classes per part (`sidecar/baseClasses.json`) and a
+  merged part gives way where the stylesheet would (`TailwindOptions.base`; flex directions and a utility's
+  scale, checked against ServiceTas's Tailwind 3.4), `!important` excepted. The corpus's one other such
+  conflict, `gap-2` beside `gap-[16px]`, is the base's 16 now too.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws
