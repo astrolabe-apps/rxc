@@ -99,7 +99,10 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
       // `label && "bg-surface-100"`: the grey pill is only for a trigger with words.
       labelled: { backgroundColor: serviceTasColors["surface-100"] },
       text: "Help",
-      label: { ...withInk(type.caption1), fontSize: 14, fontFamily: F.bold },
+      // RNHelpTextRenderer's words: cn("text-sm font-bold", "caption1") — caption1, last, sets
+      // the size (12 / 16) and the family (Nunito Regular), font-bold only the weight: Android
+      // bolds the regular face, narrower than Nunito Bold (measured against the app).
+      label: { ...withInk(type.caption1), fontWeight: "700" },
     },
     error: { ...type.footnote, color: serviceTasColors.danger, fontFamily: F.bold },
   },

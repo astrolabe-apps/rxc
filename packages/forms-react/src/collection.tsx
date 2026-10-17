@@ -250,6 +250,8 @@ export function collectionRenderer<T, P extends object = {}>(
       required,
       error: state.touched && own.length ? own[0] : undefined,
       helpText: getProp(rc, props.helpText),
+      helpPlacement: getProp(rc, props.helpPlacement),
+      helpLabel: getProp(rc, props.helpLabel),
       startIcon: getProp(rc, props.startIcon),
       endIcon: getProp(rc, props.endIcon),
       inline: scope.inline,

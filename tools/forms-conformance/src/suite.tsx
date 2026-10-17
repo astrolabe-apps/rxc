@@ -560,6 +560,24 @@ export function describeConformance(impl: Implementation): void {
       }
     });
 
+    it("puts a collection's labelEnd help behind a button at its label's end, with its own words", () => {
+      const pets = ctx.newControl([{ name: "Rex" }]);
+      mount(
+        <Elements field={pets} label="Pets" helpText="Help words" helpPlacement="labelEnd" helpLabel="Why ask?">
+          {(row) => <TextField field={(row as Control<{ name: string }>).fields.name} label="Name" />}
+        </Elements>,
+      );
+      // A collection's help sits where a field's does — the MAST app's "Linked Services" — not
+      // under its rows: one button, showing and named by the words, outside every label.
+      const buttons = [...document.querySelectorAll('button, [role="button"]')].filter((b) =>
+        b.textContent?.includes("Why ask?"),
+      );
+      expect([buttons.map((b) => b.getAttribute("aria-label")), buttons.some((b) => b.closest("label"))]).toEqual([
+        ["Why ask?"],
+        false,
+      ]);
+    });
+
     it("draws a checkbox's label on the side it names, help after the label, in the order it is read", () => {
       const order = (id: string) => {
         const control = byId(id)!;

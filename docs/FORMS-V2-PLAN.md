@@ -1026,7 +1026,11 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   native theme's `select` gains `frame` (laid over the frame for the trigger), `icon` (after the value)
   and `iconStyle`, and the ServiceTas fixture gives them schemas-rn's SelectTrigger — 42 high, 10.5 / 7
   padding, a 12 accent chevron-down. Still different there: the chevron's stroke, Font Awesome 4's in
-  the app, 6's in the playground.) The legacy harness shows a "VirtualizedLists should
+  the app, 6's in the playground; and a collection's `labelEnd` help, drawn as a paragraph under its rows
+  because the collection boundary passed on `helpText` and dropped `helpPlacement` and `helpLabel` (a
+  feed too, built on it), and the implementations' elements and feed shells never asked for them —
+  now a button at the label's end on every implementation, held by the conformance suite. Its words
+  are caption1 bolded by the platform, as the app's.) The legacy harness shows a "VirtualizedLists should
   never be nested" warning on 35 forms (noise in the report, the harness's to fix).
 - **Form scenarios** (`@rx-controls/forms-scenarios`): tests of a form as a user meets it, written once
   against the accessibility tree and the reported data and run on a device against any app that draws

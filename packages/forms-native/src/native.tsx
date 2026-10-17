@@ -1770,6 +1770,8 @@ function NativeElements(p: CollectionRenderProps<unknown>) {
       surface="custom"
       required={p.required}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -1832,6 +1834,8 @@ function NativeFeed(p: FeedRenderProps<unknown>) {
       surface="custom"
       required={p.required}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       // The list fills what bounds it, so its shell must too.

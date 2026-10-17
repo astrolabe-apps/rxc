@@ -880,6 +880,8 @@ export function ElementsList(
       surface="custom"
       required={p.required}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
@@ -1186,6 +1188,8 @@ export function FeedList(
       surface="custom"
       required={p.required}
       helpText={p.helpText}
+      helpPlacement={p.helpPlacement}
+      helpLabel={p.helpLabel}
       error={p.error}
       look={p.look}
       style={p.shellStyle}
