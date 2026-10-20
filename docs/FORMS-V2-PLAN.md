@@ -1144,8 +1144,16 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   an app on React Native that needs them.
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
-- **Releasing:** the eight v2 packages are bumped to `0.1.0-alpha.9` (lock-step) for `rush publish-alpha`;
-  its release note is the "for the `alpha.9` notes" list above. Nothing in production depends on it.
+- **Releasing:** the eight v2 packages are bumped to `0.1.0-alpha.10` (lock-step) for `rush publish-alpha`.
+  alpha.9's release note is the "for the `alpha.9` notes" list above; **alpha.10's**, from the HVAMS
+  trial's follow-ups, with nothing a consumer must change:
+  - MUI, Ant and Fluent draw html's looks — the html theme's in scope, the form's beneath — for every
+    name their own looks lack, on every kind of boundary. A name a library's own looks hold is its own
+    whole, never stacked over html's. An app that writes its layout once as html looks has it under
+    every web implementation; one that defined the same name in both now gets only the library's.
+  - `InputFrameProps.widget` and `HtmlTheme.frameFor`, the frame per widget beside `shellFor`.
+  - Ant's busy action keeps its text as its name ("loading Submit" before), with `aria-busy`.
+  Nothing in production depends on it.
 - **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the
   designer, or on to JSX), and with it whether `look` goes in the C# schema and `forms-schema` and where the
   converter runs; whether help text keeps its inline reveal (the app shows a popover); group `layout`
