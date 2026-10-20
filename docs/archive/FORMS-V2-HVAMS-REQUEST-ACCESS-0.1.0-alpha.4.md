@@ -3,7 +3,7 @@
 The fourth cold-read conversion of HVAMS's RMI **Request Access** form, against
 `@rx-controls/forms-react@0.1.0-alpha.4` (the `alpha` tag on 2026-10-05), drawn with
 `forms-html@0.1.0-alpha.4` and swapped to `forms-antd@0.1.0-alpha.4` (`antd@6.6.5`). The brief is
-[`FORMS-V2-HVAMS-TRIAL-BRIEF.md`](./archive/FORMS-V2-HVAMS-TRIAL-BRIEF.md). Sections 1–6 were written
+[`FORMS-V2-HVAMS-TRIAL-BRIEF.md`](./FORMS-V2-HVAMS-TRIAL-BRIEF.md). Sections 1–6 were written
 before the previous reports were opened; section 7 is the comparison.
 
 Source lines cited are rxc at `bc90e91` ("Bump Forms v2 to 0.1.0-alpha.4"). HVAMS paths are
@@ -334,9 +334,9 @@ token), the `role="alert"`, the hidden grid cell, the success action. Console cl
 ## 7. Against the previous runs
 
 Written after sections 1–6. Three reports precede this one: alpha.0
-([`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./archive/FORMS-V2-HVAMS-REQUEST-ACCESS.md)), alpha.1 (with an
+([`FORMS-V2-HVAMS-REQUEST-ACCESS.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS.md)), alpha.1 (with an
 alpha.2 check at its end), and **alpha.3**
-([`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.3.md`](./archive/FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.3.md)),
+([`FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.3.md`](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.3.md)),
 the first run with visual parity. The brief names alpha.1 as "the previous run", but alpha.3 is
 this run's direct predecessor, and alpha.4 is the release made from its "After the trial" list.
 So alpha.3 is the main comparison. alpha.3's report already re-checks every alpha.1 finding.
