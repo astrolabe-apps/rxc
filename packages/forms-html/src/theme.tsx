@@ -77,6 +77,13 @@ export interface HtmlTheme {
    * widget. The shell also carries the name as `data-widget`.
    */
   shellFor: Partial<Record<string, DeepPartial<HtmlTheme["shell"]>>>;
+  /**
+   * The input frame, per widget: slots merged over `frame` for the frame
+   * around that widget (`InputFrameProps.widget` — `textfield`, `select`), as
+   * `shellFor` is for the shell. (A host stylesheet reaches a frame through
+   * its shell's `data-widget`.)
+   */
+  frameFor: Partial<Record<string, Partial<HtmlTheme["frame"]>>>;
   /** The field shell. */
   shell: {
     /** The outer element, label above the control. */
@@ -591,6 +598,7 @@ export type PartialHtmlTheme = DeepPartial<HtmlTheme>;
  */
 export const defaultHtmlTheme: HtmlTheme = {
   shellFor: {},
+  frameFor: {},
   shell: {
     vertical: "rxf-shell rxf-shell--vertical",
     horizontal: "rxf-shell rxf-shell--horizontal",
@@ -784,6 +792,7 @@ export const defaultHtmlTheme: HtmlTheme = {
  */
 export const tailwindHtmlTheme: HtmlTheme = {
   shellFor: {},
+  frameFor: {},
   shell: {
     vertical: "rxf-shell rxf-shell--vertical flex min-w-0 flex-col gap-1",
     horizontal:

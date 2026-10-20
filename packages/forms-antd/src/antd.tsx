@@ -103,6 +103,8 @@ import {
   webIcon,
   FeedList,
   drawDateInput,
+  useHtmlLookFallback,
+  type LookPartName,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atToken, useAntdLooks, type AntFieldLook, type AntStyle } from "./looks.js";
@@ -119,7 +121,21 @@ import { atToken, useAntdLooks, type AntFieldLook, type AntStyle } from "./looks
  * travels privately — set by the field, read by the pair.
  */
 type ResolvedFieldLook = { [P in keyof AntFieldLook]?: CSSProperties };
-const AntFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: string }>({});
+/** The html look's classes on the same elements (see `useHtmlLookFallback`). */
+type FieldLookClasses = { [P in keyof AntFieldLook]?: string };
+const AntFieldLookContext = createContext<{
+  look?: ResolvedFieldLook;
+  classes?: FieldLookClasses;
+  attr?: string;
+}>({});
+
+/** The html look's parts each of a field's elements carries. */
+const HTML_FIELD_PARTS: Record<keyof AntFieldLook, LookPartName | LookPartName[]> = {
+  shell: "shell",
+  label: ["label", "labelText"],
+  control: "control",
+  text: "text",
+};
 
 const isFn = (v: unknown): boolean => typeof v === "function";
 
@@ -155,7 +171,7 @@ function useAntFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
   const invalid = !!base?.invalid;
   const names = lookNames(look).join("|");
   // The names' parts laid in order, a later over an earlier.
-  const resolved = useMemo<ResolvedFieldLook | undefined>(() => {
+  const own = useMemo<ResolvedFieldLook | undefined>(() => {
     const layers = pickLooks(names ? names.split("|") : undefined, table);
     if (!layers.length) return undefined;
     const state: LookState = { ...NO_LOOK_STATE, invalid, width };
@@ -165,18 +181,41 @@ function useAntFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
         out[k] = { ...out[k], ...atToken(layer[k], token, state) };
     return out;
   }, [table, names, token, width, invalid]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const lookContext = useMemo(() => ({ look: resolved, attr: lookAttr(look) }), [resolved, names]);
+  // The names Ant's looks lack, from the html looks in scope, under Ant's own.
+  const html = useHtmlLookFallback("field", look, (n) => table?.[n] !== undefined, base);
+  let resolved = own;
+  let classes: FieldLookClasses | undefined;
+  if (html.look) {
+    resolved = {};
+    classes = {};
+    for (const k of Object.keys(HTML_FIELD_PARTS) as (keyof AntFieldLook)[]) {
+      const style = html.style(HTML_FIELD_PARTS[k]);
+      if (style || own?.[k]) resolved[k] = { ...style, ...own?.[k] };
+      classes[k] = html.className(HTML_FIELD_PARTS[k]);
+    }
+  }
+  // Stable without an html look; with one, its parts are new each render.
+  const lookContext = useMemo(
+    () => ({ look: resolved, classes, attr: lookAttr(look) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resolved, classes, names],
+  );
   const part = (name: keyof AntFieldLook) => resolved?.[name];
-  return { part, lookContext };
+  const cls = (...parts: (keyof AntFieldLook)[]) =>
+    parts.map((k) => classes?.[k]).filter(Boolean).join(" ") || undefined;
+  // A radio option's wrapper: the html look's `entry`, and its state's part.
+  const entryClass = (selected: boolean, base: string) =>
+    html.className(["entry", selected ? "selected" : "notSelected"], base);
+  return { part, cls, entryClass, lookContext };
 }
 
 function AntFieldShell(p: FieldShellProps) {
   const css = useCss();
   const { token } = theme.useToken();
-  const { look: fieldLook, attr: fieldAttr } = useContext(AntFieldLookContext);
+  const { look: fieldLook, classes: fieldClasses, attr: fieldAttr } = useContext(AntFieldLookContext);
   const shellStyle = fieldLook?.shell;
   const labelStyle = fieldLook?.label;
+  const labelClass = fieldClasses?.label;
   const marker = p.required && (
     <span
       aria-hidden="true"
@@ -224,7 +263,7 @@ function AntFieldShell(p: FieldShellProps) {
         p.labelPosition === "after" || p.label == null || p.hideLabel || ownLabel ? undefined : (
           <>
             {marker}
-            <span id={fieldLabelId(p.id)} style={labelStyle}>{p.label}</span>
+            <span id={fieldLabelId(p.id)} className={labelClass} style={labelStyle}>{p.label}</span>
           </>
         )
       }
@@ -253,6 +292,7 @@ function AntFieldShell(p: FieldShellProps) {
       // Spacing is the container's (the group body's gap), as under html.
       // Explicitly none: Ant's own margin is one an error message takes
       // over, which left a display after a field in error flush against it.
+      className={fieldClasses?.shell}
       style={{ ...({ marginBottom: 0 }), ...shellStyle, ...css(p.style) }}
       data-look={fieldAttr}
     >
@@ -270,12 +310,12 @@ function AntFieldShell(p: FieldShellProps) {
       {ownLabel && !beside && (
         <Flex align="center" gap={token.marginXXS} style={{ paddingBottom: token.paddingXS }}>
           {p.labelAs === "legend" ? (
-            <div id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading, ...labelStyle }}>
+            <div id={fieldLabelId(p.id)} className={labelClass} style={{ color: token.colorTextHeading, ...labelStyle }}>
               {marker}
               {p.label}
             </div>
           ) : (
-            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading, ...labelStyle }}>
+            <label htmlFor={p.id} id={fieldLabelId(p.id)} className={labelClass} style={{ color: token.colorTextHeading, ...labelStyle }}>
               {marker}
               {p.label}
             </label>
@@ -311,6 +351,7 @@ function AntFieldShell(p: FieldShellProps) {
           <label
             htmlFor={p.id}
             id={fieldLabelId(p.id)}
+            className={labelClass}
             style={{
               cursor: p.disabled ? "not-allowed" : "pointer",
               // Ant greys its own label from a class on the wrapper, which a
@@ -332,7 +373,7 @@ function AntFieldShell(p: FieldShellProps) {
       ) : beside ? (
         <Flex align="center" justify="space-between" gap={token.marginXS}>
           <Flex align="center" gap={token.marginXXS}>
-            <label htmlFor={p.id} id={fieldLabelId(p.id)} style={{ color: token.colorTextHeading, ...labelStyle }}>
+            <label htmlFor={p.id} id={fieldLabelId(p.id)} className={labelClass} style={{ color: token.colorTextHeading, ...labelStyle }}>
               {marker}
               {p.label}
             </label>
@@ -360,7 +401,7 @@ function AntFieldShell(p: FieldShellProps) {
 function AntInputFrame(p: InputFrameProps) {
   const css = useCss();
   const { token } = theme.useToken();
-  const { look: fieldLook } = useContext(AntFieldLookContext);
+  const { look: fieldLook, classes: fieldClasses } = useContext(AntFieldLookContext);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const state: FrameState = {
@@ -386,6 +427,7 @@ function AntInputFrame(p: InputFrameProps) {
     <span
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className={fieldClasses?.control}
       style={{ ...({
         display: "inline-flex",
         alignItems: p.multiline ? "flex-start" : "center",
@@ -419,6 +461,7 @@ function AntInputFrame(p: InputFrameProps) {
       {p.render(
         {
           id: p.id,
+          className: fieldClasses?.text,
           style: {
             flex: 1,
             minWidth: 0,
@@ -486,6 +529,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
       style={p.shellStyle}
     >
       <Frame
+        widget="textfield"
         id={p.id}
         describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
@@ -539,7 +583,7 @@ function AntTextField(p: TextFieldRenderProps): Rendered {
 
 function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
-  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
+  const { part, cls, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   const { token } = theme.useToken();
@@ -588,6 +632,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     >
       <Typography.Text
         id={p.id}
+        className={cls("control", "text")}
         style={{
           ...(p.noSelection ? { userSelect: "none" } : undefined),
           ...part("control"),
@@ -606,7 +651,7 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
 
 /** Ant puts the label *inside* the control — it is the checkbox's child. */
 function AntCheckbox(p: CheckboxRenderProps): Rendered {
-  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
+  const { part, cls, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
@@ -630,6 +675,7 @@ function AntCheckbox(p: CheckboxRenderProps): Rendered {
       <Checkbox
         ref={ctl.elementRef}
         id={p.id}
+        className={cls("control")}
         style={part("control")}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
@@ -657,7 +703,7 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
  */
 function AntCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
-  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
+  const { part, cls, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -685,6 +731,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
+        className={cls("control", "text")}
         style={{ ...part("control"), ...part("text"), ...css(p.style) }}
       >
         <Flex vertical gap={8}>
@@ -754,12 +801,30 @@ const emphasis = { primary: "primary", secondary: "default", link: "link", group
 /** The `group` emphasis: no button, only a pressable wrapper around its children. */
 const groupStyle = { padding: 0, height: "auto", textAlign: "left" } as const;
 
+/**
+ * A busy action's spinner, drawn as the button's icon rather than through
+ * Ant's `loading`: Ant's own loading icon carries `aria-label="loading"` into
+ * the button's name ("loading Submit"), and its loading state lags the prop by
+ * a render, so the icon came back as busy ended and left on a CSS transition —
+ * staying, named, wherever that transition never finished. The action is
+ * already disabled while busy.
+ */
+const busyIcon = (
+  <span aria-hidden="true" style={{ display: "inline-flex" }}>
+    <Spin size="small" />
+  </span>
+);
+
 function AntAction(p: ActionRenderProps) {
   const css = useCss();
   const { token } = theme.useToken();
+  const table = useAntdLooks().action;
+  const own = (n: string) => n in emphasis || table?.[n] !== undefined;
   const { props: named, style, needsState } = mergeLayers(
-    useLookLayers("action", p.look, useAntdLooks().action, (n) => n in emphasis),
+    useLookLayers("action", p.look, table, (n) => n in emphasis),
   );
+  // The names Ant's looks lack, from the html looks in scope.
+  const html = useHtmlLookFallback("action", p.look, own, { disabled: !!p.disabled });
   const actionWidth = useLookWidth(needsState);
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
@@ -771,15 +836,18 @@ function AntAction(p: ActionRenderProps) {
         type={builtin ?? "default"}
         size="small"
         {...named}
+        {...html.pointer}
+        className={html.className("control")}
         style={{
           ...(lookNames(p.look).includes("group") ? groupStyle : {}),
+          ...html.style("control"),
           ...(atToken(style, token, { ...NO_LOOK_STATE, width: actionWidth })),
           ...css(p.style),
         }}
         data-look={lookAttr(p.look)}
         disabled={p.disabled}
-        loading={p.busy}
-        icon={webIcon(p.icon)}
+        aria-busy={p.busy || undefined}
+        icon={p.busy ? busyIcon : webIcon(p.icon)}
         iconPlacement={p.iconPlacement === "after" ? "end" : "start"}
         htmlType={p.submit ? "submit" : "button"}
         onClick={(e) => {
@@ -791,7 +859,7 @@ function AntAction(p: ActionRenderProps) {
         {p.iconPlacement === "replace"
           ? null
           : (p.children ?? (
-              <span>
+              <span className={html.className("text")} style={html.style("text")}>
                 {p.text}
               </span>
             ))}
@@ -871,8 +939,14 @@ function AntRichText(p: RichTextRenderProps) {
   );
 }
 
+/** Whether Ant's group looks hold a name: its own look, not the html theme's. */
+function useOwnGroupLook(): (name: string) => boolean {
+  const group = useAntdLooks().group;
+  return (n) => group?.[n] !== undefined;
+}
+
 function AntInline(p: GroupRenderProps) {
-  return <Inline {...p} lookStyle={useGroupStyle(p.look)} />;
+  return <Inline {...p} lookStyle={useGroupStyle(p.look)} ownLook={useOwnGroupLook()} />;
 }
 
 function AntContents(p: GroupRenderProps) {
@@ -881,6 +955,7 @@ function AntContents(p: GroupRenderProps) {
     <ContentsRegion
       {...p}
       lookStyle={useGroupStyle(p.look)}
+      ownLook={useOwnGroupLook()}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -916,9 +991,11 @@ function AntText(p: TextDisplayRenderProps) {
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
+  const texts = useAntdLooks().text;
   const { props: look, style: lookStyle, needsState: textNeeds } = mergeLayers(
-    useLookLayers("text", p.look, useAntdLooks().text),
+    useLookLayers("text", p.look, texts),
   );
+  const html = useHtmlLookFallback("text", p.look, (n) => texts?.[n] !== undefined);
   const textWidth = useLookWidth(textNeeds);
   return rendered(
     <DisplayShell
@@ -930,9 +1007,11 @@ function AntText(p: TextDisplayRenderProps) {
     >
       <Typography.Text
         {...look}
+        className={html.className(["control", "text"])}
         // Ant's Typography sets its own colour; inherit the shell's tone.
         style={{ ...({
           ...(heading ? { display: "block", ...headingStyle(token, p.headingLevel) } : {}),
+          ...html.style(["control", "text"]),
           ...atToken(lookStyle, token, { ...NO_LOOK_STATE, width: textWidth }),
           ...(p.tone ? { color: "inherit" } : {}),
         }), ...css(p.style) }}
@@ -952,7 +1031,9 @@ function AntIcon(p: IconDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const { token } = theme.useToken();
-  const iconLayers = useLookLayers("icon", p.look, useAntdLooks().icon);
+  const icons = useAntdLooks().icon;
+  const iconLayers = useLookLayers("icon", p.look, icons);
+  const html = useHtmlLookFallback("icon", p.look, (n) => icons?.[n] !== undefined);
   const iconWidth = useLookWidth(iconLayers.some(isFn));
   const look: AntStyle | undefined = iconLayers.length
     ? (t, st) => Object.assign({}, ...iconLayers.map((l) => atToken(l, t, st)))
@@ -962,7 +1043,8 @@ function AntIcon(p: IconDisplayRenderProps) {
       role="img"
       aria-label={p.accessibleName}
       data-look={lookAttr(p.look)}
-      style={{ ...({ fontSize: 24, lineHeight: 1, ...(look === undefined ? undefined : atToken(look, token, { ...NO_LOOK_STATE, width: iconWidth })) }), ...css(p.style) }}
+      className={html.className(["control", "text", "icon"])}
+      style={{ ...({ fontSize: 24, lineHeight: 1, ...html.style(["control", "text", "icon"]), ...(look === undefined ? undefined : atToken(look, token, { ...NO_LOOK_STATE, width: iconWidth })) }), ...css(p.style) }}
     >
       {webIcon(getProp(rc, p.icon), false)}
     </span>
@@ -1006,7 +1088,7 @@ function AntHtml(p: HtmlDisplayRenderProps) {
 }
 
 function AntSelect(p: SelectRenderProps): Rendered {
-  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
+  const { part, cls, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -1029,6 +1111,7 @@ function AntSelect(p: SelectRenderProps): Rendered {
       <AntSelectWithEnd end={webIcon(p.endIcon)}>
         <Select
           ref={ctl.elementRef}
+          className={cls("control", "text")}
           style={{ ...part("control"), ...part("text") }}
           id={p.id}
           prefix={webIcon(p.startIcon) ?? undefined}
@@ -1072,7 +1155,7 @@ function AntSelectWithEnd({ end, children }: { end?: ReactNode; children: ReactN
 
 function AntRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
-  const { part, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
+  const { part, cls, entryClass, lookContext } = useAntFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -1107,11 +1190,12 @@ function AntRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue === "" ? undefined : ctl.stringValue}
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={onFocusLeave(ctl.onBlur)}
+        className={cls("control", "text")}
         style={{ ...part("control"), ...part("text"), ...css(p.style) }}
       >
         <Flex vertical gap={8}>
           {entries.map(({ o, selected }, i) => (
-            <div key={keys[i]} className="rxf-radio-entry">
+            <div key={keys[i]} className={entryClass(selected, "rxf-radio-entry")}>
               <Radio
                 ref={i === 0 ? ctl.elementRef : undefined}
                 value={String(o.value)}
@@ -1192,10 +1276,16 @@ function AntDisclosure(p: DisclosureRenderProps) {
   const { token } = theme.useToken();
   // A disclosure's look is a group's: the wrapper around it, the toggle row (its title), the content.
   const look = useGroupStyle(p.look);
-  useLookLayers("disclosure", p.look, useAntdLooks().group);
+  const groups = useAntdLooks().group;
+  useLookLayers("disclosure", p.look, groups);
+  // The html look's container and toggle row, for a name Ant's looks lack.
+  const html = useHtmlLookFallback("disclosure", p.look, (n) => groups?.[n] !== undefined, {
+    invalid: !!p.invalid,
+  });
   return (
     <Collapse
-      style={{ ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
+      className={html.className("shell")}
+      style={{ ...html.style("shell"), ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
       activeKey={p.open ? ["panel"] : []}
       onChange={(keys) => p.setOpen((Array.isArray(keys) ? keys : [keys]).length > 0)}
       destroyOnHidden={false}
@@ -1205,7 +1295,12 @@ function AntDisclosure(p: DisclosureRenderProps) {
           key: "panel",
           forceRender: true,
           label: (
-            <span style={{ ...look?.title, ...(p.invalid ? { color: token.colorError } : {}) }}>{p.title}</span>
+            <span
+              className={html.className("control")}
+              style={{ ...html.style("control"), ...look?.title, ...(p.invalid ? { color: token.colorError } : {}) }}
+            >
+              {p.title}
+            </span>
           ),
           children: (
             <div id={p.id} style={look?.body}>

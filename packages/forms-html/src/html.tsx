@@ -109,6 +109,21 @@ function shellOf(theme: HtmlTheme, widget: string | undefined): ShellTheme {
   return merged;
 }
 
+type FrameTheme = HtmlTheme["frame"];
+/** Each theme's frame per widget, merged once. */
+const framesFor = new WeakMap<HtmlTheme, Map<string, FrameTheme>>();
+
+/** The frame slots for a widget: `frameFor[widget]` over `frame`. */
+function frameOf(theme: HtmlTheme, widget: string | undefined): FrameTheme {
+  const over = widget === undefined ? undefined : theme.frameFor[widget];
+  if (!over) return theme.frame;
+  let cache = framesFor.get(theme);
+  if (!cache) framesFor.set(theme, (cache = new Map()));
+  let merged = cache.get(widget!);
+  if (!merged) cache.set(widget!, (merged = { ...theme.frame, ...over }));
+  return merged;
+}
+
 function HtmlFieldShell(p: FieldShellProps) {
   const icon = useWebIcon();
   const theme = useHtmlTheme();
@@ -259,7 +274,7 @@ function HtmlFieldShell(p: FieldShellProps) {
 function HtmlInputFrame(p: InputFrameProps) {
   const icon = useWebIcon();
   const theme = useHtmlTheme();
-  const t = theme.frame;
+  const t = frameOf(theme, p.widget);
   // The look's control lands where the author's `className` does.
   const look = lookParts("field", p.look, theme.looks);
   const [focused, setFocused] = useState(false);
@@ -373,6 +388,7 @@ function HtmlTextField(p: TextFieldRenderProps): Rendered {
       style={p.shellStyle}
     >
       <Frame
+        widget="textfield"
         id={p.id}
         describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
@@ -917,6 +933,7 @@ function HtmlSelect(p: SelectRenderProps): Rendered {
       style={p.shellStyle}
     >
       <Frame
+        widget="select"
         id={p.id}
         describedBy={describedBy(p)}
         controlRef={ctl.elementRef}

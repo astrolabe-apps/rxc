@@ -182,6 +182,9 @@ markup has one.
 - `{ replace }` stands in for them — and for any part of an earlier look in a list. It is legacy's
   `"@ "`, in the theme where it belongs.
 - A group's `control` is the body's layout, and replaces the theme's default layout.
+- A heading display's `control` lays over its level's classes (html's `text.heading.levels[n]`), or
+  `{ replace }`s them: a heading that reads as body text — HVAMS's success message — is a look on that
+  heading, not a change to every heading at its level.
 - A part may be a **function of the element's state**, in every implementation. State is data the
   implementation passes in (`LookState`: `invalid`, `disabled`, `focused`, `pressed`, `hovered`,
   `width`), so a look never needs a variant a platform lacks (`active:` on the web, a pressed callback
@@ -207,20 +210,66 @@ const nativeLooks = {
 
 A look need not live in a theme. **A form can bring its own**: `ClassLooks`, the parts as classes,
 provided through `FormLooksProvider`. An implementation looks a name up in its theme's looks first
-and the form's second, so a host restyles a name a form brought by defining it. Only an
-implementation that styles with classes — html alone — can draw one (native warns once per name that class looks are not drawn;
-the conformance suite's `classLooks` limit);
-MUI, Ant and Fluent do not warn about a name the form brought, since it is not a mistake that they
-cannot.
+and the form's second, so a host restyles a name a form brought by defining it. Every web
+implementation draws one (below); native cannot, and warns once per name that class looks are not
+drawn (the conformance suite's `classLooks` limit).
 
 This is what the JSON loader uses.
+
+## html's looks on every web implementation
+
+**On the web, an html look reaches MUI, Ant and Fluent too.** Classes and portable styles are
+something any DOM carries, so a library implementation draws, for every name its own looks lack, the
+html look of that name: the html theme's in scope (`HtmlThemeProvider`) and, beneath it, the form's
+(`FormLooksProvider`). An app that writes its layout once as html looks — `twoColumns` as Tailwind's
+grid — gets it under every web implementation, and a library's own looks (`AntdLooksProvider` …) are
+an override, not a requirement.
+
+- **A library's own look of a name wins whole.** Where its table holds the name, or it always draws
+  the name (an action's `primary`, `secondary`, `link`, `group`), none of the html look of that name
+  is drawn beneath it — not stacked, as groups once were.
+- **Every kind of boundary**, each html part on the library's element for it: a field's `shell`, its
+  label (`label` + `labelText`), `control` and `text` (the input itself); a radio option's `entry`
+  with `selected` / `notSelected`; a group's `shell`, `control` (the body) and title; an action's
+  button (`control`) and words (`text`); a text display's element (`control` + `text`); an icon's
+  glyph (`control` + `text` + `icon`); a disclosure's container (`shell`) and toggle row (`control`);
+  an image's `<img>`. The library's own look is laid over it, being its inline styles.
+- **A name in neither** draws the base look with one warning, as before.
+- **`{ replace }`** in an html part drops the html layers before it; it cannot drop the library's own
+  styling, which is not classes.
+
+`useHtmlLookFallback` in `@rx-controls/forms-html/shared` is how each library does it, and the
+conformance suite holds every web implementation to it ("draws a look given as classes on the
+web"). Found by the HVAMS trial on alpha.9 (S1), where Ant's groups drew html's looks by accident of
+sharing html's region and nothing else did; the accident is now the rule, for every kind.
+
+Not for React Native: a native look is portable styles, never classes, so html's table is not read
+there. An app on both writes its native looks (or portable ones) as well.
+
+## Typing a look table
+
+`FormLooks` makes a typo **in a form** a compile error. A theme's table is the other side: write it
+with `satisfies` so a name the forms use and the theme misses, or misspells, is one too.
+
+```ts
+const looks = {
+  page: { control: "flex flex-col gap-4 px-10 pt-6 pb-10" },
+  column: { control: "max-w-2xl" },
+  twoColumns: { control: "grid grid-cols-1 gap-4 sm:grid-cols-2" },
+} satisfies Record<keyof FormLooks, HtmlLook>;
+```
+
+An implementation's own table, which may cover only some names, takes
+`Partial<Record<keyof FormLooks, AntGroupLook>>` (and so on), which still rejects a misspelling.
 
 ## Resolution
 
 1. The boundary resolves `look`, `style` and `shellStyle` in its own tracking window and hands the
    implementation the **names and objects**, not classes.
-2. The implementation finds each name in its theme's looks, then the form's. A name neither has
-   draws the base look, with a development warning once per kind and name.
+2. The implementation finds each name in its theme's looks, then the form's — a library
+   implementation in its own looks, then html's theme's, then the form's ("html's looks on every
+   web implementation"). A name none has draws the base look, with a development warning once per
+   kind and name.
 3. For each part: the implementation's base styling, then the look's part (added, or `replace`),
    layered in order for a list, then the boundary's `style` / `shellStyle`.
 4. On the web an element of the boundary carries `data-look="name"` (the control, the shell or a

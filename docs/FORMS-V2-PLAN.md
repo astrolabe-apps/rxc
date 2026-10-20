@@ -1134,6 +1134,14 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   invisible elements allowed it held a wizard's other pages and a hidden button with
   placeholder bounds that a press found. Typing goes a character at a time: legacy's numeric
   fields kept the first digit or two of a burst of keys while showing them all, one run in ten.
+- **After the HVAMS trial on alpha.9** ([its report](./FORMS-V2-HVAMS-REQUEST-ACCESS-0.1.0-alpha.9.md),
+  "After the trial"): html's looks reach every web implementation — MUI, Ant and Fluent draw the html
+  theme's (and the form's) look for every name their own lack, on every kind of boundary, their own
+  look of a name winning whole (the trial found Ant's groups alone inheriting, and stacking both);
+  `frameFor` beside `shellFor`; Ant's busy button named by its text (Ant's loading icon made it
+  "loading Submit", and stuck there where its leave transition never ended); compat 5.1.6 stops
+  reporting `next dev`'s module re-evaluation as a duplicate install. Portable columns (S4) wait for
+  an app on React Native that needs them.
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
 - **Releasing:** the eight v2 packages are bumped to `0.1.0-alpha.9` (lock-step) for `rush publish-alpha`;

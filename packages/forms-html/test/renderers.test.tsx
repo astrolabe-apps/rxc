@@ -700,6 +700,24 @@ describe("what the theme reaches", () => {
     expect(shell("t").querySelector(".mark")!.textContent).toBe("*");
   });
 
+  it("styles a frame per widget: frameFor over frame", () => {
+    mount(
+      <>
+        <TextField field={dom.ctx.newControl("")} id="t" label="Text" />
+        <SelectField field={dom.ctx.newControl<OptionValue>(undefined)} id="s" label="Pick" options={[{ name: "A", value: "a" }]} />
+      </>,
+      { theme: { frame: { className: "box", input: "pad-r" }, frameFor: { select: { input: "pad-x" } } } },
+    );
+    const classes = (id: string) => ($(`#${id}`)!.className ?? "").split(" ");
+    expect([classes("t").includes("pad-r"), classes("s").includes("pad-x"), classes("s").includes("pad-r")]).toEqual([
+      true,
+      true,
+      false,
+    ]);
+    // What frameFor leaves alone stays the frame's.
+    expect([$("#t")!.parentElement!.className, $("#s")!.closest(".box") !== null]).toEqual(["box", true]);
+  });
+
   it("draws a count past its limit with countOver in place of count", () => {
     const c = dom.ctx.newControl("abcdef");
     mount(<TextField field={c} id="t" maxLength={5} showCount />, {

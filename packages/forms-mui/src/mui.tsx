@@ -124,6 +124,8 @@ import {
   webIcon,
   FeedList,
   drawDateInput,
+  useHtmlLookFallback,
+  type LookPartName,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { useMuiLooks, type MuiFieldLook, type MuiFieldPart, type MuiStyle } from "./looks.js";
@@ -148,7 +150,36 @@ const MuiLabelContext = createContext<ReactNode>(null);
  * label, it travels privately — set by the field, read by the pair.
  */
 type ResolvedFieldLook = { [P in keyof MuiFieldLook]?: SxProps<Theme> };
-const MuiFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: string }>({});
+/** The html look's classes on the same elements (see `useHtmlLookFallback`). */
+type FieldLookClasses = { [P in keyof MuiFieldLook]?: string };
+const MuiFieldLookContext = createContext<{
+  look?: ResolvedFieldLook;
+  classes?: FieldLookClasses;
+  attr?: string;
+}>({});
+
+/** The html look's parts each of a field's elements carries. */
+const HTML_FIELD_PARTS: Record<keyof MuiFieldLook, LookPartName | LookPartName[]> = {
+  shell: "shell",
+  label: ["label", "labelText"],
+  control: "control",
+  text: "text",
+};
+
+/** Properties a bare number means as it is, not as px (React's own list, the ones a look sets). */
+const UNITLESS: ReadonlySet<string> = new Set(["lineHeight", "fontWeight", "opacity", "zIndex", "flex", "flexGrow", "flexShrink", "order"]);
+
+/**
+ * An inline style as `sx`, to lay under MUI's own look: a number is px, as
+ * React reads it, where `sx` would take it as theme spacing or a fraction.
+ */
+function cssSx(style: CSSProperties | undefined): SxProps<Theme> | undefined {
+  if (!style) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(style))
+    out[k] = typeof v === "number" && !UNITLESS.has(k) ? `${v}px` : v;
+  return out as SxProps<Theme>;
+}
 
 /** A style part's function form is given the theme and the state; nothing else. */
 const isFn = (v: unknown): v is (...a: never[]) => unknown => typeof v === "function";
@@ -182,7 +213,8 @@ function mergeSx(...parts: (SxProps<Theme> | false | undefined)[]): SxProps<Them
 
 function MuiFieldShell(p: FieldShellProps) {
   const css = useCss();
-  const { look: fieldLook, attr: fieldAttr } = useContext(MuiFieldLookContext);
+  const { look: fieldLook, classes: fieldClasses, attr: fieldAttr } = useContext(MuiFieldLookContext);
+  const labelClass = fieldClasses?.label;
   const legend = p.labelAs === "legend";
   const framed = p.surface === "frame";
   const hasLabel = p.label !== undefined && p.label !== null;
@@ -226,6 +258,7 @@ function MuiFieldShell(p: FieldShellProps) {
         error={!!p.error}
         required={p.required}
         disabled={p.disabled}
+        className={fieldClasses?.shell}
         style={css(p.style)}
         data-look={fieldAttr}
         // Label beside the control — a settings row, its control at the end.
@@ -265,6 +298,7 @@ function MuiFieldShell(p: FieldShellProps) {
             <FormControlLabel
               htmlFor={p.id}
               id={fieldLabelId(p.id)}
+              className={labelClass}
               sx={fieldLook?.label}
               label={
                 <>
@@ -284,6 +318,7 @@ function MuiFieldShell(p: FieldShellProps) {
                 <InputLabel
                   htmlFor={p.id}
                   id={fieldLabelId(p.id)}
+                  className={labelClass}
                   sx={fieldLook?.label}
                 >
                   {p.label}
@@ -294,6 +329,7 @@ function MuiFieldShell(p: FieldShellProps) {
                     component={legend ? "div" : "label"}
                     id={fieldLabelId(p.id)}
                     htmlFor={legend ? undefined : p.id}
+                    className={labelClass}
                     sx={fieldLook?.label}
                   >
                     {p.label}
@@ -372,7 +408,7 @@ function MuiSlotBridge({
 
 function MuiInputFrame(p: InputFrameProps) {
   const css = useCss();
-  const { look: fieldLook } = useContext(MuiFieldLookContext);
+  const { look: fieldLook, classes: fieldClasses } = useContext(MuiFieldLookContext);
   const label = useContext(MuiLabelContext);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
@@ -389,6 +425,8 @@ function MuiInputFrame(p: InputFrameProps) {
     p.render(
       {
         ...cp,
+        // The html look's text on the input itself, beside MUI's own class.
+        className: [cp.className, fieldClasses?.text].filter(Boolean).join(" ") || undefined,
         "aria-required": p.required || undefined,
         onFocus: (e) => {
           cp.onFocus?.(e);
@@ -411,6 +449,7 @@ function MuiInputFrame(p: InputFrameProps) {
       readOnly={p.readOnly}
       multiline={p.multiline}
       aria-describedby={p.describedBy}
+      className={fieldClasses?.control}
       style={css(p.style)}
       sx={mergeSx(fieldLook?.control, nestSx("& .MuiOutlinedInput-input", fieldLook?.text))}
       // The frame never sees a value, but `InputBase` drives the label's
@@ -444,7 +483,7 @@ function useMuiFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
   const disabled = !!base?.disabled;
   const names = lookNames(look).join("|");
   // The names' parts laid in order, a later over an earlier.
-  const fieldLook = useMemo<ResolvedFieldLook | undefined>(() => {
+  const own = useMemo<ResolvedFieldLook | undefined>(() => {
     const layers = pickLooks(names ? names.split("|") : undefined, table);
     if (!layers.length) return undefined;
     const state: LookState = { ...NO_LOOK_STATE, invalid, disabled, width };
@@ -455,9 +494,31 @@ function useMuiFieldLook(look: LookRef | undefined, base?: Partial<LookState>) {
           out[k] = mergeSx(out[k], isFn(v) ? (v as (t: Theme, s: LookState) => SxProps<Theme>)(theme, state) : v);
     return out;
   }, [table, names, theme, width, invalid, disabled]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const lookContext = useMemo(() => ({ look: fieldLook, attr: lookAttr(look) }), [fieldLook, names]);
-  return { fieldLook, lookContext };
+  // The names MUI's looks lack, from the html looks in scope, under MUI's own.
+  const html = useHtmlLookFallback("field", look, (n) => table?.[n] !== undefined, base);
+  let fieldLook = own;
+  let classes: FieldLookClasses | undefined;
+  if (html.look) {
+    fieldLook = {};
+    classes = {};
+    for (const k of Object.keys(HTML_FIELD_PARTS) as (keyof MuiFieldLook)[]) {
+      const style = cssSx(html.style(HTML_FIELD_PARTS[k]));
+      if (style || own?.[k]) fieldLook[k] = mergeSx(style, own?.[k]);
+      classes[k] = html.className(HTML_FIELD_PARTS[k]);
+    }
+  }
+  // Stable without an html look; with one, its parts are new each render.
+  const lookContext = useMemo(
+    () => ({ look: fieldLook, classes, attr: lookAttr(look) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fieldLook, classes, names],
+  );
+  const cls = (...parts: (keyof MuiFieldLook)[]) =>
+    parts.map((k) => classes?.[k]).filter(Boolean).join(" ") || undefined;
+  // A radio option's wrapper: the html look's `entry`, and its state's part.
+  const entryClass = (selected: boolean, cls: string) =>
+    html.className(["entry", selected ? "selected" : "notSelected"], cls);
+  return { fieldLook, cls, entryClass, lookContext };
 }
 
 function MuiTextField(p: TextFieldRenderProps): Rendered {
@@ -497,6 +558,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
       style={p.shellStyle}
     >
       <Frame
+        widget="textfield"
         id={p.id}
         describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
@@ -551,7 +613,7 @@ function MuiTextField(p: TextFieldRenderProps): Rendered {
 /** MUI's own answer for a trailing label is a different component entirely. */
 function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
+  const { fieldLook, cls, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, as an adornment sits in a frame.
@@ -596,6 +658,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       <Typography
         id={p.id}
         variant="body1"
+        className={cls("control", "text")}
         style={css(p.style)}
         sx={mergeSx(
           {
@@ -617,7 +680,7 @@ function MuiDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
 }
 
 function MuiCheckbox(p: CheckboxRenderProps): Rendered {
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
+  const { fieldLook, cls, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
@@ -640,6 +703,7 @@ function MuiCheckbox(p: CheckboxRenderProps): Rendered {
     >
       <Checkbox
         id={p.id}
+        className={cls("control")}
         sx={fieldLook?.control}
         slotProps={{
           input: {
@@ -720,7 +784,15 @@ const groupSx = {
 
 function MuiAction(p: ActionRenderProps) {
   const css = useCss();
-  const named = mergeProps(useLookLayers("action", p.look, useMuiLooks().action, (n) => n in emphasis));
+  const table = useMuiLooks().action;
+  const { sx: namedSx, ...named } = mergeProps(useLookLayers("action", p.look, table, (n) => n in emphasis));
+  // The names MUI's looks lack, from the html looks in scope, under MUI's own.
+  const html = useHtmlLookFallback(
+    "action",
+    p.look,
+    (n) => n in emphasis || table?.[n] !== undefined,
+    { disabled: !!p.disabled },
+  );
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
     .filter(Boolean)
@@ -730,8 +802,14 @@ function MuiAction(p: ActionRenderProps) {
       <Button
         variant={builtin ?? "outlined"}
         size="small"
-        sx={lookNames(p.look).includes("group") ? groupSx : undefined}
         {...named}
+        {...html.pointer}
+        className={html.className("control")}
+        sx={mergeSx(
+          lookNames(p.look).includes("group") && groupSx,
+          cssSx(html.style("control")),
+          namedSx,
+        )}
         data-look={lookAttr(p.look)}
         style={css(p.style)}
         disabled={p.disabled}
@@ -750,7 +828,7 @@ function MuiAction(p: ActionRenderProps) {
         {p.iconPlacement === "replace"
           ? webIcon(p.icon)
           : (p.children ?? (
-              <span>
+              <span className={html.className("text")} style={html.style("text")}>
                 {p.text}
               </span>
             ))}
@@ -828,8 +906,14 @@ function MuiRichText(p: RichTextRenderProps) {
   );
 }
 
+/** Whether MUI's group looks hold a name: its own look, not the html theme's. */
+function useOwnGroupLook(): (name: string) => boolean {
+  const group = useMuiLooks().group;
+  return (n) => group?.[n] !== undefined;
+}
+
 function MuiInline(p: GroupRenderProps) {
-  return <Inline {...p} lookStyle={useGroupStyle(p.look)} />;
+  return <Inline {...p} lookStyle={useGroupStyle(p.look)} ownLook={useOwnGroupLook()} />;
 }
 
 function MuiContents(p: GroupRenderProps) {
@@ -839,6 +923,7 @@ function MuiContents(p: GroupRenderProps) {
     <ContentsRegion
       {...p}
       lookStyle={useGroupStyle(p.look)}
+      ownLook={useOwnGroupLook()}
       // The body's default layout: spacing is the container's, as under html,
       // so a display or a nested region is spaced like a field.
       layoutStyle={{
@@ -864,10 +949,13 @@ function MuiText(p: TextDisplayRenderProps) {
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
   const headingType = useHeadingType(p.headingLevel);
-  const { sx: lookSx, ...look } = mergeProps(useLookLayers("text", p.look, useMuiLooks().text));
-  // The look's sx over the heading's type, not in place of it.
+  const texts = useMuiLooks().text;
+  const { sx: lookSx, ...look } = mergeProps(useLookLayers("text", p.look, texts));
+  const html = useHtmlLookFallback("text", p.look, (n) => texts?.[n] !== undefined);
+  // The look's sx over the heading's type, not in place of it; the html look's between.
   const sx = [
     heading ? { ...headingType, ...(p.tone ? { color: "inherit" } : {}) } : {},
+    cssSx(html.style(["control", "text"])) ?? {},
     ...(Array.isArray(lookSx) ? lookSx : [lookSx]),
   ];
   return rendered(
@@ -882,6 +970,7 @@ function MuiText(p: TextDisplayRenderProps) {
         variant="body2"
         {...look}
         component={p.inline ? "span" : heading ? "div" : "p"}
+        className={html.className(["control", "text"])}
         style={css(p.style)}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
         sx={sx}
@@ -901,7 +990,9 @@ function MuiIcon(p: IconDisplayRenderProps) {
   const toneStyle = useToneStyle(p.tone);
   const { rc, rendered } = useReactive();
   const theme = useTheme();
-  const looks = useLookLayers("icon", p.look, useMuiLooks().icon);
+  const icons = useMuiLooks().icon;
+  const looks = useLookLayers("icon", p.look, icons);
+  const html = useHtmlLookFallback("icon", p.look, (n) => icons?.[n] !== undefined);
   const width = useLookWidth(looks.some(isFn));
   const look = Object.assign(
     {},
@@ -912,9 +1003,10 @@ function MuiIcon(p: IconDisplayRenderProps) {
       component="span"
       role="img"
       aria-label={p.accessibleName}
+      className={html.className(["control", "text", "icon"])}
       style={css(p.style)}
       data-look={lookAttr(p.look)}
-      sx={{ fontSize: 24, lineHeight: 1, ...look }}
+      sx={mergeSx({ fontSize: 24, lineHeight: 1 }, cssSx(html.style(["control", "text", "icon"])), look)}
     >
       {webIcon(getProp(rc, p.icon), false)}
     </Typography>
@@ -960,7 +1052,7 @@ function MuiHtml(p: HtmlDisplayRenderProps) {
 }
 
 function MuiSelect(p: SelectRenderProps): Rendered {
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
+  const { fieldLook, cls, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -984,11 +1076,13 @@ function MuiSelect(p: SelectRenderProps): Rendered {
           text directly rather than going through the frame's context. */}
       <Select
         inputRef={ctl.elementRef}
+        className={cls("control")}
         sx={mergeSx(fieldLook?.control, nestSx("& .MuiSelect-select", fieldLook?.text))}
         id={p.id}
         label={p.hideLabel || labelEndHelp(p) ? undefined : p.label}
         labelId={p.label != null ? fieldLabelId(p.id) : undefined}
-        SelectDisplayProps={{ "aria-describedby": describedBy(p) }}
+        // The html look's text on the element that shows the value, as MUI's own text part.
+        SelectDisplayProps={{ "aria-describedby": describedBy(p), className: cls("text") }}
         startAdornment={
           p.startIcon != null ? (
             <InputAdornment position="start">{webIcon(p.startIcon)}</InputAdornment>
@@ -1028,7 +1122,7 @@ function MuiSelect(p: SelectRenderProps): Rendered {
 
 function MuiRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
+  const { fieldLook, cls, entryClass, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -1063,11 +1157,12 @@ function MuiRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue}
         onChange={(e) => ctl.setFromString(e.target.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
+        className={cls("control", "text")}
         style={css(p.style)}
         sx={mergeSx(fieldLook?.control, nestSx("& .MuiFormControlLabel-label", fieldLook?.text))}
       >
         {entries.map(({ o, selected }, i) => (
-          <Box key={keys[i]} className="rxf-radio-entry">
+          <Box key={keys[i]} className={entryClass(selected, "rxf-radio-entry")}>
             <FormControlLabel
               value={String(o.value)}
               control={
@@ -1089,7 +1184,7 @@ function MuiRadio(p: RadioRenderProps): Rendered {
 
 function MuiCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
-  const { fieldLook, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
+  const { fieldLook, cls, lookContext } = useMuiFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -1117,6 +1212,7 @@ function MuiCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
+        className={cls("control", "text")}
         style={css(p.style)}
         sx={mergeSx(fieldLook?.control, nestSx("& .MuiFormControlLabel-label", fieldLook?.text))}
       >
@@ -1207,20 +1303,27 @@ function MuiDisclosure(p: DisclosureRenderProps) {
   const css = useCss();
   // A disclosure's look is a group's: the wrapper around it, the toggle row (its title), the content.
   const look = useGroupStyle(p.look);
-  useLookLayers("disclosure", p.look, useMuiLooks().group);
+  const groups = useMuiLooks().group;
+  useLookLayers("disclosure", p.look, groups);
+  // The html look's container and toggle row, for a name MUI's looks lack.
+  const html = useHtmlLookFallback("disclosure", p.look, (n) => groups?.[n] !== undefined, {
+    invalid: !!p.invalid,
+  });
   return (
     <Accordion
       expanded={p.open}
       onChange={(_, v) => p.setOpen(v)}
       disableGutters
+      className={html.className("shell")}
       style={css(p.style)}
-      sx={{ ...look?.wrapper, ...(p.hidden ? { display: "none" } : {}) }}
+      sx={mergeSx(cssSx(html.style("shell")), { ...look?.wrapper, ...(p.hidden ? { display: "none" } : {}) })}
       data-invalid={p.invalid ? "" : undefined}
     >
       <AccordionSummary
         aria-controls={p.id}
         id={`${p.id}-toggle`}
-        sx={look?.title}
+        className={html.className("control")}
+        sx={mergeSx(cssSx(html.style("control")), look?.title)}
         // MUI's own chevron is in @mui/icons-material, not a dependency here.
         expandIcon={webIcon({ name: "chevron-down" })}
       >

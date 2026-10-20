@@ -122,6 +122,8 @@ import {
   webIcon,
   FeedList,
   drawDateInput,
+  useHtmlLookFallback,
+  type LookPartName,
 } from "@rx-controls/forms-html/shared";
 import { useHtmlTheme } from "@rx-controls/forms-html";
 import { atState, useFluentLooks, type FluentFieldLook, type FluentStyle } from "./looks.js";
@@ -164,7 +166,21 @@ function useCss(): (s: PortableStyle | undefined) => CSSProperties | undefined {
  * travels privately — set by the field, read by the pair.
  */
 type ResolvedFieldLook = { [P in keyof FluentFieldLook]?: CSSProperties };
-const FluentFieldLookContext = createContext<{ look?: ResolvedFieldLook; attr?: string }>({});
+/** The html look's classes on the same elements (see `useHtmlLookFallback`). */
+type FieldLookClasses = { [P in keyof FluentFieldLook]?: string };
+const FluentFieldLookContext = createContext<{
+  look?: ResolvedFieldLook;
+  classes?: FieldLookClasses;
+  attr?: string;
+}>({});
+
+/** The html look's parts each of a field's elements carries. */
+const HTML_FIELD_PARTS: Record<keyof FluentFieldLook, LookPartName | LookPartName[]> = {
+  shell: "shell",
+  label: ["label", "labelText"],
+  control: "control",
+  text: "text",
+};
 
 const isFn = (v: unknown): boolean => typeof v === "function";
 
@@ -198,7 +214,7 @@ function useFluentFieldLook(look: LookRef | undefined, base?: Partial<LookState>
   const invalid = !!base?.invalid;
   const names = lookNames(look).join("|");
   // The names' parts laid in order, a later over an earlier.
-  const resolved = useMemo<ResolvedFieldLook | undefined>(() => {
+  const own = useMemo<ResolvedFieldLook | undefined>(() => {
     const layers = pickLooks(names ? names.split("|") : undefined, table);
     if (!layers.length) return undefined;
     const state: LookState = { ...NO_LOOK_STATE, invalid, width };
@@ -208,14 +224,37 @@ function useFluentFieldLook(look: LookRef | undefined, base?: Partial<LookState>
         out[k] = { ...out[k], ...atState(layer[k], state) };
     return out;
   }, [table, names, width, invalid]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const lookContext = useMemo(() => ({ look: resolved, attr: lookAttr(look) }), [resolved, names]);
-  return { look: resolved, lookContext };
+  // The names Fluent's looks lack, from the html looks in scope, under Fluent's own.
+  const html = useHtmlLookFallback("field", look, (n) => table?.[n] !== undefined, base);
+  let resolved = own;
+  let classes: FieldLookClasses | undefined;
+  if (html.look) {
+    resolved = {};
+    classes = {};
+    for (const k of Object.keys(HTML_FIELD_PARTS) as (keyof FluentFieldLook)[]) {
+      const style = html.style(HTML_FIELD_PARTS[k]);
+      if (style || own?.[k]) resolved[k] = { ...style, ...own?.[k] };
+      classes[k] = html.className(HTML_FIELD_PARTS[k]);
+    }
+  }
+  // Stable without an html look; with one, its parts are new each render.
+  const lookContext = useMemo(
+    () => ({ look: resolved, classes, attr: lookAttr(look) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resolved, classes, names],
+  );
+  const cls = (...parts: (keyof FluentFieldLook)[]) =>
+    parts.map((k) => classes?.[k]).filter(Boolean).join(" ") || undefined;
+  // A radio option's wrapper: the html look's `entry`, and its state's part.
+  const entryClass = (selected: boolean, base: string) =>
+    html.className(["entry", selected ? "selected" : "notSelected"], base);
+  return { look: resolved, cls, entryClass, lookContext };
 }
 
 function FluentFieldShell(p: FieldShellProps) {
   const css = useCss();
-  const { look: fieldLook, attr: fieldAttr } = useContext(FluentFieldLookContext);
+  const { look: fieldLook, classes: fieldClasses, attr: fieldAttr } = useContext(FluentFieldLookContext);
+  const labelClass = fieldClasses?.label;
   const labelText = (
     <span>
       {p.label}
@@ -252,6 +291,7 @@ function FluentFieldShell(p: FieldShellProps) {
   return (
     <Field
       orientation={p.orientation}
+      className={fieldClasses?.shell}
       style={{ ...fieldLook?.shell, ...css(p.style) }}
       data-look={fieldAttr}
       label={
@@ -259,6 +299,7 @@ function FluentFieldShell(p: FieldShellProps) {
           ? undefined
           : {
               id: fieldLabelId(p.id),
+              className: labelClass,
               style: fieldLook?.label,
               // A group's label names it by id; with Field's default `for`
               // it would also point at a control that does not exist.
@@ -273,6 +314,7 @@ function FluentFieldShell(p: FieldShellProps) {
                       htmlFor={p.labelAs === "legend" ? undefined : p.id}
                       required={p.required}
                       disabled={p.disabled}
+                      className={labelClass}
                       style={fieldLook?.label}
                       info={{ children: p.helpText }}
                       infoButton={{ ...helpWords, "aria-label": helpButtonName("Help", p.label, p.helpLabel) }}
@@ -363,6 +405,7 @@ function FluentFieldShell(p: FieldShellProps) {
             id={fieldLabelId(p.id)}
             required={p.required}
             disabled={p.disabled}
+            className={labelClass}
             style={fieldLook?.label}
           >
             {labelText}
@@ -390,7 +433,7 @@ function FluentFieldShell(p: FieldShellProps) {
 
 function FluentInputFrame(p: InputFrameProps) {
   const css = useCss();
-  const { look: fieldLook } = useContext(FluentFieldLookContext);
+  const { look: fieldLook, classes: fieldClasses } = useContext(FluentFieldLookContext);
   const [focused, setFocused] = useState(false);
   const state: FrameState = {
     focused,
@@ -408,7 +451,7 @@ function FluentInputFrame(p: InputFrameProps) {
       const props: ControlSlotProps = {
         id: p.id,
         // Fluent's own styling of the control: no border, inherits the frame.
-        className: fluent.className,
+        className: [fluent.className, fieldClasses?.text].filter(Boolean).join(" ") || undefined,
         style: fieldLook?.text,
         onFocus: () => setFocused(true),
         onBlur: () => setFocused(false),
@@ -426,6 +469,7 @@ function FluentInputFrame(p: InputFrameProps) {
     // Textarea has no content slots: adornments sit beside it.
     const area = (
       <Textarea
+        className={fieldClasses?.control}
         style={{ ...fieldLook?.control, ...css(p.style) }}
         disabled={p.disabled}
         resize="vertical"
@@ -444,6 +488,7 @@ function FluentInputFrame(p: InputFrameProps) {
   }
   return (
     <Input
+      className={fieldClasses?.control}
       style={{ ...fieldLook?.control, ...css(p.style) }}
       disabled={p.disabled}
       contentBefore={p.start !== undefined ? <>{slot(p.start)}</> : undefined}
@@ -490,6 +535,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
       style={p.shellStyle}
     >
       <Frame
+        widget="textfield"
         id={p.id}
         describedBy={describedBy({ ...p, count })}
         controlRef={ctl.elementRef}
@@ -543,7 +589,7 @@ function FluentTextField(p: TextFieldRenderProps): Rendered {
 
 function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
+  const { look: fieldLook, cls, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useDisplayValue(p.field, p);
   // The icons either side of the value, spaced as Fluent spaces an
@@ -565,6 +611,7 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
   const text = (
     <Text
       id={p.id}
+      className={cls("control", "text")}
       style={{
         ...(p.noSelection ? { userSelect: "none" } : undefined),
         ...fieldLook?.control,
@@ -616,7 +663,7 @@ function BesideSelect(p: { start?: ReactNode; end?: ReactNode; children: ReactNo
 }
 
 function FluentCheckbox(p: CheckboxRenderProps): Rendered {
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
+  const { look: fieldLook, cls, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useCheckbox(p.field);
   return ctl.rendered(
@@ -640,6 +687,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
       <Checkbox
         ref={ctl.elementRef}
         id={p.id}
+        className={cls("control")}
         style={fieldLook?.control}
         aria-describedby={describedBy(p)}
         aria-invalid={p.error ? true : undefined}
@@ -657,7 +705,7 @@ function FluentCheckbox(p: CheckboxRenderProps): Rendered {
 /** Fluent has no checkbox group: its checkboxes in a labelled `role="group"`. */
 function FluentCheckList(p: CheckListRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
+  const { look: fieldLook, cls, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useMultiSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -685,6 +733,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
         aria-labelledby={p.label != null ? fieldLabelId(p.id) : undefined}
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
+        className={cls("control", "text")}
         style={{
           ...({ display: "flex", flexDirection: "column" }),
           ...fieldLook?.control,
@@ -712,7 +761,7 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
 /** Fluent's `Select` is a native `<select>`: the string round-trip for free. */
 function FluentSelect(p: SelectRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
+  const { look: fieldLook, cls, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -736,8 +785,10 @@ function FluentSelect(p: SelectRenderProps): Rendered {
         <Select
           ref={ctl.elementRef}
           id={p.id}
+          className={cls("control")}
           style={{ ...fieldLook?.control, ...css(p.style) }}
-          select={fieldLook?.text ? { style: fieldLook.text } : undefined}
+          // The `<select>` itself is the text: Fluent's root is a wrapper around it.
+          select={fieldLook?.text || cls("text") ? { className: cls("text"), style: fieldLook?.text } : undefined}
           aria-describedby={describedBy(p)}
           aria-invalid={p.error ? true : undefined}
           aria-required={p.required || undefined}
@@ -762,7 +813,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
 
 function FluentRadio(p: RadioRenderProps): Rendered {
   const css = useCss();
-  const { look: fieldLook, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
+  const { look: fieldLook, cls, entryClass, lookContext } = useFluentFieldLook(p.look, { invalid: !!p.error });
   const Shell = useFieldShell();
   const ctl = useSelectController(p.field, p.options);
   const keys = optionKeys(ctl.options);
@@ -793,12 +844,13 @@ function FluentRadio(p: RadioRenderProps): Rendered {
         value={ctl.stringValue}
         onChange={(_, d) => ctl.setFromString(d.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
+        className={cls("control", "text")}
         style={{ ...fieldLook?.control, ...fieldLook?.text, ...css(p.style) }}
       >
         {ctl.options.map((o, i) => {
           const selected = ctl.stringValue === String(o.value);
           return (
-            <div key={keys[i]} className="rxf-radio-entry">
+            <div key={keys[i]} className={entryClass(selected, "rxf-radio-entry")}>
               <Radio
                 ref={i === 0 ? ctl.elementRef : undefined}
                 value={String(o.value)}
@@ -887,9 +939,13 @@ function FluentAction(p: ActionRenderProps) {
   const css = useCss();
   const replace = p.iconPlacement === "replace";
   const icon = p.busy ? <Spinner size="extra-tiny" /> : webIcon(p.icon);
+  const table = useFluentLooks().action;
+  const own = (n: string) => n in emphasis || table?.[n] !== undefined;
   const { props: lookup, style: lookStyle, needsState: actionNeeds } = mergeLayers(
-    useLookLayers("action", p.look, useFluentLooks().action, (n) => n in emphasis),
+    useLookLayers("action", p.look, table, (n) => n in emphasis),
   );
+  // The names Fluent's looks lack, from the html looks in scope.
+  const html = useHtmlLookFallback("action", p.look, own, { disabled: !!p.disabled });
   const actionWidth = useLookWidth(actionNeeds);
   const builtin = lookNames(p.look)
     .map((n) => emphasis[n as keyof typeof emphasis])
@@ -901,9 +957,12 @@ function FluentAction(p: ActionRenderProps) {
         appearance={builtin ?? "secondary"}
         size="small"
         {...lookup}
+        {...html.pointer}
+        className={html.className("control")}
         data-look={lookAttr(p.look)}
         style={{
           ...(lookNames(p.look).includes("group") ? groupStyle : {}),
+          ...html.style("control"),
           ...atState(lookStyle, { ...NO_LOOK_STATE, width: actionWidth }),
           ...css(p.style),
         }}
@@ -923,7 +982,7 @@ function FluentAction(p: ActionRenderProps) {
         {replace
           ? null
           : (p.children ?? (
-              <span>
+              <span className={html.className("text")} style={html.style("text")}>
                 {p.text}
               </span>
             ))}
@@ -973,8 +1032,14 @@ function useGroupStyle(look: LookRef | undefined) {
   return { wrapper: part("wrapper"), title: part("title"), body: part("body") };
 }
 
+/** Whether Fluent's group looks hold a name: its own look, not the html theme's. */
+function useOwnGroupLook(): (name: string) => boolean {
+  const group = useFluentLooks().group;
+  return (n) => group?.[n] !== undefined;
+}
+
 function FluentInline(p: GroupRenderProps) {
-  return <Inline {...p} lookStyle={useGroupStyle(p.look)} />;
+  return <Inline {...p} lookStyle={useGroupStyle(p.look)} ownLook={useOwnGroupLook()} />;
 }
 
 function FluentContents(p: GroupRenderProps) {
@@ -983,6 +1048,7 @@ function FluentContents(p: GroupRenderProps) {
     <ContentsRegion
       {...p}
       lookStyle={useGroupStyle(p.look)}
+      ownLook={useOwnGroupLook()}
       // The body's default layout: a column spaced from the tokens, so every
       // child — a display, a nested region — is spaced, not only the fields.
       layoutStyle={{
@@ -1017,9 +1083,11 @@ function FluentText(p: TextDisplayRenderProps) {
   const content = getProp(rc, p.text) ?? p.children;
   // A heading by role, in a group title's type at this level.
   const heading = !p.inline && !!getProp(rc, p.heading);
+  const texts = useFluentLooks().text;
   const { props: look, style: lookStyle, needsState: textNeeds } = mergeLayers(
-    useLookLayers("text", p.look, useFluentLooks().text),
+    useLookLayers("text", p.look, texts),
   );
+  const html = useHtmlLookFallback("text", p.look, (n) => texts?.[n] !== undefined);
   const textWidth = useLookWidth(textNeeds);
   return rendered(
     <DisplayShell
@@ -1031,6 +1099,7 @@ function FluentText(p: TextDisplayRenderProps) {
     >
       <Text
         {...look}
+        className={html.className(["control", "text"])}
         // Fluent's Text sets its own colour; inherit the shell's tone.
         style={{ ...({
           ...(heading
@@ -1040,6 +1109,7 @@ function FluentText(p: TextDisplayRenderProps) {
                 color: tokens.colorNeutralForeground1,
               }
             : {}),
+          ...html.style(["control", "text"]),
           ...atState(lookStyle, { ...NO_LOOK_STATE, width: textWidth }),
           ...(p.tone ? { color: "inherit" } : {}),
         }), ...css(p.style) }}
@@ -1057,7 +1127,9 @@ function FluentText(p: TextDisplayRenderProps) {
 function FluentIcon(p: IconDisplayRenderProps) {
   const css = useCss();
   const { rc, rendered } = useReactive();
-  const iconLayers = useLookLayers("icon", p.look, useFluentLooks().icon);
+  const icons = useFluentLooks().icon;
+  const iconLayers = useLookLayers("icon", p.look, icons);
+  const html = useHtmlLookFallback("icon", p.look, (n) => icons?.[n] !== undefined);
   const iconWidth = useLookWidth(iconLayers.some(isFn));
   const look = Object.assign(
     {},
@@ -1068,7 +1140,8 @@ function FluentIcon(p: IconDisplayRenderProps) {
       role="img"
       aria-label={p.accessibleName}
       data-look={lookAttr(p.look)}
-      style={{ ...({ fontSize: 24, lineHeight: 1, ...look }), ...css(p.style) }}
+      className={html.className(["control", "text", "icon"])}
+      style={{ ...({ fontSize: 24, lineHeight: 1, ...html.style(["control", "text", "icon"]), ...look }), ...css(p.style) }}
     >
       {webIcon(getProp(rc, p.icon), false)}
     </span>
@@ -1198,10 +1271,16 @@ function FluentDisclosure(p: DisclosureRenderProps) {
   const css = useCss();
   // A disclosure's look is a group's: the wrapper around it, the toggle row (its title), the content.
   const look = useGroupStyle(p.look);
-  useLookLayers("disclosure", p.look, useFluentLooks().group);
+  const groups = useFluentLooks().group;
+  useLookLayers("disclosure", p.look, groups);
+  // The html look's container and toggle row, for a name Fluent's looks lack.
+  const html = useHtmlLookFallback("disclosure", p.look, (n) => groups?.[n] !== undefined, {
+    invalid: !!p.invalid,
+  });
   return (
     <div
-      style={{ ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
+      className={html.className("shell")}
+      style={{ ...html.style("shell"), ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
       data-invalid={p.invalid ? "" : undefined}
     >
       <Button
@@ -1209,8 +1288,10 @@ function FluentDisclosure(p: DisclosureRenderProps) {
         aria-expanded={p.open}
         aria-controls={p.id}
         icon={<>{webIcon({ name: p.open ? "chevron-down" : "chevron-right" })}</>}
+        className={html.className("control")}
         style={{
           paddingInline: 0,
+          ...html.style("control"),
           ...look?.title,
           ...(p.invalid ? { color: tokens.colorStatusDangerForeground1 } : {}),
         }}

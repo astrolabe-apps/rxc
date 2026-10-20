@@ -20,6 +20,7 @@ import {
   TextField,
   Section,
 } from "@rx-controls/forms-react";
+import { HtmlThemeProvider } from "@rx-controls/forms-html";
 import { MuiLooksProvider, muiRenderers } from "../src/index";
 
 // React 19 warns unless this is set for `act()`.
@@ -62,6 +63,14 @@ const mount = (ui: ReactNode) =>
       </ControlContextProvider>,
     ),
   );
+
+/** A theme constant: a new object every render re-renders every field below. */
+const bothTheme = {
+  looks: {
+    boxed: { shell: "h-boxed-shell", control: "h-boxed-body", label: "h-boxed-title" },
+    framed: { shell: "h-framed-shell" },
+  },
+};
 
 describe("MUI", () => {
   it("cuts the outlined frame's notch from the field's label", () => {
@@ -266,6 +275,35 @@ describe("MUI", () => {
     // a text: sx from both
     const text = [...document.querySelectorAll("p")].find((e) => e.textContent === "x")!;
     expect([css(text, "letter-spacing"), css(text, "font-style")]).toEqual(["3px", "italic"]);
+  });
+
+  it("draws a group named in both the html theme and MUI's looks as MUI's alone", () => {
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={muiRenderers}>
+            <HtmlThemeProvider theme={bothTheme}>
+              <MuiLooksProvider looks={{ group: { boxed: { wrapper: { marginTop: "17px" } } } }}>
+                <Form>
+                  <Section title="Both" look="boxed">
+                    <TextDisplay text="inside" />
+                  </Section>
+                  <Section title="Html only" look="framed">
+                    <TextDisplay text="framed inside" />
+                  </Section>
+                </Form>
+              </MuiLooksProvider>
+            </HtmlThemeProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    // MUI's look, whole: none of the html look's classes on the wrapper, title or body
+    expect(document.querySelectorAll(".h-boxed-shell, .h-boxed-body, .h-boxed-title").length).toBe(0);
+    const wrapper = [...document.querySelectorAll<HTMLElement>("[data-look='boxed']")][0]!;
+    expect(wrapper.style.marginTop).toBe("17px");
+    // a name only the html theme holds is still drawn from it
+    expect(document.querySelector(".h-framed-shell")?.textContent).toContain("framed inside");
   });
 
   it("colours a toned display from the palette", () => {

@@ -22,7 +22,9 @@ import {
   TextDisplay,
   TextField,
   fieldErrorId,
+  fieldLabelId,
   fieldHelpId,
+  FormLooksProvider,
 } from "@rx-controls/forms-react";
 import { FluentLooksProvider, fluentRenderers } from "../src/index";
 
@@ -200,6 +202,40 @@ describe("Fluent", () => {
     expect([text.style.letterSpacing, text.style.fontStyle]).toEqual(["3px", "italic"]);
     const go = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === "Go")!;
     expect([go.style.opacity, go.style.letterSpacing]).toEqual(["0.4", "2px"]);
+  });
+
+  it("draws a group Fluent's looks name from Fluent alone, a field only the html looks name from its classes", () => {
+    const classes = {
+      card: { shell: "html-wrap", control: "html-body" },
+      plain: { shell: "html-shell", control: "html-frame", text: "html-text", label: "html-label" },
+    };
+    act(() =>
+      root.render(
+        <ControlContextProvider value={ctx}>
+          <FormProvider renderers={fluentRenderers}>
+            <FluentLooksProvider looks={{ group: { card: { body: { gap: "7px" } } } }}>
+              <FormLooksProvider looks={classes}>
+                <Form>
+                  <Section title="T" look="card">
+                    <TextField field={ctx.newControl("")} id="t" label="N" look="plain" />
+                  </Section>
+                </Form>
+              </FormLooksProvider>
+            </FluentLooksProvider>
+          </FormProvider>
+        </ControlContextProvider>,
+      ),
+    );
+    // Fluent's own look of a name is the whole: none of the html look's classes beneath it.
+    const body = document.querySelector('[role="heading"]')!.nextElementSibling as HTMLElement;
+    expect(body.style.gap).toBe("7px");
+    expect(container.querySelector(".html-wrap, .html-body")).toBeNull();
+    // A name only the html looks hold is drawn from them, on Fluent's own elements.
+    const input = document.getElementById("t")!;
+    expect(input.classList.contains("html-text")).toBe(true);
+    expect(input.closest(".fui-Input")!.classList.contains("html-frame")).toBe(true);
+    expect(input.closest(".fui-Field")!.classList.contains("html-shell")).toBe(true);
+    expect(document.getElementById(fieldLabelId("t"))!.classList.contains("html-label")).toBe(true);
   });
 
   it("draws the frame as Fluent's own Input, the control in its slot", () => {

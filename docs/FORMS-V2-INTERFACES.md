@@ -1225,7 +1225,9 @@ device and under MUI, Ant and Fluent it is the portable flex properties, and a b
 function of `LookState.width` — written once, the same in all five (LOOKS, "One look table, five
 implementations"). Per-breakpoint columns are therefore ordinary look state, which no typed prop
 could express without re-inventing it. A look that needs `grid` or a selector stays in an html
-class look; those are not in the portable subset.
+class look; those are not in the portable subset, but on the web they need not be: MUI, Ant and
+Fluent draw html's looks for every name their own lack (LOOKS, "html's looks on every web
+implementation"), so a web app's layout is written once.
 
 What makes that work is that **a body's children are the boundaries' own elements**: no design
 chrome outside design mode, no fade wrapper under `transitions={false}`, no inner element unless

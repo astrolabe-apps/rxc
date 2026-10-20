@@ -225,6 +225,12 @@ export interface InputFrameProps {
   look?: LookRef;
   /** CSS for the frame, applied after the look. */
   style?: PortableStyle;
+  /**
+   * Which widget the frame is around, as {@link FieldShellProps.widget} names
+   * it (`"textfield"`, `"select"`, …): a look whose frames differ by widget
+   * — more padding on a text input than on a select — styles by it.
+   */
+  widget?: string;
 }
 
 /**

@@ -34,7 +34,6 @@ import {
   type VisibilityProps,
   warnUnknownLook,
   lookNames,
-  useFormLooks,
   type LookRef,
   type PortableStyle,
   type LookState,
@@ -237,8 +236,9 @@ export function pickLooks<T>(
 
 /**
  * {@link pickLooks}, reporting in development each name that none of `table`,
- * `understood` or the looks the form brought has. Returns a fresh array each
- * call: memoise on its entries, not the array.
+ * `understood` or the html looks in scope ({@link useHtmlLookFallback}: the
+ * html theme's and the form's) has. Returns a fresh array each call: memoise
+ * on its entries, not the array.
  */
 export function useLookLayers<T>(
   kind: string,
@@ -246,19 +246,17 @@ export function useLookLayers<T>(
   table: Record<string, T> | undefined,
   understood?: (name: string) => boolean,
 ): T[] {
-  const form = useFormLooks();
+  const html = useHtmlTheme().looks;
   for (const name of lookNames(look))
-    if (table?.[name] === undefined && !understood?.(name) && form[name] === undefined)
+    if (table?.[name] === undefined && !understood?.(name) && html[name] === undefined)
       warnUnknownLook(kind, name);
   return pickLooks(look, table);
 }
 
 /**
  * {@link pickLook}, reporting in development each name that none of `table`,
- * `understood` (the three emphases an action always draws) or the looks the
- * form brought with it (`useFormLooks`) knows. A form's own looks are classes,
- * which a library implementation cannot draw — but it is not a mistake that it
- * does not.
+ * `understood` (the emphases an action always draws) or the html looks in
+ * scope ({@link useHtmlLookFallback}) knows.
  */
 export function useLastLook<T>(
   kind: string,
@@ -266,9 +264,9 @@ export function useLastLook<T>(
   table: Record<string, T> | undefined,
   understood?: (name: string) => boolean,
 ): T | undefined {
-  const form = useFormLooks();
+  const html = useHtmlTheme().looks;
   for (const name of lookNames(look))
-    if (table?.[name] === undefined && !understood?.(name) && form[name] === undefined)
+    if (table?.[name] === undefined && !understood?.(name) && html[name] === undefined)
       warnUnknownLook(kind, name);
   return pickLook(look, table);
 }
@@ -486,15 +484,70 @@ export function useLookStyles(
 }
 
 /**
+ * The html look a library implementation (MUI, Ant, Fluent) draws for a
+ * boundary: the parts of every name its own looks do not hold, from the html
+ * theme in scope (and the looks the form brought, beneath it).
+ *
+ * On the web an html look is classes and portable styles, which any DOM
+ * carries — so a look an app defines once in its html theme reaches every web
+ * implementation, and a library's own look for a name is an override, not a
+ * requirement. A name the implementation's own looks hold is the library's
+ * whole: the html look of that name is not drawn beneath it. The library's
+ * own looks are laid over this one, since they are its inline styles.
+ *
+ * Reports nothing: the library's own lookup ({@link useLookLayers},
+ * {@link useLastLook}) reports a name that neither holds.
+ *
+ * @param own Whether the implementation's own looks hold a name — its table,
+ *   or a name it always draws (an action's emphases).
+ */
+export function useHtmlLookFallback(
+  kind: string,
+  look: LookRef | undefined,
+  own: (name: string) => boolean,
+  base?: Partial<LookState>,
+): HtmlLookFallback {
+  const looks = useHtmlTheme().looks;
+  const names = lookNames(look).filter((n) => !own(n));
+  const layered = names.length ? lookParts(kind, names, looks, true) : undefined;
+  const ls = useLookStyles(layered, base);
+  return {
+    look: layered,
+    className: (part, cls) =>
+      lookClass(cls, ...(typeof part === "string" ? [part] : part).map((k) => layered?.[k])),
+    style: ls.style,
+    pointer: ls.pointer,
+  };
+}
+
+/** What {@link useHtmlLookFallback} hands a library implementation. */
+export interface HtmlLookFallback {
+  /** The html look's parts, `undefined` when it draws none. */
+  look: LayeredLook | undefined;
+  /** A part's classes (several parts' when one element carries them), over `cls`. */
+  className: (part: LookPartName | readonly LookPartName[], cls?: string) => string | undefined;
+  /** A part's inline style, with `authored` laid over it. */
+  style: (
+    part: LookPartName | readonly LookPartName[],
+    authored?: CSSProperties,
+  ) => CSSProperties | undefined;
+  /** What to spread on the element that reports `pressed` / `hovered`, when the look reads them. */
+  pointer: LookPointer | undefined;
+}
+
+/**
  * A group's look, as the theme's classes or the implementation's styles —
- * reported once in development when neither names it.
+ * reported once in development when neither names it. A name `own` holds is
+ * the implementation's whole, and draws none of the theme's classes.
  */
 function useGroupLook(
   look: LookRef | undefined,
   looks: HtmlTheme["looks"],
   style: GroupLookStyle | undefined,
+  own: ((name: string) => boolean) | undefined,
 ): { classes?: LayeredLook; style?: GroupLookStyle } {
-  return { classes: lookParts("group", look, looks, !!style), style };
+  const names = own ? lookNames(look).filter((n) => !own(n)) : look;
+  return { classes: lookParts("group", names, looks, !own && !!style), style };
 }
 
 /** Join class names, skipping the empty and the false. */
@@ -530,6 +583,7 @@ export function ContentsRegion({
   titleStyle,
   layoutStyle,
   lookStyle,
+  ownLook,
 }: GroupRenderProps & {
   classes?: HtmlTheme["contents"];
   /** The theme's looks. */
@@ -540,6 +594,12 @@ export function ContentsRegion({
    * neither it nor `looks` knows is reported.
    */
   lookStyle?: GroupLookStyle;
+  /**
+   * Whether the implementation's own looks hold a name — for a library
+   * implementation, whose own look replaces the theme's look of that name
+   * rather than being drawn over it. Without it every name is the theme's.
+   */
+  ownLook?: (name: string) => boolean;
   /** The title's typography, for an implementation whose styles are runtime tokens. */
   titleStyle?: CSSProperties;
   /**
@@ -552,7 +612,7 @@ export function ContentsRegion({
   const section = kind === "section";
   const htmlTheme = useHtmlTheme();
   const looks = looksProp ?? htmlTheme.looks;
-  const look = useGroupLook(lookName, looks, lookStyle);
+  const look = useGroupLook(lookName, looks, lookStyle, ownLook);
   const ls = useLookStyles(look.classes, { invalid: !!invalid });
   const colors = htmlTheme.tokens.colors;
   // A look's `control` is the body's layout: the theme's default only when there is none.
@@ -726,16 +786,23 @@ export function Inline({
   classes = defaultHtmlTheme.inline,
   looks: looksProp,
   lookStyle,
+  ownLook,
 }: GroupRenderProps & {
   classes?: HtmlTheme["inline"];
   /** The theme's looks. */
   looks?: HtmlTheme["looks"];
   /** As {@link ContentsRegion}'s. */
   lookStyle?: GroupLookStyle;
+  /**
+   * Whether the implementation's own looks hold a name — for a library
+   * implementation, whose own look replaces the theme's look of that name
+   * rather than being drawn over it. Without it every name is the theme's.
+   */
+  ownLook?: (name: string) => boolean;
 }) {
   const htmlTheme = useHtmlTheme();
   const looks = looksProp ?? htmlTheme.looks;
-  const look = useGroupLook(lookName, looks, lookStyle);
+  const look = useGroupLook(lookName, looks, lookStyle, ownLook);
   const ls = useLookStyles(look.classes);
   const colors = htmlTheme.tokens.colors;
   return (
@@ -1119,10 +1186,16 @@ export function ImageDom({
   const looks = looksProp ?? htmlTheme.looks;
   const colors = htmlTheme.tokens.colors;
   const lookName = p.look;
-  const styled = lookNames(lookName)
-    .map((n) => lookStyle?.(n))
+  // A name the implementation styles is its own whole; the rest are the theme's.
+  const own = lookNames(lookName).map((n) => [n, lookStyle?.(n)] as const);
+  const styled = own
+    .map(([, s]) => s)
     .reduce<CSSProperties | undefined>((a, b) => (a && b ? { ...a, ...b } : (a ?? b)), undefined);
-  const look = lookParts("image", lookName, looks, styled !== undefined);
+  const look = lookParts(
+    "image",
+    own.filter(([, s]) => s === undefined).map(([n]) => n),
+    looks,
+  );
   const ls = useLookStyles(look);
   const w = dimension(getProp(rc, p.width) ?? img.width);
   const h = dimension(getProp(rc, p.height) ?? (getProp(rc, p.width) === undefined ? img.height : undefined));

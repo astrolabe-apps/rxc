@@ -597,6 +597,7 @@ function NativeTextField(p: TextFieldRenderProps): Rendered {
     >
       {withDate(
       <Frame
+        widget="textfield"
         id={p.id}
         look={p.look}
         style={p.style}
@@ -947,6 +948,7 @@ function NativeSelect(p: SelectRenderProps): Rendered {
     >
       <SelectFrameContext.Provider value={true}>
       <Frame
+        widget="select"
         id={p.id}
         look={p.look}
         style={p.style}

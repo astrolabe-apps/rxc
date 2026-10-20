@@ -32,6 +32,8 @@ import {
   Tabs,
   TextDisplay,
   TextField,
+  FormLooksProvider,
+  type ClassLooks,
   useFormValidation,
   useWizard,
   Wizard,
@@ -198,6 +200,17 @@ export function describeConformance(impl: Implementation): void {
       const copy = el.cloneNode(true) as Element;
       copy.querySelectorAll('[aria-hidden="true"]').forEach((h) => h.remove());
       return copy.textContent!.replace(/\s+/g, " ").trim();
+    };
+    // A name from content, as assistive technology computes it: an
+    // aria-hidden subtree left out, an element with aria-label read as it.
+    const nameFromContent = (el: Element): string => {
+      const walk = (n: Node): string => {
+        if (n.nodeType === Node.TEXT_NODE) return n.textContent ?? "";
+        if (!(n instanceof Element) || n.getAttribute("aria-hidden") === "true") return "";
+        const label = n.getAttribute("aria-label");
+        return label !== null ? ` ${label} ` : [...n.childNodes].map(walk).join("");
+      };
+      return walk(el).replace(/\s+/g, " ").trim();
     };
     const texts = (ids: string) =>
       ids
@@ -1427,6 +1440,79 @@ export function describeConformance(impl: Implementation): void {
       expect([logged.splice(0), clicked.mock.calls.length]).toEqual([[], 1]);
     });
 
+    it.skipIf(impl.limits?.classLooks)(
+      "draws a look given as classes on the web, the implementation's own look of a name winning whole",
+      () => {
+        // Classes reach any DOM: a look an app writes once as classes (the
+        // html theme's, or the form's own here) is drawn by every web
+        // implementation, and a library's own look is an override, not a
+        // requirement. `card`, `lead` and `quiet` are the implementation's own
+        // (`impl.looks`), so their classes here are never drawn.
+        const classes: ClassLooks = {
+          wide: { shell: "x-wide-shell", control: "x-wide-body", label: "x-wide-title" },
+          hint: { text: "x-hint" },
+          compact: {
+            shell: "x-compact-shell",
+            label: "x-compact-label",
+            control: "x-compact-control",
+            text: "x-compact-text",
+          },
+          soft: { control: "x-soft", text: "x-soft-text" },
+          card: { shell: "x-not-drawn", control: "x-not-drawn" },
+          lead: { text: "x-not-drawn" },
+          quiet: { control: "x-not-drawn" },
+        };
+        const name = ctx.newControl("");
+        mount(
+          impl.looks(
+            <FormLooksProvider looks={classes}>
+              <Contents title="Wide region" look="wide">
+                <TextDisplay text="in wide" />
+              </Contents>
+              <TextDisplay text="Hint words" look="hint" />
+              <TextField id="compactName" label="Compact name" field={name} look="compact" />
+              <Action actionId="soft" text="Soft button" look="soft" />
+              <Contents title="Card region" look="card">
+                <TextDisplay text="Lead words" look="lead" />
+              </Contents>
+              <Action actionId="quiet" text="Quiet button" look="quiet" />
+            </FormLooksProvider>,
+          ),
+        );
+        const holding = (cls: string, words: string) =>
+          [...container.querySelectorAll(`.${cls}`)].some((e) => e.textContent?.includes(words));
+        const input = byId<HTMLInputElement>("compactName")!;
+        const at = (cls: string) =>
+          !!input.closest(`.${cls}`) || !!input.parentElement?.querySelector(`.${cls}`);
+        expect({
+          wideShell: holding("x-wide-shell", "in wide"),
+          wideBody: holding("x-wide-body", "in wide") && !holding("x-wide-body", "Wide region"),
+          wideTitle: holding("x-wide-title", "Wide region"),
+          hint: holding("x-hint", "Hint words"),
+          compactShell: holding("x-compact-shell", "Compact name") && !!input.closest(".x-compact-shell"),
+          compactLabel: holding("x-compact-label", "Compact name"),
+          compactControl: at("x-compact-control"),
+          compactText: at("x-compact-text"),
+          soft: !!buttonNamed("Soft button")?.closest(".x-soft") ||
+            !!buttonNamed("Soft button")?.querySelector(".x-soft"),
+          softText: holding("x-soft-text", "Soft button"),
+          own: container.querySelectorAll(".x-not-drawn").length,
+        }).toEqual({
+          wideShell: true,
+          wideBody: true,
+          wideTitle: true,
+          hint: true,
+          compactShell: true,
+          compactLabel: true,
+          compactControl: true,
+          compactText: true,
+          soft: true,
+          softText: true,
+          own: 0,
+        });
+      },
+    );
+
     it("draws rich text in a label, a help text and a display, naming and describing by its words", () => {
       mount(
         <>
@@ -1501,9 +1587,13 @@ export function describeConformance(impl: Implementation): void {
       click(buttonNamed("Save")!);
       expect(clicked).toHaveBeenCalledOnce();
       expect(buttonNamed("Save")?.disabled ?? true).toBe(true);
+      // Named by its text while busy: a spinner is not part of the name (Ant's
+      // own loading icon made it "loading Save").
+      expect(nameFromContent(buttonNamed("Save")!)).toBe("Save");
       await act(async () => finish());
       await flush();
       expect(buttonNamed("Save")!.disabled).toBe(false);
+      expect(nameFromContent(buttonNamed("Save")!)).toBe("Save");
     });
 
     it("draws a group action as a pressable wrapper around its children, not as a button", () => {
