@@ -1,6 +1,13 @@
 # Change Log - @react-typed-forms/core
 
-This log was last generated on Thu, 08 Oct 2026 22:30:34 GMT and should not be manually modified.
+This log was last generated on Tue, 20 Oct 2026 00:39:35 GMT and should not be manually modified.
+
+## 5.1.6
+Tue, 20 Oct 2026 00:39:35 GMT
+
+### Patches
+
+- Duplicate-install detection no longer reports a development server's module re-evaluation as a duplicate install. `next dev` re-evaluates server modules once per route it compiles, and each re-evaluation was logged as another copy of the engine. A copy loaded from the same file on a development server is now one warning per process naming that cause (never a throw under strict ambient mode); a copy from another file is reported as before. A copy re-running its own patch no longer counts itself again in `getCompatPatchInfo()`.
 
 ## 5.1.5
 Thu, 08 Oct 2026 22:30:34 GMT

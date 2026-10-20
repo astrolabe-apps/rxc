@@ -344,11 +344,35 @@ const REGISTRY = Symbol.for("@react-typed-forms/core/compat-instances");
 /** Fresh per module evaluation — two copies get two distinct tokens. */
 const MODULE_TOKEN: object = {};
 
+/**
+ * The file this copy was evaluated from. A development server that
+ * re-evaluates its modules (Next.js does, once per route it compiles on the
+ * server) loads the *same file* again, where a duplicate install is another
+ * file — though a bundler loading one file twice is a duplicate too, so the
+ * same file softens the report rather than silencing it.
+ */
+const MODULE_FILE: string | undefined = (() => {
+  try {
+    return import.meta.url;
+  } catch {
+    return undefined;
+  }
+})();
+
+const IS_SERVER: boolean = typeof window === "undefined";
+
 interface CompatRegistry {
   /** One entry per loaded copy of this package. */
   instances: object[];
   /** One entry per distinct `ControlImpl.prototype` that was patched. */
   protos: object[];
+  /**
+   * The file each copy (by token) and each prototype (by the copy that first
+   * patched it) came from. Absent in a registry an older copy created.
+   */
+  files?: WeakMap<object, string>;
+  /** A re-evaluation has been reported: say so once per process, not per route. */
+  reEvaluationReported?: boolean;
 }
 
 function registry(): CompatRegistry {
@@ -393,7 +417,31 @@ const FIX =
  * that only runs in dev cannot catch an install that only goes wrong in the
  * production dependency graph, which is the usual way this happens.
  */
-function reportDuplicate(message: string): void {
+function reportDuplicate(message: string, others: object[]): void {
+  const reg = registry();
+  // Every other copy came from this very file, on a development server:
+  // most likely the server re-evaluating its modules, whose earlier copies
+  // are dead. Said once per process, as a warning — a throw here would take
+  // the development server down with a false alarm.
+  if (
+    IS_DEV &&
+    IS_SERVER &&
+    MODULE_FILE !== undefined &&
+    others.every((o) => reg.files?.get(o) === MODULE_FILE)
+  ) {
+    if (reg.reEvaluationReported) return;
+    reg.reEvaluationReported = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@react-typed-forms/core] ${message}\n    Every copy was loaded from ` +
+        `the same file (${MODULE_FILE}) on a development server, which ` +
+        `usually means the server re-evaluated its modules (Next.js does, ` +
+        `once per route it compiles) and the earlier copies are no longer ` +
+        `used. Check getCompatPatchInfo() in the browser: if it reports one ` +
+        `copy there, nothing is wrong. If it reports more, ${FIX}`,
+    );
+    return;
+  }
   const full = `[@react-typed-forms/core] ${message}\n    ${FIX}`;
   if (strictAmbient) throw new Error(full);
   // eslint-disable-next-line no-console
@@ -403,8 +451,13 @@ function reportDuplicate(message: string): void {
 export function ensurePatched(): void {
   const proto = ControlImpl.prototype as any;
   const reg = registry();
-  reg.instances.push(MODULE_TOKEN);
+  if (!reg.instances.includes(MODULE_TOKEN)) reg.instances.push(MODULE_TOKEN);
   if (!reg.protos.includes(proto)) reg.protos.push(proto);
+  if (MODULE_FILE !== undefined) {
+    reg.files ??= new WeakMap();
+    reg.files.set(MODULE_TOKEN, MODULE_FILE);
+    if (!reg.files.has(proto)) reg.files.set(proto, MODULE_FILE);
+  }
 
   if (reg.protos.length > 1) {
     reportDuplicate(
@@ -413,6 +466,7 @@ export function ensurePatched(): void {
         `patch applies per class, so controls minted by one engine are ` +
         `invisible to the other: reads register dependencies nothing will ` +
         `notify, and components silently stop re-rendering.`,
+      reg.protos.filter((p) => p !== proto),
     );
   }
 
@@ -427,6 +481,7 @@ export function ensurePatched(): void {
           `subscribe to nothing and silently go stale. Strict ambient mode ` +
           `cannot see this: from each copy's point of view the read was ` +
           `collected normally.`,
+        [owner],
       );
     }
     return;
