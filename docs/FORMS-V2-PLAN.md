@@ -1144,6 +1144,8 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
   an app on React Native that needs them.
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
+- **Release notes** are [`FORMS-V2-CHANGELOG.md`](./FORMS-V2-CHANGELOG.md) from here on, every alpha back to
+  alpha.0 reconstructed there; the lists below are where alpha.9's and alpha.10's came from.
 - **Releasing:** the eight v2 packages are bumped to `0.1.0-alpha.10` (lock-step) for `rush publish-alpha`.
   alpha.9's release note is the "for the `alpha.9` notes" list above; **alpha.10's**, from the HVAMS
   trial's follow-ups, with nothing a consumer must change:

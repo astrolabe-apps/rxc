@@ -9,6 +9,9 @@ objects. The same form source that draws under
 **An alpha**, published on the npm `alpha` dist-tag with the other Forms v2
 packages: `npm install @rx-controls/forms-native@alpha`.
 
+**Upgrading?** Each Forms v2 release's [changelog](https://github.com/astrolabe-apps/rxc/blob/main/docs/FORMS-V2-CHANGELOG.md)
+lists what you change first.
+
 ## Requirements
 
 - React Native **0.86** or later (Expo 57), on React 19.2.
