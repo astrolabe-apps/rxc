@@ -211,8 +211,11 @@ export interface HtmlTheme {
      *   no CSS at all, and wins over a `display` the wrapper's classes set.
      * - `"class"`: `hidden` (below), whose CSS must hide it — a fade on the
      *   wrapper itself, keyed on `[data-hidden]`, say.
-     * - `"collapse"`: an animated collapse. The wrapper adds `collapse`
-     *   and holds one extra element, `inner`, around title and body — the
+     * - `"collapse"`: an animated collapse. The wrapper adds `collapse`,
+     *   which animates on `[data-collapsed]` (set a frame before a reveal
+     *   opens, so there is a start), and once it has run (200ms) the wrapper
+     *   is `display: none`, so its padding and its parent's gap go with it.
+     *   It holds one extra element, `inner`, around title and body — the
      *   only mode that renders one, since a grid-rows collapse needs a single
      *   child. Anything styling the wrapper's children (a `layoutClass` gap
      *   between title and body) sees `inner` instead.
@@ -848,11 +851,11 @@ export const tailwindHtmlTheme: HtmlTheme = {
   },
   contents: {
     wrapper: "rxf-contents",
-    // The collapse: grid rows 1fr → 0fr and a fade, keyed on data-hidden.
+    // The collapse: grid rows 1fr → 0fr and a fade, keyed on data-collapsed.
     hideWith: "collapse",
     hidden: "",
     collapse:
-      "grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 data-[hidden]:grid-rows-[0fr] data-[hidden]:opacity-0 data-[hidden]:pointer-events-none",
+      "grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 data-[collapsed]:grid-rows-[0fr] data-[collapsed]:opacity-0 data-[collapsed]:pointer-events-none",
     inner: "rxf-contents-inner min-h-0 overflow-hidden",
     // group.groupLabelClass
     title: "rxf-group-title font-bold",

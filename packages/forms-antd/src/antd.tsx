@@ -98,6 +98,7 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  mergeCss,
   portableCss,
   useLookWidth,
   webIcon,
@@ -293,7 +294,7 @@ function AntFieldShell(p: FieldShellProps) {
       // Explicitly none: Ant's own margin is one an error message takes
       // over, which left a display after a field in error flush against it.
       className={fieldClasses?.shell}
-      style={{ ...({ marginBottom: 0 }), ...shellStyle, ...css(p.style) }}
+      style={mergeCss({ marginBottom: 0, ...shellStyle }, css(p.style))}
       data-look={fieldAttr}
     >
       <RequiredNote
@@ -428,7 +429,7 @@ function AntInputFrame(p: InputFrameProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={fieldClasses?.control}
-      style={{ ...({
+      style={mergeCss({ ...({
         display: "inline-flex",
         alignItems: p.multiline ? "flex-start" : "center",
         gap: token.paddingXXS,
@@ -451,7 +452,7 @@ function AntInputFrame(p: InputFrameProps) {
           : token.colorBgContainer,
         color: p.disabled ? token.colorTextDisabled : token.colorText,
         transition: "all .2s",
-      }), ...fieldLook?.control, ...css(p.style) }}
+      }), ...fieldLook?.control }, css(p.style))}
     >
       {p.start !== undefined && (
         <span style={{ color: token.colorTextPlaceholder }}>
@@ -633,12 +634,11 @@ function AntDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
       <Typography.Text
         id={p.id}
         className={cls("control", "text")}
-        style={{
+        style={mergeCss({
           ...(p.noSelection ? { userSelect: "none" } : undefined),
           ...part("control"),
           ...part("text"),
-          ...css(p.style),
-        }}
+        }, css(p.style))}
       >
         {start}
         {ctl.content}
@@ -732,7 +732,7 @@ function AntCheckList(p: CheckListRenderProps): Rendered {
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={cls("control", "text")}
-        style={{ ...part("control"), ...part("text"), ...css(p.style) }}
+        style={mergeCss({ ...part("control"), ...part("text") }, css(p.style))}
       >
         <Flex vertical gap={8}>
           {ctl.options.map((o, i) => (
@@ -838,12 +838,11 @@ function AntAction(p: ActionRenderProps) {
         {...named}
         {...html.pointer}
         className={html.className("control")}
-        style={{
+        style={mergeCss({
           ...(lookNames(p.look).includes("group") ? groupStyle : {}),
           ...html.style("control"),
           ...(atToken(style, token, { ...NO_LOOK_STATE, width: actionWidth })),
-          ...css(p.style),
-        }}
+        }, css(p.style))}
         data-look={lookAttr(p.look)}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
@@ -1003,18 +1002,18 @@ function AntText(p: TextDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(content)}
-      style={{ ...toneStyle, ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle, css(p.shellStyle))}
     >
       <Typography.Text
         {...look}
         className={html.className(["control", "text"])}
         // Ant's Typography sets its own colour; inherit the shell's tone.
-        style={{ ...({
+        style={mergeCss({
           ...(heading ? { display: "block", ...headingStyle(token, p.headingLevel) } : {}),
           ...html.style(["control", "text"]),
           ...atToken(lookStyle, token, { ...NO_LOOK_STATE, width: textWidth }),
           ...(p.tone ? { color: "inherit" } : {}),
-        }), ...css(p.style) }}
+        }, css(p.style))}
         data-look={lookAttr(p.look)}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
@@ -1044,7 +1043,7 @@ function AntIcon(p: IconDisplayRenderProps) {
       aria-label={p.accessibleName}
       data-look={lookAttr(p.look)}
       className={html.className(["control", "text", "icon"])}
-      style={{ ...({ fontSize: 24, lineHeight: 1, ...html.style(["control", "text", "icon"]), ...(look === undefined ? undefined : atToken(look, token, { ...NO_LOOK_STATE, width: iconWidth })) }), ...css(p.style) }}
+      style={mergeCss({ fontSize: 24, lineHeight: 1, ...html.style(["control", "text", "icon"]), ...(look === undefined ? undefined : atToken(look, token, { ...NO_LOOK_STATE, width: iconWidth })) }, css(p.style))}
     >
       {webIcon(getProp(rc, p.icon), false)}
     </span>
@@ -1055,7 +1054,7 @@ function AntIcon(p: IconDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly}
-      style={{ ...toneStyle, ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle, css(p.shellStyle))}
     >
       {p.accessibleName ? (
         <AntTooltip title={p.accessibleName}>{glyph}</AntTooltip>
@@ -1077,10 +1076,10 @@ function AntHtml(p: HtmlDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(html)}
-      style={{ ...toneStyle, ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle, css(p.shellStyle))}
     >
       <Typography
-        style={{ ...(p.tone ? { color: "inherit" } : undefined), ...css(p.style) }}
+        style={mergeCss({ ...(p.tone ? { color: "inherit" } : undefined) }, css(p.style))}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
@@ -1191,7 +1190,7 @@ function AntRadio(p: RadioRenderProps): Rendered {
         onChange={(e) => ctl.setFromString(String(e.target.value))}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={cls("control", "text")}
-        style={{ ...part("control"), ...part("text"), ...css(p.style) }}
+        style={mergeCss({ ...part("control"), ...part("text") }, css(p.style))}
       >
         <Flex vertical gap={8}>
           {entries.map(({ o, selected }, i) => (
@@ -1285,7 +1284,7 @@ function AntDisclosure(p: DisclosureRenderProps) {
   return (
     <Collapse
       className={html.className("shell")}
-      style={{ ...html.style("shell"), ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
+      style={mergeCss({ ...html.style("shell"), ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined) }, css(p.style))}
       activeKey={p.open ? ["panel"] : []}
       onChange={(keys) => p.setOpen((Array.isArray(keys) ? keys : [keys]).length > 0)}
       destroyOnHidden={false}

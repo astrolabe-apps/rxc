@@ -117,6 +117,7 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  mergeCss,
   portableCss,
   useLookWidth,
   webIcon,
@@ -292,7 +293,7 @@ function FluentFieldShell(p: FieldShellProps) {
     <Field
       orientation={p.orientation}
       className={fieldClasses?.shell}
-      style={{ ...fieldLook?.shell, ...css(p.style) }}
+      style={mergeCss(fieldLook?.shell, css(p.style))}
       data-look={fieldAttr}
       label={
         p.labelPosition === "after" || p.label == null || p.hideLabel
@@ -470,7 +471,7 @@ function FluentInputFrame(p: InputFrameProps) {
     const area = (
       <Textarea
         className={fieldClasses?.control}
-        style={{ ...fieldLook?.control, ...css(p.style) }}
+        style={mergeCss(fieldLook?.control, css(p.style))}
         disabled={p.disabled}
         resize="vertical"
         textarea={control as never}
@@ -489,7 +490,7 @@ function FluentInputFrame(p: InputFrameProps) {
   return (
     <Input
       className={fieldClasses?.control}
-      style={{ ...fieldLook?.control, ...css(p.style) }}
+      style={mergeCss(fieldLook?.control, css(p.style))}
       disabled={p.disabled}
       contentBefore={p.start !== undefined ? <>{slot(p.start)}</> : undefined}
       contentAfter={p.end !== undefined ? <>{slot(p.end)}</> : undefined}
@@ -612,12 +613,11 @@ function FluentDisplayOnly(p: DisplayOnlyRenderProps): Rendered {
     <Text
       id={p.id}
       className={cls("control", "text")}
-      style={{
+      style={mergeCss({
         ...(p.noSelection ? { userSelect: "none" } : undefined),
         ...fieldLook?.control,
         ...fieldLook?.text,
-        ...css(p.style),
-      }}
+      }, css(p.style))}
     >
       {icon(p.startIcon, "start")}
       {ctl.content}
@@ -734,12 +734,11 @@ function FluentCheckList(p: CheckListRenderProps): Rendered {
         aria-describedby={requiredDescribedBy(p)}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={cls("control", "text")}
-        style={{
+        style={mergeCss({
           ...({ display: "flex", flexDirection: "column" }),
           ...fieldLook?.control,
           ...fieldLook?.text,
-          ...css(p.style),
-        }}
+        }, css(p.style))}
       >
         {ctl.options.map((o, i) => (
           <Checkbox
@@ -786,7 +785,7 @@ function FluentSelect(p: SelectRenderProps): Rendered {
           ref={ctl.elementRef}
           id={p.id}
           className={cls("control")}
-          style={{ ...fieldLook?.control, ...css(p.style) }}
+          style={mergeCss(fieldLook?.control, css(p.style))}
           // The `<select>` itself is the text: Fluent's root is a wrapper around it.
           select={fieldLook?.text || cls("text") ? { className: cls("text"), style: fieldLook?.text } : undefined}
           aria-describedby={describedBy(p)}
@@ -845,7 +844,7 @@ function FluentRadio(p: RadioRenderProps): Rendered {
         onChange={(_, d) => ctl.setFromString(d.value)}
         onBlur={onFocusLeave(ctl.onBlur)}
         className={cls("control", "text")}
-        style={{ ...fieldLook?.control, ...fieldLook?.text, ...css(p.style) }}
+        style={mergeCss({ ...fieldLook?.control, ...fieldLook?.text }, css(p.style))}
       >
         {ctl.options.map((o, i) => {
           const selected = ctl.stringValue === String(o.value);
@@ -960,12 +959,11 @@ function FluentAction(p: ActionRenderProps) {
         {...html.pointer}
         className={html.className("control")}
         data-look={lookAttr(p.look)}
-        style={{
+        style={mergeCss({
           ...(lookNames(p.look).includes("group") ? groupStyle : {}),
           ...html.style("control"),
           ...atState(lookStyle, { ...NO_LOOK_STATE, width: actionWidth }),
-          ...css(p.style),
-        }}
+        }, css(p.style))}
         disabled={p.disabled}
         aria-busy={p.busy || undefined}
         icon={icon == null ? undefined : <>{icon}</>}
@@ -1095,13 +1093,13 @@ function FluentText(p: TextDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(content)}
-      style={{ ...toneStyle(p.tone), ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle(p.tone), css(p.shellStyle))}
     >
       <Text
         {...look}
         className={html.className(["control", "text"])}
         // Fluent's Text sets its own colour; inherit the shell's tone.
-        style={{ ...({
+        style={mergeCss({
           ...(heading
             ? {
                 display: "block",
@@ -1112,7 +1110,7 @@ function FluentText(p: TextDisplayRenderProps) {
           ...html.style(["control", "text"]),
           ...atState(lookStyle, { ...NO_LOOK_STATE, width: textWidth }),
           ...(p.tone ? { color: "inherit" } : {}),
-        }), ...css(p.style) }}
+        }, css(p.style))}
         data-look={lookAttr(p.look)}
         {...(heading ? { role: "heading", "aria-level": p.headingLevel } : {})}
       >
@@ -1141,7 +1139,7 @@ function FluentIcon(p: IconDisplayRenderProps) {
       aria-label={p.accessibleName}
       data-look={lookAttr(p.look)}
       className={html.className(["control", "text", "icon"])}
-      style={{ ...({ fontSize: 24, lineHeight: 1, ...html.style(["control", "text", "icon"]), ...look }), ...css(p.style) }}
+      style={mergeCss({ fontSize: 24, lineHeight: 1, ...html.style(["control", "text", "icon"]), ...look }, css(p.style))}
     >
       {webIcon(getProp(rc, p.icon), false)}
     </span>
@@ -1152,7 +1150,7 @@ function FluentIcon(p: IconDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly}
-      style={{ ...toneStyle(p.tone), ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle(p.tone), css(p.shellStyle))}
     >
       {p.accessibleName ? (
         // The glyph is already named; a labelling tooltip would name it twice.
@@ -1176,10 +1174,10 @@ function FluentHtml(p: HtmlDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(html)}
-      style={{ ...toneStyle(p.tone), ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle(p.tone), css(p.shellStyle))}
     >
       <div
-        style={{ ...({ ...typographyStyles.body1, ...(p.tone ? { color: "inherit" } : undefined) }), ...css(p.style) }}
+        style={mergeCss({ ...typographyStyles.body1, ...(p.tone ? { color: "inherit" } : undefined) }, css(p.style))}
         dangerouslySetInnerHTML={{ __html: html ?? "" }}
       />
     </DisplayShell>,
@@ -1280,7 +1278,7 @@ function FluentDisclosure(p: DisclosureRenderProps) {
   return (
     <div
       className={html.className("shell")}
-      style={{ ...html.style("shell"), ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined), ...css(p.style) }}
+      style={mergeCss({ ...html.style("shell"), ...look?.wrapper, ...(p.hidden ? { display: "none" } : undefined) }, css(p.style))}
       data-invalid={p.invalid ? "" : undefined}
     >
       <Button
@@ -1346,11 +1344,11 @@ function FluentDialog(p: DialogRenderProps) {
   if (p.inline)
     return (
       <div
-        style={{ ...({
+        style={mergeCss({
           border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
           borderRadius: tokens.borderRadiusLarge,
           padding: tokens.spacingHorizontalL,
-        }), ...css(p.style) }}
+        }, css(p.style))}
       >
         {p.title && (
           <div style={{ ...typographyStyles.subtitle2, marginBottom: tokens.spacingVerticalS }}>

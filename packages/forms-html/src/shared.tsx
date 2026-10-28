@@ -150,7 +150,7 @@ function withStyle(
   a: CSSProperties | undefined,
   b: CSSProperties | undefined,
 ): CSSProperties | undefined {
-  return a && b ? { ...a, ...b } : (a ?? b);
+  return mergeCss(a, b);
 }
 
 /** A look's parts as ordered layers: each part's value from every look named, earliest first. */
@@ -277,8 +277,11 @@ export function lookAttr(look: LookRef | undefined): string | undefined {
   return names.length ? names.join(" ") : undefined;
 }
 
-/** Lengths in a style that scale with the user's font size, as legacy's `rem` classes did. */
-const REM_KEYS: ReadonlySet<string> = new Set(["fontSize", "lineHeight", "letterSpacing"]);
+/**
+ * Lengths React would otherwise draw unitless: a number is px everywhere in a
+ * portable style, but React reads a bare `lineHeight` as a multiplier.
+ */
+const PX_KEYS: ReadonlySet<string> = new Set(["lineHeight"]);
 const SIDES: Record<string, [string, string]> = {
   marginHorizontal: ["marginLeft", "marginRight"],
   marginVertical: ["marginTop", "marginBottom"],
@@ -286,28 +289,34 @@ const SIDES: Record<string, [string, string]> = {
   paddingVertical: ["paddingTop", "paddingBottom"],
 };
 
-/** The properties that only mean something on a flex container. */
+/**
+ * The properties that only mean something on a flex container. Not `gap`: it
+ * means the same on a grid, and a class can make the element either.
+ */
 const FLEX_CONTAINER: ReadonlySet<string> = new Set([
   "flexDirection",
   "flexWrap",
   "justifyContent",
   "alignItems",
   "alignContent",
-  "gap",
-  "rowGap",
-  "columnGap",
 ]);
+
+/** The keys {@link portableCss} filled in itself, rather than read from the style. */
+const DEFAULTED = Symbol("rxf-defaulted");
+type Defaulted = { [DEFAULTED]?: readonly string[] };
 
 /**
  * A {@link PortableStyle} as an inline style: colour tokens resolved against
- * the theme's `colors`; a number a length in px, but `rem` for the font
- * properties (so the user's font size still scales text, as React Native's
- * does); React Native's `*Horizontal` / `*Vertical` shorthands expanded; a
- * border with a width and no style drawn solid, as React Native's is;
- * `border-box`, so a width plus padding means the same on both; and a flex
- * container (a style with `gap`, `flexDirection`, `justifyContent` …) a
- * `display: flex` column unless it says otherwise, since every React Native
- * view already is one.
+ * the theme's `colors`; a number a length in px, the font properties too —
+ * a `rem` would be one of the host's root size, which is not always 16px
+ * (Bootstrap 3's is 10px); React Native's `*Horizontal` / `*Vertical`
+ * shorthands expanded; a border with a width and no style drawn solid, as
+ * React Native's is; `border-box`, so a width plus padding means the same on
+ * both; and a flex container (a style with `flexDirection`, `justifyContent`
+ * …) a `display: flex` column unless it says otherwise, since every React
+ * Native view already is one. That default is the lowest layer: laid over
+ * another style with {@link mergeCss}, it gives way to a `display` or
+ * `flexDirection` the other sets.
  *
  * @group Theming
  */
@@ -316,24 +325,64 @@ export function portableCss(
   colors: Record<string, string>,
 ): CSSProperties | undefined {
   if (!style) return undefined;
-  const out: Record<string, unknown> = {};
+  const out: Record<string, unknown> & Defaulted = {};
   for (const [k, v] of Object.entries(resolveStyleTokens(style, colors))) {
     if (SIDES[k]) for (const side of SIDES[k]) out[side] = v;
-    else out[k] = REM_KEYS.has(k) && typeof v === "number" ? `${v / 16}rem` : v;
+    else out[k] = PX_KEYS.has(k) && typeof v === "number" ? `${v}px` : v;
   }
   if (!Object.keys(out).length) return undefined;
   if (Object.keys(out).some((k) => /^border(Top|Right|Bottom|Left)?Width$/.test(k)) && out.borderStyle === undefined)
     out.borderStyle = "solid";
   out.boxSizing = "border-box";
   // Every React Native view is a flex container whose main axis is the column,
-  // so `gap`, `justifyContent`, `flexDirection: "row"` just work there. An
-  // element on the web is a block: without this they are silently ignored, and
-  // a look drawn on a device fills a row where the same look on the web stacks.
+  // so `justifyContent`, `flexDirection: "row"` just work there. An element on
+  // the web is a block: without this they are silently ignored, and a look
+  // drawn on a device fills a row where the same look on the web stacks.
   if (out.display === undefined && Object.keys(out).some((k) => FLEX_CONTAINER.has(k))) {
+    const filled = ["display"];
     out.display = "flex";
-    if (out.flexDirection === undefined) out.flexDirection = "column";
+    if (out.flexDirection === undefined) {
+      out.flexDirection = "column";
+      filled.push("flexDirection");
+    }
+    out[DEFAULTED] = filled;
   }
   return out as CSSProperties;
+}
+
+/**
+ * Styles laid over each other in order, as a spread would — except that what
+ * {@link portableCss} filled in itself (a flex container's `display` and
+ * direction) never covers a value an earlier style set: a layout's row, or a
+ * look's, survives an author's `justifyContent`.
+ *
+ * @group Theming
+ */
+export function mergeCss(...styles: (CSSProperties | undefined)[]): CSSProperties | undefined {
+  let out: (Record<string, unknown> & Defaulted) | undefined;
+  for (const s of styles) {
+    if (!s) continue;
+    if (!out) {
+      out = { ...s } as Record<string, unknown> & Defaulted;
+      continue;
+    }
+    const filled = (s as Defaulted)[DEFAULTED] ?? [];
+    const prev = out;
+    const next: Record<string, unknown> & Defaulted = { ...prev };
+    // What the earlier styles filled in stays filled in unless this one sets it.
+    const nowFilled = (prev[DEFAULTED] ?? []).filter((k) => !(k in s) || filled.includes(k));
+    for (const [k, v] of Object.entries(s)) {
+      if (!filled.includes(k)) next[k] = v;
+      else if (!(k in prev)) {
+        next[k] = v;
+        nowFilled.push(k);
+      }
+    }
+    if (nowFilled.length) next[DEFAULTED] = nowFilled;
+    else delete next[DEFAULTED];
+    out = next;
+  }
+  return out as CSSProperties | undefined;
 }
 
 /** A style's box properties and its text properties, each as an inline style. */
@@ -466,7 +515,7 @@ export function useLookStyles(
     style: (part, authored) => {
       const parts = typeof part === "string" ? [part] : part;
       const own = look ? lookStyle(colors, state, ...parts.map((k) => look[k])) : undefined;
-      return own && authored ? { ...own, ...authored } : (authored ?? own);
+      return mergeCss(own, authored);
     },
     pointer: needed
       ? {
@@ -620,6 +669,7 @@ export function ContentsRegion({
   // With transitions off the region goes at once, whatever the theme
   // animates: the attribute, and no collapse.
   const mode = transitions ? classes.hideWith : "attribute";
+  const collapse = useCollapse(!!hidden, mode === "collapse");
   // A heading by role, not an h-element: the level comes from the outline
   // and an h2's user-agent margins and size would restyle every theme.
   const head = title !== undefined && title !== null && (
@@ -678,14 +728,18 @@ export function ContentsRegion({
         )}
       data-look={lookAttr(lookName)}
       data-hidden={hidden ? "" : undefined}
+      data-collapsed={mode === "collapse" && collapse.collapsed ? "" : undefined}
       data-invalid={invalid ? "" : undefined}
       inert={hidden || undefined}
       // The one hide that needs no CSS. The style too, because a `display`
       // from the wrapper's classes beats the attribute without preflight.
+      // A finished collapse goes the same way: at 0fr the wrapper's own
+      // padding and border are still drawn, and its parent's gap still
+      // counts it.
       hidden={(hidden && mode === "attribute") || undefined}
       style={withStyle(
         withStyle(look.style?.wrapper, ls.style("shell", portableCss(shellStyle, colors))),
-        hidden && mode === "attribute" ? { display: "none" } : undefined,
+        (hidden && mode === "attribute") || collapse.gone ? { display: "none" } : undefined,
       )}
     >
       {mode === "collapse" ? (
@@ -701,6 +755,41 @@ export function ContentsRegion({
       )}
     </div>
   );
+}
+
+/** How long the theme's collapse runs: its `duration-200`, and {@link FadeVisibility}'s hold. */
+const COLLAPSE_MS = 200;
+
+/**
+ * An animated collapse's state. `collapsed` is what the animation keys on
+ * (`data-collapsed`); `gone` is set once it has run, when the region leaves
+ * the layout. Revealed, it is drawn collapsed for a frame first, so the
+ * animation has somewhere to start from. Inactive, nothing is held.
+ */
+function useCollapse(hidden: boolean, active: boolean): { collapsed: boolean; gone: boolean } {
+  const [gone, setGone] = useState(hidden);
+  const [opening, setOpening] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    if (hidden) {
+      const t = setTimeout(() => setGone(true), COLLAPSE_MS);
+      return () => clearTimeout(t);
+    }
+    if (gone) {
+      setGone(false);
+      setOpening(true);
+    }
+  }, [hidden, active, gone]);
+  useEffect(() => {
+    if (!opening) return;
+    // Two frames: the first lays out the collapsed region, the second opens it.
+    let f = requestAnimationFrame(() => {
+      f = requestAnimationFrame(() => setOpening(false));
+    });
+    return () => cancelAnimationFrame(f);
+  }, [opening]);
+  if (!active) return { collapsed: hidden, gone: false };
+  return { collapsed: hidden || gone || opening, gone };
 }
 
 const justifyCss = {

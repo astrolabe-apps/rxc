@@ -315,6 +315,30 @@ describe("hiding with no CSS at all", () => {
     expect(el.firstElementChild!.className).toContain("rxf-contents-inner");
   });
 
+  it("takes a finished collapse out of the layout, and opens it again from collapsed", async () => {
+    const hide = dom.ctx.newControl(false);
+    mount(
+      <Contents hidden={hide} title="T" shellStyle={{ padding: 16 }}>
+        {null}
+      </Contents>,
+      { theme: tailwindHtmlTheme },
+    );
+    const el = $<HTMLElement>(".rxf-contents")!;
+    const wait = (ms: number) => act(() => new Promise<void>((r) => setTimeout(r, ms)));
+    expect([el.hasAttribute("data-collapsed"), el.style.display]).toEqual([false, ""]);
+    set(hide, true);
+    // collapsing: still in the layout while the animation runs
+    expect([el.hasAttribute("data-collapsed"), el.style.display]).toEqual([true, ""]);
+    await wait(250);
+    // run: its padding and its parent's gap go with it
+    expect(el.style.display).toBe("none");
+    set(hide, false);
+    // back in the layout, collapsed for a frame so the animation has a start
+    expect([el.hasAttribute("data-collapsed"), el.style.display]).toEqual([true, ""]);
+    await wait(50);
+    expect(el.hasAttribute("data-collapsed")).toBe(false);
+  });
+
   it("puts the title and body straight under the wrapper otherwise", () => {
     mount(
       <Contents title="T" look="body">
@@ -895,7 +919,7 @@ describe("looks: layering, replace and the slots they share with className", () 
     expect(classes(body("z"))).toContain("k-default-layout");
   });
 
-  it("draws a boundary's `style` as an inline style: lengths in px, fonts in rem, tokens from the theme", () => {
+  it("draws a boundary's `style` as an inline style: lengths in px, fonts too, tokens from the theme", () => {
     mount(
       <>
         <TextDisplay
@@ -914,7 +938,7 @@ describe("looks: layering, replace and the slots they share with className", () 
     );
     const p = $("p")!;
     expect([p.style.paddingTop, p.style.fontSize, p.style.borderStyle, p.style.marginLeft, p.style.marginRight]).toEqual([
-      "8px", "1.5rem", "solid", "4px", "4px",
+      "8px", "24px", "solid", "4px", "4px",
     ]);
     expect(p.style.color).toMatch(/#ff0000|255, 0, 0/);
     expect([p.parentElement!.style.opacity, p.parentElement!.style.flexGrow]).toEqual(["0.5", "1"]);
@@ -977,7 +1001,7 @@ describe("looks given as portable styles", () => {
     // classes and styles from different looks in one list: both land
     expect(p.classList.contains("tw-class")).toBe(true);
     expect([p.style.paddingTop, p.style.color]).toEqual(["8px", expect.stringMatching(/#ff0000|255, 0, 0/)]);
-    expect(p.querySelector("span")!.style.fontSize).toBe("2rem");
+    expect(p.querySelector("span")!.style.fontSize).toBe("32px");
     // a field: the control's style on the frame, the text part's on the input
     expect($("#t")!.parentElement!.style.borderRadius).toBe("6px");
     expect($("#t")!.style.color).toMatch(/rgba\(255, 0, 0, 0\.5/);
@@ -995,12 +1019,16 @@ describe("looks given as portable styles", () => {
         <Contents look="block">
           <TextDisplay text="c" />
         </Contents>
+        <Contents look="spaced">
+          <TextDisplay text="d" />
+        </Contents>
       </>,
       {
         theme: theme({
-          stack: { control: { gap: 12 } },
+          stack: { control: { alignItems: "stretch", gap: 12 } },
           row: { control: { flexDirection: "row", justifyContent: "space-between" } },
           block: { control: { padding: 4 } },
+          spaced: { control: { gap: 12 } },
         }),
       },
     );
@@ -1009,6 +1037,46 @@ describe("looks given as portable styles", () => {
     expect([body("b").style.display, body("b").style.flexDirection]).toEqual(["flex", "row"]);
     // no container property: left a block
     expect(body("c").style.display).toBe("");
+    // a gap alone means as much on a grid: whatever the classes make it
+    expect([body("d").style.display, body("d").style.gap]).toEqual(["", "12px"]);
+  });
+
+  it("lets that default give way to a direction set beneath the author's style", () => {
+    mount(
+      <>
+        <Contents layout={{ direction: "row" }} style={{ justifyContent: "center" }}>
+          <TextDisplay text="a" />
+        </Contents>
+        <Contents look="row" style={{ alignItems: "center" }}>
+          <TextDisplay text="b" />
+        </Contents>
+        <Contents look="cls" style={{ gap: 8 }}>
+          <TextDisplay text="c" />
+        </Contents>
+        <Contents look="row" style={{ flexDirection: "column" }}>
+          <TextDisplay text="d" />
+        </Contents>
+      </>,
+      {
+        theme: theme({
+          row: { control: { flexDirection: "row" } },
+          cls: { control: "flex flex-row" },
+        }),
+      },
+    );
+    const body = (t: string) => [...dom.container.querySelectorAll("div")].filter((d) => d.textContent === t).pop()!.parentElement!;
+    // a layout's row and a look's survive the author's flex property
+    expect([body("a").style.flexDirection, body("a").style.justifyContent]).toEqual(["row", "center"]);
+    expect([body("b").style.flexDirection, body("b").style.alignItems]).toEqual(["row", "center"]);
+    // a class look's row: the author's gap sets nothing inline that covers it
+    expect([body("c").style.display, body("c").style.flexDirection, body("c").style.gap]).toEqual(["", "", "8px"]);
+    // what the author says outright still wins
+    expect(body("d").style.flexDirection).toBe("column");
+  });
+
+  it("draws a line height in px, not as React's multiplier", () => {
+    mount(<TextDisplay text="a" style={{ lineHeight: 20, fontSize: 14 }} />);
+    expect([$("p")!.style.lineHeight, $("p")!.style.fontSize]).toEqual(["20px", "14px"]);
   });
 
   it("lets a style `{ replace }` drop the earlier classes and styles, and the author's style win", () => {

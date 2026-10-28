@@ -31,6 +31,9 @@ export const portableTokens = {
   paper: "#f1f5f9",
 };
 
+// A spaced stack says `flexDirection: "column"`: React Native's views are
+// columns already, but the web makes an element one only for a flex property,
+// and `gap` alone is not one (it means as much on a grid).
 export const portableLooks: Record<string, Record<string, Part>> = {
   card: {
     shell: {
@@ -40,7 +43,7 @@ export const portableLooks: Record<string, Record<string, Part>> = {
       borderRadius: 12,
       padding: 16,
     },
-    control: { gap: 12 },
+    control: { flexDirection: "column", gap: 12 },
     labelText: { fontSize: 20, fontWeight: "700", color: "$ink", letterSpacing: 0.2 },
   },
   // A parent places its children (`alignItems`), as here: a child's own
@@ -64,7 +67,7 @@ export const portableLooks: Record<string, Record<string, Part>> = {
   note: { control: { fontStyle: "italic", color: "$ink/60", fontSize: 13 } },
   underlined: { control: { textDecorationLine: "underline", color: "$accent", fontWeight: "600" } },
   field: {
-    shell: { gap: 4 },
+    shell: { flexDirection: "column", gap: 4 },
     control: (s) => ({
       borderWidth: 2,
       borderRadius: 8,
@@ -79,13 +82,13 @@ export const portableLooks: Record<string, Record<string, Part>> = {
   },
   // Choices: the options spaced, their words in ink.
   choice: {
-    shell: { gap: 4 },
-    control: { gap: 6 },
+    shell: { flexDirection: "column", gap: 4 },
+    control: { flexDirection: "column", gap: 6 },
     text: { fontSize: 15, color: "$ink" },
     labelText: { fontSize: 13, fontWeight: "600", color: "$ink/70" },
   },
   readout: {
-    shell: { gap: 4 },
+    shell: { flexDirection: "column", gap: 4 },
     control: { backgroundColor: "$accent/15", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     text: { fontSize: 15, fontWeight: "600", color: "$accent" },
     labelText: { fontSize: 13, fontWeight: "600", color: "$ink/70" },

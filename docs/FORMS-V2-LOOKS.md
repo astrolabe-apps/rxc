@@ -121,13 +121,18 @@ keep it honest, and html's `portableCss` applies them:
 
 - **Box model.** React Native is always `border-box`, so html sets `box-sizing: border-box` on a
   styled element, and draws a border that has a width and no style as `solid`, as React Native does.
-- **Text scales with the user.** React Native text follows the OS font setting; a CSS `px` font
-  size ignores the browser's. So html emits `px` for layout and **`rem` for `fontSize`,
-  `lineHeight` and `letterSpacing`** (16 is `1rem`), as legacy's `rem`-based classes did.
-- **Every view is a flex container.** On React Native `gap`, `justifyContent` and
+- **A number is px, text included.** html emits `px` for `fontSize`, `lineHeight` and
+  `letterSpacing` as for layout (a `lineHeight` written out, since React reads a bare one as a
+  multiplier). It used to emit `rem` (16 to `1rem`) so text followed the browser's font setting,
+  but a `rem` is the host's root size, and a host on Bootstrap 3 sets that to 10px: every font
+  drew at 62%. Page zoom still scales `px`.
+- **Every view is a flex container.** On React Native `justifyContent` and
   `flexDirection: "row"` just work; on the web an element is a block and they are ignored. So html
-  makes an element given any flex-container property a `display: flex` **column** unless it says
-  otherwise (and leaves one with none a block).
+  makes an element given a flex-container property a `display: flex` **column** unless it says
+  otherwise (and leaves one with none a block). That default is the lowest layer: merged with
+  `mergeCss`, it gives way to a `display` or direction a layout, a look or the theme set beneath
+  the author's style. `gap` alone does not trigger it — it means the same on a grid, and a class
+  look that makes the element a row would be covered by an inline column.
 
 Not in the subset, because they do not mean the same: `grid`, selectors, media queries, `:hover`,
 `calc()`, `var()`, `whiteSpace`, `display: block`. Those are a theme's to write in its own terms —
@@ -387,8 +392,9 @@ these findings:
 
 - **A flex container on the web.** Every React Native view is a flex column, so `gap`, `justifyContent`
   and `flexDirection: "row"` just work there; on the web an element is a block and they are silently
-  ignored. `portableCss` now makes an element given any flex-container property a `display: flex`
-  column unless it says otherwise (a test pins it). Found by this comparison: the card had no gaps and
+  ignored. `portableCss` now makes an element given a flex-container property a `display: flex`
+  column unless it says otherwise (a test pins it) — though no longer for `gap` alone, which an
+  internal trial found covering a class look's row. Found by this comparison: the card had no gaps and
   a row stacked on the web.
 - **Placement belongs to the parent.** A child's own `alignSelf` / `flex` reaches the flex item on a
   device, but on the web a wrapper (the visibility wrapper around every boundary) is the item, so the

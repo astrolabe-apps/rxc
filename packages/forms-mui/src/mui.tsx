@@ -119,6 +119,7 @@ import {
   requiredDescribedBy,
   labelEndHelp,
   visuallyHiddenStyle,
+  mergeCss,
   portableCss,
   useLookWidth,
   webIcon,
@@ -964,7 +965,7 @@ function MuiText(p: TextDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(content)}
-      style={{ ...toneStyle, ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle, css(p.shellStyle))}
     >
       <Typography
         variant="body2"
@@ -1017,7 +1018,7 @@ function MuiIcon(p: IconDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly}
-      style={{ ...toneStyle, ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle, css(p.shellStyle))}
     >
       {p.accessibleName ? (
         <MuiTooltip title={p.accessibleName}>{glyph}</MuiTooltip>
@@ -1039,7 +1040,7 @@ function MuiHtml(p: HtmlDisplayRenderProps) {
       tone={p.tone}
       announce={p.announce}
       regionOnly={p.regionOnly || noContent(html)}
-      style={{ ...toneStyle, ...css(p.shellStyle) }}
+      style={mergeCss(toneStyle, css(p.shellStyle))}
     >
       <Typography
         variant="body2"
