@@ -1145,13 +1145,13 @@ proof does not depend on it); a device re-check of press and focus reaching a fu
 - **Next:** more scenarios in ServiceTas (journeys with data: linking MAST, a renewal, the inbox), and
   generated ones for breadth; the actions and custom displays a form needs; DateTime and Time pickers.
 - **Release notes** are [`FORMS-V2-CHANGELOG.md`](./FORMS-V2-CHANGELOG.md) from alpha.10 on; the lists below are where alpha.10's came from.
-- **Releasing:** the eight v2 packages are bumped to `0.1.0-alpha.11` (lock-step) for `rush publish-alpha`.
-  Its note is the changelog's `0.1.0-alpha.11`: an internal trial's three web quirks — a numeric font
-  size in px, `gap` alone no longer a flex column, a finished collapse out of the layout — each with
-  what a consumer changes. Nothing in production depends on it.
+- **Releasing:** the eight v2 packages are bumped to `0.1.0-alpha.12` (lock-step) for `rush publish-alpha`.
+  Its note is the changelog's `0.1.0-alpha.12`: `shell.renderHelp` in the html and native themes, so a
+  theme draws `labelEnd` help as a popover (as ServiceTas's app does) — a theme written out in full
+  names it. Nothing in production depends on it.
 - **Undecided:** how ServiceTas's forms move from classes to looks (one conversion that keeps the
   designer, or on to JSX), and with it whether `look` goes in the C# schema and `forms-schema` and where the
-  converter runs; whether help text keeps its inline reveal (the app shows a popover); group `layout`
+  converter runs; group `layout`
   folding into the portable flex properties; whether html's visibility wrappers become transparent to
   layout; and structural names for layout-only looks.
 - **Elsewhere:** the legacy side of the comparison is the ServiceTas repo's branch
