@@ -7,6 +7,7 @@ export {
   type DatePicker,
   type DatePickerProps,
   type DeepPartial,
+  type HelpRenderProps,
   type NativeTheme,
   type PartialNativeTheme,
 } from "./theme.js";

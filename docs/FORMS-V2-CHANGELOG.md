@@ -11,6 +11,22 @@ through each release's list from yours upward. A release with nothing there need
 
 `@rx-controls/forms-scenarios` is versioned on its own and is not covered here.
 
+## Unreleased
+
+### What you change
+
+- **forms-html, forms-native: a whole theme names `shell.renderHelp`.** Only a theme written out in
+  full (an `HtmlTheme` or `NativeTheme`, not a partial one over a base) needs it: `renderHelp: null`
+  keeps the default button.
+
+### Added
+
+- `shell.renderHelp` in the html and native themes: `labelEnd` help drawn by a component of the
+  theme's — a popover or a tooltip, as ServiceTas's legacy renderers drew it — in place of the
+  button that reveals it in place. It gets the help, the field's `helpLabel`, the trigger's
+  accessible name and the theme's icon drawn (`HelpRenderProps`). The shell keeps the help under the
+  field's help id, hidden, so the control is still described by it.
+
 ## 0.1.0-alpha.11
 
 ### What you change

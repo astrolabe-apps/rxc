@@ -1,4 +1,4 @@
-import { act, type ReactNode } from "react";
+import { act, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { untrackedRead } from "@rx-controls/core";
@@ -21,9 +21,14 @@ import {
   TextField,
   fieldLabelId,
 } from "@rx-controls/forms-react";
-import { Text } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import type { IconDrawArgs, IconSet } from "@rx-controls/forms-react";
-import { NativeThemeProvider, nativeRenderers, type PartialNativeTheme } from "../src/index";
+import {
+  NativeThemeProvider,
+  nativeRenderers,
+  type HelpRenderProps,
+  type PartialNativeTheme,
+} from "../src/index";
 
 /**
  * What the theme reaches, and the React Native behaviour it carries: the
@@ -392,6 +397,32 @@ describe("the native theme", () => {
     expect(glyph()).toBe("v");
     act(() => toggle.click());
     expect(glyph()).toBe("^");
+  });
+
+  it("draws labelEnd help through the theme's renderHelp, the shell's copy kept undisplayed", () => {
+    function Popover(h: HelpRenderProps) {
+      const [open, setOpen] = useState(false);
+      return (
+        <View>
+          <Pressable role="button" aria-label={h.name} onPress={() => setOpen(true)}>
+            {h.icon}
+          </Pressable>
+          {open && <Text testID="pop">{h.help}</Text>}
+        </View>
+      );
+    }
+    mount(
+      <TextField field={ctx.newControl("")} id="f" label="Name" helpText="As on your licence" helpPlacement="labelEnd" />,
+      { shell: { renderHelp: Popover } },
+    );
+    // The theme's trigger, named as the default button would be, and not that button.
+    const trigger = button("Help: Name");
+    expect([trigger.getAttribute("aria-expanded"), style(byId("f-help")).display]).toEqual([null, "none"]);
+    act(() => trigger.click());
+    expect([el.querySelector('[data-testid="pop"]')?.textContent, style(byId("f-help")).display]).toEqual([
+      "As on your licence",
+      "none",
+    ]);
   });
 
   it("styles a help button as labelled only when the field gives it words", () => {

@@ -55,8 +55,9 @@ export const serviceTasOverlay: PartialHtmlTheme = {
     // Legacy's inline-label wrapper in DefaultLayout.
     labelAfter: "inline-flex items-center gap-1",
     control: "",
-    // ServiceTas draws help as a Radix popover at LabelEnd — a component,
-    // not a class, so a theme cannot express it (a shell override can).
+    // ServiceTas draws help as a Radix popover at LabelEnd: a host gives
+    // that as `renderHelp`. The fixture keeps the default button, so it
+    // needs no popover library.
     help: "footnote",
     // layout.renderError (ServiceTas).
     renderError: (e, id) => <ErrorMessage id={id}>{e}</ErrorMessage>,

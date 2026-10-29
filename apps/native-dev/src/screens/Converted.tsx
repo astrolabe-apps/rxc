@@ -10,6 +10,7 @@ import type { ReadContext } from "@rx-controls/core";
 import { NativeThemeProvider, type PartialNativeTheme } from "@rx-controls/forms-native";
 import { nativeStandInHost } from "../host";
 import { DatePickerHost } from "../DatePickerHost";
+import { HelpPopover } from "../HelpPopover";
 import { fontAwesomeIcons } from "../icons/fontAwesome";
 import { serviceTasNativeTheme } from "../../../../packages/forms-native/test/fixtures/serviceTasTheme";
 
@@ -57,7 +58,13 @@ export function Converted({ scenario }: { scenario?: ScenarioLink }) {
       </Text>
     );
   // ServiceTas's own native theme (a fixture), with the converted forms' looks over it.
-  const theme: PartialNativeTheme = { tokens: { colors: data.tokens }, looks: data.looks, date: { picker: DatePickerHost } };
+  // ServiceTas's help as legacy drew it: a popover from the trigger.
+  const theme: PartialNativeTheme = {
+    tokens: { colors: data.tokens },
+    looks: data.looks,
+    date: { picker: DatePickerHost },
+    shell: { renderHelp: HelpPopover },
+  };
   return (
     <View style={{ flex: 1 }}>
       <FormPicker

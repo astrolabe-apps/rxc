@@ -37,6 +37,23 @@ export interface DatePickerProps {
 export type DatePicker = ComponentType<DatePickerProps>;
 
 /**
+ * What {@link NativeTheme}'s `shell.renderHelp` receives: a field's
+ * `labelEnd` help, and what the default button would have drawn.
+ *
+ * @group Theming
+ */
+export interface HelpRenderProps {
+  /** The help: the field's `helpText`. */
+  help: ReactNode;
+  /** The words the field gives its trigger (`helpLabel`), if any. */
+  label?: ReactNode;
+  /** The trigger's accessible name: "Help: ‹label›", or the field's `helpLabel`. */
+  name: string;
+  /** The theme's `helpButton.icon`, drawn. */
+  icon: ReactNode;
+}
+
+/**
  * Every style the React Native implementation puts on an element, one slot
  * per element — React Native `style` objects, a {@link ViewStyle} for a
  * container and a {@link TextStyle} for words. `forms-native`'s API, not the
@@ -107,6 +124,14 @@ export interface NativeTheme {
       /** Added to the button when it has those words: a pill, say, where bare it is an icon. */
       labelled?: ViewStyle;
     };
+    /**
+     * Draw `labelEnd` help as a component — a popover, a tooltip — in place
+     * of the button that reveals it in place. It draws the trigger and
+     * whatever shows the help; the shell keeps the help, not displayed,
+     * under the field's help id, so the web's description still reads it.
+     * `null` uses `helpButton`.
+     */
+    renderHelp: ComponentType<HelpRenderProps> | null;
   };
   /** The input frame: the box around a text input or a select's trigger. */
   frame: {
@@ -523,6 +548,7 @@ export const defaultNativeTheme: NativeTheme = {
       text: "Help",
       label: { ...xs, fontWeight: "700", color: gray[700] },
     },
+    renderHelp: null,
   },
   frame: {
     style: {

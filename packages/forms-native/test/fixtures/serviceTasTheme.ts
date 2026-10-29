@@ -87,7 +87,8 @@ export const serviceTasNativeTheme: PartialNativeTheme = {
     label: { ...withInk(type.headline), flexShrink: 1 },
     // schemas-rn's required element had no marker class of its own; red, as the web fixture's.
     required: { color: "#ef4444" },
-    // The help text is a popover component (`createRNHelpTextRenderer`), triggerLabelClass "caption1".
+    // The help text is a popover component (`createRNHelpTextRenderer`), triggerLabelClass "caption1":
+    // a host gives that as `renderHelp`; the fixture keeps the default button, styled as its trigger.
     help: withInk(type.footnote),
     // labelContainer "flex flex-row gap-[4px] items-baseline flex-wrap shrink": the trigger wraps
     // under a label too long to share its line.

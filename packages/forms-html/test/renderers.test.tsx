@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { act, type ReactNode } from "react";
+import { act, useState, type ReactNode } from "react";
 import { untrackedRead, type Control } from "@rx-controls/core";
 import {
   Action,
@@ -30,6 +30,7 @@ import {
   htmlRenderers,
   HtmlThemeProvider,
   tailwindHtmlTheme,
+  type HelpRenderProps,
   type PartialHtmlTheme,
 } from "../src/index";
 import { flush, setupDom } from "./harness";
@@ -98,6 +99,47 @@ describe("TextField", () => {
     expect([button.getAttribute("aria-expanded"), help.style.clipPath]).toEqual(["true", ""]);
     // The button sits beside the label, in the theme's row.
     expect(button.parentElement!.className).toBe("rxf-label-row");
+  });
+
+  it("draws labelEnd help through the theme's renderHelp, its copy kept hidden to describe the input", () => {
+    let given: HelpRenderProps | undefined;
+    function Popover(h: HelpRenderProps) {
+      given = h;
+      const [open, setOpen] = useState(false);
+      return (
+        <span className="pop">
+          <button type="button" aria-label={h.name} onClick={() => setOpen(true)}>
+            {h.icon}
+            {h.label}
+          </button>
+          {open && <span role="tooltip">{h.help}</span>}
+        </span>
+      );
+    }
+    mount(
+      <TextField
+        field={dom.ctx.newControl("")}
+        id="f"
+        label="Name"
+        helpText="As on your licence"
+        helpPlacement="labelEnd"
+        helpLabel="Why?"
+      />,
+      { theme: { shell: { renderHelp: Popover } } },
+    );
+    const help = $("#f-help")!;
+    // The theme's trigger in the label's row, in place of the default button.
+    expect([$(".pop")!.parentElement!.className, $(".rxf-help-button")]).toEqual(["rxf-label-row", null]);
+    expect([given!.help, given!.label, given!.name]).toEqual([
+      "As on your licence",
+      "Why?",
+      $(".pop button")!.getAttribute("aria-label"),
+    ]);
+    act(() => $<HTMLButtonElement>(".pop button")!.click());
+    // The popover shows the help; the shell's copy only describes the input.
+    expect([$('[role="tooltip"]')!.textContent, help.style.clipPath, $("#f")!.getAttribute("aria-describedby")]).toEqual(
+      ["As on your licence", "inset(50%)", "f-help"],
+    );
   });
 
   it("writes what is typed, and passes inputMode, autoComplete and placeholder", () => {

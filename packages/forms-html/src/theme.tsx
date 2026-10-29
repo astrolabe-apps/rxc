@@ -3,6 +3,7 @@ import {
   isValidElement,
   useContext,
   useMemo,
+  type ComponentType,
   type ReactNode,
 } from "react";
 import {
@@ -13,6 +14,23 @@ import {
   type PortableStyle,
   type Tone,
 } from "@rx-controls/forms-react";
+
+/**
+ * What {@link HtmlTheme}'s `shell.renderHelp` receives: a field's
+ * `labelEnd` help, and what the default button would have drawn.
+ *
+ * @group Theming
+ */
+export interface HelpRenderProps {
+  /** The help: the field's `helpText`. */
+  help: ReactNode;
+  /** The words the field gives its trigger (`helpLabel`), if any. */
+  label?: ReactNode;
+  /** The trigger's accessible name: "Help: ‹label›", or the field's `helpLabel`. */
+  name: string;
+  /** The theme's `helpButton.icon`, drawn. */
+  icon: ReactNode;
+}
 
 /**
  * Every class the HTML implementation emits, one slot per element.
@@ -114,6 +132,14 @@ export interface HtmlTheme {
       /** The words a field gives it (`helpLabel`), beside the icon. */
       labelClassName?: string;
     };
+    /**
+     * Draw `labelEnd` help as a component — a popover, a tooltip — in place
+     * of the button that reveals it in place. It draws the trigger and
+     * whatever shows the help; the shell keeps the help, visually hidden,
+     * under the field's help id, so the control is described by it either
+     * way. `null` uses `helpButton`.
+     */
+    renderHelp: ComponentType<HelpRenderProps> | null;
     /** A field's character count (`showCount`), within its limit. */
     count: string;
     /** The count past the limit, in place of `count`: one colour, not two. */
@@ -617,6 +643,7 @@ export const defaultHtmlTheme: HtmlTheme = {
     },
     error: "rxf-error",
     renderError: null,
+    renderHelp: null,
     required: { className: "rxf-required", text: "*", note: "Required" },
     count: "rxf-count",
     countOver: "rxf-count rxf-count-over",
@@ -814,6 +841,7 @@ export const tailwindHtmlTheme: HtmlTheme = {
     // layout.errorClass
     error: "rxf-error m-0 text-sm text-red-500",
     renderError: null,
+    renderHelp: null,
     // label.requiredElement
     required: { className: "rxf-required text-red-500", text: " *", note: "Required" },
     count: "rxf-count m-0 text-xs text-gray-500",

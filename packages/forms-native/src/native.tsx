@@ -350,22 +350,34 @@ function NativeFieldShell(p: FieldShellProps) {
   );
   // `labelEnd` help: a button beside the label. Its words, for every field,
   // are the theme's; what it describes is the field's own name.
-  const helpButton = labelEnd && (
-    <Pressable
-      role="button"
-      aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
-      aria-expanded={helpOpen}
-      onPress={() => setHelpOpen((o) => !o)}
-      {...sp(t.helpButton.style, p.helpLabel != null && t.helpButton.labelled)}
-    >
-      {icon(t.helpButton.icon, undefined, true)}
-      {p.helpLabel != null && (
-        <Text aria-hidden {...sp(t.helpButton.label)}>
-          {p.helpLabel}
-        </Text>
-      )}
-    </Pressable>
-  );
+  // A theme's own help (a popover) draws the trigger and shows the help
+  // itself; the shell's copy then stays undisplayed, for the web's description.
+  const RenderHelp = t.renderHelp;
+  const helpButton =
+    labelEnd &&
+    (RenderHelp ? (
+      <RenderHelp
+        help={p.helpText}
+        label={p.helpLabel ?? undefined}
+        name={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
+        icon={icon(t.helpButton.icon, undefined, true)}
+      />
+    ) : (
+      <Pressable
+        role="button"
+        aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
+        aria-expanded={helpOpen}
+        onPress={() => setHelpOpen((o) => !o)}
+        {...sp(t.helpButton.style, p.helpLabel != null && t.helpButton.labelled)}
+      >
+        {icon(t.helpButton.icon, undefined, true)}
+        {p.helpLabel != null && (
+          <Text aria-hidden {...sp(t.helpButton.label)}>
+            {p.helpLabel}
+          </Text>
+        )}
+      </Pressable>
+    ));
   // The row of a label beside its control: on a device, one accessible
   // element when the widget asks (a help button inside stays its own stop)
   const rowOf = (style: object, kids: ReactNode) =>
@@ -423,7 +435,7 @@ function NativeFieldShell(p: FieldShellProps) {
         // Kept under its id while closed: the web's description reads it.
         <Text
           id={fieldHelpId(p.id)}
-          {...sp(t.help, !helpOpen && { display: "none" })}
+          {...sp(t.help, (!helpOpen || RenderHelp) && { display: "none" })}
         >
           {p.helpText}
         </Text>

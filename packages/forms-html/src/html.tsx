@@ -157,19 +157,31 @@ function HtmlFieldShell(p: FieldShellProps) {
   // only visually hidden.
   const labelEnd = labelEndHelp(p);
   const [helpOpen, setHelpOpen] = useState(false);
-  const helpButton = labelEnd && (
-    <button
-      type="button"
-      className={t.helpButton.className}
-      aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
-      aria-expanded={helpOpen}
-      aria-controls={fieldHelpId(p.id)}
-      onClick={() => setHelpOpen((o) => !o)}
-    >
-      {icon(t.helpButton.icon)}
-      {p.helpLabel != null && <span className={t.helpButton.labelClassName}>{p.helpLabel}</span>}
-    </button>
-  );
+  // A theme's own help (a popover) draws the trigger and shows the help
+  // itself; the shell's copy then stays hidden, only describing the control.
+  const RenderHelp = t.renderHelp;
+  const helpButton =
+    labelEnd &&
+    (RenderHelp ? (
+      <RenderHelp
+        help={p.helpText}
+        label={p.helpLabel ?? undefined}
+        name={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
+        icon={icon(t.helpButton.icon)}
+      />
+    ) : (
+      <button
+        type="button"
+        className={t.helpButton.className}
+        aria-label={helpButtonName(t.helpButton.text, p.label, p.helpLabel)}
+        aria-expanded={helpOpen}
+        aria-controls={fieldHelpId(p.id)}
+        onClick={() => setHelpOpen((o) => !o)}
+      >
+        {icon(t.helpButton.icon)}
+        {p.helpLabel != null && <span className={t.helpButton.labelClassName}>{p.helpLabel}</span>}
+      </button>
+    ));
   const withHelp = (label: ReactNode) =>
     labelEnd ? (
       <div className={t.labelRow}>
@@ -240,7 +252,7 @@ function HtmlFieldShell(p: FieldShellProps) {
         <p
           className={t.help}
           id={fieldHelpId(p.id)}
-          style={helpOpen ? undefined : visuallyHiddenStyle}
+          style={helpOpen && !RenderHelp ? undefined : visuallyHiddenStyle}
         >
           {p.helpText}
         </p>
