@@ -86,8 +86,10 @@ export interface ValidationScope {
    * A touched field inside is showing an error — what a marker on a tab, a
    * step or a section header reports, so the marker and the errors on screen
    * always agree. A container touches what it held when the user leaves it
-   * (another tab, another page, a dialog closing), the way a field is touched
-   * on blur; nothing is showing on a form nobody has touched.
+   * (another tab, a wizard page left forward, a dialog closing), the way a
+   * field is touched on blur — but not a wizard page left backward, since
+   * going back is not an attempt at the page; nothing is showing on a form
+   * nobody has touched.
    */
   showingErrors(rc: ReadContext): boolean;
   /** An asynchronous validator inside has not answered yet. */

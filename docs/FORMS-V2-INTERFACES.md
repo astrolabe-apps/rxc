@@ -879,8 +879,14 @@ field inside has an error. Reading `isValid` instead — the first build — mar
 first page red on load, and made a marker disagree with the page under it (one field touched
 and fine, another untouched and empty: the step red, nothing red on the page). So a container
 is **touched when the user leaves it**, the way a field is on blur: switching tab, moving page
-(by click, Back, Next, or the bound index moving) and a dialog closing — however it closes —
-`touchAll()` what was left. That is core's own `setTouched` cascade applied at the container,
+forward (Next, a step or `goTo` to a later page, or the bound index moving) and a dialog
+closing — however it closes — `touchAll()` what was left. **Moving a wizard back does not**
+(Back, a step or `goTo` to an earlier page): going back is not an attempt at the page, and a
+half-finished page left with Back would otherwise show every required field in error on return.
+The wizard records the intent of each move it makes just before writing the index; list order
+is only a guess at direction on a branching wizard, so `goTo(key, { touch })` decides it
+outright, and a move it did not make (the bound index written from outside, the current page
+hiding) touches as before. That is core's own `setTouched` cascade applied at the container,
 and it keeps the two in step: a marked tab shows its errors when you return to it. Not while
 the region is read-only, disabled, or in design mode, where there is nothing to fix. Legacy had
 no marker at all — `DefaultWizardRenderer` styled steps active / completed only, and computed a

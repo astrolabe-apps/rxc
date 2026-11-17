@@ -346,9 +346,11 @@ describe("Wizard", () => {
 
   it("validates a page not reached yet, but marks it only once it has been left", async () => {
     const name = dom.ctx.newControl("");
+    const page = dom.ctx.newControl<number | undefined>(0);
     function Reversed() {
       return (
         <Wizard
+          page={page}
           items={[
             { key: "first", title: "1", children: <p /> },
             { key: "later", title: "2", children: <TextField field={name} required /> },
@@ -362,7 +364,7 @@ describe("Wizard", () => {
     click("[data-next]");
     await flush();
     expect(marked('[data-page="later"]')).toBe(false);
-    click("[data-back]");
+    set(page, 0);
     expect(rc.isTouched(name)).toBe(true);
     expect(marked('[data-page="later"]')).toBe(true);
   });
@@ -375,6 +377,95 @@ describe("Wizard", () => {
     set(page, 1);
     expect(rc.isTouched(name)).toBe(true);
     expect(marked('[data-page="who"]')).toBe(true);
+  });
+});
+
+describe("Wizard: leaving a page", () => {
+  let wizard!: WizardController;
+  function Grab() {
+    wizard = useWizard();
+    return null;
+  }
+  // Each page holds a required field, empty, so a touch shows as an error.
+  const fields = { a: "", b: "", c: "" };
+  let controls: Record<keyof typeof fields, Control<string>>;
+  let page: Control<number | undefined>;
+  function setup(at = 0) {
+    controls = {
+      a: dom.ctx.newControl(""),
+      b: dom.ctx.newControl(""),
+      c: dom.ctx.newControl(""),
+    };
+    page = dom.ctx.newControl<number | undefined>(at);
+    mount(
+      <Wizard
+        page={page}
+        items={(Object.keys(fields) as (keyof typeof fields)[]).map((k) => ({
+          key: k,
+          title: k,
+          children: (
+            <>
+              {k === "a" && <Grab />}
+              <TextField field={controls[k]} required />
+            </>
+          ),
+        }))}
+      />,
+    );
+  }
+  const touched = () =>
+    (Object.keys(fields) as (keyof typeof fields)[]).filter((k) =>
+      rc.isTouched(controls[k]),
+    );
+
+  it("does not touch the page Back leaves, built-in or the controller's", () => {
+    setup(2);
+    click("[data-back]");
+    expect(rc.getValue(page)).toBe(1);
+    act(() => wizard.back());
+    expect(rc.getValue(page)).toBe(0);
+    expect(touched()).toEqual([]);
+    expect(marked('[data-page="b"]')).toBe(false);
+    expect(marked('[data-page="c"]')).toBe(false);
+  });
+
+  it("touches the page a forward goTo leaves, and not one a backward goTo leaves", () => {
+    setup();
+    act(() => wizard.goTo("c"));
+    expect(touched()).toEqual(["a"]);
+    act(() => wizard.goTo("b"));
+    expect(touched()).toEqual(["a"]);
+    act(() => wizard.goTo("c"));
+    expect(touched()).toEqual(["a", "b"]);
+  });
+
+  it("lets an explicit touch win over the list order", () => {
+    setup(1);
+    act(() => wizard.goTo("c", { touch: false }));
+    expect(touched()).toEqual([]);
+    act(() => wizard.goTo("a", { touch: true }));
+    expect(touched()).toEqual(["c"]);
+  });
+
+  it("touches on a move it did not make: a bound index written from outside, back or forward", () => {
+    setup(2);
+    // A recorded intent is spent by its own move, not carried to the next.
+    act(() => wizard.back());
+    expect(touched()).toEqual([]);
+    set(page, 0);
+    expect(touched()).toEqual(["b"]);
+    set(page, 2);
+    expect(touched()).toEqual(["a", "b"]);
+  });
+
+  it("still touches on Next: the page a passed Next leaves, and the page a refused one keeps", async () => {
+    setup();
+    set(controls.a, "Ada");
+    click("[data-next]");
+    await flush();
+    expect([rc.getValue(page), touched()]).toEqual([1, ["a"]]);
+    expect(await act(() => wizard.next())).toBe(false);
+    expect([rc.getValue(page), touched()]).toEqual([1, ["a", "b"]]);
   });
 });
 

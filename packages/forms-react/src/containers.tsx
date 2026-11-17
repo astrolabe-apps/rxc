@@ -136,13 +136,20 @@ function useTouchOnLeave<K>(
   current: K,
   leave: (left: K) => void,
   locked: boolean,
+  intent?: { current: boolean | undefined },
 ) {
   const last = useRef(current);
   useEffect(() => {
     const left = last.current;
     last.current = current;
-    if (left !== current && !locked) leave(left);
-  }, [current, leave, locked]);
+    if (left === current) return;
+    // Whether the move that got here asked to touch: read once, and spent
+    // whether or not it applied. Nothing recorded — a write from outside,
+    // a hidden page handing over — touches, as any leave does.
+    const touch = intent?.current ?? true;
+    if (intent) intent.current = undefined;
+    if (touch && !locked) leave(left);
+  }, [current, leave, locked, intent]);
 }
 
 /** Locked for {@link useTouchOnLeave}: read-only, disabled or design mode. */
@@ -409,7 +416,10 @@ export interface WizardProps {
    * pages' own actions move it — through {@link useWizard}, or by writing a
    * bound `page`. Everything else is the wizard's either way: one page at a
    * time, every page mounted and validating, hidden pages skipped, a page
-   * left touched.
+   * left forward touched and one left backward not — going back is not an
+   * attempt at the page, so a half-finished page shows no errors on return.
+   * A move the wizard did not make (a bound `page` written from outside, the
+   * current page hiding) touches the page it left.
    */
   navigation?: "builtin" | "none";
   /** Hide the wizard. */
@@ -455,8 +465,8 @@ export interface WizardRenderItem {
   hidden: boolean;
   /**
    * A touched field on this page is showing an error — see
-   * {@link ValidationScope.showingErrors}. Leaving a page touches it, and so
-   * does a refused Next.
+   * {@link ValidationScope.showingErrors}. Leaving a page forward touches it,
+   * and so does a refused Next; leaving it backward does not.
    */
   invalid: boolean;
   /** The user has been to this page. */
@@ -485,10 +495,14 @@ export interface WizardRenderProps {
    * button drawing it shows busy.
    */
   next(): Promise<void>;
-  /** Go back to the previous shown page. */
+  /** Go back to the previous shown page, leaving the page untouched. */
   back(): void;
-  /** Go to a page, by index into `items`. Does nothing for a hidden one. */
-  goTo(index: number): void;
+  /**
+   * Go to a page, by index into `items` — a step in the strip. Does nothing
+   * for a hidden one. The page left is touched when the target comes later
+   * in `items` and not when it comes earlier, unless `touch` says otherwise.
+   */
+  goTo(index: number, options?: WizardMoveOptions): void;
   /** Design mode: show every page at once. */
   stacked: boolean;
   /**
@@ -536,14 +550,34 @@ export interface WizardController {
    * so an action can go on to its server call only then.
    */
   next(): Promise<boolean>;
-  /** Go back to the previous shown page. */
+  /**
+   * Go back to the previous shown page, leaving the page untouched: going
+   * back keeps its answers without judging them, so its errors show only
+   * once the user moves on from it forward.
+   */
   back(): void;
   /**
    * Go to a page by key, unchecked — for an outcome the host decided, such
-   * as a server call's. The page left is touched, as on any move. Does
-   * nothing for a hidden page or an unknown key.
+   * as a server call's. The page left is touched when the target comes later
+   * in `items` (forward, as Next touches) and not when it comes earlier
+   * (back, as Back does not). List order is only a guess at direction on a
+   * branching wizard, so `touch` decides it outright. Does nothing for a
+   * hidden page or an unknown key.
    */
-  goTo(key: string): void;
+  goTo(key: string, options?: WizardMoveOptions): void;
+}
+
+/**
+ * How a wizard move treats the page it leaves.
+ *
+ * @group Authoring
+ */
+export interface WizardMoveOptions {
+  /**
+   * Touch the page left, so its errors show. Defaults to whether the target
+   * page comes later in `items` than the current one.
+   */
+  touch?: boolean;
 }
 
 const WizardContext = createContext<WizardController | undefined>(undefined);
@@ -613,8 +647,13 @@ export function wizardRenderer(
       items.map((i) => i.hidden),
       scopes,
     );
-    const goTo = (i: number | undefined) => {
+    // The intent of the move being made, for the leave below: whether the
+    // page left is touched. Set just before the index is written.
+    const touchOnLeave = useRef<boolean | undefined>(undefined);
+    const goTo = (i: number | undefined, options?: WizardMoveOptions) => {
       if (i === undefined || i < 0 || i >= items.length || hiddenAt[i]) return;
+      if (i === index) return;
+      touchOnLeave.current = options?.touch ?? i > index;
       update((wc) => wc.setValue(indexControl, i));
     };
     useEffect(() => {
@@ -628,6 +667,7 @@ export function wizardRenderer(
         if (k !== undefined) scopes.get(k)?.touchAll();
       },
       lockedHere(scope, rc),
+      touchOnLeave,
     );
 
     // The page's gate — the same `check()` a form's submit is.
@@ -641,7 +681,7 @@ export function wizardRenderer(
       // Only from the page that was checked: one moved away from while its
       // validators settled stays where the user took it.
       if (passed && latest.current.index === checked)
-        latest.current.goTo(latest.current.after());
+        latest.current.goTo(latest.current.after(), { touch: true });
       return passed;
     };
     // The controller's methods read the latest render's, so one captured
@@ -652,7 +692,7 @@ export function wizardRenderer(
       checkedNext,
       goTo,
       after: () => after(index),
-      back: () => goTo(before(index)),
+      back: () => goTo(before(index), { touch: false }),
       keys,
     };
     const latest = useRef(current);
@@ -668,9 +708,9 @@ export function wizardRenderer(
         check: (options) => latest.current.checkPage(options),
         next: () => latest.current.checkedNext(),
         back: () => latest.current.back(),
-        goTo: (key) => {
+        goTo: (key, options) => {
           const i = latest.current.keys.indexOf(key);
-          if (i >= 0) latest.current.goTo(i);
+          if (i >= 0) latest.current.goTo(i, options);
         },
       }),
       [pageKey, canBack, canNext],
@@ -691,7 +731,7 @@ export function wizardRenderer(
       canBack,
       canNext,
       next: async () => void (await checkedNext()),
-      back: () => goTo(before(index)),
+      back: () => goTo(before(index), { touch: false }),
       goTo,
       stacked,
       navigation: props.navigation ?? "builtin",
