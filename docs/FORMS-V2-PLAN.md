@@ -559,7 +559,7 @@ runs before anything that touches the loader lands.
   same level under MUI, Ant and Fluent.
 - **Host-driven wizards (G2). ✅** `WizardProps.navigation: "none"` draws no step strip and no
   Back / Next. Everything else stays the wizard's — one page at a time from the bound index,
-  every page mounted and validating, hidden pages skipped, a page left touched, visited and
+  every page mounted and validating, hidden pages skipped, a page left forward touched, visited and
   error markers — and `useWizard()`, for code inside a page, hands out the same `next()` /
   `back()` the buttons use (the page's `check()`, async validators awaited, hidden pages
   skipped) plus `goTo(key)`, for an outcome a server call decides.

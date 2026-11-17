@@ -11,6 +11,24 @@ through each release's list from yours upward. A release with nothing there need
 
 `@rx-controls/forms-scenarios` is versioned on its own and is not covered here.
 
+## Unreleased
+
+### What you change
+
+- **forms-react: moving a wizard back no longer touches the page it leaves.** `back()` (the
+  controller's and the built-in Back) leaves the page untouched, so a half-finished page left with
+  Back shows no errors on return; `goTo` touches only when the target comes later in `items`. A
+  form that held a global lock across its Back action (`disableType="global"` and an `async`
+  handler) to dodge the touch can drop that and call `wizard.back()` or `wizard.goTo(key)`. To
+  keep the old touch on a backward move, pass `goTo(key, { touch: true })`.
+
+### Added
+
+- `WizardController.goTo(key, { touch })` and `WizardRenderProps.goTo(index, { touch })`
+  (`WizardMoveOptions`): whether the page left is touched, for a branching wizard where list order
+  does not say which way the user is going. Next, a refused check, tab switches and a bound `page`
+  written from outside touch as before.
+
 ## 0.1.0-alpha.12
 
 ### What you change
